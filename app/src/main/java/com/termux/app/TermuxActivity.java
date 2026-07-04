@@ -567,8 +567,15 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             if (session != null) {
                 if (session.isRunning()) {
                     String textToSend = editText.getText().toString();
-                    if (textToSend.length() == 0) textToSend = "\r";
+                    boolean hasText = textToSend.length() > 0;
+                    if (!hasText) textToSend = "\r";
                     session.write(textToSend);
+
+                    // Auto-hide text input panel after sending text
+                    if (hasText) {
+                        setTextInputVisible(false);
+                        updateToggleTextInputButtonIcon();
+                    }
                 } else {
                     mTermuxTerminalSessionActivityClient.removeFinishedSession(session);
                 }
@@ -1112,6 +1119,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
             if (mIsVisible) {
                 fixTermuxActivityBroadcastReceiverIntent(intent);
+                action = intent.getAction();
 
                 switch (action) {
                     case TERMUX_ACTIVITY.ACTION_NOTIFY_APP_CRASH:
