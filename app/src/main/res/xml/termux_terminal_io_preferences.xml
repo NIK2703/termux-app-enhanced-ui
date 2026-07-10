@@ -23,6 +23,13 @@
             app:summaryOn="Text input field is visible above extra keys"
             app:summaryOff="Text input field is hidden" />
 
+        <SwitchPreferenceCompat
+            app:key="settings_button_enabled"
+            app:defaultValue="true"
+            app:title="@string/termux_settings_button_enabled_title"
+            app:summaryOn="@string/termux_settings_button_enabled_on"
+            app:summaryOff="@string/termux_settings_button_enabled_off" />
+
     </PreferenceCategory>
 
 </PreferenceScreen>

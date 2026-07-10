@@ -182,6 +182,11 @@
                 <string name="termux_soft_keyboard_enabled_off">Soft keyboard will be disabled.</string>
                 <string name="termux_soft_keyboard_enabled_on">Soft keyboard will be enabled. (Default)</string>
 
+                <!-- Settings button in tabs panel -->
+                <string name="termux_settings_button_enabled_title">Show settings button</string>
+                <string name="termux_settings_button_enabled_on">Settings button is shown in the tabs panel. (Default)</string>
+                <string name="termux_settings_button_enabled_off">Settings button is hidden. Open Settings via long-press on the terminal &#8594; More… &#8594; Settings.</string>
+
                 <!-- Soft Keyboard Only If No Hardware-->
                 <string name="termux_soft_keyboard_enabled_only_if_no_hardware_title">Soft Keyboard Only If No Hardware</string>
                 <string name="termux_soft_keyboard_enabled_only_if_no_hardware_off">Soft keyboard will be enabled even if

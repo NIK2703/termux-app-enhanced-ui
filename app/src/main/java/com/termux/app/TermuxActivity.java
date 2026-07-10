@@ -646,6 +646,19 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         settingsButton.setOnClickListener(v -> {
             ActivityUtils.startActivity(this, new Intent(this, SettingsActivity.class));
         });
+        updateSettingsButtonVisibility();
+    }
+
+    /** Whether the tabs-panel settings button is enabled in settings (default: shown). */
+    public boolean isSettingsButtonEnabled() {
+        return getSharedPreferences("termux_prefs", MODE_PRIVATE).getBoolean("settings_button_enabled", true);
+    }
+
+    /** Show/hide the tabs-panel settings button based on the setting. */
+    public void updateSettingsButtonVisibility() {
+        ImageButton settingsButton = findViewById(R.id.settings_button);
+        if (settingsButton != null)
+            settingsButton.setVisibility(isSettingsButtonEnabled() ? View.VISIBLE : View.GONE);
     }
 
     private void setNewSessionButtonView() {
@@ -1073,7 +1086,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
      * @return true if should be visible, false otherwise
      */
     public boolean isTextInputVisible() {
-        return getSharedPreferences("termux_prefs", MODE_PRIVATE).getBoolean(PREF_TEXT_INPUT_VISIBLE, true);
+        return getSharedPreferences("termux_prefs", MODE_PRIVATE).getBoolean(PREF_TEXT_INPUT_VISIBLE, false);
     }
 
 
@@ -1088,6 +1101,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
     private static final String ACTION_TEXT_INPUT_VISIBILITY_CHANGED = "com.termux.TEXT_INPUT_VISIBILITY_CHANGED";
     private static final String ACTION_TEXT_INPUT_ENABLED_CHANGED = "com.termux.TEXT_INPUT_ENABLED_CHANGED";
+    private static final String ACTION_SETTINGS_BUTTON_ENABLED_CHANGED = "com.termux.SETTINGS_BUTTON_ENABLED_CHANGED";
 
     private void registerTermuxActivityBroadcastReceiver() {
         IntentFilter intentFilter = new IntentFilter();
@@ -1096,6 +1110,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         intentFilter.addAction(TERMUX_ACTIVITY.ACTION_REQUEST_PERMISSIONS);
         intentFilter.addAction(ACTION_TEXT_INPUT_VISIBILITY_CHANGED);
         intentFilter.addAction(ACTION_TEXT_INPUT_ENABLED_CHANGED);
+        intentFilter.addAction(ACTION_SETTINGS_BUTTON_ENABLED_CHANGED);
 
         registerReceiver(mTermuxActivityBroadcastReceiver, intentFilter);
     }
@@ -1133,6 +1148,12 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             if (ACTION_TEXT_INPUT_ENABLED_CHANGED.equals(action)) {
                 Logger.logDebug(LOG_TAG, "Received intent to change text input enabled state");
                 updateToggleTextInputButtonVisibility();
+                return;
+            }
+
+            if (ACTION_SETTINGS_BUTTON_ENABLED_CHANGED.equals(action)) {
+                Logger.logDebug(LOG_TAG, "Received intent to change settings button enabled state");
+                updateSettingsButtonVisibility();
                 return;
             }
 
