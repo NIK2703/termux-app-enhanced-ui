@@ -404,6 +404,14 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         final Intent intent = getIntent();
         setIntent(null);
 
+        // After a data restore, close all stale sessions and open a fresh one so the user
+        // is not left looking at a terminal whose shell/config no longer matches the container.
+        boolean resetSessions = intent != null
+            && intent.getBooleanExtra(TERMUX_ACTIVITY.EXTRA_RESET_SESSIONS, false);
+        if (resetSessions && mTermuxService != null) {
+            mTermuxService.removeAllTermuxSessions();
+        }
+
         if (mTermuxService.isTermuxSessionsEmpty()) {
             if (mIsVisible) {
                 TermuxInstaller.setupBootstrapIfNeeded(TermuxActivity.this, () -> {
@@ -914,27 +922,27 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
      * if targeting targetSdkVersion 30 (android 11) and running on sdk 30 (android 11) and higher.
      */
     public void requestStoragePermission(boolean isPermissionCallback) {
-        new Thread() {
-            @Override
-            public void run() {
-                // Do not ask for permission again
-                int requestCode = isPermissionCallback ? -1 : PermissionUtils.REQUEST_GRANT_STORAGE_PERMISSION;
+        // Must run on the UI thread: PermissionUtils.requestPermissions() ends up calling
+        // Activity.requestPermissions(), which is a no-op / throws off the UI thread on Android 11+,
+        // so the permission dialog would never appear. All callers (onReceive, onActivityResult,
+        // onRequestPermissionsResult) already run on the UI thread, so no threading is needed here.
+        // Do not ask for permission again
+        int requestCode = isPermissionCallback ? -1 : PermissionUtils.REQUEST_GRANT_STORAGE_PERMISSION;
 
-                // If permission is granted, then also setup storage symlinks.
-                if(PermissionUtils.checkAndRequestLegacyOrManageExternalStoragePermission(
-                    TermuxActivity.this, requestCode, !isPermissionCallback)) {
-                    if (isPermissionCallback)
-                        Logger.logInfoAndShowToast(TermuxActivity.this, LOG_TAG,
-                            getString(com.termux.shared.R.string.msg_storage_permission_granted_on_request));
+        // If permission is granted, then also setup storage symlinks.
+        if(PermissionUtils.checkAndRequestLegacyOrManageExternalStoragePermission(
+            TermuxActivity.this, requestCode, !isPermissionCallback)) {
+            if (isPermissionCallback)
+                Logger.logInfoAndShowToast(TermuxActivity.this, LOG_TAG,
+                    getString(com.termux.shared.R.string.msg_storage_permission_granted_on_request));
 
-                    TermuxInstaller.setupStorageSymlinks(TermuxActivity.this);
-                } else {
-                    if (isPermissionCallback)
-                        Logger.logInfoAndShowToast(TermuxActivity.this, LOG_TAG,
-                            getString(com.termux.shared.R.string.msg_storage_permission_not_granted_on_request));
-                }
-            }
-        }.start();
+            // Create the storage symlinks off the UI thread (native symlink calls).
+            new Thread(() -> TermuxInstaller.setupStorageSymlinks(TermuxActivity.this)).start();
+        } else {
+            if (isPermissionCallback)
+                Logger.logInfoAndShowToast(TermuxActivity.this, LOG_TAG,
+                    getString(com.termux.shared.R.string.msg_storage_permission_not_granted_on_request));
+        }
     }
 
     @Override
@@ -1159,7 +1167,23 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
             // Reload styling must work even when the activity is in the background
             // (e.g. when theme is changed from Settings while TermuxActivity is behind it),
-            // so handle it before the mIsVisible guard.
+            // Rewrite the action first: termux-setup-storage sends `reload_style=storage` which
+            // must become ACTION_REQUEST_PERMISSIONS before any other action handling, regardless
+            // of activity visibility, so the storage permission dialog is never dropped.
+            fixTermuxActivityBroadcastReceiverIntent(intent);
+            action = intent.getAction();
+
+            // Storage-permission request (termux-setup-storage). Handle even when the activity
+            // is in the background or mid-recreate, otherwise the request is silently dropped and
+            // termux-setup-storage fails (no permission dialog is ever shown).
+            if (TERMUX_ACTIVITY.ACTION_REQUEST_PERMISSIONS.equals(action)) {
+                Logger.logDebug(LOG_TAG, "Received intent to request storage permissions");
+                requestStoragePermission(false);
+                return;
+            }
+
+            // Reload styling must work even when the activity is in the background
+            // (e.g. theme changed from Settings while TermuxActivity is behind it).
             if (TERMUX_ACTIVITY.ACTION_RELOAD_STYLE.equals(action)) {
                 Logger.logWarn(LOG_TAG, "THEME-DEBUG: received ACTION_RELOAD_STYLE, recreateActivity=" + intent.getBooleanExtra(TERMUX_ACTIVITY.EXTRA_RECREATE_ACTIVITY, true));
                 reloadActivityStyling(intent.getBooleanExtra(TERMUX_ACTIVITY.EXTRA_RECREATE_ACTIVITY, true));
@@ -1167,17 +1191,10 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             }
 
             if (mIsVisible) {
-                fixTermuxActivityBroadcastReceiverIntent(intent);
-                action = intent.getAction();
-
                 switch (action) {
                     case TERMUX_ACTIVITY.ACTION_NOTIFY_APP_CRASH:
                         Logger.logDebug(LOG_TAG, "Received intent to notify app crash");
                         TermuxCrashUtils.notifyAppCrashFromCrashLogFile(context, LOG_TAG);
-                        return;
-                    case TERMUX_ACTIVITY.ACTION_REQUEST_PERMISSIONS:
-                        Logger.logDebug(LOG_TAG, "Received intent to request storage permissions");
-                        requestStoragePermission(false);
                         return;
                     default:
                 }
@@ -1228,6 +1245,14 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         Intent intent = new Intent(context, TermuxActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         return intent;
+    }
+
+    /** Start TermuxActivity and close all existing terminal sessions, opening a fresh one.
+     * Used after a data restore so the user does not keep stale sessions. */
+    public static void startTermuxActivityWithSessionReset(@NonNull final Context context) {
+        Intent intent = newInstance(context);
+        intent.putExtra(TERMUX_ACTIVITY.EXTRA_RESET_SESSIONS, true);
+        ActivityUtils.startActivity(context, intent);
     }
 
 }

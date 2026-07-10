@@ -36,4 +36,18 @@
         app:summary="@string/termux_terminal_view_preferences_summary"
         app:fragment="com.termux.app.fragments.settings.termux.TerminalViewPreferencesFragment"/>
 
+    <PreferenceCategory app:title="@string/backup_restore_dialog_title" app:iconSpaceReserved="false">
+        <Preference
+            app:key="backup_container"
+            app:title="@string/backup_preference_title"
+            app:summary="@string/backup_preference_summary"
+            app:iconSpaceReserved="false" />
+
+        <Preference
+            app:key="restore_container"
+            app:title="@string/restore_preference_title"
+            app:summary="@string/restore_preference_summary"
+            app:iconSpaceReserved="false" />
+    </PreferenceCategory>
+
 </PreferenceScreen>

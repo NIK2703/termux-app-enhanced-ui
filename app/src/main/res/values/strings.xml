@@ -252,4 +252,21 @@
     <!-- Donate Preference -->
     <string name="donate_preference_title">Donate</string>
 
+    <!-- Backup / Restore Preference -->
+    <string name="backup_preference_title">Backup Termux Data</string>
+    <string name="backup_preference_summary">Save the Termux data directory (installed packages + home) to a tar.gz file</string>
+    <string name="restore_preference_title">Restore Termux Data</string>
+    <string name="restore_preference_summary">Restore the Termux data directory from a tar.gz backup file</string>
+    <string name="backup_restore_backup_filename">termux-data-backup.tar.gz</string>
+    <string name="backup_restore_dialog_title">Termux Data Backup / Restore</string>
+    <string name="backup_restore_warning_backup">This will create a compressed archive of your Termux data directory (installed packages and environment together with your home directory).\n\nChoose a destination file to save the backup.</string>
+    <string name="backup_restore_warning_restore">Restoring will OVERWRITE the current Termux data directory (installed packages plus your home directory) with the contents of the selected backup file. Existing data will be LOST.\n\n⚠ If the restore fails — because the backup file is corrupted, incomplete, or the connection is interrupted during the process — your Termux environment will be LEFT EMPTY. There will be no way to recover the original data.\n\nThis cannot be undone. It is strongly recommended to back up FIRST and verify the backup file is valid.</string>
+    <string name="backup_restore_backup_started">Creating backup…</string>
+    <string name="backup_restore_restore_started">Restoring backup…</string>
+    <string name="backup_restore_backup_success">Backup created successfully</string>
+    <string name="backup_restore_restore_success">Data restored successfully</string>
+    <string name="backup_restore_failed_title">Operation Failed</string>
+    <string name="backup_restore_need_termux">The termux binary (tar) was not found. Please open Termux at least once so the container is set up.</string>
+    <string name="backup_restore_choose_backup">Select a .tar.gz backup file to restore</string>
+
 </resources>

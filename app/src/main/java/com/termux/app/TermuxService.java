@@ -635,6 +635,15 @@ public final class TermuxService extends Service implements AppShell.AppShellCli
         return index;
     }
 
+    /** Remove all TermuxSessions (used after a data restore to drop stale sessions
+     * whose binaries/config no longer match the restored container). */
+    public synchronized void removeAllTermuxSessions() {
+        // Iterate over a copy: finish() triggers onTermuxSessionExited which mutates the list.
+        for (TermuxSession session : new ArrayList<>(mShellManager.mTermuxSessions)) {
+            session.finish();
+        }
+    }
+
     /** Callback received when a {@link TermuxSession} finishes. */
     @Override
     public void onTermuxSessionExited(final TermuxSession termuxSession) {

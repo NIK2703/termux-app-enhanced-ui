@@ -966,6 +966,10 @@ public final class TermuxConstants {
             /**  Intent {@code boolean} extra for whether to recreate activity for the TERMUX_ACTIVITY.ACTION_RELOAD_STYLE intent. */
             public static final String EXTRA_RECREATE_ACTIVITY = TERMUX_APP.TERMUX_ACTIVITY_NAME + ".EXTRA_RECREATE_ACTIVITY"; // Default: "com.termux.app.TermuxActivity.EXTRA_RECREATE_ACTIVITY"
 
+            /** Intent {@code boolean} extra telling {@link TERMUX_ACTIVITY} to close all existing
+             * terminal sessions after a data restore and open a fresh one. */
+            public static final String EXTRA_RESET_SESSIONS = TERMUX_APP.TERMUX_ACTIVITY_NAME + ".EXTRA_RESET_SESSIONS"; // Default: "com.termux.app.TermuxActivity.EXTRA_RESET_SESSIONS"
+
 
             /** Intent action to make termux request storage permissions */
             public static final String ACTION_REQUEST_PERMISSIONS = TermuxConstants.TERMUX_PACKAGE_NAME + ".app.request_storage_permissions"; // Default: "com.termux.app.request_storage_permissions"
