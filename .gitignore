@@ -37,3 +37,7 @@ local.properties
 .swp
 ehthumbs.db
 Thumbs.db
+
+# Local signing / SDK config (contains secrets)
+app/keystore.properties
+local.properties

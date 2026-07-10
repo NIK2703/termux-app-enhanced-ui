@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Terminal toolbar theme-aware colors (dark overrides) -->
+    <color name="terminal_toolbar_background">#000000</color>
+    <color name="terminal_toolbar_tabs_background">#000000</color>
+    <color name="terminal_toolbar_text_color">#ffffff</color>
+    <color name="terminal_toolbar_text_color_hint">#999999</color>
+    <color name="terminal_toolbar_icon_tint">#ffffff</color>
+
+    <!-- Drawable colors for dark mode, matching original hardcoded values -->
+    <color name="terminal_toolbar_text_input_bg">#0a0a0a</color>
+    <color name="terminal_toolbar_text_input_stroke">#333333</color>
+    <color name="terminal_toolbar_session_tab_bg">#121212</color>
+    <color name="terminal_toolbar_session_tab_bg_selected">#2a2a2a</color>
+</resources>

@@ -66,8 +66,18 @@ public final class TerminalRenderer {
         final int[] palette = mEmulator.mColors.mCurrentColors;
         final int cursorShape = mEmulator.getCursorStyle();
 
+        // Paint the full terminal background on every frame. Without this, only cells whose
+        // background differs from the default get a background rect drawn (see drawTextRun), so the
+        // large default-background area stays transparent and shows whatever is behind the canvas
+        // (the window DecorView, set separately by updateBackgroundColor()). That means a
+        // color-scheme change applied via invalidate()/onScreenUpdated() would recolor the glyphs
+        // but leave the pane background stale until the window background was separately updated.
+        // Clearing the canvas here makes invalidate() a complete repaint, which is exactly what a
+        // Dark<->System (or any) theme swap relies on to update without a full activity relaunch.
         if (reverseVideo)
             canvas.drawColor(palette[TextStyle.COLOR_INDEX_FOREGROUND], PorterDuff.Mode.SRC);
+        else
+            canvas.drawColor(palette[TextStyle.COLOR_INDEX_BACKGROUND], PorterDuff.Mode.SRC);
 
         float heightOffset = mFontLineSpacingAndAscent;
         for (int row = topRow; row < endRow; row++) {

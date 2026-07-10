@@ -16,12 +16,17 @@
 
 
     <!-- TermuxActivity DayNight NoActionBar theme. -->
+    <!-- Light values: used when night mode is disabled, so the activity UI is light. -->
     <style name="Theme.TermuxActivity.DayNight.NoActionBar" parent="Theme.TermuxApp.DayNight.NoActionBar">
         <!-- Primary brand color. -->
         <item name="colorPrimary">@color/black</item>
-        <item name="colorPrimaryVariant">@color/black</item>
+        <item name="colorPrimaryVariant">@color/grey_900</item>
 
-        <item name="android:windowBackground">@color/black</item>
+        <item name="android:windowBackground">@color/white</item>
+
+        <!-- Status bar: dark text/icons on light background -->
+        <item name="android:statusBarColor">@color/white</item>
+        <item name="android:windowLightStatusBar">true</item>
 
         <!-- Avoid action mode toolbar pushing down terminal content when
              selecting text on pre-6.0 (non-floating toolbar). -->
@@ -40,10 +45,10 @@
         <item name="termuxActivityDrawerImageTint">@color/black</item>
 
         <!-- Extra keys colors. -->
-        <item name="extraKeysButtonTextColor">@color/white</item>
-        <item name="extraKeysButtonActiveTextColor">@color/red_400</item>
-        <item name="extraKeysButtonBackgroundColor">@color/extra_keys_button_background</item>
-        <item name="extraKeysButtonActiveBackgroundColor">@color/grey_800</item>
+        <item name="extraKeysButtonTextColor">@color/black</item>
+        <item name="extraKeysButtonActiveTextColor">@color/red_800</item>
+        <item name="extraKeysButtonBackgroundColor">@color/extra_keys_button_background_light</item>
+        <item name="extraKeysButtonActiveBackgroundColor">@color/extra_keys_button_active_background_light</item>
     </style>
 
 </resources>

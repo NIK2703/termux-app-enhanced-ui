@@ -215,7 +215,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         mProperties = TermuxAppSharedProperties.getProperties();
         reloadProperties();
 
-        setActivityTheme();
+        applyTermuxTheme();
 
         super.onCreate(savedInstanceState);
 
@@ -435,6 +435,12 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         // Update the {@link TerminalSession} and {@link TerminalEmulator} clients.
         mTermuxService.setTermuxTerminalSessionClient(mTermuxTerminalSessionActivityClient);
+
+        // Re-apply terminal fonts/colors now that the session is bound. This is required when the
+        // activity was recreated (e.g. on a system day/night theme change) while the session was
+        // not yet attached, so checkForFontAndColors() called earlier had no session to repaint.
+        if (mTermuxTerminalSessionActivityClient != null)
+            mTermuxTerminalSessionActivityClient.checkForFontAndColors();
     }
 
     @Override
@@ -459,7 +465,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
 
 
-    private void setActivityTheme() {
+    private void applyTermuxTheme() {
         // Update NightMode.APP_NIGHT_MODE
         TermuxThemeUtils.setAppNightMode(mProperties.getNightMode());
 
@@ -467,6 +473,14 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         // trigger recreation of activity when uiMode/dark mode configuration is changed so that
         // day or night theme takes affect.
         AppCompatActivityUtils.setNightMode(this, NightMode.getAppNightMode().getName(), true);
+
+        // NOTE: The terminal color scheme (checkForFontAndColors()) is intentionally NOT applied
+        // here. At this point (onCreate line ~218) setContentView() has not run yet, so
+        // mTerminalView is still null and mTermuxTerminalSessionActivityClient has not been
+        // constructed. Applying it here would be a silent no-op (getTerminalView() == null),
+        // which is why a hot theme swap (recreate / day-night switch) left the terminal
+        // unpainted while only the toolbar+status bar updated. The terminal repaint is done
+        // in setTermuxTerminalViewAndClients() once the view and client exist.
     }
 
     private void setMargins() {
@@ -1101,7 +1115,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             if (intent == null) return;
 
             String action = intent.getAction();
-            
+
             // Handle text input visibility change even when activity is in background
             if (ACTION_TEXT_INPUT_VISIBILITY_CHANGED.equals(action)) {
                 Logger.logDebug(LOG_TAG, "Received intent to change text input visibility");
@@ -1117,6 +1131,15 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 return;
             }
 
+            // Reload styling must work even when the activity is in the background
+            // (e.g. when theme is changed from Settings while TermuxActivity is behind it),
+            // so handle it before the mIsVisible guard.
+            if (TERMUX_ACTIVITY.ACTION_RELOAD_STYLE.equals(action)) {
+                Logger.logWarn(LOG_TAG, "THEME-DEBUG: received ACTION_RELOAD_STYLE, recreateActivity=" + intent.getBooleanExtra(TERMUX_ACTIVITY.EXTRA_RECREATE_ACTIVITY, true));
+                reloadActivityStyling(intent.getBooleanExtra(TERMUX_ACTIVITY.EXTRA_RECREATE_ACTIVITY, true));
+                return;
+            }
+
             if (mIsVisible) {
                 fixTermuxActivityBroadcastReceiverIntent(intent);
                 action = intent.getAction();
@@ -1125,10 +1148,6 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                     case TERMUX_ACTIVITY.ACTION_NOTIFY_APP_CRASH:
                         Logger.logDebug(LOG_TAG, "Received intent to notify app crash");
                         TermuxCrashUtils.notifyAppCrashFromCrashLogFile(context, LOG_TAG);
-                        return;
-                    case TERMUX_ACTIVITY.ACTION_RELOAD_STYLE:
-                        Logger.logDebug(LOG_TAG, "Received intent to reload styling");
-                        reloadActivityStyling(intent.getBooleanExtra(TERMUX_ACTIVITY.EXTRA_RECREATE_ACTIVITY, true));
                         return;
                     case TERMUX_ACTIVITY.ACTION_REQUEST_PERMISSIONS:
                         Logger.logDebug(LOG_TAG, "Received intent to request storage permissions");

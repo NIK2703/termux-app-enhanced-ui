@@ -3,6 +3,7 @@ package com.termux.shared.theme;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.content.res.TypedArray;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -22,6 +23,24 @@ public class ThemeUtils {
         if (context == null) return false;
         return (context.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
 
+    }
+
+    /**
+     * Will return true if the device's *system* (not app-overridden) night mode is enabled.
+     *
+     * <p>Reads the {@link Resources#getSystem()} configuration instead of any Activity or
+     * Application context. This is the authoritative source for {@link NightMode#SYSTEM}, since
+     * the app simply follows the device's day/night setting. It is immune to the staleness that
+     * {@code context.getResources().getConfiguration().uiMode} can exhibit for Application/Activity
+     * contexts: AppCompatDelegate applies night mode to the *activity* via
+     * {@code applyOverrideConfiguration}, which is never propagated to the Application's base
+     * {@link Resources}, so an Application-context read taken right after a {@code recreate()} can
+     * still report the previous night state. Using the system resources guarantees the terminal
+     * color scheme matches the activity/toolbar theme (which is driven by the activity config).</p>
+     */
+    public static boolean isSystemNightModeEnabled() {
+        final Configuration systemConfig = Resources.getSystem().getConfiguration();
+        return (systemConfig.uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
     }
 
     /** Will return true if mode is set to {@link NightMode#TRUE}, otherwise will return true if

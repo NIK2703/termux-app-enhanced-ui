@@ -38,8 +38,11 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
 import com.termux.terminal.KeyHandler;
+import com.termux.terminal.TerminalColors;
 import com.termux.terminal.TerminalEmulator;
 import com.termux.terminal.TerminalSession;
+import com.termux.terminal.TextStyle;
+
 import com.termux.view.textselection.TextSelectionCursorController;
 
 /** View displaying and interacting with a {@link TerminalSession}. */
@@ -1008,7 +1011,11 @@ public final class TerminalView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         if (mEmulator == null) {
-            canvas.drawColor(0XFF000000);
+            // Use the static COLOR_SCHEME's default background as a placeholder while no emulator
+            // is attached. This avoids a hardcoded 0XFF000000 being shown during the gap between
+            // activity recreation (recreate / system day-night swap) and session reattachment,
+            // which would otherwise flash black independent of the current night mode.
+            canvas.drawColor(TerminalColors.COLOR_SCHEME.mDefaultColors[TextStyle.COLOR_INDEX_BACKGROUND]);
         } else {
             // render the terminal view and highlight any selected text
             int[] sel = mDefaultSelectors;

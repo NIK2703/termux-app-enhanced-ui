@@ -33,7 +33,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="@color/black"
+            android:background="@color/terminal_toolbar_background"
             android:layout_alignParentBottom="true">
 
             <!-- Text input with rounded corners and border -->
@@ -54,8 +54,8 @@
                     android:maxLines="1"
                     android:inputType="text"
                     android:importantForAutofill="no"
-                    android:textColor="@android:color/white"
-                    android:textColorHighlight="@android:color/darker_gray"
+                    android:textColor="@color/terminal_toolbar_text_color"
+                    android:textColorHighlight="@color/grey_400"
                     android:textCursorDrawable="@null"
                     android:background="@android:color/transparent"
                     tools:ignore="LabelFor" />
@@ -68,7 +68,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:background="@color/black"
+                android:background="@color/terminal_toolbar_tabs_background"
                 android:paddingVertical="2dp">
 
                 <HorizontalScrollView
@@ -96,7 +96,7 @@
                     android:src="@drawable/ic_add"
                     android:background="@drawable/session_tab_background"
                     android:contentDescription="@string/action_new_session"
-                    android:tint="@android:color/white"
+                    android:tint="@color/terminal_toolbar_icon_tint"
                     android:scaleType="center" />
 
                 <!-- Toggle text input visibility button -->
@@ -109,7 +109,7 @@
                     android:src="@drawable/ic_keyboard_hide"
                     android:background="@drawable/session_tab_background"
                     android:contentDescription="@string/action_toggle_text_input"
-                    android:tint="@android:color/white"
+                    android:tint="@color/terminal_toolbar_icon_tint"
                     android:scaleType="center" />
 
                 <ImageButton
@@ -121,7 +121,7 @@
                     android:src="@drawable/ic_settings"
                     android:background="@drawable/session_tab_background"
                     android:contentDescription="@string/action_open_settings"
-                    android:tint="@android:color/white"
+                    android:tint="@color/terminal_toolbar_icon_tint"
                     android:scaleType="center" />
 
             </LinearLayout>
@@ -131,6 +131,7 @@
                 style="?android:attr/buttonBarStyle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="@color/terminal_toolbar_background"
                 android:orientation="horizontal" />
 
         </LinearLayout>

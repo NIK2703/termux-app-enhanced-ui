@@ -233,6 +233,10 @@
     <!-- About Preference -->
     <string name="about_preference_title">About</string>
 
+    <!-- Theme Preference -->
+    <string name="theme_mode_title">App Theme</string>
+    <string name="theme_mode_summary">Choose app and terminal theme</string>
+
     <!-- Donate Preference -->
     <string name="donate_preference_title">Donate</string>
 

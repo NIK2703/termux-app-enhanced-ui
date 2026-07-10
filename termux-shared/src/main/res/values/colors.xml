@@ -15,6 +15,19 @@
     <color name="grey_800">#424242</color>
     <color name="grey_900">#212121</color>
     <color name="extra_keys_button_background">#1a1a1a</color>
+    <color name="extra_keys_button_background_light">#e8e8e8</color>
+    <color name="extra_keys_button_active_background_light">#cccccc</color>
+
+    <!-- Terminal toolbar theme-aware colors (light defaults) -->
+    <color name="terminal_toolbar_background">#ffffff</color>
+    <color name="terminal_toolbar_tabs_background">#f5f5f5</color>
+    <color name="terminal_toolbar_text_color">#000000</color>
+    <color name="terminal_toolbar_text_color_hint">#666666</color>
+    <color name="terminal_toolbar_icon_tint">#000000</color>
+    <color name="terminal_toolbar_text_input_bg">#f0f0f0</color>
+    <color name="terminal_toolbar_text_input_stroke">#cccccc</color>
+    <color name="terminal_toolbar_session_tab_bg">#e8e8e8</color>
+    <color name="terminal_toolbar_session_tab_bg_selected">#d0d0d0</color>
 
     <color name="red_error">#DC143C</color>
     <color name="red_error_link">#FC143C</color>

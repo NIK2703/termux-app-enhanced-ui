@@ -24,9 +24,13 @@ import com.termux.shared.termux.terminal.TermuxTerminalSessionClientBase;
 import com.termux.shared.termux.TermuxConstants;
 import com.termux.app.TermuxService;
 import com.termux.shared.termux.settings.properties.TermuxPropertyConstants;
+import com.termux.shared.theme.ThemeUtils;
+import com.termux.shared.theme.NightMode;
+import com.termux.view.TerminalView;
 import com.termux.shared.termux.terminal.io.BellHandler;
 import com.termux.shared.logger.Logger;
 import com.termux.terminal.TerminalColors;
+import com.termux.terminal.TerminalEmulator;
 import com.termux.terminal.TerminalSession;
 import com.termux.terminal.TerminalSessionClient;
 import com.termux.terminal.TextStyle;
@@ -72,6 +76,16 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
             setCurrentSession(getCurrentStoredSessionOrLast());
             termuxSessionListNotifyUpdated();
         }
+
+        // Re-apply the terminal color scheme now that the session is (re)attached, but ONLY when
+        // the activity was recreated (e.g. System Light<->Dark switch). On a recreate, the
+        // mColors.reset() inside applyTerminalColorScheme() is skipped during onCreate() because
+        // the session is still null, and the session is only (re)attached here -- so without this
+        // the persisted terminal keeps its stale palette and only the panel/status-bar repaint.
+        // We deliberately guard with isActivityRecreated() so a normal foreground-from-background
+        // does NOT reset mColors, which would otherwise wipe shell-set OSC dynamic colors.
+        if (mActivity.isActivityRecreated())
+            checkForFontAndColors();
 
         // The current terminal session may have changed while being away, force
         // a refresh of the displayed terminal.
@@ -306,6 +320,14 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
             }
         }
 
+        // Re-apply the terminal font/color scheme after the session is attached. This is required
+        // after a hot theme swap (recreate / system day-night change): the previously-attached
+        // session is re-bound to a brand-new TerminalView here, and a checkForFontAndColors()
+        // that ran earlier (e.g. from onServiceConnected) may have executed before the emulator
+        // was bound to the new view, so its repaint would have been silently dropped. Re-applying
+        // now guarantees the terminal matches the current night mode.
+        checkForFontAndColors();
+
         // We call the following even when the session is already being displayed since config may
         // be stale, like current session not selected or scrolled to.
         checkAndScrollToSession(session);
@@ -494,7 +516,45 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
     }
 
 
+    /**
+     * Apply terminal fonts and colors for the current theme.
+     * Determines the effective night mode from Termux's own {@link NightMode#getAppNightMode()}
+     * (the source of truth). For {@link NightMode#SYSTEM} the actual system night mode is resolved
+     * from the device's system resources via {@link ThemeUtils#isSystemNightModeEnabled()}, NOT the
+     * application context and NOT the activity context.
+     *
+     * <p>Why the <i>system</i> resources and not the application/activity context:
+     * <ul>
+     *   <li>The Application context's {@code uiMode} is updated independently of the activity
+     *       lifecycle and can hold a stale configuration right after a {@code recreate()} — especially
+     *       on OEM ROMs (e.g. MIUI/HyperOS) — so it can still report the OLD night state while the
+     *       recreated activity already switched. That is the original bug: the toolbar/status bar
+     *       (re-themed from the activity config) update, but the terminal (read from the app context)
+     *       keeps the previous scheme.</li>
+     *   <li>The activity context is better than the application context, but AppCompat applies night
+     *       mode to the activity via {@code applyOverrideConfiguration}. When the app uses
+     *       {@code MODE_NIGHT_FOLLOW_SYSTEM} it should mirror the <i>actual device</i> day/night
+     *       setting, which is exactly what {@link Resources#getSystem()} exposes — the one true
+     *       source of the device {@code uiMode}, unaffected by any per-activity override.</li>
+     * </ul>
+     * Reading the system resources guarantees the terminal color scheme tracks the same device
+     * night state that drives the activity/toolbar theme, keeping them in sync after any
+     * recreate or direct system {@code uiMode} change.
+     */
     public void checkForFontAndColors() {
+        final NightMode appNightMode = NightMode.getAppNightMode();
+        final boolean isNight;
+        if (appNightMode == NightMode.SYSTEM) {
+            // Read the authoritative device night state directly from the system resources.
+            isNight = ThemeUtils.isSystemNightModeEnabled();
+        } else {
+            isNight = (appNightMode == NightMode.TRUE);
+        }
+        applyTerminalColorScheme(isNight);
+    }
+
+    /** Apply terminal fonts and the color scheme (light or dark) for the given night mode. */
+    private void applyTerminalColorScheme(boolean isNight) {
         try {
             File colorsFile = TermuxConstants.TERMUX_COLOR_PROPERTIES_FILE;
             File fontFile = TermuxConstants.TERMUX_FONT_FILE;
@@ -504,28 +564,101 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
                 try (InputStream in = new FileInputStream(colorsFile)) {
                     props.load(in);
                 }
+                TerminalColors.COLOR_SCHEME.updateWith(props);
+            } else if (!isNight) {
+                // No user colors.properties in light mode: use a built-in light scheme so the
+                // terminal matches the light app theme.
+                TerminalColors.COLOR_SCHEME.updateWith(getLightTerminalColorScheme());
+            } else {
+                // No custom colors.properties in dark mode: updateWith() calls reset() FIRST,
+                // which restores the built-in DEFAULT_COLORSCHEME (black background / white
+                // foreground) — i.e. the correct DARK terminal scheme. Passing an EMPTY props is
+                // therefore intentional and is NOT a no-op: it resets the static COLOR_SCHEME to
+                // dark. (This is correct behaviour; do not "fix" it by loading a separate dark
+                // scheme — empty props already yields the dark default.)
+                TerminalColors.COLOR_SCHEME.updateWith(props);
             }
-
-            TerminalColors.COLOR_SCHEME.updateWith(props);
-            TerminalSession session = mActivity.getCurrentSession();
-            if (session != null && session.getEmulator() != null) {
-                session.getEmulator().mColors.reset();
+            // Reset the colors on the emulator the TerminalView is actually rendering. If the view
+            // is not yet attached to a session (e.g. during activity recreation on a system
+            // day/night switch, before attachSession()/updateSize() binds mEmulator), fall back to
+            // the current session's emulator so the color update is not silently lost. Both paths
+            // resolve to the same TerminalEmulator instance once the view is attached.
+            TerminalView terminalView = mActivity.getTerminalView();
+            TerminalEmulator emulator = (terminalView != null) ? terminalView.mEmulator : null;
+            if (emulator == null) {
+                TerminalSession session = mActivity.getCurrentSession();
+                if (session != null) emulator = session.getEmulator();
+            }
+            if (emulator != null) {
+                emulator.mColors.reset();
             }
             updateBackgroundColor();
+
+            // A full forced redraw is NOT required: TerminalRenderer.render() now clears the entire
+            // canvas to the current background color and then repaints every visible row on each
+            // onDraw() call, so a plain invalidate()/onScreenUpdated() is a COMPLETE repaint of both
+            // the glyphs AND the pane background with the new scheme (this is the real fix for the
+            // Dark<->System swap not updating until relaunch). Previously render() only drew a
+            // background rect for non-default cells, leaving the default-background area transparent
+            // and showing the stale DecorView color. We keep the invalidate() unconditional because
+            // onScreenUpdated() early-returns when mEmulator is null, which would otherwise drop the
+            // repaint if this runs before the session is attached to the view (the subsequent
+            // attachSession() -> updateSize() invalidate() still repaints because the emulator was
+            // already reset above).
+            if (terminalView != null) {
+                terminalView.invalidate();
+                terminalView.onScreenUpdated();
+            }
 
             final Typeface newTypeface = (fontFile.exists() && fontFile.length() > 0) ? Typeface.createFromFile(fontFile) : Typeface.MONOSPACE;
             mActivity.getTerminalView().setTypeface(newTypeface);
         } catch (Exception e) {
-            Logger.logStackTraceWithMessage(LOG_TAG, "Error in checkForFontAndColors()", e);
+            Logger.logStackTraceWithMessage(LOG_TAG, "Error in applyTerminalColorScheme()", e);
         }
     }
 
     public void updateBackgroundColor() {
-        if (!mActivity.isVisible()) return;
         TerminalSession session = mActivity.getCurrentSession();
         if (session != null && session.getEmulator() != null) {
+            // NOTE: Do NOT reset mColors here. This method is also called from shell-driven OSC
+            // dynamic color changes and must only *reflect* the live color array onto the activity
+            // background, never overwrite it with COLOR_SCHEME (that would discard OSC 4/11 colors).
+            // The live emulator color array is re-synced to COLOR_SCHEME by
+            // applyTerminalColorScheme() (invoked from checkForFontAndColors(), which runs again in
+            // onServiceConnected() once the session is attached after a recreate()).
             mActivity.getWindow().getDecorView().setBackgroundColor(session.getEmulator().mColors.mCurrentColors[TextStyle.COLOR_INDEX_BACKGROUND]);
         }
+    }
+
+    /**
+     * Returns a {@link Properties} describing a light terminal color scheme (white background,
+     * black foreground, readable 16-color palette) used when the app is in light mode and the
+     * user has not defined a custom {@code ~/.termux/colors.properties}.
+     */
+    private Properties getLightTerminalColorScheme() {
+        Properties props = new Properties();
+        props.setProperty("background", "#ffffff");
+        props.setProperty("foreground", "#000000");
+        // First 8 (dim) colors, brightened for readability on a white background.
+        props.setProperty("color0",  "#000000");
+        props.setProperty("color1",  "#cd0000");
+        props.setProperty("color2",  "#00cd00");
+        props.setProperty("color3",  "#cdcd00");
+        props.setProperty("color4",  "#1060c0");
+        props.setProperty("color5",  "#cd00cd");
+        props.setProperty("color6",  "#00cdcd");
+        props.setProperty("color7",  "#404040");
+        // Second 8 (bright) colors.
+        props.setProperty("color8",  "#808080");
+        props.setProperty("color9",  "#ff0000");
+        props.setProperty("color10", "#00ff00");
+        props.setProperty("color11", "#ffff00");
+        props.setProperty("color12", "#6969ff");
+        props.setProperty("color13", "#ff00ff");
+        props.setProperty("color14", "#00ffff");
+        props.setProperty("color15", "#ffffff");
+        // cursor color is auto-picked based on background brightness by TerminalColorScheme.
+        return props;
     }
 
 }

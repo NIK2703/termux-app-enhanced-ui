@@ -1,5 +1,14 @@
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
 
+    <ListPreference
+        app:key="theme_mode"
+        app:title="@string/theme_mode_title"
+        app:summary="@string/theme_mode_summary"
+        app:entries="@array/theme_mode_entries"
+        app:entryValues="@array/theme_mode_values"
+        app:defaultValue="system"
+        app:iconSpaceReserved="false" />
+
     <Preference
         app:title="@string/termux_debugging_preferences_title"
         app:summary="@string/termux_debugging_preferences_summary"
