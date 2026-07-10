@@ -18,7 +18,7 @@
         android:ellipsize="end"
         android:maxLines="1"
         android:textSize="13sp"
-        android:textColor="@android:color/white" />
+        android:textColor="@color/terminal_toolbar_text_color" />
 
     <ImageButton
         android:id="@+id/session_tab_close"
@@ -29,7 +29,7 @@
         android:background="@null"
         android:contentDescription="Close tab"
         android:scaleType="centerInside"
-        android:tint="@android:color/white"
+        android:tint="@color/terminal_toolbar_icon_tint"
         android:alpha="0.7"
         android:visibility="invisible"
         android:clickable="true"

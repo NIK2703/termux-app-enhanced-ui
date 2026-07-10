@@ -12,4 +12,13 @@
     <color name="terminal_toolbar_text_input_stroke">#333333</color>
     <color name="terminal_toolbar_session_tab_bg">#121212</color>
     <color name="terminal_toolbar_session_tab_bg_selected">#2a2a2a</color>
+    <!-- Error text for finished-with-error session tabs; theme-aware so it stays
+         readable on both light and dark tab backgrounds. -->
+    <color name="terminal_tab_text_error">#FF6B6B</color>
+
+    <!-- Extra keys / session tabs panel: text and active backgrounds. Same values as
+         light so the signal panel (ESC/CTRL/...) stays visually identical in both themes. -->
+    <color name="extra_keys_button_text">#ffffff</color>
+    <color name="extra_keys_button_active_text">#80DEEA</color>
+    <color name="extra_keys_button_active_background">#424242</color>
 </resources>

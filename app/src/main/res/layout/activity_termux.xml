@@ -68,7 +68,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:background="@color/terminal_toolbar_tabs_background"
+                android:background="@android:color/transparent"
                 android:paddingVertical="2dp">
 
                 <HorizontalScrollView

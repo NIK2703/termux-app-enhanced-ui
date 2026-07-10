@@ -1,5 +1,6 @@
 package com.termux.app.terminal;
 
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.view.LayoutInflater;
@@ -77,12 +78,18 @@ public class TermuxSessionTabsController {
             
             titleView.setText(displayTitle);
 
-            // Set text color based on session state
+            // Text color: red for finished-with-error sessions, otherwise reuse the
+            // extra-keys (signal panel) button text color so the session tabs
+            // panel matches the signal panel exactly in both themes.
             boolean sessionRunning = terminalSession.isRunning();
             if (!sessionRunning && terminalSession.getExitStatus() != 0) {
-                titleView.setTextColor(Color.RED);
+                int errorColor = androidx.core.content.ContextCompat.getColor(
+                    mActivity, com.termux.shared.R.color.terminal_tab_text_error);
+                titleView.setTextColor(errorColor);
             } else {
-                titleView.setTextColor(Color.WHITE);
+                int textColor = androidx.core.content.ContextCompat.getColor(
+                    mActivity, com.termux.shared.R.color.terminal_toolbar_text_color);
+                titleView.setTextColor(textColor);
             }
 
             // Strike through for finished sessions

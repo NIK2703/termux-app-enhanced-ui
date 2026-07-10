@@ -24,6 +24,13 @@
 
         <!-- Text color. -->
         <item name="android:textColorLink">@color/blue_link_dark</item>
+
+        <!-- Extra keys (signal panel) button colors. The session tabs panel reuses
+             the exact same attributes so both panels stay visually identical. -->
+        <item name="extraKeysButtonTextColor">@color/extra_keys_button_text</item>
+        <item name="extraKeysButtonActiveTextColor">@color/extra_keys_button_active_text</item>
+        <item name="extraKeysButtonBackgroundColor">@color/extra_keys_button_background</item>
+        <item name="extraKeysButtonActiveBackgroundColor">@color/extra_keys_button_active_background</item>
     </style>
 
     <!-- BaseActivity DayNight NoActionBar theme. -->
