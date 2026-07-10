@@ -49,12 +49,14 @@ import com.termux.app.terminal.TermuxSessionTabsController;
 import com.termux.app.terminal.TermuxTerminalViewClient;
 import com.termux.app.terminal.io.FullScreenWorkAround;
 import com.termux.shared.termux.extrakeys.ExtraKeysView;
+import com.termux.shared.termux.extrakeys.ColorSchemeUtils;
 import com.termux.shared.termux.interact.TextInputDialogUtils;
 import com.termux.shared.logger.Logger;
 import com.termux.shared.termux.TermuxUtils;
 import com.termux.shared.termux.settings.properties.TermuxAppSharedProperties;
 import com.termux.shared.termux.theme.TermuxThemeUtils;
 import com.termux.shared.theme.NightMode;
+import com.termux.shared.theme.ThemeUtils;
 import com.termux.shared.view.ViewUtils;
 import com.termux.terminal.TerminalSession;
 import com.termux.terminal.TerminalSessionClient;
@@ -869,18 +871,17 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     }
 
     private void showStylingDialog() {
-        Intent stylingIntent = new Intent();
-        stylingIntent.setClassName(TermuxConstants.TERMUX_STYLING_PACKAGE_NAME, TermuxConstants.TERMUX_STYLING_APP.TERMUX_STYLING_ACTIVITY_NAME);
-        try {
-            startActivity(stylingIntent);
-        } catch (ActivityNotFoundException | IllegalArgumentException e) {
-            // The startActivity() call is not documented to throw IllegalArgumentException.
-            // However, crash reporting shows that it sometimes does, so catch it here.
-            new AlertDialog.Builder(this).setMessage(getString(R.string.error_styling_not_installed))
-                .setPositiveButton(R.string.action_styling_install,
-                    (dialog, which) -> ActivityUtils.startActivity(this, new Intent(Intent.ACTION_VIEW, Uri.parse(TermuxConstants.TERMUX_STYLING_FDROID_PACKAGE_URL))))
-                .setNegativeButton(android.R.string.cancel, null).show();
-        }
+        // Show our own color-scheme picker (the same dialog used in Settings) for the currently
+        // active theme, applying the choice live to that theme. This assigns the scheme to the
+        // active light/dark theme instead of the shared colors.properties, so per-theme selection
+        // stays consistent whether chosen from here or from Settings.
+        final NightMode appNightMode = NightMode.getAppNightMode();
+        final boolean isNight = (appNightMode == NightMode.SYSTEM)
+            ? ThemeUtils.isSystemNightModeEnabled()
+            : (appNightMode == NightMode.TRUE);
+        ColorSchemeUtils.showColorSchemeDialog(this, isNight, getString(R.string.color_scheme_dialog_title),
+            getString(R.string.error_styling_not_installed),
+            () -> updateTermuxActivityStyling(this, false));
     }
     private void toggleKeepScreenOn() {
         if (mTerminalView.getKeepScreenOn()) {

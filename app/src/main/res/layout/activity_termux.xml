@@ -43,7 +43,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="4dp"
                 android:layout_marginTop="4dp"
-                android:background="@android:color/transparent">
+                android:background="@drawable/text_input_transparent">
 
                 <EditText
                     android:id="@+id/terminal_toolbar_text_input"

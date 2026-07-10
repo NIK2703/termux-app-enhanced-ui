@@ -14,6 +14,7 @@ import com.termux.R;
 import com.termux.app.TermuxActivity;
 import com.termux.shared.logger.Logger;
 import com.termux.shared.termux.TermuxConstants;
+import com.termux.shared.termux.extrakeys.ColorSchemeUtils;
 import com.termux.shared.termux.settings.properties.TermuxPropertyConstants;
 import com.termux.shared.theme.NightMode;
 
@@ -39,6 +40,9 @@ public class TermuxPreferencesFragment extends PreferenceFragmentCompat {
         // Theme selection is written manually to termux.properties (see writeNightModeProperty).
 
         setPreferencesFromResource(R.xml.termux_preferences, rootKey);
+
+        configureColorSchemePreference("color_scheme_light", false);
+        configureColorSchemePreference("color_scheme_dark", true);
 
         // Setup theme ListPreference: load current value from termux.properties
         final ListPreference themePref = findPreference("theme_mode");
@@ -68,6 +72,40 @@ public class TermuxPreferencesFragment extends PreferenceFragmentCompat {
                 return true;
             });
         }
+    }
+
+    /**
+     * Wire up a per-theme color-scheme Preference. Clicking it opens the same style-picker dialog
+     * as choosing a Termux:Style from the terminal (an AlertDialog listing every scheme shipped by
+     * the installed Termux:Style app, read straight from its assets). Selecting one persists the
+     * choice to termux.properties, writes it to the matching per-theme colors file and recolors the
+     * running terminal live (no activity recreate).
+     *
+     * @param key    The preference key ("color_scheme_light" / "color_scheme_dark").
+     * @param isNight Whether this preference drives the dark or light terminal scheme.
+     */
+    private void configureColorSchemePreference(String key, boolean isNight) {
+        final Preference pref = findPreference(key);
+        if (pref == null) return;
+
+        updateColorSchemeSummary(pref, isNight);
+
+        pref.setOnPreferenceClickListener(preference -> {
+            Context ctx = getContext();
+            if (ctx == null) return true;
+            ColorSchemeUtils.showColorSchemeDialog(ctx, isNight, pref.getTitle(),
+                getString(R.string.error_styling_not_installed), () -> {
+                    updateColorSchemeSummary(pref, isNight);
+                    // Recolor the running terminal/panel live (no activity recreate needed).
+                    TermuxActivity.updateTermuxActivityStyling(ctx, false);
+                });
+            return true;
+        });
+    }
+
+    /** Set the preference summary to the currently selected scheme's display name. */
+    private void updateColorSchemeSummary(Preference pref, boolean isNight) {
+        pref.setSummary(ColorSchemeUtils.schemeDisplayName(ColorSchemeUtils.getSelectedSchemeName(isNight)));
     }
 
     /** Read the `night-mode` value from the termux.properties file on disk. */

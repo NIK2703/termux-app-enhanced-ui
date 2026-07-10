@@ -352,6 +352,11 @@ public final class TermuxPropertyConstants {
 
 
 
+    /** Defines the key for the per-theme terminal color scheme for the light app theme. */
+    public static final String KEY_COLOR_SCHEME_LIGHT = "color-scheme-light"; // Default: "color-scheme-light"
+    /** Defines the key for the per-theme terminal color scheme for the dark app theme. */
+    public static final String KEY_COLOR_SCHEME_DARK = "color-scheme-dark"; // Default: "color-scheme-dark"
+
     /** Defines the key for whether toggle soft keyboard request will show/hide or enable/disable keyboard */
     public static final String KEY_SOFT_KEYBOARD_TOGGLE_BEHAVIOUR =  "soft-keyboard-toggle-behaviour"; // Default: "soft-keyboard-toggle-behaviour"
 
@@ -425,6 +430,8 @@ public final class TermuxPropertyConstants {
 
         /* String */
         KEY_BACK_KEY_BEHAVIOUR,
+        KEY_COLOR_SCHEME_DARK,
+        KEY_COLOR_SCHEME_LIGHT,
         KEY_DEFAULT_WORKING_DIRECTORY,
         KEY_EXTRA_KEYS,
         KEY_EXTRA_KEYS_STYLE,

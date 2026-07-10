@@ -673,8 +673,13 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
             textInput.setHintTextColor((buttonText & 0x00FFFFFF) | 0x80000000);
         }
         View textInputContainer = mActivity.findViewById(R.id.terminal_toolbar_text_input_container);
-        if (textInputContainer != null) {
-            textInputContainer.setBackgroundTintList(android.content.res.ColorStateList.valueOf(buttonBg));
+        if (textInputContainer != null && textInputContainer.getBackground() instanceof android.graphics.drawable.GradientDrawable) {
+            // Background = inactive control color; stroke = active control color (matching the
+            // bottom-panel buttons), so the input panel reads as part of the same control family.
+            android.graphics.drawable.GradientDrawable d =
+                (android.graphics.drawable.GradientDrawable) textInputContainer.getBackground().mutate();
+            d.setColor(buttonBg);
+            d.setStroke(Math.round(1.5f * mActivity.getResources().getDisplayMetrics().density), buttonActiveBg);
         }
 
         // Status bar follows the scheme lightness.

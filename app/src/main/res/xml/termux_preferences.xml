@@ -10,6 +10,18 @@
         app:iconSpaceReserved="false" />
 
     <Preference
+        app:key="color_scheme_light"
+        app:title="@string/color_scheme_light_title"
+        app:summary="@string/color_scheme_light_summary"
+        app:iconSpaceReserved="false" />
+
+    <Preference
+        app:key="color_scheme_dark"
+        app:title="@string/color_scheme_dark_title"
+        app:summary="@string/color_scheme_dark_summary"
+        app:iconSpaceReserved="false" />
+
+    <Preference
         app:title="@string/termux_debugging_preferences_title"
         app:summary="@string/termux_debugging_preferences_summary"
         app:fragment="com.termux.app.fragments.settings.termux.DebuggingPreferencesFragment"/>

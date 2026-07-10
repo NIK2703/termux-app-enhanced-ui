@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Plain shape (a GradientDrawable at runtime) so applyPanelColors() can set the fill and stroke
+     colors from the active terminal color scheme. Colors here are only placeholders for the
+     editor preview; they are overwritten at runtime with scheme-derived translucent tones. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@android:color/transparent" />
+    <stroke android:width="1.5dp" android:color="@android:color/transparent" />
+    <corners android:radius="18dp" />
+</shape>

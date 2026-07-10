@@ -237,6 +237,13 @@
     <string name="theme_mode_title">App Theme</string>
     <string name="theme_mode_summary">Choose app and terminal theme</string>
 
+    <!-- Color scheme preferences (per app theme) -->
+    <string name="color_scheme_dialog_title">Terminal Color Scheme</string>
+    <string name="color_scheme_light_title">Terminal Color Scheme (Light Theme)</string>
+    <string name="color_scheme_light_summary">Color scheme applied when the app theme is light</string>
+    <string name="color_scheme_dark_title">Terminal Color Scheme (Dark Theme)</string>
+    <string name="color_scheme_dark_summary">Color scheme applied when the app theme is dark</string>
+
     <!-- Donate Preference -->
     <string name="donate_preference_title">Donate</string>
 
