@@ -7,10 +7,17 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.graphics.Typeface;
 import android.media.AudioAttributes;
 import android.media.SoundPool;
+import android.os.Build;
 import android.text.TextUtils;
+import android.view.View;
+import android.view.Window;
+import android.widget.EditText;
+import android.widget.ImageButton;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -34,6 +41,8 @@ import com.termux.terminal.TerminalEmulator;
 import com.termux.terminal.TerminalSession;
 import com.termux.terminal.TerminalSessionClient;
 import com.termux.terminal.TextStyle;
+import com.termux.shared.termux.extrakeys.ColorSchemeUtils;
+import com.termux.shared.termux.extrakeys.ExtraKeysView;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -556,28 +565,33 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
     /** Apply terminal fonts and the color scheme (light or dark) for the given night mode. */
     private void applyTerminalColorScheme(boolean isNight) {
         try {
-            File colorsFile = TermuxConstants.TERMUX_COLOR_PROPERTIES_FILE;
+            // Resolve the scheme file for this theme. Per-theme colors.light/dark.properties take
+            // priority so a light/dark terminal scheme can be assigned independently of the UI
+            // theme; falls back to the shared colors.properties.
+            File colorsFile = ColorSchemeUtils.getColorSchemeFileForTheme(isNight);
             File fontFile = TermuxConstants.TERMUX_FONT_FILE;
 
-            final Properties props = new Properties();
-            if (colorsFile.isFile()) {
-                try (InputStream in = new FileInputStream(colorsFile)) {
-                    props.load(in);
+            // Load a user color scheme if one is defined. ColorSchemeUtils.loadTerminalColorScheme
+            // returns false for the "Default" marker file (only a comment, no real color keys) so
+            // the terminal keeps following the app theme instead of being locked to dark.
+            boolean customApplied = (colorsFile != null) && ColorSchemeUtils.loadTerminalColorScheme(colorsFile);
+            if (!customApplied) {
+                if (!isNight) {
+                    // No user colors in light mode: use a built-in light scheme so the
+                    // terminal matches the light app theme.
+                    TerminalColors.COLOR_SCHEME.updateWith(getLightTerminalColorScheme());
+                } else {
+                    // No custom colors in dark mode: updateWith() calls reset() FIRST, which
+                    // restores the built-in DEFAULT_COLORSCHEME (black background / white
+                    // foreground) — i.e. the correct DARK terminal scheme.
+                    TerminalColors.COLOR_SCHEME.updateWith(new Properties());
                 }
-                TerminalColors.COLOR_SCHEME.updateWith(props);
-            } else if (!isNight) {
-                // No user colors.properties in light mode: use a built-in light scheme so the
-                // terminal matches the light app theme.
-                TerminalColors.COLOR_SCHEME.updateWith(getLightTerminalColorScheme());
-            } else {
-                // No custom colors.properties in dark mode: updateWith() calls reset() FIRST,
-                // which restores the built-in DEFAULT_COLORSCHEME (black background / white
-                // foreground) — i.e. the correct DARK terminal scheme. Passing an EMPTY props is
-                // therefore intentional and is NOT a no-op: it resets the static COLOR_SCHEME to
-                // dark. (This is correct behaviour; do not "fix" it by loading a separate dark
-                // scheme — empty props already yields the dark default.)
-                TerminalColors.COLOR_SCHEME.updateWith(props);
             }
+
+            // Drive the bottom panel + status bar from the now-applied scheme (works for both
+            // custom schemes and the theme-derived light/dark fallback).
+            applyPanelColors(ColorSchemeUtils.isTerminalSchemeLight());
+
             // Reset the colors on the emulator the TerminalView is actually rendering. If the view
             // is not yet attached to a session (e.g. during activity recreation on a system
             // day/night switch, before attachSession()/updateSize() binds mEmulator), fall back to
@@ -597,14 +611,8 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
             // A full forced redraw is NOT required: TerminalRenderer.render() now clears the entire
             // canvas to the current background color and then repaints every visible row on each
             // onDraw() call, so a plain invalidate()/onScreenUpdated() is a COMPLETE repaint of both
-            // the glyphs AND the pane background with the new scheme (this is the real fix for the
-            // Dark<->System swap not updating until relaunch). Previously render() only drew a
-            // background rect for non-default cells, leaving the default-background area transparent
-            // and showing the stale DecorView color. We keep the invalidate() unconditional because
-            // onScreenUpdated() early-returns when mEmulator is null, which would otherwise drop the
-            // repaint if this runs before the session is attached to the view (the subsequent
-            // attachSession() -> updateSize() invalidate() still repaints because the emulator was
-            // already reset above).
+            // the glyphs AND the pane background with the new scheme. We keep the invalidate()
+            // unconditional because onScreenUpdated() early-returns when mEmulator is null.
             if (terminalView != null) {
                 terminalView.invalidate();
                 terminalView.onScreenUpdated();
@@ -614,6 +622,76 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
             mActivity.getTerminalView().setTypeface(newTypeface);
         } catch (Exception e) {
             Logger.logStackTraceWithMessage(LOG_TAG, "Error in applyTerminalColorScheme()", e);
+        }
+    }
+
+    /**
+     * Apply the bottom-panel styling derived from the active terminal color scheme.
+     * - The panel (toolbar container + extra-keys view) background is made transparent so only the
+     *   buttons themselves show a background.
+     * - Each button background becomes a translucent overlay whose tone is picked from the scheme
+     *   lightness: dark translucent for light schemes, light translucent for dark schemes.
+     * - The status bar icons/theme follow the scheme lightness (light icons on dark schemes,
+     *   dark icons on light schemes).
+     *
+     * @param isSchemeLight Whether the applied terminal color scheme is light.
+     */
+    private void applyPanelColors(boolean isSchemeLight) {
+        final int buttonBg = ColorSchemeUtils.getButtonBackground(isSchemeLight);
+        final int buttonActiveBg = ColorSchemeUtils.getButtonActiveBackground(isSchemeLight);
+        final int buttonText = ColorSchemeUtils.getSchemeForeground();
+
+        // Bottom panel + extra keys backgrounds -> transparent.
+        View toolbar = mActivity.findViewById(R.id.terminal_toolbar_container);
+        if (toolbar != null) toolbar.setBackgroundColor(Color.TRANSPARENT);
+        ExtraKeysView extraKeys = mActivity.getExtraKeysView();
+        if (extraKeys != null) {
+            extraKeys.setBackgroundColor(Color.TRANSPARENT);
+            extraKeys.setButtonColors(buttonText, buttonText, buttonBg, buttonActiveBg);
+        }
+
+        // Session tabs panel buttons (new session / toggle text input / settings) reuse the same
+        // translucent background + scheme foreground so they match the extra-keys panel.
+        for (int id : new int[]{ R.id.new_session_tab_button, R.id.toggle_text_input_button, R.id.settings_button }) {
+            ImageButton btn = mActivity.findViewById(id);
+            if (btn != null) {
+                btn.setBackgroundTintList(android.content.res.ColorStateList.valueOf(buttonBg));
+                btn.setColorFilter(buttonText, android.graphics.PorterDuff.Mode.SRC_ATOP);
+            }
+        }
+
+        // Session tabs themselves: translucent background (selected = active tone) + scheme fg.
+        TermuxSessionTabsController tabsController = mActivity.getTermuxSessionTabsController();
+        if (tabsController != null) {
+            tabsController.applySchemeColorsToTabs(buttonText, buttonBg, buttonActiveBg);
+        }
+
+        // Text input field: foreground from the scheme, translucent container background.
+        EditText textInput = mActivity.findViewById(R.id.terminal_toolbar_text_input);
+        if (textInput != null) {
+            textInput.setTextColor(buttonText);
+            textInput.setHintTextColor((buttonText & 0x00FFFFFF) | 0x80000000);
+        }
+        View textInputContainer = mActivity.findViewById(R.id.terminal_toolbar_text_input_container);
+        if (textInputContainer != null) {
+            textInputContainer.setBackgroundTintList(android.content.res.ColorStateList.valueOf(buttonBg));
+        }
+
+        // Status bar follows the scheme lightness.
+        applyStatusBarTheme(isSchemeLight);
+    }
+
+    private void applyStatusBarTheme(boolean isSchemeLight) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Window window = mActivity.getWindow();
+            if (window == null) return;
+            int flags = window.getDecorView().getSystemUiVisibility();
+            if (isSchemeLight) {
+                flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+            } else {
+                flags &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+            }
+            window.getDecorView().setSystemUiVisibility(flags);
         }
     }
 

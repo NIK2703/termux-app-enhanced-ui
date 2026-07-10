@@ -33,7 +33,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="@color/terminal_toolbar_background"
+            android:background="@android:color/transparent"
             android:layout_alignParentBottom="true">
 
             <!-- Text input with rounded corners and border -->
@@ -43,7 +43,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="4dp"
                 android:layout_marginTop="4dp"
-                android:background="@drawable/text_input_background">
+                android:background="@android:color/transparent">
 
                 <EditText
                     android:id="@+id/terminal_toolbar_text_input"
@@ -131,7 +131,7 @@
                 style="?android:attr/buttonBarStyle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@color/terminal_toolbar_background"
+                android:background="@android:color/transparent"
                 android:orientation="horizontal" />
 
         </LinearLayout>

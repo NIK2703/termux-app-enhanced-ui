@@ -289,6 +289,29 @@ public final class ExtraKeysView extends GridLayout {
         mButtonActiveTextColor = buttonActiveTextColor;
         mButtonBackgroundColor = buttonBackgroundColor;
         mButtonActiveBackgroundColor = buttonActiveBackgroundColor;
+        // Re-tint any buttons already laid out (e.g. when the color scheme changes at runtime,
+        // after reload() has built the buttons). New buttons created by a later reload() read
+        // these fields directly.
+        applyColorsToExistingButtons();
+    }
+
+    /** Re-apply the current button colors to every child view already added by {@link #reload(ExtraKeysInfo, float)}. */
+    private void applyColorsToExistingButtons() {
+        for (int i = 0; i < getChildCount(); i++) {
+            View child = getChildAt(i);
+            if (!(child instanceof MaterialButton)) continue;
+            MaterialButton button = (MaterialButton) child;
+            button.setTextColor(mButtonTextColor);
+            button.setBackgroundTintList(ColorStateList.valueOf(mButtonBackgroundColor));
+        }
+        // Keep tinted special buttons consistent with their current active state.
+        for (SpecialButtonState state : mSpecialButtons.values()) {
+            for (MaterialButton button : state.buttons) {
+                button.setTextColor(state.isActive ? mButtonActiveTextColor : mButtonTextColor);
+                button.setBackgroundTintList(ColorStateList.valueOf(
+                        state.isActive ? mButtonActiveBackgroundColor : mButtonBackgroundColor));
+            }
+        }
     }
 
 

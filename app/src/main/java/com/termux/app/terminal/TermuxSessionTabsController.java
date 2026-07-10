@@ -24,6 +24,14 @@ public class TermuxSessionTabsController {
     private final HorizontalScrollView mTabsScroll;
     private int mCurrentSessionIndex = -1;
 
+    // Last terminal scheme colors applied via applySchemeColorsToTabs(). Stored so that tabs
+    // created later in updateTabs() (e.g. a freshly opened session) are colored from the
+    // Termux:Style scheme too, instead of the hardcoded layout default color.
+    private int mSchemeTextColor = 0xFF000000;
+    private int mSchemeBg = 0x4D000000;
+    private int mSchemeBgActive = 0x80000000;
+    private boolean mSchemeApplied = false;
+
     public TermuxSessionTabsController(TermuxActivity activity) {
         this.mActivity = activity;
         this.mTabsContainer = activity.findViewById(R.id.session_tabs);
@@ -78,18 +86,29 @@ public class TermuxSessionTabsController {
             
             titleView.setText(displayTitle);
 
-            // Text color: red for finished-with-error sessions, otherwise reuse the
-            // extra-keys (signal panel) button text color so the session tabs
-            // panel matches the signal panel exactly in both themes.
+            // Text color: red for finished-with-error sessions. Otherwise use the terminal color
+            // scheme foreground so every tab (including freshly created ones) follows the
+            // Termux:Style scheme instead of the hardcoded layout default color. If the scheme has
+            // not been applied yet, fall back to the layout default until applySchemeColorsToTabs
+            // runs.
             boolean sessionRunning = terminalSession.isRunning();
             if (!sessionRunning && terminalSession.getExitStatus() != 0) {
                 int errorColor = androidx.core.content.ContextCompat.getColor(
                     mActivity, com.termux.shared.R.color.terminal_tab_text_error);
                 titleView.setTextColor(errorColor);
-            } else {
-                int textColor = androidx.core.content.ContextCompat.getColor(
-                    mActivity, com.termux.shared.R.color.terminal_toolbar_text_color);
-                titleView.setTextColor(textColor);
+            } else if (mSchemeApplied) {
+                titleView.setTextColor(mSchemeTextColor);
+            }
+
+            // Close-icon color from the scheme (error tabs keep the close icon neutral too).
+            if (closeButton != null && mSchemeApplied) {
+                closeButton.setColorFilter(mSchemeTextColor, android.graphics.PorterDuff.Mode.SRC_ATOP);
+            }
+
+            // Translucent background matching the signal panel (selected = active tone).
+            if (mSchemeApplied) {
+                tabView.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
+                        isSelected ? mSchemeBgActive : mSchemeBg));
             }
 
             // Strike through for finished sessions
@@ -154,6 +173,41 @@ public class TermuxSessionTabsController {
         });
     }
 
+    /**
+     * Re-apply the terminal color scheme to every existing tab view: text/close-icon color and a
+     * translucent background matching the signal panel. Called from
+     * {@code TermuxTerminalSessionActivityClient.applyPanelColors()} whenever the scheme changes.
+     *
+     * @param textColor  Foreground color derived from the scheme (contrast vs background).
+     * @param bg         Translucent button background (dark for light schemes, light for dark).
+     * @param bgActive   Translucent background for the selected tab.
+     */
+    public void applySchemeColorsToTabs(int textColor, int bg, int bgActive) {
+        // Remember the scheme colors so tabs created later in updateTabs() are colored too.
+        mSchemeTextColor = textColor;
+        mSchemeBg = bg;
+        mSchemeBgActive = bgActive;
+        mSchemeApplied = true;
+
+        if (mTabsContainer == null) return;
+        int errorColor = androidx.core.content.ContextCompat.getColor(
+                mActivity, com.termux.shared.R.color.terminal_tab_text_error);
+        for (int i = 0; i < mTabsContainer.getChildCount(); i++) {
+            View tabView = mTabsContainer.getChildAt(i);
+            TextView title = tabView.findViewById(R.id.session_tab_title);
+            ImageButton close = tabView.findViewById(R.id.session_tab_close);
+            // Error (finished-with-exit) tabs keep their red color; normal tabs use the scheme fg.
+            if (title != null && title.getCurrentTextColor() != errorColor) {
+                title.setTextColor(textColor);
+            }
+            if (close != null) {
+                close.setColorFilter(textColor, android.graphics.PorterDuff.Mode.SRC_ATOP);
+            }
+            tabView.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
+                    tabView.isSelected() ? bgActive : bg));
+        }
+    }
+
     public void setCurrentSession(int index) {
         if (mTabsContainer == null) return;
         if (index < 0 || index >= mTabsContainer.getChildCount()) return;
@@ -163,7 +217,15 @@ public class TermuxSessionTabsController {
             View child = mTabsContainer.getChildAt(i);
             boolean isSelected = (i == index);
             child.setSelected(isSelected);
-            
+
+            // Re-tint the background to follow the selection: selected tab uses the active
+            // control background, the rest use the normal control background (same colors as the
+            // other bottom-panel controls). Only once the scheme colors have been applied.
+            if (mSchemeApplied) {
+                child.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
+                        isSelected ? mSchemeBgActive : mSchemeBg));
+            }
+
             ImageButton closeButton = child.findViewById(R.id.session_tab_close);
             if (closeButton != null) {
                 closeButton.setVisibility(isSelected ? View.VISIBLE : View.INVISIBLE);

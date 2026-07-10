@@ -1013,6 +1013,10 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         return mTermuxTerminalSessionActivityClient;
     }
 
+    public TermuxSessionTabsController getTermuxSessionTabsController() {
+        return mTermuxSessionTabsController;
+    }
+
     @Nullable
     public TerminalSession getCurrentSession() {
         if (mTerminalView != null)
