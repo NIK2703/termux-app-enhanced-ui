@@ -772,11 +772,13 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         } else {
             mTextInputPerSession.remove(session.mHandle);
         }
-        // Remember the caret position so it can be restored on tab switch.
-        // Only track it while the panel actually has focus (per request).
-        if (textInputView.hasFocus()) {
-            mTextInputCaretPerSession.put(session.mHandle, textInputView.getSelectionStart());
-        }
+        // Remember the caret position so it can be restored on tab switch and on
+        // panel hide/show for the same session. The EditText keeps its selection
+        // even after losing focus, so getSelectionStart() is valid regardless of
+        // focus — we always record it (no hasFocus() guard), otherwise hiding the
+        // panel after the focus had already moved to the terminal would drop the
+        // caret and it would jump to the end on re-open.
+        mTextInputCaretPerSession.put(session.mHandle, textInputView.getSelectionStart());
     }
 
     /**
