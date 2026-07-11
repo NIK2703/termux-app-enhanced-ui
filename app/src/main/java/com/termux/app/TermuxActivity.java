@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.view.ContextMenu;
@@ -26,6 +27,7 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
+import androidx.core.view.WindowInsetsCompat;
 
 import com.termux.R;
 import com.termux.app.api.file.FileReceiverActivity;
@@ -179,6 +181,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     private boolean mIsInvalidState;
 
     private int mNavBarHeight;
+    // Tracks the last known IME (soft keyboard) visibility so we can react to it
+    // being hidden while the text input panel is open.
+    private boolean mSoftKeyboardVisible = false;
 
     private float mTerminalToolbarDefaultHeight;
 
@@ -242,6 +247,17 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         View content = findViewById(android.R.id.content);
         content.setOnApplyWindowInsetsListener((v, insets) -> {
             mNavBarHeight = insets.getSystemWindowInsetBottom();
+
+            // React to the soft keyboard (IME) being hidden while the text input
+            // panel is open: switch the slot back to the extra keys panel.
+            boolean imeVisible = WindowInsetsCompat.toWindowInsetsCompat(insets)
+                    .isVisible(WindowInsetsCompat.Type.ime());
+            if (mSoftKeyboardVisible && !imeVisible && isTextInputVisible()) {
+                setTextInputVisible(false);
+                updateToggleTextInputButtonIcon();
+            }
+            mSoftKeyboardVisible = imeVisible;
+
             return insets;
         });
 
@@ -1093,7 +1109,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                     });
                 }
             } else {
-                // Focus on terminal view
+                // Focus on terminal view without reopening the keyboard
+                if (mTermuxTerminalViewClient != null)
+                    mTermuxTerminalViewClient.ignoreOnceSoftKeyboardOnFocus();
                 if (mTerminalView != null) {
                     mTerminalView.requestFocus();
                 }

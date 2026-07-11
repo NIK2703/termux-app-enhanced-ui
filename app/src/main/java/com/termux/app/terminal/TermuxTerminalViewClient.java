@@ -65,6 +65,14 @@ public class TermuxTerminalViewClient extends TermuxTerminalViewClientBase {
     private boolean mShowSoftKeyboardIgnoreOnce;
     private boolean mShowSoftKeyboardWithDelayOnce;
 
+    /**
+     * Set to ignore the next soft keyboard show request triggered by terminal view focus change.
+     * Used when hiding the text input panel to prevent keyboard from reopening on terminal focus.
+     */
+    public void ignoreOnceSoftKeyboardOnFocus() {
+        mShowSoftKeyboardIgnoreOnce = true;
+    }
+
     private boolean mTerminalCursorBlinkerStateAlreadySet;
 
     private List<KeyboardShortcut> mSessionShortcuts;
