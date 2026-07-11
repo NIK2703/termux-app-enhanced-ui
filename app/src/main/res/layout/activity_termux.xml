@@ -20,7 +20,7 @@
             android:id="@+id/terminal_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_above="@+id/terminal_toolbar_container"
+            android:layout_above="@id/terminal_toolbar_container"
             android:defaultFocusHighlightEnabled="false"
             android:focusableInTouchMode="true"
             android:scrollbarThumbVertical="@drawable/terminal_scroll_shape"
@@ -36,33 +36,7 @@
             android:background="@android:color/transparent"
             android:layout_alignParentBottom="true">
 
-            <!-- Text input with rounded corners and border -->
-            <FrameLayout
-                android:id="@+id/terminal_toolbar_text_input_container"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginHorizontal="4dp"
-                android:layout_marginTop="4dp"
-                android:background="@drawable/text_input_transparent">
-
-                <EditText
-                    android:id="@+id/terminal_toolbar_text_input"
-                    android:layout_width="match_parent"
-                    android:layout_height="36dp"
-                    android:layout_marginHorizontal="8dp"
-                    android:imeOptions="actionSend|flagNoFullscreen"
-                    android:maxLines="1"
-                    android:inputType="text"
-                    android:importantForAutofill="no"
-                    android:textColor="@color/terminal_toolbar_text_color"
-                    android:textColorHighlight="@color/grey_400"
-                    android:textCursorDrawable="@null"
-                    android:background="@android:color/transparent"
-                    tools:ignore="LabelFor" />
-
-            </FrameLayout>
-
-            <!-- Session tabs container - moved above extra keys -->
+            <!-- Session tabs container -->
             <LinearLayout
                 android:id="@+id/session_tabs_container"
                 android:layout_width="match_parent"
@@ -99,14 +73,14 @@
                     android:tint="@color/terminal_toolbar_icon_tint"
                     android:scaleType="center" />
 
-                <!-- Toggle text input visibility button -->
+                <!-- Toggle text input visibility button (pencil) -->
                 <ImageButton
                     android:id="@+id/toggle_text_input_button"
                     android:layout_width="36dp"
                     android:layout_height="36dp"
                     android:layout_gravity="center_vertical"
                     android:layout_marginStart="4dp"
-                    android:src="@drawable/ic_keyboard_hide"
+                    android:src="@drawable/ic_keyboard_show"
                     android:background="@drawable/session_tab_background"
                     android:contentDescription="@string/action_toggle_text_input"
                     android:tint="@color/terminal_toolbar_icon_tint"
@@ -125,6 +99,38 @@
                     android:scaleType="center" />
 
             </LinearLayout>
+
+            <!-- Multi-line text input panel: occupies the slot below the tabs,
+                 replacing the extra keys while active. Fixed height with vertical scroll. -->
+            <FrameLayout
+                android:id="@+id/terminal_toolbar_text_input_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="4dp"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="4dp"
+                android:background="@drawable/text_input_transparent">
+
+                <com.termux.app.SendActionEditText
+                    android:id="@+id/terminal_toolbar_text_input"
+                    android:layout_width="match_parent"
+                    android:layout_height="96dp"
+                    android:layout_marginHorizontal="8dp"
+                    android:layout_marginVertical="4dp"
+                    android:imeOptions="actionSend|flagNoFullscreen"
+                    android:inputType="textMultiLine"
+                    android:maxLines="6"
+                    android:scrollbars="vertical"
+                    android:scrollHorizontally="false"
+                    android:gravity="top|start"
+                    android:importantForAutofill="no"
+                    android:textColor="@color/terminal_toolbar_text_color"
+                    android:textColorHighlight="@color/grey_400"
+                    android:textCursorDrawable="@null"
+                    android:background="@android:color/transparent"
+                    tools:ignore="LabelFor" />
+
+            </FrameLayout>
 
             <com.termux.shared.termux.extrakeys.ExtraKeysView
                 android:id="@+id/terminal_toolbar_extra_keys"

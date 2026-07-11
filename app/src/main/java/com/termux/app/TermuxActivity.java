@@ -595,11 +595,11 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                     if (!hasText) textToSend = "\r";
                     session.write(textToSend);
 
-                    // Auto-hide text input panel after sending text
-                    if (hasText) {
-                        setTextInputVisible(false);
-                        updateToggleTextInputButtonIcon();
-                    }
+                    // Always return to the extra keys panel after sending.
+                    // The "send" key replaces the newline key on the soft keyboard
+                    // (textMultiLine removed), so this fires on every committed send.
+                    setTextInputVisible(false);
+                    updateToggleTextInputButtonIcon();
                 } else {
                     mTermuxTerminalSessionActivityClient.removeFinishedSession(session);
                 }
@@ -608,12 +608,17 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             return true;
         });
 
-        // Restore text input visibility state - only show if enabled in settings
+        // Restore text input visibility state - only show if enabled in settings.
+        // The text input panel and extra keys share one slot, so keep them inverted.
         View textInputContainer = findViewById(R.id.terminal_toolbar_text_input_container);
         if (textInputContainer != null) {
             boolean enabled = isTextInputEnabled();
             boolean visible = enabled && isTextInputVisible();
             textInputContainer.setVisibility(visible ? View.VISIBLE : View.GONE);
+            final ExtraKeysView extraKeys = getExtraKeysView();
+            if (extraKeys != null) {
+                extraKeys.setVisibility(visible ? View.GONE : View.VISIBLE);
+            }
         }
     }
 
@@ -739,8 +744,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 if (wasDisabled) {
                     setTextInputVisible(true);
                 } else {
-                    // Restore text input visibility based on saved state
-                    textInputContainer.setVisibility(isTextInputVisible() ? View.VISIBLE : View.GONE);
+                    // Restore text input visibility based on saved state.
+                    // Use setTextInputVisible so the extra keys slot stays inverted.
+                    setTextInputVisible(isTextInputVisible());
                 }
             }
         }
@@ -1063,10 +1069,16 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     public void setTextInputVisible(boolean visible) {
         View textInputContainer = findViewById(R.id.terminal_toolbar_text_input_container);
         if (textInputContainer != null) {
+            // The text input panel and the extra keys share one slot below the tabs:
+            // showing one hides the other.
             textInputContainer.setVisibility(visible ? View.VISIBLE : View.GONE);
+            final ExtraKeysView extraKeysView = getExtraKeysView();
+            if (extraKeysView != null) {
+                extraKeysView.setVisibility(visible ? View.GONE : View.VISIBLE);
+            }
             // Save state to preferences
             getSharedPreferences("termux_prefs", MODE_PRIVATE).edit().putBoolean(PREF_TEXT_INPUT_VISIBLE, visible).apply();
-            
+
             // Switch focus based on visibility
             if (visible) {
                 // Focus on text input and show keyboard
