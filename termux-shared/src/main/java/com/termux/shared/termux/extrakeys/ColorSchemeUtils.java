@@ -37,8 +37,8 @@ public final class ColorSchemeUtils {
     // Translucent button backgrounds: dark (for light schemes) / light (for dark schemes).
     public static final int BUTTON_BG_LIGHT_SCHEME = 0x0D000000;   // ~5% black
     public static final int BUTTON_BG_DARK_SCHEME = 0x0DFFFFFF;   // ~5% white
-    public static final int BUTTON_BG_ACTIVE_LIGHT_SCHEME = 0x26000000; // ~15% black
-    public static final int BUTTON_BG_ACTIVE_DARK_SCHEME = 0x26FFFFFF; // ~15% white
+    public static final int BUTTON_BG_ACTIVE_LIGHT_SCHEME = 0x1F000000; // ~12% black
+    public static final int BUTTON_BG_ACTIVE_DARK_SCHEME = 0x1FFFFFFF; // ~12% white
 
     private ColorSchemeUtils() {}
 
