@@ -197,6 +197,10 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     // (true) or on the terminal view (false), keyed by TerminalSession.mHandle.
     private final HashMap<String, Boolean> mFocusOnInputPerSession = new HashMap<>();
 
+    // Per-session caret (cursor) position in the text input field, keyed by
+    // TerminalSession.mHandle, so each tab restores its own caret on switch.
+    private final HashMap<String, Integer> mTextInputCaretPerSession = new HashMap<>();
+
     private float mTerminalToolbarDefaultHeight;
 
 
@@ -215,6 +219,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
     private static final String ARG_TERMINAL_TOOLBAR_TEXT_INPUT = "terminal_toolbar_text_input";
     private static final String ARG_TEXT_INPUT_PER_SESSION = "text_input_per_session";
+    private static final String ARG_TEXT_INPUT_CARET_PER_SESSION = "text_input_caret_per_session";
     private static final String ARG_TEXT_INPUT_VISIBLE_PER_SESSION = "text_input_visible_per_session";
     private static final String ARG_FOCUS_ON_INPUT_PER_SESSION = "focus_on_input_per_session";
     private static final String ARG_ACTIVITY_RECREATED = "activity_recreated";
@@ -253,6 +258,14 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             if (focusBundle != null) {
                 for (String key : focusBundle.keySet()) {
                     mFocusOnInputPerSession.put(key, focusBundle.getBoolean(key));
+                }
+            }
+
+            // Restore per-session caret position saved before recreation.
+            android.os.Bundle caretBundle = savedInstanceState.getBundle(ARG_TEXT_INPUT_CARET_PER_SESSION);
+            if (caretBundle != null) {
+                for (String key : caretBundle.keySet()) {
+                    mTextInputCaretPerSession.put(key, caretBundle.getInt(key));
                 }
             }
         }
@@ -467,6 +480,15 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 focusBundle.putBoolean(e.getKey(), e.getValue());
             }
             savedInstanceState.putBundle(ARG_FOCUS_ON_INPUT_PER_SESSION, focusBundle);
+        }
+
+        // Persist per-session caret position across activity recreation.
+        if (!mTextInputCaretPerSession.isEmpty()) {
+            android.os.Bundle caretBundle = new android.os.Bundle();
+            for (java.util.Map.Entry<String, Integer> e : mTextInputCaretPerSession.entrySet()) {
+                caretBundle.putInt(e.getKey(), e.getValue());
+            }
+            savedInstanceState.putBundle(ARG_TEXT_INPUT_CARET_PER_SESSION, caretBundle);
         }
     }
 
@@ -750,6 +772,11 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         } else {
             mTextInputPerSession.remove(session.mHandle);
         }
+        // Remember the caret position so it can be restored on tab switch.
+        // Only track it while the panel actually has focus (per request).
+        if (textInputView.hasFocus()) {
+            mTextInputCaretPerSession.put(session.mHandle, textInputView.getSelectionStart());
+        }
     }
 
     /**
@@ -765,6 +792,12 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         }
         String text = mTextInputPerSession.get(session.mHandle);
         textInputView.setText(text != null ? text : "");
+        // Restore the caret position saved for this session (clamped to text length).
+        Integer caret = mTextInputCaretPerSession.get(session.mHandle);
+        if (caret != null) {
+            int pos = Math.min(caret, textInputView.length());
+            textInputView.setSelection(pos);
+        }
     }
 
     /**
@@ -775,6 +808,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         mTextInputPerSession.remove(session.mHandle);
         mTextInputVisiblePerSession.remove(session.mHandle);
         mFocusOnInputPerSession.remove(session.mHandle);
+        mTextInputCaretPerSession.remove(session.mHandle);
     }
 
     /**
