@@ -383,6 +383,14 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         mIsVisible = true;
 
+        // Reset the IME-visibility latch on (re)start. It may be left stale as
+        // true from before the app was backgrounded, when the soft keyboard was
+        // dismissed by the system. Without this reset, the first insets after
+        // resume (with IME still hidden) would falsely read as "IME just hidden
+        // while panel open" and close the text input panel. onStart runs before
+        // the insets listener fires on resume.
+        mSoftKeyboardVisible = false;
+
         if (mTermuxTerminalSessionActivityClient != null)
             mTermuxTerminalSessionActivityClient.onStart();
 
@@ -418,8 +426,6 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     @Override
     protected void onPause() {
         super.onPause();
-
-        Logger.logVerbose(LOG_TAG, "onPause");
 
         // Mark paused so the IME-hidden handler (WindowInsetsListener) does not
         // close the text input panel when the system dismisses the soft keyboard
@@ -728,6 +734,15 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                     boolean hasText = textToSend.length() > 0;
                     if (!hasText) textToSend = "\r";
                     session.write(textToSend);
+
+                    // Clear the field and the per-session saved text/caret BEFORE
+                    // hiding the panel. Otherwise setTextInputVisible(false) ->
+                    // saveTextInputForCurrentSession() re-persists the just-sent
+                    // text (the field is still non-empty at that point) and it
+                    // reappears when the panel is opened again.
+                    editText.setText("");
+                    mTextInputPerSession.remove(session.mHandle);
+                    mTextInputCaretPerSession.remove(session.mHandle);
 
                     // Always return to the extra keys panel after sending.
                     // The "send" key replaces the newline key on the soft keyboard
