@@ -347,6 +347,9 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
 
         // Load the text input content saved for the newly-current session.
         mActivity.restoreTextInputForSession(session);
+
+        // Apply the per-session text input panel visibility state for the new session.
+        mActivity.applyTextInputVisibilityForSession(session);
     }
 
     void notifyOfSessionChange() {

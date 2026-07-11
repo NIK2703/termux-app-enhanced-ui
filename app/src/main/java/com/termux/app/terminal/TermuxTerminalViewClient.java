@@ -623,6 +623,10 @@ public class TermuxTerminalViewClient extends TermuxTerminalViewClientBase {
                     if (mShowSoftKeyboardIgnoreOnce) {
                         mShowSoftKeyboardIgnoreOnce = false; return;
                     }
+                    // Terminal got focus (not the panel): remember input goes to terminal.
+                    if (hasFocus && !textInputViewHasFocus) {
+                        mActivity.setFocusOnInputForCurrentSession(false);
+                    }
                     Logger.logVerbose(LOG_TAG, "Showing soft keyboard on focus change");
                 } else {
                     Logger.logVerbose(LOG_TAG, "Hiding soft keyboard on focus change");

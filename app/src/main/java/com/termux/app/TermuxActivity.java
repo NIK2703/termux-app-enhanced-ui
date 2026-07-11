@@ -190,6 +190,13 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     // so each tab keeps its own input field text across tab switches.
     private final HashMap<String, String> mTextInputPerSession = new HashMap<>();
 
+    // Per-session whether the text input panel is open, keyed by TerminalSession.mHandle.
+    private final HashMap<String, Boolean> mTextInputVisiblePerSession = new HashMap<>();
+
+    // Per-session whether focus (and thus input) is on the text input panel
+    // (true) or on the terminal view (false), keyed by TerminalSession.mHandle.
+    private final HashMap<String, Boolean> mFocusOnInputPerSession = new HashMap<>();
+
     private float mTerminalToolbarDefaultHeight;
 
 
@@ -208,6 +215,8 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
     private static final String ARG_TERMINAL_TOOLBAR_TEXT_INPUT = "terminal_toolbar_text_input";
     private static final String ARG_TEXT_INPUT_PER_SESSION = "text_input_per_session";
+    private static final String ARG_TEXT_INPUT_VISIBLE_PER_SESSION = "text_input_visible_per_session";
+    private static final String ARG_FOCUS_ON_INPUT_PER_SESSION = "focus_on_input_per_session";
     private static final String ARG_ACTIVITY_RECREATED = "activity_recreated";
     private static final String PREF_TEXT_INPUT_VISIBLE = "text_input_visible";
 
@@ -228,6 +237,22 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 for (String key : textInputBundle.keySet()) {
                     String value = textInputBundle.getString(key);
                     if (value != null) mTextInputPerSession.put(key, value);
+                }
+            }
+
+            // Restore per-session panel visibility saved before recreation.
+            android.os.Bundle visBundle = savedInstanceState.getBundle(ARG_TEXT_INPUT_VISIBLE_PER_SESSION);
+            if (visBundle != null) {
+                for (String key : visBundle.keySet()) {
+                    mTextInputVisiblePerSession.put(key, visBundle.getBoolean(key));
+                }
+            }
+
+            // Restore per-session focus (panel vs terminal) saved before recreation.
+            android.os.Bundle focusBundle = savedInstanceState.getBundle(ARG_FOCUS_ON_INPUT_PER_SESSION);
+            if (focusBundle != null) {
+                for (String key : focusBundle.keySet()) {
+                    mFocusOnInputPerSession.put(key, focusBundle.getBoolean(key));
                 }
             }
         }
@@ -424,6 +449,24 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 textInputBundle.putString(e.getKey(), e.getValue());
             }
             savedInstanceState.putBundle(ARG_TEXT_INPUT_PER_SESSION, textInputBundle);
+        }
+
+        // Persist per-session panel visibility across activity recreation.
+        if (!mTextInputVisiblePerSession.isEmpty()) {
+            android.os.Bundle visBundle = new android.os.Bundle();
+            for (java.util.Map.Entry<String, Boolean> e : mTextInputVisiblePerSession.entrySet()) {
+                visBundle.putBoolean(e.getKey(), e.getValue());
+            }
+            savedInstanceState.putBundle(ARG_TEXT_INPUT_VISIBLE_PER_SESSION, visBundle);
+        }
+
+        // Persist per-session focus (panel vs terminal) across activity recreation.
+        if (!mFocusOnInputPerSession.isEmpty()) {
+            android.os.Bundle focusBundle = new android.os.Bundle();
+            for (java.util.Map.Entry<String, Boolean> e : mFocusOnInputPerSession.entrySet()) {
+                focusBundle.putBoolean(e.getKey(), e.getValue());
+            }
+            savedInstanceState.putBundle(ARG_FOCUS_ON_INPUT_PER_SESSION, focusBundle);
         }
     }
 
@@ -626,6 +669,12 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         // and panel show; on first creation just clear it.
         editText.setText("");
 
+        // Record per-session focus: when the text input gains focus, remember that
+        // input goes to the panel (true) for the current session.
+        editText.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) setFocusOnInputForCurrentSession(true);
+        });
+
         editText.setOnEditorActionListener((v, actionId, event) -> {
             TerminalSession session = getCurrentSession();
             if (session != null) {
@@ -648,18 +697,12 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             return true;
         });
 
-        // Restore text input visibility state - only show if enabled in settings.
-        // The text input panel and extra keys share one slot, so keep them inverted.
-        View textInputContainer = findViewById(R.id.terminal_toolbar_text_input_container);
-        if (textInputContainer != null) {
-            boolean enabled = isTextInputEnabled();
-            boolean visible = enabled && isTextInputVisible();
-            textInputContainer.setVisibility(visible ? View.VISIBLE : View.GONE);
-            final ExtraKeysView extraKeys = getExtraKeysView();
-            if (extraKeys != null) {
-                extraKeys.setVisibility(visible ? View.GONE : View.VISIBLE);
-            }
-        }
+        // Restore text input panel visibility state for the current session (if any).
+        // Falls back to the legacy global preference for sessions not yet tracked.
+        // The text input panel and extra keys share one slot, so they stay inverted.
+        // Pass applyFocus=false so we don't pop the keyboard at startup (respects
+        // setSoftKeyboardState's startup-hidden preference).
+        applyTextInputVisibilityForSession(getCurrentSession(), false);
     }
 
     private void setTerminalToolbarHeight() {
@@ -730,6 +773,31 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
      */
     public void clearTextInputForSession(@NonNull TerminalSession session) {
         mTextInputPerSession.remove(session.mHandle);
+        mTextInputVisiblePerSession.remove(session.mHandle);
+        mFocusOnInputPerSession.remove(session.mHandle);
+    }
+
+    /**
+     * Record, for the current session, whether focus (input) is on the text
+     * input panel (focusOnInput=true) or on the terminal view (false).
+     */
+    public void setFocusOnInputForCurrentSession(boolean focusOnInput) {
+        final TerminalSession session = getCurrentSession();
+        if (session != null) {
+            mFocusOnInputPerSession.put(session.mHandle, focusOnInput);
+        }
+    }
+
+    /**
+     * Get whether, for the given session, focus was last on the text input
+     * panel (true) or on the terminal view (false). Defaults to false
+     * (terminal) for unknown sessions.
+     */
+    public boolean isFocusOnInputForSession(@Nullable TerminalSession session) {
+        if (session != null && mFocusOnInputPerSession.containsKey(session.mHandle)) {
+            return mFocusOnInputPerSession.get(session.mHandle);
+        }
+        return false;
     }
 
 
@@ -1159,6 +1227,12 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             // Save state to preferences
             getSharedPreferences("termux_prefs", MODE_PRIVATE).edit().putBoolean(PREF_TEXT_INPUT_VISIBLE, visible).apply();
 
+            // Track per-session panel visibility so each tab remembers its own state.
+            final TerminalSession session = getCurrentSession();
+            if (session != null) {
+                mTextInputVisiblePerSession.put(session.mHandle, visible);
+            }
+
             // Switch focus based on visibility
             if (visible) {
                 // Restore this session's saved input text before showing the panel.
@@ -1188,11 +1262,77 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     }
 
     /**
-     * Get saved visibility state of text input panel.
+     * Get saved visibility state of text input panel for the current session.
+     * Falls back to the legacy global preference for sessions not yet tracked.
      * @return true if should be visible, false otherwise
      */
     public boolean isTextInputVisible() {
-        return getSharedPreferences("termux_prefs", MODE_PRIVATE).getBoolean(PREF_TEXT_INPUT_VISIBLE, false);
+        final TerminalSession session = getCurrentSession();
+        if (session != null && mTextInputVisiblePerSession.containsKey(session.mHandle)) {
+            return mTextInputVisiblePerSession.get(session.mHandle);
+        }
+        // New sessions (no recorded per-session state) default to hidden.
+        return false;
+    }
+
+    /**
+     * Apply the per-session text input panel visibility for the given session,
+     * updating the container/extra-keys slot. When {@code applyFocus} is true,
+     * also moves focus/keyboard to match the panel state (used on tab switch).
+     * When false, only the slot visibility is set (used at startup so we do not
+     * fight setSoftKeyboardState's startup keyboard-hidden preference).
+     * Does not re-record per-session state.
+     */
+    public void applyTextInputVisibilityForSession(@Nullable TerminalSession session, boolean applyFocus) {
+        View textInputContainer = findViewById(R.id.terminal_toolbar_text_input_container);
+        if (textInputContainer == null) return;
+
+        boolean enabled = isTextInputEnabled();
+        boolean hasRecorded = session != null && mTextInputVisiblePerSession.containsKey(session.mHandle);
+        boolean visible = enabled && (hasRecorded
+                ? mTextInputVisiblePerSession.get(session.mHandle)
+                : isTextInputVisible());
+
+        textInputContainer.setVisibility(visible ? View.VISIBLE : View.GONE);
+        final ExtraKeysView extraKeysView = getExtraKeysView();
+        if (extraKeysView != null) {
+            extraKeysView.setVisibility(visible ? View.GONE : View.VISIBLE);
+        }
+
+        if (applyFocus) {
+            // On switch, restore where focus was last for this session:
+            // on the panel (with keyboard) or on the terminal.
+            if (visible && isFocusOnInputForSession(session)) {
+                restoreTextInputForSession(session);
+                EditText textInput = findViewById(R.id.terminal_toolbar_text_input);
+                if (textInput != null) {
+                    textInput.requestFocus();
+                    textInput.post(() -> {
+                        android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                        if (imm != null) {
+                            imm.showSoftInput(textInput, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
+                        }
+                    });
+                }
+            } else {
+                // Panel hidden, or focus was on the terminal: focus the terminal.
+                if (mTermuxTerminalViewClient != null)
+                    mTermuxTerminalViewClient.ignoreOnceSoftKeyboardOnFocus();
+                if (mTerminalView != null) {
+                    mTerminalView.requestFocus();
+                }
+            }
+        } else if (visible) {
+            // At startup we still want the saved text restored into the field,
+            // just without grabbing focus / popping the keyboard.
+            restoreTextInputForSession(session);
+        }
+        updateToggleTextInputButtonIcon();
+    }
+
+    /** Apply per-session panel visibility with focus move (tab switch). */
+    public void applyTextInputVisibilityForSession(@Nullable TerminalSession session) {
+        applyTextInputVisibilityForSession(session, true);
     }
 
 
