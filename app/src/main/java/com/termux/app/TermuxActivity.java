@@ -70,6 +70,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.Arrays;
+import java.util.HashMap;
 
 /**
  * A terminal emulator activity.
@@ -185,6 +186,10 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     // being hidden while the text input panel is open.
     private boolean mSoftKeyboardVisible = false;
 
+    // Per-session text input content, keyed by TerminalSession.mHandle,
+    // so each tab keeps its own input field text across tab switches.
+    private final HashMap<String, String> mTextInputPerSession = new HashMap<>();
+
     private float mTerminalToolbarDefaultHeight;
 
 
@@ -202,6 +207,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     private static final int CONTEXT_MENU_REPORT_ID = 9;
 
     private static final String ARG_TERMINAL_TOOLBAR_TEXT_INPUT = "terminal_toolbar_text_input";
+    private static final String ARG_TEXT_INPUT_PER_SESSION = "text_input_per_session";
     private static final String ARG_ACTIVITY_RECREATED = "activity_recreated";
     private static final String PREF_TEXT_INPUT_VISIBLE = "text_input_visible";
 
@@ -214,6 +220,17 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         if (savedInstanceState != null)
             mIsActivityRecreated = savedInstanceState.getBoolean(ARG_ACTIVITY_RECREATED, false);
+
+        // Restore per-session text input content saved before recreation.
+        if (savedInstanceState != null) {
+            android.os.Bundle textInputBundle = savedInstanceState.getBundle(ARG_TEXT_INPUT_PER_SESSION);
+            if (textInputBundle != null) {
+                for (String key : textInputBundle.keySet()) {
+                    String value = textInputBundle.getString(key);
+                    if (value != null) mTextInputPerSession.put(key, value);
+                }
+            }
+        }
 
         // Delete ReportInfo serialized object files from cache older than 14 days
         ReportActivity.deleteReportInfoFilesOlderThanXDays(this, 14, false);
@@ -398,6 +415,16 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         super.onSaveInstanceState(savedInstanceState);
         saveTerminalToolbarTextInput(savedInstanceState);
         savedInstanceState.putBoolean(ARG_ACTIVITY_RECREATED, true);
+
+        // Persist per-session text input content across activity recreation
+        // (e.g. rotation, theme change). Keyed by session mHandle.
+        if (!mTextInputPerSession.isEmpty()) {
+            android.os.Bundle textInputBundle = new android.os.Bundle();
+            for (java.util.Map.Entry<String, String> e : mTextInputPerSession.entrySet()) {
+                textInputBundle.putString(e.getKey(), e.getValue());
+            }
+            savedInstanceState.putBundle(ARG_TEXT_INPUT_PER_SESSION, textInputBundle);
+        }
     }
 
 
@@ -595,12 +622,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         // Setup text input
         final EditText editText = findViewById(R.id.terminal_toolbar_text_input);
-        String savedTextInput = null;
-        if (savedInstanceState != null)
-            savedTextInput = savedInstanceState.getString(ARG_TERMINAL_TOOLBAR_TEXT_INPUT);
-        if (savedTextInput != null) {
-            editText.setText(savedTextInput);
-        }
+        // Per-session input text is restored via restoreTextInputForSession() on tab switch
+        // and panel show; on first creation just clear it.
+        editText.setText("");
 
         editText.setOnEditorActionListener((v, actionId, event) -> {
             TerminalSession session = getCurrentSession();
@@ -666,6 +690,46 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             String textInput = textInputView.getText().toString();
             if (!textInput.isEmpty()) savedInstanceState.putString(ARG_TERMINAL_TOOLBAR_TEXT_INPUT, textInput);
         }
+    }
+
+    /**
+     * Save the current text input field content into the per-session map,
+     * keyed by the current TerminalSession.mHandle.
+     */
+    public void saveTextInputForCurrentSession() {
+        final TerminalSession session = getCurrentSession();
+        if (session == null) return;
+        final EditText textInputView = findViewById(R.id.terminal_toolbar_text_input);
+        if (textInputView == null) return;
+        String text = textInputView.getText().toString();
+        if (!text.isEmpty()) {
+            mTextInputPerSession.put(session.mHandle, text);
+        } else {
+            mTextInputPerSession.remove(session.mHandle);
+        }
+    }
+
+    /**
+     * Restore the text input field content for the given session (by mHandle)
+     * into the EditText. Called on tab switch and panel show.
+     */
+    public void restoreTextInputForSession(@Nullable TerminalSession session) {
+        final EditText textInputView = findViewById(R.id.terminal_toolbar_text_input);
+        if (textInputView == null) return;
+        if (session == null) {
+            textInputView.setText("");
+            return;
+        }
+        String text = mTextInputPerSession.get(session.mHandle);
+        textInputView.setText(text != null ? text : "");
+    }
+
+    /**
+     * Remove the saved text input content for a session (e.g. when the session is closed),
+     * so the per-session map does not grow with stale entries.
+     */
+    public void clearTextInputForSession(@NonNull TerminalSession session) {
+        mTextInputPerSession.remove(session.mHandle);
     }
 
 
@@ -1097,6 +1161,8 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
             // Switch focus based on visibility
             if (visible) {
+                // Restore this session's saved input text before showing the panel.
+                restoreTextInputForSession(getCurrentSession());
                 // Focus on text input and show keyboard
                 EditText textInput = findViewById(R.id.terminal_toolbar_text_input);
                 if (textInput != null) {
@@ -1109,6 +1175,8 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                     });
                 }
             } else {
+                // Save the current input text for this session before hiding the panel.
+                saveTextInputForCurrentSession();
                 // Focus on terminal view without reopening the keyboard
                 if (mTermuxTerminalViewClient != null)
                     mTermuxTerminalViewClient.ignoreOnceSoftKeyboardOnFocus();

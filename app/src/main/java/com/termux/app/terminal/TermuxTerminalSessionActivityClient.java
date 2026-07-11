@@ -322,6 +322,9 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
     public void setCurrentSession(TerminalSession session, boolean showToast) {
         if (session == null) return;
 
+        // Preserve the text input content of the session we are leaving.
+        mActivity.saveTextInputForCurrentSession();
+
         if (mActivity.getTerminalView().attachSession(session)) {
             // notify about switched session if not already displaying the session
             if (showToast) {
@@ -341,6 +344,9 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         // be stale, like current session not selected or scrolled to.
         checkAndScrollToSession(session);
         updateBackgroundColor();
+
+        // Load the text input content saved for the newly-current session.
+        mActivity.restoreTextInputForSession(session);
     }
 
     void notifyOfSessionChange() {
@@ -471,6 +477,9 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         // Return pressed with finished session - remove it.
         TermuxService service = mActivity.getTermuxService();
         if (service == null) return;
+
+        // Drop the per-session saved text input for the removed session.
+        mActivity.clearTextInputForSession(finishedSession);
 
         int index = service.removeTermuxSession(finishedSession);
 
