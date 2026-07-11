@@ -101,8 +101,9 @@ android {
             if (keystorePropsFile.exists()) {
                 keystoreProps.load(new FileInputStream(keystorePropsFile))
             }
-            // Read signing secrets from the git-ignored local.properties (NEVER hardcode here).
-            def localPropsFile = file('local.properties')
+            // Read signing secrets from the git-ignored local.properties in the project root
+            // (NEVER hardcode here). Resolve relative to rootProject so it works from :app.
+            def localPropsFile = rootProject.file('local.properties')
             def localProps = new Properties()
             if (localPropsFile.exists()) {
                 localProps.load(new FileInputStream(localPropsFile))
@@ -110,7 +111,10 @@ android {
             def defaultStore = localProps.getProperty('KEYSTORE_FILE', '')
             def defaultPass = localProps.getProperty('KEYSTORE_PASSWORD', '')
             def defaultAlias = localProps.getProperty('KEYSTORE_ALIAS', '')
-            storeFile file(keystoreProps.getProperty('storeFile', defaultStore))
+            // Only build a File when a store path is actually provided; otherwise leave it unset
+            // so the build fails loudly with a clear message instead of "Cannot convert '' to File".
+            def storePath = keystoreProps.getProperty('storeFile', defaultStore)
+            storeFile file(storePath)
             storePassword keystoreProps.getProperty('storePassword', defaultPass)
             keyAlias keystoreProps.getProperty('keyAlias', defaultAlias)
             keyPassword keystoreProps.getProperty('keyPassword', defaultPass)
