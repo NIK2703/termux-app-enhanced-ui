@@ -31,6 +31,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.READ_LOGS" />
@@ -105,6 +106,18 @@
             android:exported="true"
             android:label="@string/title_activity_termux_settings"
             android:theme="@style/Theme.TermuxApp.DayNight.NoActionBar" />
+
+        <!-- Transparent host for the backup/restore progress dialog, launched by tapping the
+             notification. Shows the dialog OVER whichever screen is currently visible (terminal,
+             settings, or from the background) without opening the settings screen. -->
+        <activity
+            android:name=".app.BackupDialogActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:resizeableActivity="true"
+            android:theme="@style/Theme.TermuxApp.Transparent"
+            tools:targetApi="n" />
 
         <activity
             android:name=".shared.activities.ReportActivity"
@@ -200,6 +213,11 @@
         <service
             android:name=".app.TermuxService"
             android:exported="false" />
+
+        <service
+            android:name=".app.TermuxBackupService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
         <service
             android:name=".app.RunCommandService"

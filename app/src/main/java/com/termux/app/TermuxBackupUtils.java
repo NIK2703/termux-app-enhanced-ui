@@ -16,12 +16,16 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class TermuxBackupUtils {
 
     private static final String LOG_TAG = "TermuxBackupUtils";
     private static final String TAR_BINARY = TermuxConstants.TERMUX_BIN_PREFIX_DIR_PATH + "/tar";
+
+    /** Sentinel error returned when the operation is cancelled by the user. */
+    public static final Error CANCELLED_ERROR = new Error("__CANCELLED__");
 
     public interface ResultListener {
         void onResult(@Nullable Error error);
@@ -44,8 +48,10 @@ public final class TermuxBackupUtils {
 
     /**
      * Estimates the total uncompressed size of the Termux data directory
-     * ({@code $FILES}) by running {@code du -sb}.  Returns 0 if the estimate
-     * cannot be obtained.
+     * ({@code $FILES}) by running {@code du -sb}. This is close to (slightly
+     * below) the uncompressed tar stream we measure progress against; the caller
+     * adds a small tar-overhead budget so the bar reaches 100% at true EOF.
+     * Returns 0 if the estimate cannot be obtained.
      */
     public static long getEstimatedBackupSize(@NonNull Context context) {
         Error health = checkTarHealth(context);
@@ -106,7 +112,8 @@ public final class TermuxBackupUtils {
 
     public static void backup(@NonNull Context context, @NonNull OutputStream out,
                               @NonNull ResultListener listener,
-                              @Nullable ProgressCallback progress) {
+                              @Nullable ProgressCallback progress,
+                              @Nullable java.util.concurrent.atomic.AtomicBoolean cancelled) {
         Error health = checkTarHealth(context);
         if (health != null) {
             listener.onResult(health);
@@ -114,16 +121,22 @@ public final class TermuxBackupUtils {
         }
         final String filesDir = TermuxConstants.TERMUX_FILES_DIR_PATH;
         final String parentDir = TermuxConstants.TERMUX_INTERNAL_PRIVATE_APP_DATA_DIR_PATH;
+        // Measure progress against the *uncompressed* tar stream (we gzip ourselves
+        // inside runTar), so it lines up with the du-based estimate and the bar ends
+        // at 100% without blocking the UI thread to pre-measure a compressed archive.
         long estimatedSize = getEstimatedBackupSize(context);
-        // Use -C <absolute files path> so tar's view of "." is always the on-disk
-        // files/ directory.  pb.directory(parent) only sets the process start dir;
-        // -C is what tar actually uses for extraction/creation and survives any
-        // directory removal/recreation done between fork-exec and tar's chdir.
+        // tar adds a 512-byte header + block padding per entry (plus two 512-byte end
+        // blocks), so the real uncompressed stream is larger than `du`'s number. Add a
+        // ~5% + 2MB overhead budget so the bar reaches close to 100% at true EOF.
+        // The final onProgress snap (bytesCopied=total) bridges the gap to exactly 100%.
+        if (estimatedSize > 0) {
+            estimatedSize += Math.max(estimatedSize / 20, 2L * 1024 * 1024);
+        }
         runTar(context,
-            new String[]{TAR_BINARY, "-czpf", "-", "--numeric-owner",
+            new String[]{TAR_BINARY, "-cpf", "-", "--numeric-owner",
                 "-C", filesDir, "."},
             null, out, listener, progress,
-            new File(parentDir), estimatedSize);
+            new File(parentDir), estimatedSize, cancelled);
     }
 
     // -----------------------------------------------------------------------
@@ -186,7 +199,8 @@ public final class TermuxBackupUtils {
 
     public static void restore(@NonNull Context context, @NonNull InputStream in,
                                @NonNull ResultListener listener,
-                               @Nullable ProgressCallback progress) {
+                               @Nullable ProgressCallback progress,
+                               @Nullable java.util.concurrent.atomic.AtomicBoolean cancelled) {
         final String filesDir = TermuxConstants.TERMUX_FILES_DIR_PATH;
         final String parentDir = TermuxConstants.TERMUX_INTERNAL_PRIVATE_APP_DATA_DIR_PATH;
 
@@ -264,6 +278,13 @@ public final class TermuxBackupUtils {
                             // total from SAF stat via a wrapping callback if known.
                             progress.onProgress(bytesCopied, 0);
                         }
+                        // Honor a cancel request promptly, exactly like the backup path: stop
+                        // pumping and kill tar so a large archive does not keep draining for
+                        // minutes after the user tapped cancel.
+                        if (cancelled != null && cancelled.get()) {
+                            process.destroy();
+                            return;
+                        }
                     }
                 } catch (IOException e) {
                     pumpError.set(e);
@@ -272,6 +293,14 @@ public final class TermuxBackupUtils {
                 }
             });
             dataPump.start();
+
+            // If cancellation was requested, kill tar now and report a clean "cancelled".
+            if (cancelled != null && cancelled.get()) {
+                process.destroy();
+                rollbackRestore(filesDir);
+                listener.onResult(CANCELLED_ERROR);
+                return;
+            }
 
             final int exitCode = process.waitFor();
             errPump.join();
@@ -285,6 +314,11 @@ public final class TermuxBackupUtils {
             if (pErr != null) {
                 rollbackRestore(filesDir);
                 listener.onResult(new Error("Restore I/O error: " + pErr.getMessage(), pErr));
+            } else if (cancelled != null && cancelled.get()) {
+                // Cancelled mid-pump (process.destroy() above): report a clean cancel and roll
+                // back the partially-extracted files, exactly like the pre-pump cancel branch.
+                rollbackRestore(filesDir);
+                listener.onResult(CANCELLED_ERROR);
             } else if (exitCode == 0) {
                 listener.onResult(null);
             } else {
@@ -323,7 +357,8 @@ public final class TermuxBackupUtils {
                                @NonNull ResultListener listener,
                                @Nullable ProgressCallback progress,
                                @Nullable File workingDir,
-                               long totalBytes) {
+                               long totalBytes,
+                               @Nullable AtomicBoolean cancelled) {
         try {
             ProcessBuilder pb = new ProcessBuilder(command);
             pb.environment().clear();
@@ -355,17 +390,30 @@ public final class TermuxBackupUtils {
                 dataPump = new Thread(() -> {
                     long bytesCopied = 0;
                     long lastReport = 0;
-                    try (OutputStream o = finalOut; InputStream p = process.getInputStream()) {
+                    try (OutputStream gz = new java.util.zip.GZIPOutputStream(finalOut);
+                         OutputStream o = gz;
+                         InputStream p = process.getInputStream()) {
                         byte[] buf = new byte[32768];
                         int n;
                         while ((n = p.read(buf)) > 0) {
                             o.write(buf, 0, n);
+                            // count the raw (uncompressed) tar bytes so progress lines
+                            // up with the du-based estimate and reaches ~100% at the end.
                             bytesCopied += n;
                             if (progress != null && bytesCopied - lastReport >= 1_000_000) {
                                 lastReport = bytesCopied;
                                 progress.onProgress(bytesCopied, totalBytes);
                             }
+                            // Honor a cancel request promptly: stop pumping and kill tar.
+                            if (cancelled != null && cancelled.get()) {
+                                process.destroy();
+                                return;
+                            }
                         }
+                        // Snap to 100% exactly at true EOF (tar stream fully drained) by
+                        // reporting the actual total (= bytesCopied) so the bar reaches 100%
+                        // even when the pre-job estimate was slightly too large.
+                        if (progress != null) progress.onProgress(bytesCopied, bytesCopied);
                     } catch (IOException e) {
                         pumpError.set(e);
                         Logger.logStackTraceWithMessage(LOG_TAG, "Error reading tar output stream", e);
@@ -388,6 +436,9 @@ public final class TermuxBackupUtils {
                                 progress.onProgress(bytesCopied, totalBytes);
                             }
                         }
+                        // Snap to 100% exactly at EOF (the loop only reports every 1MB, leaving
+                        // the last partial chunk short of full).
+                        if (progress != null) progress.onProgress(bytesCopied, bytesCopied);
                     } catch (IOException e) {
                         pumpError.set(e);
                         Logger.logStackTraceWithMessage(LOG_TAG, "Error feeding tar input stream", e);
@@ -397,6 +448,13 @@ public final class TermuxBackupUtils {
             }
             dataPump.start();
 
+            // If cancellation arrived before tar finished, kill it and report cleanly.
+            if (cancelled != null && cancelled.get()) {
+                process.destroy();
+                listener.onResult(CANCELLED_ERROR);
+                return;
+            }
+
             final int exitCode = process.waitFor();
             errPump.join();
             dataPump.join();
@@ -404,6 +462,9 @@ public final class TermuxBackupUtils {
             IOException pErr = pumpError.get();
             if (pErr != null) {
                 listener.onResult(new Error("I/O error: " + pErr.getMessage(), pErr));
+            } else if (cancelled != null && cancelled.get()) {
+                process.destroy();
+                listener.onResult(CANCELLED_ERROR);
             } else if (exitCode == 0) {
                 listener.onResult(null);
             } else {

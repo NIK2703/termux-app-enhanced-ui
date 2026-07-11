@@ -1,12 +1,10 @@
 package com.termux.app.fragments.settings;
 
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
-import android.os.PowerManager;
 import android.text.TextUtils;
 
 import androidx.annotation.Keep;
@@ -19,9 +17,10 @@ import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 
 import com.termux.R;
+import com.termux.app.BackupProgressController;
 import com.termux.app.TermuxActivity;
+import com.termux.app.TermuxBackupService;
 import com.termux.app.TermuxBackupUtils;
-import com.termux.shared.errors.Error;
 import com.termux.shared.logger.Logger;
 import com.termux.shared.termux.TermuxConstants;
 import com.termux.shared.termux.extrakeys.ColorSchemeUtils;
@@ -32,8 +31,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.Properties;
 
 @Keep
@@ -43,6 +40,9 @@ public class TermuxPreferencesFragment extends PreferenceFragmentCompat {
 
     private static final int REQUEST_CODE_BACKUP = 1001;
     private static final int REQUEST_CODE_RESTORE = 1002;
+
+    /** Owns the backup/restore progress dialog (shared with BackupDialogActivity via the controller). */
+    private BackupProgressController mBackupController;
 
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
@@ -159,104 +159,51 @@ public class TermuxPreferencesFragment extends PreferenceFragmentCompat {
         FragmentActivity activity = getActivity();
         if (activity == null) return;
 
+        // The controller owns the dialog + the service start; we just hand it the params.
+        mBackupController = new BackupProgressController(activity, false, null);
         if (requestCode == REQUEST_CODE_BACKUP) {
             final long estimatedSize = TermuxBackupUtils.getEstimatedBackupSize(activity);
-            runWithProgress(R.string.backup_restore_backup_started,
-                R.string.backup_restore_backup_success, estimatedSize, false,
-                (TermuxBackupUtils.ProgressCallback progressCb) -> {
-                    try (OutputStream out = activity.getContentResolver().openOutputStream(uri)) {
-                        if (out == null) return new Error("Failed to open output file");
-                        final Error[] holder = new Error[1];
-                        TermuxBackupUtils.backup(activity, out, error -> holder[0] = error, progressCb);
-                        if (holder[0] != null) {
-                            try { activity.getContentResolver().delete(uri, null, null); }
-                            catch (Exception ignored) { }
-                        }
-                        return holder[0];
-                    } catch (IOException | RuntimeException e) {
-                        try { activity.getContentResolver().delete(uri, null, null); }
-                        catch (Exception ignored) { }
-                        return new Error(e.getMessage(), e);
-                    }
-                });
+            mBackupController.start(R.string.backup_restore_backup_started,
+                estimatedSize, false, false, uri);
         } else if (requestCode == REQUEST_CODE_RESTORE) {
             final long totalBytes = getStreamSize(activity, uri);
-            runWithProgress(R.string.backup_restore_restore_started,
-                R.string.backup_restore_restore_success, totalBytes, true,
-                (TermuxBackupUtils.ProgressCallback progressCb) -> {
-                    try (InputStream in = activity.getContentResolver().openInputStream(uri)) {
-                        if (in == null) return new Error("Failed to open input file");
-                        final Error[] holder = new Error[1];
-                        TermuxBackupUtils.restore(activity, in, error -> holder[0] = error, progressCb);
-                        return holder[0];
-                    } catch (IOException | RuntimeException e) {
-                        return new Error(e.getMessage(), e);
-                    }
-                });
+            mBackupController.start(R.string.backup_restore_restore_started,
+                totalBytes, true, true, uri);
         }
     }
 
-    /** Run the blocking backup/restore task on a background thread with a progress dialog.
-     * The standard horizontal ProgressDialog is used: the title is shown on top, and the
-     * percentage ("67%") is rendered by the dialog next to the bar (one place only).
-     * @param launchTermuxOnSuccess if true (restore), open Termux after success and reset sessions */
-    private void runWithProgress(int titleRes, final int successMsgRes,
-                                 final long totalBytes, final boolean launchTermuxOnSuccess,
-                                 final ProgressTask task) {
+    @Override
+    public void onResume() {
+        super.onResume();
+        // After being backgrounded (notification took over), re-attach to the still-running
+        // operation and restore the live progress dialog on expand. No-op if the operation
+        // already finished (the result was already surfaced as a heads-up).
+        TermuxBackupService svc = TermuxBackupService.getInstance();
         FragmentActivity activity = getActivity();
-        if (activity == null) return;
-
-        PowerManager pm = (PowerManager) activity.getSystemService(Context.POWER_SERVICE);
-        final PowerManager.WakeLock wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
-            "Termux:BackupRestore");
-        wl.acquire(30 * 60 * 1000L);
-
-        final ProgressDialog progress = new ProgressDialog(activity);
-        progress.setTitle(getString(titleRes));
-        progress.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-        progress.setMax(100);
-        progress.setProgressNumberFormat(null); // no percentage number — only the bar itself
-        progress.setCancelable(false);
-        progress.show();
-
-        new Thread(() -> {
-            TermuxBackupUtils.ProgressCallback innerCb = (copied, total) -> {
-                final long effective = total > 0 ? total : totalBytes;
-                if (effective > 0) {
-                    final int pct = (int) Math.min(copied * 100 / effective, 100);
-                    activity.runOnUiThread(() -> progress.setProgress(pct));
-                }
-            };
-            final Error error = task.doWork(innerCb);
-            activity.runOnUiThread(() -> {
-                progress.dismiss();
-                wl.release();
-                if (error == null) {
-                    android.widget.Toast.makeText(activity, getString(successMsgRes),
-                        android.widget.Toast.LENGTH_LONG).show();
-                    if (launchTermuxOnSuccess) {
-                        TermuxActivity.startTermuxActivityWithSessionReset(activity);
-                    }
-                } else {
-                    new AlertDialog.Builder(activity)
-                        .setTitle(R.string.backup_restore_failed_title)
-                        .setMessage(Error.getMinimalErrorString(error))
-                        .setPositiveButton(android.R.string.ok, null)
-                        .show();
-                }
-            });
-        }).start();
+        if (activity != null && svc != null && svc.isInForeground() && !svc.isFinished()) {
+            mBackupController = new BackupProgressController(activity, false, null);
+            mBackupController.reopen(activity);
+        }
     }
 
-    /** A background task that receives a progress callback. */
-    private interface ProgressTask {
-        @Nullable
-        Error doWork(TermuxBackupUtils.ProgressCallback progress);
+    @Override
+    public void onPause() {
+        super.onPause();
+        // If the dialog is still up when the app is minimized, move the operation to the
+        // background notification so it keeps running and stays visible. The controller detaches
+        // its poll loop; the service keeps the notification alive.
+        if (mBackupController != null) mBackupController.detach();
+    }
+
+    @Override
+    public void onDestroy() {
+        if (mBackupController != null) mBackupController.detach();
+        super.onDestroy();
     }
 
     /** Query the size of a SAF content URI (or -1 if unknown). */
     private static long getStreamSize(Context context, Uri uri) {
-        try (ParcelFileDescriptor pfd = context.getContentResolver().openFileDescriptor(uri, "r")) {
+        try (android.os.ParcelFileDescriptor pfd = context.getContentResolver().openFileDescriptor(uri, "r")) {
             if (pfd != null) {
                 long size = pfd.getStatSize();
                 if (size > 0) return size;

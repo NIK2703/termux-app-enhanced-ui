@@ -10,6 +10,11 @@ ext {
     // by replacing $PREFIX since app code is dependant on the variant used to build the APK.
     // Currently supported values are: [ "apt-android-7" "apt-android-5" ]
     packageVariant = System.getenv("TERMUX_PACKAGE_VARIANT") ?: "apt-android-7" // Default: "apt-android-7"
+
+    // Target ABIs for this build. arm64-v8a only by default.
+    // Used both to restrict the APK to a single architecture and to download only the
+    // matching bootstrap zip so we don't bloat the build with unused architectures.
+    abiList = (System.getenv("TERMUX_ARCH") ?: project.properties.termuxBuildAbis ?: "arm64-v8a").split(',').collect { it.trim() }
 }
 
 android {
@@ -49,6 +54,11 @@ android {
         if (appVersionName) versionName = appVersionName
         validateVersionName(versionName)
 
+        // Restrict every native build (app + library modules) to the configured ABIs.
+        ndk {
+            abiFilters(*project.ext.abiList)
+        }
+
         buildConfigField "String", "TERMUX_PACKAGE_VARIANT", "\"" + project.ext.packageVariant + "\"" // Used by TermuxApplication class
 
         manifestPlaceholders.TERMUX_PACKAGE_NAME = "com.termux"
@@ -68,8 +78,8 @@ android {
 
         splits {
             abi {
-                enable ((gradle.startParameter.taskNames.any { it.contains("Debug") } && splitAPKsForDebugBuilds == "1") ||
-                    (gradle.startParameter.taskNames.any { it.contains("Release") } && splitAPKsForReleaseBuilds == "1"))
+                // Single-ABI build: keep every arch together in one universal APK, no split APKs.
+                enable false
                 reset ()
                 include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
                 universalApk true
@@ -91,10 +101,19 @@ android {
             if (keystorePropsFile.exists()) {
                 keystoreProps.load(new FileInputStream(keystorePropsFile))
             }
-            storeFile file(keystoreProps.getProperty('storeFile'))
-            storePassword keystoreProps.getProperty('storePassword', '')
-            keyAlias keystoreProps.getProperty('keyAlias', '')
-            keyPassword keystoreProps.getProperty('keyPassword', '')
+            // Read signing secrets from the git-ignored local.properties (NEVER hardcode here).
+            def localPropsFile = file('local.properties')
+            def localProps = new Properties()
+            if (localPropsFile.exists()) {
+                localProps.load(new FileInputStream(localPropsFile))
+            }
+            def defaultStore = localProps.getProperty('KEYSTORE_FILE', '')
+            def defaultPass = localProps.getProperty('KEYSTORE_PASSWORD', '')
+            def defaultAlias = localProps.getProperty('KEYSTORE_ALIAS', '')
+            storeFile file(keystoreProps.getProperty('storeFile', defaultStore))
+            storePassword keystoreProps.getProperty('storePassword', defaultPass)
+            keyAlias keystoreProps.getProperty('keyAlias', defaultAlias)
+            keyPassword keystoreProps.getProperty('keyPassword', defaultPass)
         }
     }
 
@@ -170,11 +189,17 @@ task versionName {
     }
 }
 
-def validateVersionName(String versionName) {
-    // https://semver.org/spec/v2.0.0.html#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
-    // ^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$
-    if (!java.util.regex.Pattern.matches("^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?\$", versionName))
-        throw new GradleException("The versionName '"  + versionName + "' is not a valid version as per semantic version '2.0.0' spec in the format 'major.minor.patch(-prerelease)(+buildmetadata)'. https://semver.org/spec/v2.0.0.html.")
+// Maps a termux bootstrap zip arch to the downloadBootstrap arch token.
+// project.ext.abiList is the NDK ABI name (e.g. arm64-v8a); we only download
+// the bootstrap matching the configured ABIs so the build stays single-arch.
+def abiToBootstrapArch(String abi) {
+    switch (abi) {
+        case 'arm64-v8a': return 'aarch64'
+        case 'armeabi-v7a': return 'arm'
+        case 'x86': return 'i686'
+        case 'x86_64': return 'x86_64'
+        default: throw new GradleException("Unsupported ABI for bootstrap download: " + abi)
+    }
 }
 
 def downloadBootstrap(String arch, String expectedChecksum, String version) {
@@ -190,6 +215,7 @@ def downloadBootstrap(String arch, String expectedChecksum, String version) {
             if (readBytes < 0) break
             digest.update(buffer, 0, readBytes)
         }
+        input.close()
         def checksum = new BigInteger(1, digest.digest()).toString(16)
         while (checksum.length() < 64) { checksum = "0" + checksum }
         if (checksum == expectedChecksum) {
@@ -231,18 +257,31 @@ clean {
 task downloadBootstraps() {
     doLast {
         def packageVariant = project.ext.packageVariant
+        // Checksums keyed by bootstrap arch token. Only the configured ABIs are fetched.
+        def checksums = [
+            aarch64: "ea2aeba8819e517db711f8c32369e89e7c52cee73e07930ff91185e1ab93f4f3",
+            arm    : "a38f4d3b2f735f83be2bf54eff463e86dc32a3e2f9f861c1557c4378d249c018",
+            i686   : "f5bc0b025b9f3b420b5fcaeefc064f888f5f22a0d6fd7090f4aac0c33eb3555b",
+            x86_64 : "b7fd0f2e3a4de534be3144f9f91acc768630fc463eaf134ab2e64c545e834f7a",
+        ]
         if (packageVariant == "apt-android-7") {
             def version = "2026.02.12-r1" + "%2B" + "apt.android-7"
-            downloadBootstrap("aarch64", "ea2aeba8819e517db711f8c32369e89e7c52cee73e07930ff91185e1ab93f4f3", version)
-            downloadBootstrap("arm", "a38f4d3b2f735f83be2bf54eff463e86dc32a3e2f9f861c1557c4378d249c018", version)
-            downloadBootstrap("i686", "f5bc0b025b9f3b420b5fcaeefc064f888f5f22a0d6fd7090f4aac0c33eb3555b", version)
-            downloadBootstrap("x86_64", "b7fd0f2e3a4de534be3144f9f91acc768630fc463eaf134ab2e64c545e834f7a", version)
+            project.ext.abiList.each { abi ->
+                def arch = abiToBootstrapArch(abi)
+                downloadBootstrap(arch, checksums[arch], version)
+            }
         } else if (packageVariant == "apt-android-5") {
             def version = "2022.04.28-r6" + "+" + packageVariant
-            downloadBootstrap("aarch64", "913609d439415c828c5640be1b0561467e539cb1c7080662decaaca2fb4820e7", version)
-            downloadBootstrap("arm", "26bfb45304c946170db69108e5eb6e3641aad751406ce106c80df80cad2eccf8", version)
-            downloadBootstrap("i686", "46dcfeb5eef67ba765498db9fe4c50dc4690805139aa0dd141a9d8ee0693cd27", version)
-            downloadBootstrap("x86_64", "615b590679ee6cd885b7fd2ff9473c845e920f9b422f790bb158c63fe42b8481", version)
+            def checksums5 = [
+                aarch64: "913609d439415c828c5640be1b0561467e539cb1c7080662decaaca2fb4820e7",
+                arm    : "26bfb45304c946170db69108e5eb6e3641aad751406ce106c80df80cad2eccf8",
+                i686   : "46dcfeb5eef67ba765498db9fe4c50dc4690805139aa0dd141a9d8ee0693cd27",
+                x86_64 : "615b590679ee6cd885b7fd2ff9473c845e920f9b422f790bb158c63fe42b8481",
+            ]
+            project.ext.abiList.each { abi ->
+                def arch = abiToBootstrapArch(abi)
+                downloadBootstrap(arch, checksums5[arch], version)
+            }
         } else {
             throw new GradleException("Unsupported TERMUX_PACKAGE_VARIANT \"" + packageVariant + "\"")
         }
@@ -253,4 +292,11 @@ afterEvaluate {
     android.applicationVariants.all { variant ->
         variant.javaCompileProvider.get().dependsOn(downloadBootstraps)
     }
+}
+
+def validateVersionName(String versionName) {
+    // https://semver.org/spec/v2.0.0.html#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
+    // ^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$
+    if (!java.util.regex.Pattern.matches('^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$', versionName))
+        throw new GradleException("The versionName '"  + versionName + "' is not a valid version as per semantic version '2.0.0' spec in the format 'major.minor.patch(-prerelease)(+buildmetadata)'. https://semver.org/spec/v2.0.0.html.")
 }

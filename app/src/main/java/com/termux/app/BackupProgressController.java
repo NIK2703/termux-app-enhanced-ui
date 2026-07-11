@@ -1,0 +1,270 @@
+package com.termux.app;
+
+import android.app.ProgressDialog;
+import android.content.DialogInterface;
+import android.os.Handler;
+import android.os.Looper;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+import androidx.fragment.app.FragmentActivity;
+
+import com.termux.R;
+import com.termux.app.TermuxBackupService;
+import com.termux.app.TermuxBackupUtils;
+import com.termux.shared.errors.Error;
+
+import java.lang.ref.WeakReference;
+
+/**
+ * Drives the backup/restore progress dialog and its polling loop, independent of which screen the
+ * app is currently showing. Both {@link TermuxPreferencesFragment} (initial launch from the
+ * settings list) and {@link BackupDialogActivity} (tap on the notification, re-attaching to an
+ * already-running operation) use the same controller so the behaviour is byte-for-byte identical.
+ *
+ * <p>The controller owns the dialog + poll loop and the run/finish/cancel/background transitions.
+ * It does NOT start the service — that is done by the caller via
+ * {@link TermuxBackupService#startBackup} / {@link TermuxBackupService#startRestore} (or, when
+ * re-attaching, the service is already running and {@link #reopen(FragmentActivity)} just shows the
+ * dialog over it).
+ */
+public final class BackupProgressController {
+
+    /** Called when the dialog is fully closed (cancelled / finished / dismissed). Lets a host
+     *  Activity finish itself without affecting a host Fragment (which stays on screen). */
+    public interface OnClosedListener { void onClosed(); }
+
+    private WeakReference<FragmentActivity> mActivityRef;
+    private final boolean mFinishHostOnClose;
+    @Nullable private final OnClosedListener mOnClosed;
+
+    private ProgressDialog mBackupDialog;
+    private Handler mBackupPoll;
+    private boolean mBackupIsRestore;
+    private boolean mBackupLaunchTermuxOnSuccess;
+    private long mBackupEstimated;
+    private boolean mLastIndeterminate; // guard to avoid per-tick setIndeterminate view churn
+
+    public BackupProgressController(@NonNull FragmentActivity activity,
+                                   boolean finishHostOnClose,
+                                   @Nullable OnClosedListener onClosed) {
+        mActivityRef = new WeakReference<>(activity);
+        mFinishHostOnClose = finishHostOnClose;
+        mOnClosed = onClosed;
+    }
+
+    /** Start a fresh operation behind the dialog and launch the service. */
+    public void start(int titleRes, long totalBytes,
+                      boolean launchTermuxOnSuccess, boolean isRestore, android.net.Uri uri) {
+        FragmentActivity activity = mActivityRef.get();
+        if (activity == null) return;
+        mBackupIsRestore = isRestore;
+        mBackupLaunchTermuxOnSuccess = launchTermuxOnSuccess;
+        mBackupEstimated = totalBytes;
+
+        if (isRestore) {
+            TermuxBackupService.startRestore(activity, uri, totalBytes);
+        } else {
+            TermuxBackupService.startBackup(activity, uri, totalBytes);
+        }
+        showDialog(titleRes);
+    }
+
+    /**
+     * Re-attach to an ALREADY-RUNNING operation and show its progress dialog over whatever screen
+     * is currently visible (terminal, settings, or from the background). The service drops its
+     * notification so the dialog becomes the single source of truth again — exactly as when the
+     * operation was first started. If the service is gone or already finished, we report/clean up
+     * without spawning a dead dialog.
+     */
+    public void reopen(@NonNull FragmentActivity activity) {
+        // The hosting activity may have been recreated (e.g. after a config change / background
+        // kill) — refresh the reference so the dialog shows in the current context.
+        mActivityRef = new WeakReference<>(activity);
+        TermuxBackupService svc = TermuxBackupService.getInstance();
+        if (svc == null) {
+            // Service already torn down: report whatever result it published (survives onDestroy).
+            finish();
+            return;
+        }
+        svc.returnToDialog(); // drop the notification; dialog takes over
+        mBackupIsRestore = svc.isRestore();
+        mBackupLaunchTermuxOnSuccess = svc.isRestore(); // restore re-opens termux on success
+        mBackupEstimated = 0;
+
+        if (svc.isFinished()) {
+            // The operation already completed. If it finished in background mode the result was
+            // already surfaced as a heads-up notification (and auto-dismissed after 8s); do NOT
+            // reproduce a duplicate bottom Toast here. Just stop the now-idle service and close.
+            svc.stopSelf();
+            dismiss();
+            notifyClosed();
+            return;
+        }
+
+        showDialog(mBackupIsRestore
+            ? R.string.backup_service_notification_restore_title
+            : R.string.backup_service_notification_title);
+    }
+
+    private void showDialog(int titleRes) {
+        FragmentActivity activity = mActivityRef.get();
+        if (activity == null || activity.isFinishing()) return;
+
+        final ProgressDialog progress = new ProgressDialog(activity);
+        progress.setTitle(activity.getString(titleRes));
+        progress.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+        progress.setMax(100);
+        progress.setProgressNumberFormat(null); // no percentage number — only the bar itself
+        progress.setCancelable(false);
+        progress.setButton(DialogInterface.BUTTON_NEUTRAL,
+            activity.getString(R.string.backup_dialog_background), (d, which) -> goBackground());
+        progress.setButton(DialogInterface.BUTTON_NEGATIVE,
+            activity.getString(R.string.backup_dialog_cancel), (d, which) -> cancel());
+        mBackupDialog = progress;
+        progress.show();
+        mLastIndeterminate = false;
+
+        mBackupPoll = new Handler(Looper.getMainLooper());
+        mBackupPoll.post(mBackupPollRunnable);
+    }
+
+    private final Runnable mBackupPollRunnable = new Runnable() {
+        @Override
+        public void run() {
+            FragmentActivity activity = mActivityRef.get();
+            TermuxBackupService svc = TermuxBackupService.getInstance();
+            if (svc == null || svc.isFinished()) {
+                finish();
+                return;
+            }
+            long copied = svc.getProgressCopied();
+            long total = svc.getProgressTotal();
+            long effective = total > 0 ? total : mBackupEstimated;
+            if (mBackupDialog != null && mBackupDialog.isShowing()) {
+                if (effective > 0) {
+                    if (mLastIndeterminate) {
+                        mBackupDialog.setIndeterminate(false);
+                        mLastIndeterminate = false;
+                    }
+                    int pct = (int) Math.min(copied * 100 / effective, 100);
+                    mBackupDialog.setProgress(pct);
+                } else {
+                    // Size unknown (du failed / SAF size unavailable): show indeterminate spinner.
+                    if (!mLastIndeterminate) {
+                        mBackupDialog.setIndeterminate(true);
+                        mLastIndeterminate = true;
+                    }
+                }
+            }
+            if (mBackupPoll != null) mBackupPoll.postDelayed(this, 300);
+        }
+    };
+
+    /** Move the running operation into background (notification) mode and close the dialog. */
+    private void goBackground() {
+        TermuxBackupService svc = TermuxBackupService.getInstance();
+        if (svc != null) svc.enterBackground();
+        dismiss();
+        // If our host is a transparent activity (BackupDialogActivity), finish it so the previous
+        // screen is revealed and only the notification remains. The fragment host stays on screen.
+        notifyClosed();
+    }
+
+    /** Cancel the running operation and close the dialog. */
+    private void cancel() {
+        TermuxBackupService svc = TermuxBackupService.getInstance();
+        if (svc == null || svc.isFinished()) {
+            // Race: the operation already ended before the user hit Cancel. Report the real result
+            // via the normal finish path (which reads getLastResult()) so we don't silently lose
+            // it or leave the service running.
+            finish();
+            return;
+        }
+        svc.cancelOperation();
+        // Close the dialog immediately but leave the poll dead — the worker is still killing tar
+        // and rolling back; once it finishes, the service itself will call stopSelf() (see the
+        // mCancelled guard in the worker finally block).
+        if (mBackupPoll != null) {
+            mBackupPoll.removeCallbacks(mBackupPollRunnable);
+            mBackupPoll = null;
+        }
+        if (mBackupDialog != null && mBackupDialog.isShowing()) {
+            mBackupDialog.dismiss();
+        }
+        mBackupDialog = null;
+        // Give immediate feedback — "Operation cancelled" toast, matching the notification path.
+        FragmentActivity activity = mActivityRef.get();
+        if (activity != null && !activity.isFinishing()) {
+            Toast.makeText(activity, activity.getString(R.string.backup_restore_cancelled),
+                Toast.LENGTH_LONG).show();
+        }
+        notifyClosed();
+    }
+
+    /** Tear down the dialog + poll loop but leave the service running; moves the operation to the
+     *  foreground notification so it keeps running and stays visible (instead of being killed by
+     *  the system or finishing silently). Called when the host activity/fragment is paused or
+     *  destroyed. */
+    public void detach() {
+        TermuxBackupService svc = TermuxBackupService.getInstance();
+        if (svc != null) svc.enterBackground();
+        dismiss();
+    }
+
+    private void dismiss() {
+        if (mBackupPoll != null) {
+            mBackupPoll.removeCallbacks(mBackupPollRunnable);
+            mBackupPoll = null;
+        }
+        if (mBackupDialog != null && mBackupDialog.isShowing()) {
+            mBackupDialog.dismiss();
+        }
+        mBackupDialog = null;
+    }
+
+    /** Close the dialog (if any) and report the result via a Toast/Alert, then stop the service. */
+    private void finish() {
+        dismiss();
+        // Read the PERSISTED result (survives the service's onDestroy), so a finished operation is
+        // never misreported as success just because svc became null first.
+        Error error = TermuxBackupService.getLastResult();
+        FragmentActivity activity = mActivityRef.get();
+        if (activity == null || activity.isFinishing()) {
+            // Activity going away: if the service is still alive, hand it the result so it surfaces
+            // via the (foreground) notification instead of being lost silently.
+            TermuxBackupService svc = TermuxBackupService.getInstance();
+            if (svc != null) svc.enterBackground();
+            notifyClosed();
+            return;
+        }
+        if (error == null) {
+            Toast.makeText(activity, activity.getString(mBackupIsRestore
+                    ? R.string.backup_service_notification_restore_success
+                    : R.string.backup_service_notification_success),
+                Toast.LENGTH_LONG).show();
+            if (mBackupLaunchTermuxOnSuccess) {
+                TermuxActivity.startTermuxActivityWithSessionReset(activity);
+            }
+        } else if (error == TermuxBackupUtils.CANCELLED_ERROR) {
+            Toast.makeText(activity, activity.getString(R.string.backup_restore_cancelled),
+                Toast.LENGTH_LONG).show();
+        } else {
+            new AlertDialog.Builder(activity)
+                .setTitle(R.string.backup_restore_failed_title)
+                .setMessage(Error.getMinimalErrorString(error))
+                .setPositiveButton(android.R.string.ok, null)
+                .show();
+        }
+        // Stop the (now idle) service — the bottom Toast already reported the result, matching the
+        // upstream commit behaviour.
+        activity.stopService(new android.content.Intent(activity, TermuxBackupService.class));
+        notifyClosed();
+    }
+
+    private void notifyClosed() {
+        if (mFinishHostOnClose && mOnClosed != null) mOnClosed.onClosed();
+    }
+}

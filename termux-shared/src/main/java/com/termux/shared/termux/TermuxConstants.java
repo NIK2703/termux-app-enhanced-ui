@@ -877,8 +877,18 @@ public final class TermuxConstants {
     public static final String TERMUX_FLOAT_APP_NOTIFICATION_CHANNEL_ID = "termux_float_notification_channel";
     /** Termux app notification channel name used by {@link TERMUX_FLOAT_APP.TERMUX_FLOAT_SERVICE} */
     public static final String TERMUX_FLOAT_APP_NOTIFICATION_CHANNEL_NAME = TermuxConstants.TERMUX_FLOAT_APP_NAME + " App";
-    /** Termux app unique notification id used by {@link TERMUX_APP.TERMUX_SERVICE} */
+    /** Termux app unique notification id used by {@link TERMUX_FLOAT_APP.TERMUX_FLOAT_SERVICE} */
     public static final int TERMUX_FLOAT_APP_NOTIFICATION_ID = 1339;
+
+    /** Termux backup/restore progress notification channel id (silent, LOW importance). */
+    public static final String TERMUX_BACKUP_PROGRESS_NOTIFICATION_CHANNEL_ID = "termux_backup_progress_notification_channel";
+    /** Termux backup/restore result notification channel id (heads-up, HIGH importance). */
+    public static final String TERMUX_BACKUP_RESULT_NOTIFICATION_CHANNEL_ID = "termux_backup_result_notification_channel";
+    /** Termux backup/restore notification channel name */
+    public static final String TERMUX_BACKUP_NOTIFICATION_CHANNEL_NAME = TermuxConstants.TERMUX_APP_NAME + " Backup / Restore";
+    /** Termux backup/restore unique notification id (shared by progress + result) */
+    public static final int TERMUX_BACKUP_NOTIFICATION_ID = 1341;
+
 
 
 
