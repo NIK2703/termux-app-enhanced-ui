@@ -165,6 +165,13 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     private boolean mIsVisible;
 
     /**
+     * True once onPause() has run (app going to background / screen turning off).
+     * Used to suppress the IME-hidden handler that would otherwise close the text
+     * input panel when the soft keyboard is dismissed by the system on pause.
+     */
+    private boolean mIsPaused = false;
+
+    /**
      * If onResume() was called after onCreate().
      */
     private boolean mIsOnResumeAfterOnCreate = false;
@@ -305,9 +312,12 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
             // React to the soft keyboard (IME) being hidden while the text input
             // panel is open: switch the slot back to the extra keys panel.
+            // Skip this while paused (app backgrounded / screen off) — Android
+            // dismisses the IME on pause, but we must keep the panel open so it
+            // stays visible when the app returns to the foreground.
             boolean imeVisible = WindowInsetsCompat.toWindowInsetsCompat(insets)
                     .isVisible(WindowInsetsCompat.Type.ime());
-            if (mSoftKeyboardVisible && !imeVisible && isTextInputVisible()) {
+            if (!mIsPaused && mSoftKeyboardVisible && !imeVisible && isTextInputVisible()) {
                 setTextInputVisible(false);
                 updateToggleTextInputButtonIcon();
             }
@@ -402,6 +412,19 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         TermuxCrashUtils.notifyAppCrashFromCrashLogFile(this, LOG_TAG);
 
         mIsOnResumeAfterOnCreate = false;
+        mIsPaused = false;
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        Logger.logVerbose(LOG_TAG, "onPause");
+
+        // Mark paused so the IME-hidden handler (WindowInsetsListener) does not
+        // close the text input panel when the system dismisses the soft keyboard
+        // on background. The panel must stay open and reappear on resume.
+        mIsPaused = true;
     }
 
     @Override
