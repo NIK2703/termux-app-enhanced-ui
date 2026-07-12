@@ -9,26 +9,34 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.text.TextUtils;
+import android.util.TypedValue;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.PopupWindow;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
+import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.termux.R;
@@ -72,7 +80,11 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
+
+import org.json.JSONArray;
+import org.json.JSONException;
 
 /**
  * A terminal emulator activity.
@@ -224,6 +236,54 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
     private float mTerminalToolbarDefaultHeight;
 
+    // ---- Sent-message history (shown as a context menu on pencil-button swipe) ----
+
+    /**
+     * Ordered list of previously sent (finished) input-panel messages. Newest is
+     * at index 0. Deduplicated by content: re-sending an existing message moves
+     * it back to the front. Displayed bottom-to-top (first = bottom of the popup),
+     * so the newest sits at the bottom, nearest the pencil button.
+     */
+    private final ArrayList<String> mMessageHistory = new ArrayList<>();
+
+    /** The popup showing the message history while the pencil button is held. */
+    @Nullable private PopupWindow mHistoryPopup;
+
+    /** Item views inside the history popup, index-aligned with the displayed order. */
+    private final ArrayList<TextView> mHistoryItemViews = new ArrayList<>();
+
+    /** The scrollable container inside the popup, used for edge auto-scroll. */
+    @Nullable private android.widget.ScrollView mHistoryScroll;
+
+    /** Last finger Y (screen) while the popup is open, for continuous edge scroll. */
+    private float mHistoryFingerY = 0f;
+
+    /** True while the edge auto-scroll loop is scheduled/running. */
+    private boolean mHistoryAutoScrolling = false;
+
+    /** Solid highlight fill for the item under the finger (theme accent). */
+    private int mHistoryHighlightFill = 0;
+
+    /** Default (non-highlighted) item text colour. */
+    private int mHistoryTextColor = 0;
+
+    /** Currently highlighted history item index while dragging, or -1 for none. */
+    private int mHistoryHighlightIndex = -1;
+
+    /** Max number of remembered messages. */
+    private static final int MESSAGE_HISTORY_MAX = 20;
+
+    /** Tag value marking the synthetic "Clear" row (clears the input field). */
+    private static final int MESSAGE_HISTORY_CLEAR_TAG = -2;
+
+    /** Tag value marking "Clear message history..." (wipes the whole history). */
+    private static final int MESSAGE_HISTORY_CLEAR_ALL_TAG = -3;
+
+    /** Max popup height in dp (bounded, never edge-to-edge); scrolls beyond this. */
+    private static final int MESSAGE_HISTORY_POPUP_MAX_HEIGHT_DP = 520;
+
+    /** Gap in dp between the button's top and the popup's bottom edge. */
+    private static final int MESSAGE_HISTORY_POPUP_GAP_DP = 24;
 
     private static final int CONTEXT_MENU_SELECT_URL_ID = 0;
     private static final int CONTEXT_MENU_SHARE_TRANSCRIPT_ID = 1;
@@ -245,6 +305,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     private static final String ARG_FOCUS_ON_INPUT_PER_SESSION = "focus_on_input_per_session";
     private static final String ARG_ACTIVITY_RECREATED = "activity_recreated";
     private static final String PREF_TEXT_INPUT_VISIBLE = "text_input_visible";
+    private static final String PREF_MESSAGE_HISTORY = "message_history";
 
     private static final String LOG_TAG = "TermuxActivity";
 
@@ -482,6 +543,10 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         if (mIsInvalidState) return;
 
         mIsVisible = false;
+
+        // Dismiss the message-history popup if it is somehow still showing, to
+        // avoid a leaked window when the activity goes to the background.
+        dismissMessageHistoryPopup();
 
         // Remember, for the current session, whether focus was on the input panel
         // or the terminal, and persist the caret position — exactly as a tab
@@ -780,6 +845,8 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 if (session.isRunning()) {
                     String textToSend = editText.getText().toString();
                     boolean hasText = textToSend.length() > 0;
+                    // Remember non-empty sent messages in the history (dedup, newest first).
+                    if (hasText) addToMessageHistory(textToSend);
                     if (!hasText) textToSend = "\r";
                     session.write(textToSend);
 
@@ -951,12 +1018,71 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     private void setToggleTextInputButtonView() {
         ImageButton toggleTextInputButton = findViewById(R.id.toggle_text_input_button);
         if (toggleTextInputButton != null) {
-            // Always set the click listener, even if button is initially hidden
-            toggleTextInputButton.setOnClickListener(v -> {
-                // Toggle the text input visibility
-                boolean currentlyVisible = isTextInputVisible();
-                setTextInputVisible(!currentlyVisible);
-                updateToggleTextInputButtonIcon();
+            // Load the persisted sent-message history once.
+            loadMessageHistory();
+
+            // A touch listener drives two gestures on the pencil button:
+            //   - a plain tap toggles the text input panel (old click behaviour);
+            //   - a swipe up (drag off the button) opens the message-history popup,
+            //     which stays open while the finger is held; releasing over an item
+            //     picks it, releasing elsewhere just dismisses.
+            final int touchSlop = ViewConfiguration.get(this).getScaledTouchSlop();
+            final float[] downXY = new float[2];
+            final boolean[] gestureActive = { false };
+
+            toggleTextInputButton.setOnTouchListener((v, event) -> {
+                switch (event.getActionMasked()) {
+                    case MotionEvent.ACTION_DOWN:
+                        downXY[0] = event.getRawX();
+                        downXY[1] = event.getRawY();
+                        gestureActive[0] = true;
+                        v.setPressed(true);
+                        return true;
+                    case MotionEvent.ACTION_MOVE: {
+                        if (!gestureActive[0]) return true;
+                        float dy = event.getRawY() - downXY[1];
+                        float dx = event.getRawX() - downXY[0];
+                        // Open the history popup once the finger has dragged up past
+                        // the touch slop (and the drag is more vertical than sideways).
+                        if (!isHistoryPopupShowing()
+                                && dy < -touchSlop && Math.abs(dy) > Math.abs(dx)
+                                && !mMessageHistory.isEmpty()) {
+                            v.setPressed(false);
+                            showMessageHistoryPopup(v);
+                        }
+                        if (isHistoryPopupShowing()) {
+                            updateHistoryHighlight(event.getRawX(), event.getRawY());
+                        }
+                        return true;
+                    }
+                    case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_CANCEL: {
+                        v.setPressed(false);
+                        boolean wasPopup = isHistoryPopupShowing();
+                        if (wasPopup) {
+                            int selected = mHistoryHighlightIndex;
+                            dismissMessageHistoryPopup();
+                            if (event.getActionMasked() == MotionEvent.ACTION_UP) {
+                                if (mHistoryHighlightIndex == MESSAGE_HISTORY_CLEAR_ALL_TAG) {
+                                    confirmClearHistory();
+                                } else if (mHistoryHighlightIndex == MESSAGE_HISTORY_CLEAR_TAG) {
+                                    clearInputToHistory();
+                                } else if (selected >= 0 && selected < mMessageHistory.size()) {
+                                    onHistoryMessagePicked(mMessageHistory.get(selected));
+                                }
+                            }
+                        } else if (gestureActive[0]
+                                && event.getActionMasked() == MotionEvent.ACTION_UP) {
+                            // No popup was opened: treat as a plain tap -> toggle panel.
+                            boolean currentlyVisible = isTextInputVisible();
+                            setTextInputVisible(!currentlyVisible);
+                            updateToggleTextInputButtonIcon();
+                        }
+                        gestureActive[0] = false;
+                        return true;
+                    }
+                }
+                return false;
             });
 
             // Set initial visibility based on settings
@@ -977,6 +1103,366 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             toggleTextInputButton.setImageResource(isVisible ? R.drawable.ic_keyboard_hide : R.drawable.ic_keyboard_show);
             toggleTextInputButton.setContentDescription(getString(R.string.action_toggle_text_input));
         }
+    }
+
+    // ============================================================================
+    //  Sent-message history
+    // ============================================================================
+
+    /**
+     * Add a just-sent message to the history. Deduplicated by content: if the
+     * same text already exists it is removed and re-inserted at the front, so a
+     * re-sent message rises to the front (index 0), which is rendered at the
+     * BOTTOM of the popup (newest = bottom, nearest the button). Persists the list.
+     */
+    private void addToMessageHistory(@NonNull String message) {
+        if (TextUtils.isEmpty(message)) return;
+        mMessageHistory.remove(message);          // dedup by content
+        mMessageHistory.add(0, message);          // newest first
+        while (mMessageHistory.size() > MESSAGE_HISTORY_MAX) {
+            mMessageHistory.remove(mMessageHistory.size() - 1);
+        }
+        saveMessageHistory();
+    }
+
+    /** Load the persisted message history from preferences (JSON array). */
+    private void loadMessageHistory() {
+        mMessageHistory.clear();
+        String json = getSharedPreferences("termux_prefs", MODE_PRIVATE)
+                .getString(PREF_MESSAGE_HISTORY, null);
+        if (json == null) return;
+        try {
+            JSONArray arr = new JSONArray(json);
+            for (int i = 0; i < arr.length(); i++) {
+                String s = arr.optString(i, null);
+                if (!TextUtils.isEmpty(s) && !mMessageHistory.contains(s)) {
+                    mMessageHistory.add(s);
+                }
+            }
+        } catch (JSONException e) {
+            Logger.logStackTraceWithMessage(LOG_TAG, "Failed to parse message history", e);
+        }
+    }
+
+    /** Persist the current message history to preferences as a JSON array. */
+    private void saveMessageHistory() {
+        JSONArray arr = new JSONArray();
+        for (String s : mMessageHistory) arr.put(s);
+        getSharedPreferences("termux_prefs", MODE_PRIVATE).edit()
+                .putString(PREF_MESSAGE_HISTORY, arr.toString()).apply();
+    }
+
+    private boolean isHistoryPopupShowing() {
+        return mHistoryPopup != null && mHistoryPopup.isShowing();
+    }
+
+    /**
+     * Build and show the message-history popup anchored above the pencil button.
+     * Items are laid out newest-at-the-BOTTOM (nearest the button): the content is
+     * filled top-to-bottom oldest-first, so index 0 (newest) ends up at the bottom.
+     */
+    private void showMessageHistoryPopup(@NonNull View anchor) {
+        if (mMessageHistory.isEmpty()) return;
+        dismissMessageHistoryPopup();
+        mHistoryItemViews.clear();
+        mHistoryHighlightIndex = -1;
+
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        int bg = ContextCompat.getColor(this, com.termux.shared.R.color.terminal_toolbar_text_input_bg);
+        content.setBackgroundColor(bg);
+
+        int padH = dpToPx(14);
+        int padV = dpToPx(10);
+        int textColor = ContextCompat.getColor(this, com.termux.shared.R.color.terminal_toolbar_text_color);
+        // Sharp (non-pulse) highlight: a faint 10%-alpha wash whose colour is chosen
+        // from the popup's own background luminance so it reads in either theme —
+        // near-black wash in light themes, near-white in dark themes. The item text
+        // keeps its default colour (it is already contrastful against the popup bg).
+        mHistoryTextColor = textColor;
+        mHistoryHighlightFill = (relativeLuminance(bg) > 0.5f)
+                ? Color.argb(26, 0, 0, 0)        // light theme -> black @10%
+                : Color.argb(26, 255, 255, 255); // dark theme  -> white @10%
+
+        // Displayed order (ТЗ): newest at the BOTTOM (nearest the pencil button,
+        // first reached by a swipe-up), oldest at the top. A re-sent message moves
+        // to index 0 (front) of mMessageHistory, so iterate in REVERSE (end -> 0)
+        // to fill the vertical layout top-to-bottom with the newest last (bottom).
+        for (int i = mMessageHistory.size() - 1; i >= 0; i--) {
+            final String message = mMessageHistory.get(i);
+            TextView tv = new TextView(this);
+            // Preview: collapse newlines to spaces, wrap to at most 2 lines and add
+            // an ellipsis when the message is longer than that.
+            tv.setText(message.replace("\n", " ").trim());
+            tv.setMaxLines(2);
+            tv.setEllipsize(TextUtils.TruncateAt.END);
+            tv.setTextColor(textColor);
+            tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+            tv.setPadding(padH, padV, padH, padV);
+            tv.setClickable(true);
+            // Tag with the real history index so highlight/selection maps back.
+            tv.setTag(i);
+            content.addView(tv, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+            mHistoryItemViews.add(tv);
+        }
+
+        // Synthetic "Clear message history..." row pinned at the TOP of the menu:
+        // asks for confirmation, then wipes the whole history.
+        {
+            TextView tv = new TextView(this);
+            tv.setText("Clear message history...");
+            tv.setGravity(Gravity.CENTER);
+            tv.setAllCaps(true);
+            tv.setTextColor(textColor);
+            tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+            tv.setTypeface(tv.getTypeface(), android.graphics.Typeface.BOLD);
+            tv.setPadding(padH, padV, padH, padV);
+            tv.setClickable(true);
+            tv.setTag(MESSAGE_HISTORY_CLEAR_ALL_TAG);
+            content.addView(tv, 0, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+            mHistoryItemViews.add(0, tv);
+        }
+
+        int popupWidth = Math.min(
+                getResources().getDisplayMetrics().widthPixels - dpToPx(24),
+                dpToPx(320));
+
+        // Wrap in a ScrollView: the popup is a bounded box (never edge-to-edge),
+        // and a taller history scrolls inside it. Kept for edge auto-scroll while
+        // the finger drags near the top/bottom of the box.
+        android.widget.ScrollView scroll = new android.widget.ScrollView(this);
+        scroll.setVerticalScrollBarEnabled(false);
+        scroll.addView(content, new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        mHistoryScroll = scroll;
+
+        mHistoryPopup = new PopupWindow(scroll, popupWidth,
+                ViewGroup.LayoutParams.WRAP_CONTENT, false);
+        mHistoryPopup.setElevation(dpToPx(8));
+        mHistoryPopup.setBackgroundDrawable(
+                ContextCompat.getDrawable(this, R.drawable.text_input_background));
+        mHistoryPopup.setClippingEnabled(true);
+        // Do NOT let the popup intercept touches: the pencil button keeps the
+        // gesture so we track the finger over items via raw coordinates.
+        mHistoryPopup.setTouchable(false);
+        mHistoryPopup.setFocusable(false);
+
+        // Anchor above the button, right-aligned to it.
+        mHistoryPopup.showAsDropDown(anchor, 0, 0, Gravity.START);
+        // Reposition to sit ABOVE the anchor instead of below: measure content
+        // then offset upward. showAsDropDown places below, so we shift up here.
+        content.measure(
+                View.MeasureSpec.makeMeasureSpec(popupWidth, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        int contentHeight = content.getMeasuredHeight();
+        // Bounded box: min(content, configured max, room above the button).
+        int[] anchorLoc = new int[2];
+        anchor.getLocationOnScreen(anchorLoc);
+        // Gap between the button's top and the popup's bottom edge.
+        int popupGap = dpToPx(MESSAGE_HISTORY_POPUP_GAP_DP);
+        int roomAbove = Math.max(dpToPx(48), anchorLoc[1] - dpToPx(8) - popupGap);
+        int maxHeight = Math.min(dpToPx(MESSAGE_HISTORY_POPUP_MAX_HEIGHT_DP), roomAbove);
+        int popupHeight = Math.min(contentHeight, maxHeight);
+        mHistoryPopup.update(anchor,
+                0,
+                -(anchor.getHeight() + popupHeight + popupGap),
+                popupWidth,
+                popupHeight);
+
+        // Open at the END of the list: newest is at the bottom, so start scrolled
+        // fully down so the newest messages (nearest the button) are visible.
+        final android.widget.ScrollView scrollRef = scroll;
+        scrollRef.post(() -> scrollRef.fullScroll(View.FOCUS_DOWN));
+    }
+
+    /** Highlight the history item currently under the finger (raw screen coords). */
+    private void updateHistoryHighlight(float rawX, float rawY) {
+        // Remember the finger position so the continuous edge auto-scroll keeps
+        // running even when the finger rests (no ACTION_MOVE) on the edge band.
+        mHistoryFingerY = rawY;
+        autoScrollHistoryNearEdge();
+
+        int newIndex = -1;
+        int[] loc = new int[2];
+        for (TextView tv : mHistoryItemViews) {
+            tv.getLocationOnScreen(loc);
+            if (rawX >= loc[0] && rawX <= loc[0] + tv.getWidth()
+                    && rawY >= loc[1] && rawY <= loc[1] + tv.getHeight()) {
+                Object tag = tv.getTag();
+                if (tag instanceof Integer) newIndex = (Integer) tag;
+                break;
+            }
+        }
+        if (newIndex == mHistoryHighlightIndex) return;
+        mHistoryHighlightIndex = newIndex;
+
+        // Sharp (non-pulse) highlight: solid theme accent fill + contrast text on
+        // the item under the finger, plain text otherwise.
+        for (TextView tv : mHistoryItemViews) {
+            Object tag = tv.getTag();
+            boolean active = tag instanceof Integer && (Integer) tag == mHistoryHighlightIndex;
+            if (active) {
+                tv.setBackgroundColor(mHistoryHighlightFill);
+            } else {
+                tv.setBackgroundColor(Color.TRANSPARENT);
+            }
+            tv.setTextColor(mHistoryTextColor);   // default colour in both states
+        }
+    }
+
+    /**
+     * Relative luminance (WCAG) of an ARGB colour in [0,1]. Used to pick a black
+     * or white foreground that stays readable on the highlight fill in either theme.
+     */
+    private static float relativeLuminance(int color) {
+        double r = (color >> 16 & 0xff) / 255.0;
+        double g = (color >> 8 & 0xff) / 255.0;
+        double b = (color & 0xff) / 255.0;
+        java.util.function.DoubleUnaryOperator f = (c) -> {
+            double v = c / 255.0;
+            return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+        };
+        return (float) (0.2126 * f.applyAsDouble(r) + 0.7152 * f.applyAsDouble(g) + 0.0722 * f.applyAsDouble(b));
+    }
+
+
+    /**
+     * Continuously scroll the popup's ScrollView while the finger rests/drags
+     * within an edge band at the top or bottom (like the keyboard-accent popup:
+     * it keeps moving even without finger motion). Driven by a self-rescheduling
+     * postDelayed loop that stops once the finger leaves the band or the popup
+     * closes.
+     */
+    private void autoScrollHistoryNearEdge() {
+        if (mHistoryScroll == null) return;
+        int[] loc = new int[2];
+        mHistoryScroll.getLocationOnScreen(loc);
+        int top = loc[1];
+        int bottom = loc[1] + mHistoryScroll.getHeight();
+        int band = dpToPx(36);      // edge-sensitive zone
+        int maxStep = dpToPx(18);   // max px scrolled per tick
+
+        float rawY = mHistoryFingerY;
+        int step;
+        if (rawY < top + band) {
+            float t = Math.min(1f, (top + band - rawY) / band);
+            step = -Math.round(maxStep * t);
+        } else if (rawY > bottom - band) {
+            float t = Math.min(1f, (rawY - (bottom - band)) / band);
+            step = Math.round(maxStep * t);
+        } else {
+            mHistoryAutoScrolling = false;   // left the band; stop the loop
+            return;
+        }
+
+        mHistoryScroll.scrollBy(0, step);
+
+        // Reschedule while still open and still in the band.
+        if (!mHistoryAutoScrolling) {
+            mHistoryAutoScrolling = true;
+            mHistoryScroll.postDelayed(this::autoScrollHistoryNearEdge, 16);
+        }
+    }
+
+
+    /** Dismiss the history popup and reset highlight state. */
+    private void dismissMessageHistoryPopup() {
+        if (mHistoryPopup != null) {
+            try { mHistoryPopup.dismiss(); } catch (Exception ignored) {}
+            mHistoryPopup = null;
+        }
+        mHistoryItemViews.clear();
+        mHistoryScroll = null;
+        mHistoryAutoScrolling = false;   // stop any pending edge-scroll loop
+        mHistoryHighlightIndex = -1;
+    }
+
+    /** "Clear message history..." item: ask for confirmation, then wipe all history. */
+    private void confirmClearHistory() {
+        final AlertDialog.Builder b = new AlertDialog.Builder(this);
+        b.setIcon(android.R.drawable.ic_dialog_alert);
+        b.setTitle("Clear message history");
+        b.setMessage("Clear the entire message history? This cannot be undone.");
+        b.setPositiveButton(android.R.string.yes, (dialog, id) -> {
+            dialog.dismiss();
+            mMessageHistory.clear();
+            saveMessageHistory();
+            showToast("Message history cleared", true);
+        });
+        b.setNegativeButton(android.R.string.no, null);
+        b.show();
+    }
+
+    /** Bottom "Clear" item: remember the current input text in history, then empty the field. */
+    private void clearInputToHistory() {
+        final EditText editText = findViewById(R.id.terminal_toolbar_text_input);
+        if (editText == null) return;
+
+        // Open the panel FIRST if closed, so a previously typed (unsent) text is
+        // restored into the field and thus not lost before we snapshot it.
+        if (!isTextInputVisible()) {
+            setTextInputVisible(true);
+            updateToggleTextInputButtonIcon();
+        }
+
+        String existing = editText.getText().toString();
+        if (!TextUtils.isEmpty(existing)) {
+            addToMessageHistory(existing);
+        }
+
+        editText.setText("");
+        setFocusOnInputForCurrentSession(true);
+        saveTextInputForCurrentSession();
+        editText.requestFocus();
+    }
+
+    /**
+     * A history item was chosen (finger released over it). Opens the input panel
+     * and inserts the picked message. If the panel already held some text, that
+     * text is first pushed into the history (dedup) so it is not lost.
+     */
+    private void onHistoryMessagePicked(@NonNull String message) {
+        final EditText editText = findViewById(R.id.terminal_toolbar_text_input);
+        if (editText == null) return;
+
+        // Open the panel FIRST if it is closed: setTextInputVisible(true) restores
+        // this session's previously typed (but unsent) text into the field. We read
+        // `existing` only after that, so text saved for a closed panel is not lost.
+        if (!isTextInputVisible()) {
+            setTextInputVisible(true);
+            updateToggleTextInputButtonIcon();
+        }
+
+        // If the panel already holds unsent text, push it into the history (dedup)
+        // so it is preserved before we overwrite the field with the picked message.
+        String existing = editText.getText().toString();
+        if (!TextUtils.isEmpty(existing) && !existing.equals(message)) {
+            addToMessageHistory(existing);
+        }
+
+        editText.setText(message);
+        editText.setSelection(message.length());
+        setFocusOnInputForCurrentSession(true);
+        // Persist into the per-session store so the inserted text survives switches.
+        saveTextInputForCurrentSession();
+
+        editText.requestFocus();
+        editText.post(() -> {
+            android.view.inputmethod.InputMethodManager imm =
+                    (android.view.inputmethod.InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) {
+                imm.showSoftInput(editText, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
+            }
+        });
+    }
+
+    private int dpToPx(int dp) {
+        return Math.round(dp * getResources().getDisplayMetrics().density);
     }
 
     /**
