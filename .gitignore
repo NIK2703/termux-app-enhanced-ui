@@ -24,9 +24,8 @@ local.properties
 .idea/
 *.iml
 
-# Vim
-*.swo
-*.swp
+# Log files (build logs, ad-hoc verify logs)
+*.log
 
 # OS-specific files
 .DS_Store

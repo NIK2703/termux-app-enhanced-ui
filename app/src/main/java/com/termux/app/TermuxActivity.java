@@ -6,6 +6,7 @@ import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
@@ -29,6 +30,7 @@ import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.EditText;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -276,7 +278,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     /** Tag value marking the synthetic "Clear" row (clears the input field). */
     private static final int MESSAGE_HISTORY_CLEAR_TAG = -2;
 
-    /** Tag value marking "Clear message history..." (wipes the whole history). */
+    /** Tag value marking the top "Clear message history…" row (wipes all history). */
     private static final int MESSAGE_HISTORY_CLEAR_ALL_TAG = -3;
 
     /** Max popup height in dp (bounded, never edge-to-edge); scrolls beyond this. */
@@ -1046,7 +1048,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                         // the touch slop (and the drag is more vertical than sideways).
                         if (!isHistoryPopupShowing()
                                 && dy < -touchSlop && Math.abs(dy) > Math.abs(dx)
-                                && !mMessageHistory.isEmpty()) {
+                                && shouldShowHistoryPopup()) {
                             v.setPressed(false);
                             showMessageHistoryPopup(v);
                         }
@@ -1063,9 +1065,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                             int selected = mHistoryHighlightIndex;
                             dismissMessageHistoryPopup();
                             if (event.getActionMasked() == MotionEvent.ACTION_UP) {
-                                if (mHistoryHighlightIndex == MESSAGE_HISTORY_CLEAR_ALL_TAG) {
-                                    confirmClearHistory();
-                                } else if (mHistoryHighlightIndex == MESSAGE_HISTORY_CLEAR_TAG) {
+                                if (selected == MESSAGE_HISTORY_CLEAR_ALL_TAG) {
+                                    confirmClearAllHistory();
+                                } else if (selected == MESSAGE_HISTORY_CLEAR_TAG) {
                                     clearInputToHistory();
                                 } else if (selected >= 0 && selected < mMessageHistory.size()) {
                                     onHistoryMessagePicked(mMessageHistory.get(selected));
@@ -1162,10 +1164,12 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
      * filled top-to-bottom oldest-first, so index 0 (newest) ends up at the bottom.
      */
     private void showMessageHistoryPopup(@NonNull View anchor) {
-        if (mMessageHistory.isEmpty()) return;
         dismissMessageHistoryPopup();
         mHistoryItemViews.clear();
         mHistoryHighlightIndex = -1;
+
+        // Nothing worth showing: no history and nothing typed in the input panel.
+        if (!shouldShowHistoryPopup()) return;
 
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
@@ -1175,15 +1179,43 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         int padH = dpToPx(14);
         int padV = dpToPx(10);
         int textColor = ContextCompat.getColor(this, com.termux.shared.R.color.terminal_toolbar_text_color);
-        // Sharp (non-pulse) highlight: a faint 10%-alpha wash whose colour is chosen
-        // from the popup's own background luminance so it reads in either theme —
-        // near-black wash in light themes, near-white in dark themes. The item text
-        // keeps its default colour (it is already contrastful against the popup bg).
+        // Sharp (non-pulse) highlight: a faint 10%-alpha wash, black in light
+        // theme and white in dark theme, detected via uiMode so it works even
+        // for near-white popup backgrounds like #f0f0f0.
         mHistoryTextColor = textColor;
-        mHistoryHighlightFill = (relativeLuminance(bg) > 0.5f)
-                ? Color.argb(26, 0, 0, 0)        // light theme -> black @10%
-                : Color.argb(26, 255, 255, 255); // dark theme  -> white @10%
+        boolean isNight = (getResources().getConfiguration().uiMode
+                & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
+                == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+        mHistoryHighlightFill = isNight
+                ? Color.argb(26, 255, 255, 255)   // dark theme  -> white @10%
+                : Color.argb(26, 0,   0,   0);     // light theme -> black @10%
 
+        // Synthetic "CLEAR HISTORY…" row pinned at the TOP of the popup.
+        // Selecting it opens a confirmation dialog; confirming wipes all history.
+        // Shown only when there is history to clear. Coexists with the bottom
+        // "Clear" row (clears the input), it is not a replacement for it.
+        if (!mMessageHistory.isEmpty()) {
+            TextView tv = new TextView(this);
+            tv.setText("CLEAR HISTORY…");
+            tv.setGravity(Gravity.CENTER);
+            tv.setAllCaps(true);
+            tv.setTextColor(textColor);
+            tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+            tv.setTypeface(tv.getTypeface(), android.graphics.Typeface.BOLD);
+            tv.setPadding(padH, padV, padH, padV);
+            tv.setClickable(true);
+            tv.setTag(MESSAGE_HISTORY_CLEAR_ALL_TAG);
+            content.addView(tv, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+            mHistoryItemViews.add(tv);
+
+            // Thin separator below the "clear all" row to visually group it.
+            View sep = new View(this);
+            sep.setBackgroundColor(Color.argb(60, 128, 128, 128));
+            content.addView(sep, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
+        }
         // Displayed order (ТЗ): newest at the BOTTOM (nearest the pencil button,
         // first reached by a swipe-up), oldest at the top. A re-sent message moves
         // to index 0 (front) of mMessageHistory, so iterate in REVERSE (end -> 0)
@@ -1208,11 +1240,14 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             mHistoryItemViews.add(tv);
         }
 
-        // Synthetic "Clear message history..." row pinned at the TOP of the menu:
-        // asks for confirmation, then wipes the whole history.
-        {
+        // Synthetic "Clear" row pinned at the BOTTOM of the popup (nearest the
+        // pencil button): remembers the current input text in history, then empties
+        // the input field. Shown only when the input panel actually has text.
+        final EditText inputField = findViewById(R.id.terminal_toolbar_text_input);
+        final String inputText = inputField != null ? inputField.getText().toString() : "";
+        if (!TextUtils.isEmpty(inputText)) {
             TextView tv = new TextView(this);
-            tv.setText("Clear message history...");
+            tv.setText("Clear");
             tv.setGravity(Gravity.CENTER);
             tv.setAllCaps(true);
             tv.setTextColor(textColor);
@@ -1220,11 +1255,22 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             tv.setTypeface(tv.getTypeface(), android.graphics.Typeface.BOLD);
             tv.setPadding(padH, padV, padH, padV);
             tv.setClickable(true);
-            tv.setTag(MESSAGE_HISTORY_CLEAR_ALL_TAG);
-            content.addView(tv, 0, new LinearLayout.LayoutParams(
+            tv.setTag(MESSAGE_HISTORY_CLEAR_TAG);
+            content.addView(tv, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT));
-            mHistoryItemViews.add(0, tv);
+            mHistoryItemViews.add(tv);
+
+            // Thin separator above the bottom "Clear" row acts as a visual
+            // divider between the history list and the action.  Only meaningful
+            // when there IS a history list to separate it from.
+            if (!mMessageHistory.isEmpty()) {
+                View sepBottom = new View(this);
+                sepBottom.setBackgroundColor(Color.argb(60, 128, 128, 128));
+                content.addView(sepBottom, content.getChildCount() - 1,
+                        new LinearLayout.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
+            }
         }
 
         int popupWidth = Math.min(
@@ -1280,6 +1326,16 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         scrollRef.post(() -> scrollRef.fullScroll(View.FOCUS_DOWN));
     }
 
+    /**
+     * Whether the popup has anything worth showing: either there is saved
+     * history, or the input panel currently holds some (unsent) text.
+     */
+    private boolean shouldShowHistoryPopup() {
+        if (!mMessageHistory.isEmpty()) return true;
+        final EditText inputField = findViewById(R.id.terminal_toolbar_text_input);
+        return inputField != null && !TextUtils.isEmpty(inputField.getText().toString());
+    }
+
     /** Highlight the history item currently under the finger (raw screen coords). */
     private void updateHistoryHighlight(float rawX, float rawY) {
         // Remember the finger position so the continuous edge auto-scroll keeps
@@ -1314,22 +1370,6 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             tv.setTextColor(mHistoryTextColor);   // default colour in both states
         }
     }
-
-    /**
-     * Relative luminance (WCAG) of an ARGB colour in [0,1]. Used to pick a black
-     * or white foreground that stays readable on the highlight fill in either theme.
-     */
-    private static float relativeLuminance(int color) {
-        double r = (color >> 16 & 0xff) / 255.0;
-        double g = (color >> 8 & 0xff) / 255.0;
-        double b = (color & 0xff) / 255.0;
-        java.util.function.DoubleUnaryOperator f = (c) -> {
-            double v = c / 255.0;
-            return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-        };
-        return (float) (0.2126 * f.applyAsDouble(r) + 0.7152 * f.applyAsDouble(g) + 0.0722 * f.applyAsDouble(b));
-    }
-
 
     /**
      * Continuously scroll the popup's ScrollView while the finger rests/drags
@@ -1369,6 +1409,43 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         }
     }
 
+    /**
+     * Ask the user to confirm wiping the entire message history. The popup is
+     * already dismissed by the time we get here (finger released over the top
+     * "Clear message history…" row).
+     */
+    private void confirmClearAllHistory() {
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Clear message history?")
+                .setMessage("This will permanently remove all remembered messages.")
+                .setPositiveButton(android.R.string.ok, (d, w) -> clearAllHistory())
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+        // Dark theme dialog text can blend with the background on MIUI/HyperOS
+        // (the system theme overlay overrides MaterialComponents).  Fix it
+        // explicitly so the text stays readable.
+        if ((getResources().getConfiguration().uiMode
+                & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
+                == android.content.res.Configuration.UI_MODE_NIGHT_YES) {
+            TextView msg = dialog.findViewById(android.R.id.message);
+            if (msg != null) msg.setTextColor(android.graphics.Color.WHITE);
+            TextView title = dialog.findViewById(android.R.id.title);
+            if (title != null) title.setTextColor(android.graphics.Color.WHITE);
+            // Buttons inherit a dark (near-black) colour on MIUI/HyperOS day-night
+            // dialogs, so they blend into the dark background.  Force them white.
+            Button pos = dialog.getButton(DialogInterface.BUTTON_POSITIVE);
+            if (pos != null) pos.setTextColor(android.graphics.Color.WHITE);
+            Button neg = dialog.getButton(DialogInterface.BUTTON_NEGATIVE);
+            if (neg != null) neg.setTextColor(android.graphics.Color.WHITE);
+        }
+    }
+
+    /** Wipe the whole message history (in memory + persisted). */
+    private void clearAllHistory() {
+        mMessageHistory.clear();
+        getSharedPreferences("termux_prefs", MODE_PRIVATE).edit()
+                .remove(PREF_MESSAGE_HISTORY).apply();
+    }
 
     /** Dismiss the history popup and reset highlight state. */
     private void dismissMessageHistoryPopup() {
