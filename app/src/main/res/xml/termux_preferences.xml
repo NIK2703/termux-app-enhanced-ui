@@ -52,6 +52,13 @@
             app:defaultValue="20"
             app:showSeekBarValue="true"
             app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="restore_sessions"
+            app:title="@string/restore_sessions_title"
+            app:summary="@string/restore_sessions_summary"
+            app:defaultValue="true"
+            app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
     <PreferenceCategory app:title="@string/screen_orientation_title" app:iconSpaceReserved="false">

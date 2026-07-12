@@ -17,6 +17,7 @@ import androidx.preference.ListPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.SeekBarPreference;
+import androidx.preference.SwitchPreferenceCompat;
 
 import com.termux.R;
 import com.termux.app.BackupProgressController;
@@ -65,6 +66,7 @@ public class TermuxPreferencesFragment extends PreferenceFragmentCompat {
         configureRestorePreference();
         configureMessageHistoryMaxPreference();
         configureDirectoryHistoryMaxPreference();
+        configureRestoreSessionsPreference();
         configureScreenOrientationPreference();
 
         // Setup theme ListPreference: load current value from termux.properties
@@ -195,6 +197,26 @@ public class TermuxPreferencesFragment extends PreferenceFragmentCompat {
                 pref.setValue(value);
             }
             termuxPrefs.edit().putInt("directory_history_max", value).apply();
+            return true;
+        });
+    }
+
+    /**
+     * Wire up the "Restore tabs on launch" switch (default on). The value is
+     * mirrored into the "termux_prefs" file (key {@code restore_sessions}) where
+     * TermuxActivity reads it to decide whether to snapshot open tabs on stop and
+     * reopen them on a cold start.
+     */
+    private void configureRestoreSessionsPreference() {
+        final SwitchPreferenceCompat pref = findPreference("restore_sessions");
+        if (pref == null) return;
+
+        final SharedPreferences termuxPrefs =
+                requireContext().getSharedPreferences("termux_prefs", Context.MODE_PRIVATE);
+        pref.setChecked(termuxPrefs.getBoolean("restore_sessions", true));
+
+        pref.setOnPreferenceChangeListener((preference, newValue) -> {
+            termuxPrefs.edit().putBoolean("restore_sessions", (Boolean) newValue).apply();
             return true;
         });
     }

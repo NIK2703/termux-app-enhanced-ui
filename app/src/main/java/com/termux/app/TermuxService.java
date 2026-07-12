@@ -105,6 +105,11 @@ public final class TermuxService extends Service implements AppShell.AppShellCli
     /** If the user has executed the {@link TERMUX_SERVICE#ACTION_STOP_SERVICE} intent. */
     boolean mWantsToStop = false;
 
+    /** @return true while the service is shutting down (Exit action was fired). */
+    public boolean isWantsToStop() {
+        return mWantsToStop;
+    }
+
     private static final String LOG_TAG = "TermuxService";
 
     @Override

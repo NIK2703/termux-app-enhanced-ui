@@ -257,6 +257,10 @@
     <string name="directory_history_title">Directory History</string>
     <string name="directory_history_max_title">Max remembered directories</string>
 
+    <!-- Session restore preferences -->
+    <string name="restore_sessions_title">Restore tabs on launch</string>
+    <string name="restore_sessions_summary">Reopen all tabs and their directories when the app starts</string>
+
     <!-- Screen orientation preference -->
     <string name="screen_orientation_title">Screen orientation</string>
     <string name="screen_orientation_summary">Locked portrait on phones, sensor on tablets by default. "Follow sensor" variants rotate between the two orientations (e.g. 0°/180° portrait).</string>

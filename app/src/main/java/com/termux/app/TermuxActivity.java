@@ -77,6 +77,8 @@ import com.termux.shared.theme.ThemeUtils;
 import com.termux.shared.view.ViewUtils;
 import com.termux.terminal.TerminalSession;
 import com.termux.terminal.TerminalSessionClient;
+import com.termux.shared.shell.command.ExecutionCommand;
+import com.termux.shared.termux.shell.command.runner.terminal.TermuxSession;
 import com.termux.view.TerminalView;
 import com.termux.view.TerminalViewClient;
 
@@ -86,10 +88,12 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.HashMap;
 
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  * A terminal emulator activity.
@@ -307,6 +311,12 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
     /** Pref key (in termux_prefs) persisting the directory history JSON array. */
     private static final String PREF_DIRECTORY_HISTORY = "directory_history";
+
+    /** Pref key (in termux_prefs) toggling restore-open-tabs-on-launch (default on). */
+    private static final String PREF_RESTORE_SESSIONS = "restore_sessions";
+
+    /** Pref key (in termux_prefs) persisting the open-tabs snapshot JSON. */
+    private static final String PREF_SESSION_SNAPSHOT = "session_snapshot";
 
     private static final int CONTEXT_MENU_SELECT_URL_ID = 0;
     private static final int CONTEXT_MENU_SHARE_TRANSCRIPT_ID = 1;
@@ -597,6 +607,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         if (mTermuxTerminalSessionActivityClient != null)
             mTermuxTerminalSessionActivityClient.onStop();
 
+        // Snapshot open tabs (cwd/name) so a later cold start can reopen them.
+        saveSessionSnapshot();
+
         if (mTermuxTerminalViewClient != null)
             mTermuxTerminalViewClient.onStop();
 
@@ -709,6 +722,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                         if (intent != null && intent.getExtras() != null) {
                             launchFailsafe = intent.getExtras().getBoolean(TERMUX_ACTIVITY.EXTRA_FAILSAFE_SESSION, false);
                         }
+                        // Reopen the tabs from the last session if the feature is on and a
+                        // snapshot exists; otherwise fall back to a single fresh session.
+                        if (!launchFailsafe && restoreSessionSnapshot()) return;
                         mTermuxTerminalSessionActivityClient.addNewSession(launchFailsafe, null);
                     } catch (WindowManager.BadTokenException e) {
                         // Activity finished - ignore.
@@ -869,10 +885,13 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             });
 
             // A swipe-up (drag off the button) opens the directory-history popup,
-            // mirroring the pencil button's gesture. Plain tap still opens a new tab.
+            // mirroring the pencil button's gesture. We return false from the
+            // touch listener until a swipe is actually detected, so a plain tap or
+            // long-press still reaches the click / long-click listeners above.
             final int touchSlop = ViewConfiguration.get(this).getScaledTouchSlop();
             final float[] downXY = new float[2];
             final boolean[] gestureActive = { false };
+            final boolean[] swipeConsumed = { false };
 
             newSessionTabButton.setOnTouchListener((v, event) -> {
                 switch (event.getActionMasked()) {
@@ -880,26 +899,28 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                         downXY[0] = event.getRawX();
                         downXY[1] = event.getRawY();
                         gestureActive[0] = true;
-                        v.setPressed(true);
-                        return true;
+                        swipeConsumed[0] = false;
+                        return false;   // let click / long-press proceed
                     case MotionEvent.ACTION_MOVE: {
-                        if (!gestureActive[0]) return true;
-                        float dy = event.getRawY() - downXY[1];
-                        float dx = event.getRawX() - downXY[0];
-                        if (!isHistoryPopupShowing()
-                                && dy < -touchSlop && Math.abs(dy) > Math.abs(dx)
-                                && shouldShowDirectoryHistoryPopup()) {
-                            v.setPressed(false);
-                            showDirectoryHistoryPopup(v);
-                        }
+                        if (!gestureActive[0]) return false;
+                        // Popup already open: track the finger to highlight items.
                         if (isHistoryPopupShowing()) {
                             updateHistoryHighlight(event.getRawX(), event.getRawY());
+                            return true;
                         }
-                        return true;
+                        float dy = event.getRawY() - downXY[1];
+                        float dx = event.getRawX() - downXY[0];
+                        if (dy < -touchSlop && Math.abs(dy) > Math.abs(dx)
+                                && shouldShowDirectoryHistoryPopup()) {
+                            v.setPressed(false);
+                            swipeConsumed[0] = true;
+                            showDirectoryHistoryPopup(v);
+                            return true;   // consume: cancels pending click/long-press
+                        }
+                        return false;
                     }
                     case MotionEvent.ACTION_UP:
                     case MotionEvent.ACTION_CANCEL: {
-                        v.setPressed(false);
                         boolean wasPopup = isHistoryPopupShowing();
                         if (wasPopup) {
                             int selected = mHistoryHighlightIndex;
@@ -911,9 +932,11 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                                     onHistoryDirectoryPicked(mDirectoryHistory.get(selected));
                                 }
                             }
+                            gestureActive[0] = false;
+                            return true;
                         }
                         gestureActive[0] = false;
-                        return true;
+                        return false;   // not a swipe -> allow onClick
                     }
                 }
                 return false;
@@ -1557,22 +1580,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 .setNegativeButton(android.R.string.cancel, null)
                 .show();
         // Dark theme dialog text can blend with the background on MIUI/HyperOS
-        // (the system theme overlay overrides MaterialComponents).  Fix it
-        // explicitly so the text stays readable.
-        if ((getResources().getConfiguration().uiMode
-                & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
-                == android.content.res.Configuration.UI_MODE_NIGHT_YES) {
-            TextView msg = dialog.findViewById(android.R.id.message);
-            if (msg != null) msg.setTextColor(android.graphics.Color.WHITE);
-            TextView title = dialog.findViewById(android.R.id.title);
-            if (title != null) title.setTextColor(android.graphics.Color.WHITE);
-            // Buttons inherit a dark (near-black) colour on MIUI/HyperOS day-night
-            // dialogs, so they blend into the dark background.  Force them white.
-            Button pos = dialog.getButton(DialogInterface.BUTTON_POSITIVE);
-            if (pos != null) pos.setTextColor(android.graphics.Color.WHITE);
-            Button neg = dialog.getButton(DialogInterface.BUTTON_NEGATIVE);
-            if (neg != null) neg.setTextColor(android.graphics.Color.WHITE);
-        }
+        // (the system theme overlay overrides MaterialComponents); fix it so the
+        // text/buttons stay readable in night mode.
+        applyNightDialogColors(dialog);
     }
 
     /** Wipe the whole message history (in memory + persisted). */
@@ -1741,6 +1751,123 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 .putString(PREF_DIRECTORY_HISTORY, arr.toString()).apply();
     }
 
+    // ============================================================================
+    //  Session (open tabs) restore across app restarts
+    // ============================================================================
+
+    /** Whether restoring open tabs on launch is enabled (default: on). */
+    private boolean isRestoreSessionsEnabled() {
+        return getSharedPreferences("termux_prefs", MODE_PRIVATE)
+                .getBoolean(PREF_RESTORE_SESSIONS, true);
+    }
+
+    /**
+     * Snapshot the currently open tabs (working directory, name, failsafe flag)
+     * plus the index of the active tab, and persist it as JSON. Called on onStop
+     * so a later cold start (service killed) can reopen the same tabs. When the
+     * feature is off, the stored snapshot is cleared instead.
+     */
+    private void saveSessionSnapshot() {
+        final android.content.SharedPreferences prefs = getSharedPreferences("termux_prefs", MODE_PRIVATE);
+        if (!isRestoreSessionsEnabled()) {
+            prefs.edit().remove(PREF_SESSION_SNAPSHOT).apply();
+            return;
+        }
+        TermuxService service = mTermuxService;
+        if (service == null) return;
+        // While the service is shutting down (e.g. the notification Exit action
+        // kills sessions one-by-one, each firing termuxSessionListNotifyUpdated
+        // which calls this method) skip saving so the last full snapshot (taken
+        // while all tabs were alive) is preserved instead of being shrunk to the
+        // last surviving tab.
+        if (service.isWantsToStop()) return;
+        List<TermuxSession> sessions = service.getTermuxSessions();
+        // An empty list means the sessions were already killed (e.g. the Exit
+        // notification action fires before onStop). Do NOT wipe the snapshot in
+        // that case: keep the last non-empty snapshot so it can be restored.
+        if (sessions == null || sessions.isEmpty()) return;
+
+        TerminalSession current = getCurrentSession();
+        JSONArray tabs = new JSONArray();
+        int activeIndex = 0;
+        for (int i = 0; i < sessions.size(); i++) {
+            TermuxSession ts = sessions.get(i);
+            TerminalSession terminal = ts.getTerminalSession();
+            ExecutionCommand cmd = ts.getExecutionCommand();
+            try {
+                JSONObject tab = new JSONObject();
+                String cwd = terminal != null ? terminal.getCwd() : null;
+                if (TextUtils.isEmpty(cwd) && cmd != null) cwd = cmd.workingDirectory;
+                tab.put("cwd", cwd == null ? "" : cwd);
+                tab.put("name", cmd != null && cmd.shellName != null ? cmd.shellName : "");
+                tab.put("failsafe", cmd != null && cmd.isFailsafe);
+                tabs.put(tab);
+            } catch (JSONException e) {
+                Logger.logStackTraceWithMessage(LOG_TAG, "Failed to snapshot session", e);
+            }
+            if (current != null && terminal == current) activeIndex = i;
+        }
+
+        try {
+            JSONObject snapshot = new JSONObject();
+            snapshot.put("tabs", tabs);
+            snapshot.put("active", activeIndex);
+            prefs.edit().putString(PREF_SESSION_SNAPSHOT, snapshot.toString()).apply();
+        } catch (JSONException e) {
+            Logger.logStackTraceWithMessage(LOG_TAG, "Failed to persist session snapshot", e);
+        }
+    }
+
+    /**
+     * Reopen the tabs saved by {@link #saveSessionSnapshot()} in the same order,
+     * directories and names, then select the previously-active tab. Returns true
+     * if at least one tab was restored. Called from onServiceConnected only when
+     * the service has no live sessions (i.e. a genuine cold start).
+     */
+    private boolean restoreSessionSnapshot() {
+        if (!isRestoreSessionsEnabled()) return false;
+        String json = getSharedPreferences("termux_prefs", MODE_PRIVATE)
+                .getString(PREF_SESSION_SNAPSHOT, null);
+        if (TextUtils.isEmpty(json)) return false;
+
+        TermuxService service = mTermuxService;
+        if (service == null) return false;
+
+        int active = 0;
+        int restored = 0;
+        try {
+            JSONObject snapshot = new JSONObject(json);
+            active = snapshot.optInt("active", 0);
+            JSONArray tabs = snapshot.optJSONArray("tabs");
+            if (tabs == null || tabs.length() == 0) return false;
+            for (int i = 0; i < tabs.length(); i++) {
+                JSONObject tab = tabs.optJSONObject(i);
+                if (tab == null) continue;
+                String cwd = tab.optString("cwd", "");
+                String name = tab.optString("name", "");
+                boolean failsafe = tab.optBoolean("failsafe", false);
+                String workingDirectory = TextUtils.isEmpty(cwd)
+                        ? mProperties.getDefaultWorkingDirectory() : cwd;
+                TermuxSession session = service.createTermuxSession(null, null, null,
+                        workingDirectory, failsafe, TextUtils.isEmpty(name) ? null : name);
+                if (session != null) restored++;
+            }
+        } catch (JSONException e) {
+            Logger.logStackTraceWithMessage(LOG_TAG, "Failed to restore session snapshot", e);
+            return false;
+        }
+
+        if (restored == 0) return false;
+
+        List<TermuxSession> sessions = service.getTermuxSessions();
+        if (sessions != null && !sessions.isEmpty()) {
+            int idx = Math.max(0, Math.min(active, sessions.size() - 1));
+            mTermuxTerminalSessionActivityClient.setCurrentSession(
+                    sessions.get(idx).getTerminalSession());
+        }
+        return true;
+    }
+
     /**
      * Whether the directory popup has anything worth showing: the recording of
      * the current directory succeeded (so there is at least one entry) or an
@@ -1874,7 +2001,6 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     /** "CLEAR HISTORY…" item: confirm, then wipe the whole directory history. */
     private void confirmClearDirectoryHistory() {
         final AlertDialog.Builder b = new AlertDialog.Builder(this);
-        b.setIcon(android.R.drawable.ic_dialog_alert);
         b.setTitle("Clear directory history");
         b.setMessage("Clear the entire directory history? This cannot be undone.");
         b.setPositiveButton(android.R.string.yes, (dialog, id) -> {
@@ -1884,7 +2010,28 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             showToast("Directory history cleared", true);
         });
         b.setNegativeButton(android.R.string.no, null);
-        b.show();
+        applyNightDialogColors(b.show());
+    }
+
+    /**
+     * On MIUI/HyperOS the system day-night overlay can leave dialog title,
+     * message and buttons a near-black colour that blends into the dark
+     * background. In night mode only, force them white so they stay readable;
+     * in light mode the default (dark) colour is left untouched.
+     */
+    private void applyNightDialogColors(@NonNull AlertDialog dialog) {
+        boolean isNight = (getResources().getConfiguration().uiMode
+                & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
+                == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+        if (!isNight) return;
+        TextView msg = dialog.findViewById(android.R.id.message);
+        if (msg != null) msg.setTextColor(Color.WHITE);
+        TextView title = dialog.findViewById(android.R.id.title);
+        if (title != null) title.setTextColor(Color.WHITE);
+        Button pos = dialog.getButton(DialogInterface.BUTTON_POSITIVE);
+        if (pos != null) pos.setTextColor(Color.WHITE);
+        Button neg = dialog.getButton(DialogInterface.BUTTON_NEGATIVE);
+        if (neg != null) neg.setTextColor(Color.WHITE);
     }
 
     private int dpToPx(int dp) {
@@ -2191,6 +2338,10 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         if (mTermuxSessionTabsController != null && mTermuxService != null) {
             mTermuxSessionTabsController.updateTabs(mTermuxService.getTermuxSessions());
         }
+        // Keep the open-tabs snapshot fresh while sessions are alive, so a later
+        // exit (e.g. the notification's Exit action, which kills sessions before
+        // onStop runs) still leaves a snapshot to restore on next launch.
+        saveSessionSnapshot();
     }
 
     public boolean isVisible() {
