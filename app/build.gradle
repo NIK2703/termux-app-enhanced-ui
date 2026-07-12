@@ -294,7 +294,16 @@ task downloadBootstraps() {
 
 afterEvaluate {
     android.applicationVariants.all { variant ->
+        // Must run BEFORE native build: the NDK ndkBuild embeds bootstrap-<arch>.zip
+        // via .incbin, so the zip must exist before buildNdkBuild executes.
         variant.javaCompileProvider.get().dependsOn(downloadBootstraps)
+    }
+    // Pin downloadBootstraps ahead of every native build task (per ABI) so a
+    // missing/!stale bootstrap zip is fetched before ndkBuild's .incbin needs it.
+    tasks.matching { t ->
+        t.name.startsWith("buildNdkBuildRelease") || t.name.startsWith("buildNdkBuildDebug")
+    }.configureEach {
+        dependsOn downloadBootstraps
     }
 }
 

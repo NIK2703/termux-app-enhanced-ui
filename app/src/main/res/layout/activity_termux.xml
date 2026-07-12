@@ -124,6 +124,7 @@
                     android:scrollHorizontally="false"
                     android:gravity="top|start"
                     android:importantForAutofill="no"
+                    android:textSize="@dimen/text_input_text_size"
                     android:textColor="@color/terminal_toolbar_text_color"
                     android:textColorHighlight="@color/grey_400"
                     android:textCursorDrawable="@null"

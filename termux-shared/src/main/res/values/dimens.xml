@@ -8,4 +8,7 @@
     <dimen name="content_padding">8dip</dimen>
     <dimen name="content_padding_double">16dip</dimen>
     <dimen name="content_padding_triple">32dip</dimen>
+
+    <!-- Text size for the multi-line input panel (terminal_toolbar_text_input). -->
+    <dimen name="text_input_text_size">16sp</dimen>
 </resources>

@@ -12,7 +12,9 @@ import android.content.ServiceConnection;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.Gravity;
@@ -193,6 +195,18 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     // being hidden while the text input panel is open.
     private boolean mSoftKeyboardVisible = false;
 
+    /**
+     * True for a short window right after onStart(), i.e. just after the app
+     * returned from the background / was recreated. Used to suppress the
+     * IME-hidden auto-close of the text input panel: on return the system may
+     * emit transient "IME visible -> hidden" insets frames (especially if the
+     * keyboard was active before backgrounding, or on a config change). Without
+     * this guard the panel would be closed by that spurious transition. The flag
+     * is cleared shortly after by a delayed handler, so normal in-foreground
+     * keyboard dismissal still closes the panel as expected.
+     */
+    private boolean mJustResumed = false;
+
     // Per-session text input content, keyed by TerminalSession.mHandle,
     // so each tab keeps its own input field text across tab switches.
     private final HashMap<String, String> mTextInputPerSession = new HashMap<>();
@@ -317,7 +331,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             // stays visible when the app returns to the foreground.
             boolean imeVisible = WindowInsetsCompat.toWindowInsetsCompat(insets)
                     .isVisible(WindowInsetsCompat.Type.ime());
-            if (!mIsPaused && mSoftKeyboardVisible && !imeVisible && isTextInputVisible()) {
+            if (!mIsPaused && !mJustResumed && mSoftKeyboardVisible && !imeVisible && isTextInputVisible()) {
                 setTextInputVisible(false);
                 updateToggleTextInputButtonIcon();
             }
@@ -391,6 +405,12 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         // the insets listener fires on resume.
         mSoftKeyboardVisible = false;
 
+        // Open the "just resumed" window: suppress the IME-hidden auto-close of
+        // the panel until the transient post-return insets frames have settled.
+        // Cleared after a short delay so ordinary keyboard dismissal still works.
+        mJustResumed = true;
+        new Handler(Looper.getMainLooper()).postDelayed(() -> mJustResumed = false, 400);
+
         if (mTermuxTerminalSessionActivityClient != null)
             mTermuxTerminalSessionActivityClient.onStart();
 
@@ -409,6 +429,16 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         if (mIsInvalidState) return;
 
+        // Snapshot the remembered focus target BEFORE the terminal view client runs.
+        // mTermuxTerminalViewClient.onResume() -> setSoftKeyboardState() calls
+        // terminalView.requestFocus(), which fires the terminal's onFocusChange
+        // listener and overwrites mFocusOnInputPerSession to "terminal" (false) —
+        // clobbering the "focus was on panel" state we saved in onStop(). We
+        // re-assert this snapshot before restoring, so the panel focus + caret is
+        // honoured on return from the background.
+        final boolean resumeFocusWasOnInput =
+            !mIsOnResumeAfterOnCreate && isFocusOnInputForSession(getCurrentSession());
+
         if (mTermuxTerminalSessionActivityClient != null)
             mTermuxTerminalSessionActivityClient.onResume();
 
@@ -418,6 +448,16 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         // Check if a crash happened on last run of the app or if a plugin crashed and show a
         // notification with the crash details if it did
         TermuxCrashUtils.notifyAppCrashFromCrashLogFile(this, LOG_TAG);
+
+        // On return from the background (not a fresh create — that path restores
+        // with applyFocus=false at startup), re-apply the current session's panel
+        // visibility together with its remembered focus target and caret, exactly
+        // as a tab switch does. Restores keyboard-on-panel or focus-on-terminal.
+        if (!mIsOnResumeAfterOnCreate) {
+            // Restore the pre-background focus target clobbered by the client above.
+            setFocusOnInputForCurrentSession(resumeFocusWasOnInput);
+            applyTextInputVisibilityForSession(getCurrentSession(), true);
+        }
 
         mIsOnResumeAfterOnCreate = false;
         mIsPaused = false;
@@ -442,6 +482,14 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         if (mIsInvalidState) return;
 
         mIsVisible = false;
+
+        // Remember, for the current session, whether focus was on the input panel
+        // or the terminal, and persist the caret position — exactly as a tab
+        // switch does before leaving a tab. This lets onResume() restore the same
+        // focus target and caret when the app returns from the background.
+        final EditText toolbarTextInput = findViewById(R.id.terminal_toolbar_text_input);
+        setFocusOnInputForCurrentSession(toolbarTextInput != null && toolbarTextInput.hasFocus());
+        saveTextInputForCurrentSession();
 
         if (mTermuxTerminalSessionActivityClient != null)
             mTermuxTerminalSessionActivityClient.onStop();
