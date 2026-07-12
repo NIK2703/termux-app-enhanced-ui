@@ -1,6 +1,7 @@
 package com.termux.app;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
@@ -9,6 +10,8 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.ActivityInfo;
+import android.content.SharedPreferences;
 import android.content.ServiceConnection;
 import android.graphics.Color;
 import android.net.Uri;
@@ -272,8 +275,11 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     /** Currently highlighted history item index while dragging, or -1 for none. */
     private int mHistoryHighlightIndex = -1;
 
-    /** Max number of remembered messages. */
-    private static final int MESSAGE_HISTORY_MAX = 20;
+    /** Default max number of remembered messages (overridable in Settings). */
+    private static final int MESSAGE_HISTORY_MAX_DEFAULT = 20;
+
+    /** Live max number of remembered messages, read from Settings (default 20). */
+    private int mMessageHistoryMax = MESSAGE_HISTORY_MAX_DEFAULT;
 
     /** Tag value marking the synthetic "Clear" row (clears the input field). */
     private static final int MESSAGE_HISTORY_CLEAR_TAG = -2;
@@ -366,6 +372,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_termux);
+
+        // Apply the user's screen-orientation choice (Settings -> Screen orientation).
+        applyScreenOrientation(this);
 
         // Load termux shared preferences
         // This will also fail if TermuxConstants.TERMUX_PACKAGE_NAME does not equal applicationId
@@ -482,6 +491,18 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         if (mPreferences.isTerminalMarginAdjustmentEnabled())
             addTermuxActivityRootViewGlobalLayoutListener();
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+
+        // When Termux regains focus (e.g. after returning from Settings), apply
+        // the screen-orientation choice immediately so the change is visible
+        // without restarting the app.
+        if (hasFocus) {
+            applyScreenOrientation(this);
+        }
     }
 
     @Override
@@ -743,6 +764,40 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         // which is why a hot theme swap (recreate / day-night switch) left the terminal
         // unpainted while only the toolbar+status bar updated. The terminal repaint is done
         // in setTermuxTerminalViewAndClients() once the view and client exist.
+    }
+
+    /**
+     * Apply the user-selected screen orientation to the given activity.
+     * Reads "screen_orientation" from the "termux_prefs" file (written by the
+     * Settings screen-orientation list). Valid values: "sensor", "portrait",
+     * "landscape". Default is "sensor" on tablets (smallestScreenWidthDp >= 600)
+     * and "portrait" on phones.
+     */
+    public static void applyScreenOrientation(@NonNull Activity activity) {
+        final SharedPreferences prefs = activity.getSharedPreferences("termux_prefs", MODE_PRIVATE);
+        final boolean isTablet = activity.getResources().getConfiguration().smallestScreenWidthDp >= 600;
+        final String value = prefs.getString("screen_orientation",
+                isTablet ? "sensor" : "portrait");
+        final int orientation;
+        switch (value) {
+            case "portrait":
+                orientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
+                break;
+            case "landscape":
+                orientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
+                break;
+            case "portrait_follow_sensor":
+                orientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT;
+                break;
+            case "landscape_follow_sensor":
+                orientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE;
+                break;
+            case "sensor":
+            default:
+                orientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR;
+                break;
+        }
+        activity.setRequestedOrientation(orientation);
     }
 
     private void setMargins() {
@@ -1021,6 +1076,8 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         ImageButton toggleTextInputButton = findViewById(R.id.toggle_text_input_button);
         if (toggleTextInputButton != null) {
             // Load the persisted sent-message history once.
+            mMessageHistoryMax = getSharedPreferences("termux_prefs", MODE_PRIVATE)
+                    .getInt("message_history_max", MESSAGE_HISTORY_MAX_DEFAULT);
             loadMessageHistory();
 
             // A touch listener drives two gestures on the pencil button:
@@ -1121,7 +1178,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         if (TextUtils.isEmpty(message)) return;
         mMessageHistory.remove(message);          // dedup by content
         mMessageHistory.add(0, message);          // newest first
-        while (mMessageHistory.size() > MESSAGE_HISTORY_MAX) {
+        while (mMessageHistory.size() > mMessageHistoryMax) {
             mMessageHistory.remove(mMessageHistory.size() - 1);
         }
         saveMessageHistory();
@@ -1144,6 +1201,13 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         } catch (JSONException e) {
             Logger.logStackTraceWithMessage(LOG_TAG, "Failed to parse message history", e);
         }
+        // Trim to the configured max (e.g. the user lowered the limit in Settings).
+        boolean trimmed = false;
+        while (mMessageHistory.size() > mMessageHistoryMax) {
+            mMessageHistory.remove(mMessageHistory.size() - 1);
+            trimmed = true;
+        }
+        if (trimmed) saveMessageHistory();
     }
 
     /** Persist the current message history to preferences as a JSON array. */

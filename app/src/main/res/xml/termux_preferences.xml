@@ -36,6 +36,26 @@
         app:summary="@string/termux_terminal_view_preferences_summary"
         app:fragment="com.termux.app.fragments.settings.termux.TerminalViewPreferencesFragment"/>
 
+    <PreferenceCategory app:title="@string/message_history_title" app:iconSpaceReserved="false">
+        <SeekBarPreference
+            app:key="message_history_max"
+            app:title="@string/message_history_max_title"
+            app:defaultValue="20"
+            app:showSeekBarValue="true"
+            app:iconSpaceReserved="false" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/screen_orientation_title" app:iconSpaceReserved="false">
+        <ListPreference
+            app:key="screen_orientation"
+            app:title="@string/screen_orientation_title"
+            app:summary="@string/screen_orientation_summary"
+            app:entries="@array/screen_orientation_entries"
+            app:entryValues="@array/screen_orientation_values"
+            app:defaultValue="sensor"
+            app:iconSpaceReserved="false" />
+    </PreferenceCategory>
+
     <PreferenceCategory app:title="@string/backup_restore_dialog_title" app:iconSpaceReserved="false">
         <Preference
             app:key="backup_container"

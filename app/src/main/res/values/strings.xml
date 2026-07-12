@@ -249,6 +249,28 @@
     <string name="color_scheme_dark_title">Terminal Color Scheme (Dark Theme)</string>
     <string name="color_scheme_dark_summary">Color scheme applied when the app theme is dark</string>
 
+    <!-- Message history preferences -->
+    <string name="message_history_title">Message History</string>
+    <string name="message_history_max_title">Max remembered messages</string>
+
+    <!-- Screen orientation preference -->
+    <string name="screen_orientation_title">Screen orientation</string>
+    <string name="screen_orientation_summary">Locked portrait on phones, sensor on tablets by default. "Follow sensor" variants rotate between the two orientations (e.g. 0°/180° portrait).</string>
+    <string-array name="screen_orientation_entries">
+        <item>Follow sensor</item>
+        <item>Portrait (follow sensor)</item>
+        <item>Landscape (follow sensor)</item>
+        <item>Portrait</item>
+        <item>Landscape</item>
+    </string-array>
+    <string-array name="screen_orientation_values">
+        <item>sensor</item>
+        <item>portrait_follow_sensor</item>
+        <item>landscape_follow_sensor</item>
+        <item>portrait</item>
+        <item>landscape</item>
+    </string-array>
+
     <!-- Donate Preference -->
     <string name="donate_preference_title">Donate</string>
 

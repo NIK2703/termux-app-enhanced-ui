@@ -2,6 +2,7 @@ package com.termux.app.fragments.settings;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
@@ -15,6 +16,7 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.preference.ListPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
+import androidx.preference.SeekBarPreference;
 
 import com.termux.R;
 import com.termux.app.BackupProgressController;
@@ -61,6 +63,8 @@ public class TermuxPreferencesFragment extends PreferenceFragmentCompat {
 
         configureBackupPreference();
         configureRestorePreference();
+        configureMessageHistoryMaxPreference();
+        configureScreenOrientationPreference();
 
         // Setup theme ListPreference: load current value from termux.properties
         final ListPreference themePref = findPreference("theme_mode");
@@ -126,6 +130,71 @@ public class TermuxPreferencesFragment extends PreferenceFragmentCompat {
                 .setPositiveButton(android.R.string.ok, (dialog, which) -> startRestoreFileChooser())
                 .setNegativeButton(android.R.string.cancel, null)
                 .show();
+            return true;
+        });
+    }
+
+    /**
+     * Wire up the "Max remembered messages" slider (range 10–100, default 20).
+     * SeekBarPreference in this preference version only supports a max, so the
+     * minimum is enforced by clamping. The value is mirrored into the
+     * "termux_prefs" file (key {@code message_history_max}) where TermuxActivity
+     * reads it, so the new limit applies without restarting the activity.
+     */
+    private static final int MESSAGE_HISTORY_MAX_MIN = 10;
+    private static final int MESSAGE_HISTORY_MAX_HARD_MAX = 100;
+
+    private void configureMessageHistoryMaxPreference() {
+        final SeekBarPreference pref = findPreference("message_history_max");
+        if (pref == null) return;
+
+        final SharedPreferences termuxPrefs =
+                requireContext().getSharedPreferences("termux_prefs", Context.MODE_PRIVATE);
+        int current = termuxPrefs.getInt("message_history_max", 20);
+        if (current < MESSAGE_HISTORY_MAX_MIN) current = MESSAGE_HISTORY_MAX_MIN;
+        if (current > MESSAGE_HISTORY_MAX_HARD_MAX) current = MESSAGE_HISTORY_MAX_HARD_MAX;
+        pref.setValue(current);
+
+        pref.setOnPreferenceChangeListener((preference, newValue) -> {
+            int value = (Integer) newValue;
+            if (value < MESSAGE_HISTORY_MAX_MIN) {
+                value = MESSAGE_HISTORY_MAX_MIN;
+                pref.setValue(value);   // snap the slider back to the minimum
+            }
+            // Mirror into termux_prefs so TermuxActivity picks it up without a restart.
+            termuxPrefs.edit().putInt("message_history_max", value).apply();
+            return true;
+        });
+    }
+
+    /**
+     * Wire up the "Screen orientation" list (sensor / portrait / landscape).
+     * The chosen value is mirrored into the "termux_prefs" file (key
+     * {@code screen_orientation}) where TermuxActivity reads it to call
+     * {@code setRequestedOrientation}. Default is "sensor" on tablets and
+     * "portrait" on phones.
+     */
+    private void configureScreenOrientationPreference() {
+        final ListPreference pref = findPreference("screen_orientation");
+        if (pref == null) return;
+
+        final SharedPreferences termuxPrefs =
+                requireContext().getSharedPreferences("termux_prefs", Context.MODE_PRIVATE);
+        final boolean isTablet = requireContext().getResources()
+                .getConfiguration().smallestScreenWidthDp >= 600;
+        final String defaultOrientation = isTablet ? "sensor" : "portrait";
+        final String current = termuxPrefs.getString("screen_orientation", defaultOrientation);
+        pref.setValue(current);
+
+        pref.setOnPreferenceChangeListener((preference, newValue) -> {
+            // Mirror into termux_prefs so TermuxActivity picks it up without a restart.
+            termuxPrefs.edit().putString("screen_orientation", (String) newValue).apply();
+            // Apply immediately to the live activity (SettingsActivity hosts this
+            // fragment), so the change takes effect without restarting Termux.
+            final FragmentActivity activity = getActivity();
+            if (activity != null) {
+                TermuxActivity.applyScreenOrientation(activity);
+            }
             return true;
         });
     }
