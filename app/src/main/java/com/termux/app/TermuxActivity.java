@@ -1533,17 +1533,25 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
      * Continuously scroll the popup's ScrollView while the finger rests/drags
      * within an edge band at the top or bottom (like the keyboard-accent popup:
      * it keeps moving even without finger motion). Driven by a self-rescheduling
-     * postDelayed loop that stops once the finger leaves the band or the popup
-     * closes.
+     * postDelayed loop that keeps running as long as the finger stays in the band
+     * and the popup is open, so edge auto-scroll continues even when the finger
+     * stops moving.
+     *
+     * NOTE: the loop reschedules ITSELF on every tick (not just when first
+     * started) — otherwise it would stop after a single step because the
+     * mHistoryAutoScrolling flag is already true on the next tick.
      */
     private void autoScrollHistoryNearEdge() {
-        if (mHistoryScroll == null) return;
+        if (mHistoryScroll == null || !isHistoryPopupShowing()) {
+            mHistoryAutoScrolling = false;
+            return;
+        }
         int[] loc = new int[2];
         mHistoryScroll.getLocationOnScreen(loc);
         int top = loc[1];
         int bottom = loc[1] + mHistoryScroll.getHeight();
         int band = dpToPx(36);      // edge-sensitive zone
-        int maxStep = dpToPx(18);   // max px scrolled per tick
+        int maxStep = dpToPx(3);    // max px scrolled per tick (smooth, not too fast)
 
         float rawY = mHistoryFingerY;
         int step;
@@ -1560,11 +1568,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         mHistoryScroll.scrollBy(0, step);
 
-        // Reschedule while still open and still in the band.
-        if (!mHistoryAutoScrolling) {
-            mHistoryAutoScrolling = true;
-            mHistoryScroll.postDelayed(this::autoScrollHistoryNearEdge, 16);
-        }
+        // Keep the loop alive while the finger is still in the edge band.
+        mHistoryAutoScrolling = true;
+        mHistoryScroll.postDelayed(this::autoScrollHistoryNearEdge, 16);
     }
 
     /**
