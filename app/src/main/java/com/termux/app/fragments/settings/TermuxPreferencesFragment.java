@@ -64,6 +64,7 @@ public class TermuxPreferencesFragment extends PreferenceFragmentCompat {
         configureBackupPreference();
         configureRestorePreference();
         configureMessageHistoryMaxPreference();
+        configureDirectoryHistoryMaxPreference();
         configureScreenOrientationPreference();
 
         // Setup theme ListPreference: load current value from termux.properties
@@ -163,6 +164,37 @@ public class TermuxPreferencesFragment extends PreferenceFragmentCompat {
             }
             // Mirror into termux_prefs so TermuxActivity picks it up without a restart.
             termuxPrefs.edit().putInt("message_history_max", value).apply();
+            return true;
+        });
+    }
+
+    /**
+     * Wire up the "Max remembered directories" slider (range 10–100, default 20),
+     * mirroring {@link #configureMessageHistoryMaxPreference(String, int, int)} into
+     * the "directory_history_max" key. The value is read by TermuxActivity's
+     * directory-history tracking, so a lowered limit also trims the saved list.
+     */
+    private static final int DIRECTORY_HISTORY_MAX_MIN = 10;
+    private static final int DIRECTORY_HISTORY_MAX_HARD_MAX = 100;
+
+    private void configureDirectoryHistoryMaxPreference() {
+        final SeekBarPreference pref = findPreference("directory_history_max");
+        if (pref == null) return;
+
+        final SharedPreferences termuxPrefs =
+                requireContext().getSharedPreferences("termux_prefs", Context.MODE_PRIVATE);
+        int current = termuxPrefs.getInt("directory_history_max", 20);
+        if (current < DIRECTORY_HISTORY_MAX_MIN) current = DIRECTORY_HISTORY_MAX_MIN;
+        if (current > DIRECTORY_HISTORY_MAX_HARD_MAX) current = DIRECTORY_HISTORY_MAX_HARD_MAX;
+        pref.setValue(current);
+
+        pref.setOnPreferenceChangeListener((preference, newValue) -> {
+            int value = (Integer) newValue;
+            if (value < DIRECTORY_HISTORY_MAX_MIN) {
+                value = DIRECTORY_HISTORY_MAX_MIN;
+                pref.setValue(value);
+            }
+            termuxPrefs.edit().putInt("directory_history_max", value).apply();
             return true;
         });
     }

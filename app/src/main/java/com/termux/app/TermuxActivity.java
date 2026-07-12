@@ -293,6 +293,21 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     /** Gap in dp between the button's top and the popup's bottom edge. */
     private static final int MESSAGE_HISTORY_POPUP_GAP_DP = 24;
 
+    /** Recently visited directories, newest first (index 0). Deduplicated by path. */
+    private final ArrayList<String> mDirectoryHistory = new ArrayList<>();
+
+    /** Live max number of remembered directories (overridable, default 20). */
+    private int mDirectoryHistoryMax = DIRECTORY_HISTORY_MAX_DEFAULT;
+
+    /** Tag marking the top "CLEAR HISTORY…" row of the directory-history popup. */
+    private static final int DIRECTORY_HISTORY_CLEAR_ALL_TAG = -2;
+
+    /** Default max number of remembered directories. */
+    private static final int DIRECTORY_HISTORY_MAX_DEFAULT = 20;
+
+    /** Pref key (in termux_prefs) persisting the directory history JSON array. */
+    private static final String PREF_DIRECTORY_HISTORY = "directory_history";
+
     private static final int CONTEXT_MENU_SELECT_URL_ID = 0;
     private static final int CONTEXT_MENU_SHARE_TRANSCRIPT_ID = 1;
     private static final int CONTEXT_MENU_SHARE_SELECTED_TEXT = 10;
@@ -843,6 +858,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         // Set up new session tab button
         ImageButton newSessionTabButton = findViewById(R.id.new_session_tab_button);
         if (newSessionTabButton != null) {
+            // Tap opens a new tab (default cwd); long-press creates a named session.
             newSessionTabButton.setOnClickListener(v -> mTermuxTerminalSessionActivityClient.addNewSession(false, null));
             newSessionTabButton.setOnLongClickListener(v -> {
                 TextInputDialogUtils.textInput(TermuxActivity.this, R.string.title_create_named_session, null,
@@ -850,6 +866,57 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                     R.string.action_new_session_failsafe, text -> mTermuxTerminalSessionActivityClient.addNewSession(true, text),
                     -1, null, null);
                 return true;
+            });
+
+            // A swipe-up (drag off the button) opens the directory-history popup,
+            // mirroring the pencil button's gesture. Plain tap still opens a new tab.
+            final int touchSlop = ViewConfiguration.get(this).getScaledTouchSlop();
+            final float[] downXY = new float[2];
+            final boolean[] gestureActive = { false };
+
+            newSessionTabButton.setOnTouchListener((v, event) -> {
+                switch (event.getActionMasked()) {
+                    case MotionEvent.ACTION_DOWN:
+                        downXY[0] = event.getRawX();
+                        downXY[1] = event.getRawY();
+                        gestureActive[0] = true;
+                        v.setPressed(true);
+                        return true;
+                    case MotionEvent.ACTION_MOVE: {
+                        if (!gestureActive[0]) return true;
+                        float dy = event.getRawY() - downXY[1];
+                        float dx = event.getRawX() - downXY[0];
+                        if (!isHistoryPopupShowing()
+                                && dy < -touchSlop && Math.abs(dy) > Math.abs(dx)
+                                && shouldShowDirectoryHistoryPopup()) {
+                            v.setPressed(false);
+                            showDirectoryHistoryPopup(v);
+                        }
+                        if (isHistoryPopupShowing()) {
+                            updateHistoryHighlight(event.getRawX(), event.getRawY());
+                        }
+                        return true;
+                    }
+                    case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_CANCEL: {
+                        v.setPressed(false);
+                        boolean wasPopup = isHistoryPopupShowing();
+                        if (wasPopup) {
+                            int selected = mHistoryHighlightIndex;
+                            dismissMessageHistoryPopup();
+                            if (event.getActionMasked() == MotionEvent.ACTION_UP) {
+                                if (selected == DIRECTORY_HISTORY_CLEAR_ALL_TAG) {
+                                    confirmClearDirectoryHistory();
+                                } else if (selected >= 0 && selected < mDirectoryHistory.size()) {
+                                    onHistoryDirectoryPicked(mDirectoryHistory.get(selected));
+                                }
+                            }
+                        }
+                        gestureActive[0] = false;
+                        return true;
+                    }
+                }
+                return false;
             });
         }
     }
@@ -1079,6 +1146,10 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             mMessageHistoryMax = getSharedPreferences("termux_prefs", MODE_PRIVATE)
                     .getInt("message_history_max", MESSAGE_HISTORY_MAX_DEFAULT);
             loadMessageHistory();
+            // Load the persisted recent-directories history once.
+            mDirectoryHistoryMax = getSharedPreferences("termux_prefs", MODE_PRIVATE)
+                    .getInt("directory_history_max", DIRECTORY_HISTORY_MAX_DEFAULT);
+            loadDirectoryHistory();
 
             // A touch listener drives two gestures on the pencil button:
             //   - a plain tap toggles the text input panel (old click behaviour);
@@ -1600,6 +1671,220 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 imm.showSoftInput(editText, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
             }
         });
+    }
+
+    // ============================================================================
+    //  Recent directories history (for the "new tab" button popup)
+    // ============================================================================
+
+    /**
+     * Record the current session's working directory into the directory history
+     * (dedup, newest first), trimming to the configured max and persisting.
+     * Returns the recorded path (or null if unavailable). Called whenever a
+     * session becomes current, and right before the directory popup is shown,
+     * so the latest "cd" is captured even if it hasn't been committed yet.
+     */
+    @Nullable
+    public String recordCurrentDirectory() {
+        TerminalSession session = getCurrentSession();
+        if (session == null) return null;
+        String cwd = session.getCwd();
+        if (TextUtils.isEmpty(cwd)) return null;
+        addToDirectoryHistory(cwd);
+        return cwd;
+    }
+
+    /**
+     * Add a visited directory to the history. Deduplicated by path: if the path
+     * already exists it is removed and re-inserted at the front (newest first).
+     */
+    private void addToDirectoryHistory(@NonNull String directory) {
+        if (TextUtils.isEmpty(directory)) return;
+        mDirectoryHistory.remove(directory);   // dedup by path
+        mDirectoryHistory.add(0, directory);  // newest first
+        while (mDirectoryHistory.size() > mDirectoryHistoryMax) {
+            mDirectoryHistory.remove(mDirectoryHistory.size() - 1);
+        }
+        saveDirectoryHistory();
+    }
+
+    /** Load the persisted directory history from preferences (JSON array). */
+    private void loadDirectoryHistory() {
+        mDirectoryHistory.clear();
+        String json = getSharedPreferences("termux_prefs", MODE_PRIVATE)
+                .getString(PREF_DIRECTORY_HISTORY, null);
+        if (json == null) return;
+        try {
+            JSONArray arr = new JSONArray(json);
+            for (int i = 0; i < arr.length(); i++) {
+                String s = arr.optString(i, null);
+                if (!TextUtils.isEmpty(s) && !mDirectoryHistory.contains(s)) {
+                    mDirectoryHistory.add(s);
+                }
+            }
+        } catch (JSONException e) {
+            Logger.logStackTraceWithMessage(LOG_TAG, "Failed to parse directory history", e);
+        }
+        boolean trimmed = false;
+        while (mDirectoryHistory.size() > mDirectoryHistoryMax) {
+            mDirectoryHistory.remove(mDirectoryHistory.size() - 1);
+            trimmed = true;
+        }
+        if (trimmed) saveDirectoryHistory();
+    }
+
+    /** Persist the current directory history to preferences as a JSON array. */
+    private void saveDirectoryHistory() {
+        JSONArray arr = new JSONArray();
+        for (String s : mDirectoryHistory) arr.put(s);
+        getSharedPreferences("termux_prefs", MODE_PRIVATE).edit()
+                .putString(PREF_DIRECTORY_HISTORY, arr.toString()).apply();
+    }
+
+    /**
+     * Whether the directory popup has anything worth showing: the recording of
+     * the current directory succeeded (so there is at least one entry) or an
+     * older history already exists.
+     */
+    private boolean shouldShowDirectoryHistoryPopup() {
+        if (!mDirectoryHistory.isEmpty()) return true;
+        // Try to capture the current directory on demand (e.g. first time).
+        return recordCurrentDirectory() != null;
+    }
+
+    /**
+     * Build and show the directory-history popup anchored above the new-tab
+     * button. Mirrors {@link #showMessageHistoryPopup(View)} layout/gesture:
+     * newest-at-bottom, swipe-up from the button reaches the newest first, a
+     * top "CLEAR HISTORY…" row wipes the whole list. Picking a directory opens
+     * a fresh session starting in that directory.
+     */
+    private void showDirectoryHistoryPopup(@NonNull View anchor) {
+        dismissMessageHistoryPopup();
+        mHistoryItemViews.clear();
+        mHistoryHighlightIndex = -1;
+
+        // Capture the current directory first so it appears in the list.
+        recordCurrentDirectory();
+        if (mDirectoryHistory.isEmpty()) return;
+
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        int bg = ContextCompat.getColor(this, com.termux.shared.R.color.terminal_toolbar_text_input_bg);
+        content.setBackgroundColor(bg);
+
+        int padH = dpToPx(14);
+        int padV = dpToPx(10);
+        int textColor = ContextCompat.getColor(this, com.termux.shared.R.color.terminal_toolbar_text_color);
+        mHistoryTextColor = textColor;
+        boolean isNight = (getResources().getConfiguration().uiMode
+                & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
+                == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+        mHistoryHighlightFill = isNight
+                ? Color.argb(26, 255, 255, 255)
+                : Color.argb(26, 0, 0, 0);
+
+        // Synthetic "CLEAR HISTORY…" row pinned at the TOP of the popup.
+        if (!mDirectoryHistory.isEmpty()) {
+            TextView tv = new TextView(this);
+            tv.setText("CLEAR HISTORY…");
+            tv.setGravity(Gravity.CENTER);
+            tv.setAllCaps(true);
+            tv.setTextColor(textColor);
+            tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+            tv.setTypeface(tv.getTypeface(), android.graphics.Typeface.BOLD);
+            tv.setPadding(padH, padV, padH, padV);
+            tv.setClickable(true);
+            tv.setTag(DIRECTORY_HISTORY_CLEAR_ALL_TAG);
+            content.addView(tv, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+            mHistoryItemViews.add(tv);
+
+            View sep = new View(this);
+            sep.setBackgroundColor(Color.argb(60, 128, 128, 128));
+            content.addView(sep, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
+        }
+
+        // Newest at the BOTTOM: iterate REVERSE so index 0 (newest) ends last.
+        for (int i = mDirectoryHistory.size() - 1; i >= 0; i--) {
+            final String directory = mDirectoryHistory.get(i);
+            TextView tv = new TextView(this);
+            tv.setText(directory);
+            tv.setMaxLines(2);
+            tv.setEllipsize(TextUtils.TruncateAt.MIDDLE);
+            tv.setTextColor(textColor);
+            tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+            tv.setPadding(padH, padV, padH, padV);
+            tv.setClickable(true);
+            tv.setTag(i);
+            content.addView(tv, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+            mHistoryItemViews.add(tv);
+        }
+
+        int popupWidth = Math.min(
+                getResources().getDisplayMetrics().widthPixels - dpToPx(24),
+                dpToPx(320));
+
+        android.widget.ScrollView scroll = new android.widget.ScrollView(this);
+        scroll.setVerticalScrollBarEnabled(false);
+        scroll.addView(content, new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        mHistoryScroll = scroll;
+
+        mHistoryPopup = new PopupWindow(scroll, popupWidth,
+                ViewGroup.LayoutParams.WRAP_CONTENT, false);
+        mHistoryPopup.setElevation(dpToPx(8));
+        mHistoryPopup.setBackgroundDrawable(
+                ContextCompat.getDrawable(this, R.drawable.text_input_background));
+        mHistoryPopup.setClippingEnabled(true);
+        mHistoryPopup.setTouchable(false);
+        mHistoryPopup.setFocusable(false);
+
+        mHistoryPopup.showAsDropDown(anchor, 0, 0, Gravity.START);
+        content.measure(
+                View.MeasureSpec.makeMeasureSpec(popupWidth, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        int contentHeight = content.getMeasuredHeight();
+        int[] anchorLoc = new int[2];
+        anchor.getLocationOnScreen(anchorLoc);
+        int popupGap = dpToPx(MESSAGE_HISTORY_POPUP_GAP_DP);
+        int roomAbove = Math.max(dpToPx(48), anchorLoc[1] - dpToPx(8) - popupGap);
+        int maxHeight = Math.min(dpToPx(MESSAGE_HISTORY_POPUP_MAX_HEIGHT_DP), roomAbove);
+        int popupHeight = Math.min(contentHeight, maxHeight);
+        mHistoryPopup.update(anchor,
+                0,
+                -(anchor.getHeight() + popupHeight + popupGap),
+                popupWidth,
+                popupHeight);
+
+        final android.widget.ScrollView scrollRef = scroll;
+        scrollRef.post(() -> scrollRef.fullScroll(View.FOCUS_DOWN));
+    }
+
+    /** A directory from the popup was chosen: open a new session there. */
+    private void onHistoryDirectoryPicked(@NonNull String directory) {
+        mTermuxTerminalSessionActivityClient.addNewSessionInDirectory(directory);
+    }
+
+    /** "CLEAR HISTORY…" item: confirm, then wipe the whole directory history. */
+    private void confirmClearDirectoryHistory() {
+        final AlertDialog.Builder b = new AlertDialog.Builder(this);
+        b.setIcon(android.R.drawable.ic_dialog_alert);
+        b.setTitle("Clear directory history");
+        b.setMessage("Clear the entire directory history? This cannot be undone.");
+        b.setPositiveButton(android.R.string.yes, (dialog, id) -> {
+            dialog.dismiss();
+            mDirectoryHistory.clear();
+            saveDirectoryHistory();
+            showToast("Directory history cleared", true);
+        });
+        b.setNegativeButton(android.R.string.no, null);
+        b.show();
     }
 
     private int dpToPx(int dp) {

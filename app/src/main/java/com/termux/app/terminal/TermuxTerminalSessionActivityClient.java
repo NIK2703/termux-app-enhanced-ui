@@ -350,6 +350,10 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
 
         // Apply the per-session text input panel visibility state for the new session.
         mActivity.applyTextInputVisibilityForSession(session);
+
+        // Record the newly-current session's working directory into the
+        // recent-directories history (for the "new tab" button popup).
+        mActivity.recordCurrentDirectory();
     }
 
     void notifyOfSessionChange() {
@@ -432,6 +436,28 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
             TerminalSession newTerminalSession = newTermuxSession.getTerminalSession();
             setCurrentSession(newTerminalSession);
         }
+    }
+
+    /**
+     * Create a new terminal session starting in the given directory. Used by the
+     * "new tab" button's directory-history popup: picking a directory opens a fresh
+     * session there instead of inheriting the current session's cwd.
+     */
+    public void addNewSessionInDirectory(@NonNull String directory) {
+        TermuxService service = mActivity.getTermuxService();
+        if (service == null) return;
+
+        if (service.getTermuxSessionsSize() >= MAX_SESSIONS) {
+            new AlertDialog.Builder(mActivity).setTitle(R.string.title_max_terminals_reached).setMessage(R.string.msg_max_terminals_reached)
+                .setPositiveButton(android.R.string.ok, null).show();
+            return;
+        }
+
+        TermuxSession newTermuxSession = service.createTermuxSession(null, null, null, directory, false, null);
+        if (newTermuxSession == null) return;
+
+        TerminalSession newTerminalSession = newTermuxSession.getTerminalSession();
+        setCurrentSession(newTerminalSession);
     }
 
     public void setCurrentStoredSession() {
