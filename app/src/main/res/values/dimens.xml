@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Layout tolerance (px) for the bottom-panel margin / content-height logic.
+         The available window rectangle reported by the system flickers by a few px every frame
+         in small floating / freeform windows (the navigation bar / window decor appear and
+         disappear, system insets jitter). That is sensor noise, not a real layout change, so we
+         ignore any difference smaller than this band instead of recomputing and re-applying the
+         bottom margin (or content height) on every frame, which previously caused an infinite
+         set/reset oscillation that jittered the bottom panel. A real change — keyboard
+         shown/hidden, window resized, split divider moved — moves the view by far more than this
+         band and is still applied immediately. Must stay well below a keyboard height (~hundreds
+         of px) so genuine changes are never swallowed. -->
+    <dimen name="root_view_layout_tolerance">24dp</dimen>
+</resources>

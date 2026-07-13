@@ -48,8 +48,8 @@ android {
     defaultConfig {
         minSdkVersion project.properties.minSdkVersion.toInteger()
         targetSdkVersion project.properties.targetSdkVersion.toInteger()
-        versionCode 118
-        versionName "0.118.0"
+        versionCode 118007 // 0.118.0 base + EnhancedUI mod release 7
+        versionName "0.118.0+enhancedui.7" // base Termux version + mod build metadata (release 7)
 
         if (appVersionName) versionName = appVersionName
         validateVersionName(versionName)
