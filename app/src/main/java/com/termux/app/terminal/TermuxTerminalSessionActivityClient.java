@@ -585,12 +585,25 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
             if (index >= size) {
                 index = size - 1;
             }
-            TermuxSession termuxSession = service.getTermuxSession(index);
-            if (termuxSession != null)
-                setCurrentSession(termuxSession.getTerminalSession());
-            // Sync the pager adapter and refresh tabs after the session list changed,
-            // otherwise the adapter still holds the removed session and the pager may
-            // display a dead / mismatched page while the tab strip already moved on.
+            // Sync pager and tabs. The pager sync inside termuxSessionListNotifyUpdated() already
+            // handles session restoration via its restoreIndex logic:
+            //   - If the removed session was the current one: falls back to the pager's old current
+            //     item index (clamped to the new list bounds), which selects the session that shifted
+            //     into that position or the last session.
+            //   - If the removed session was NOT the current one: finds the current session's new
+            //     index in the updated list and stays on it.
+            // Then onTerminalPageSelected() re-points mTerminalView and runs per-session bookkeeping.
+            //
+            // IMPORTANT: Do NOT add a setCurrentSession() call here using the stale <index> returned
+            // by removeTermuxSession().  That index was the removed session's position in the OLD
+            // list and is meaningless in the new list.  Using it to look up a "fallback" session
+            // causes two regressions:
+            //   (a) Scenario #8 (close tab + new tab race): list [A,B,C,D] → [A,C,D], index=1 (B's
+            //       old slot), getTermuxSession(1)=C → switches from D to C.
+            //   (b) Non-current session finishes: list [A,B,C] → [A,C], index=1 (B's old slot),
+            //       getTermuxSession(1)=C → switches from A to C.
+            // In both cases the pager sync already restored the correct session; the stale-index
+            // lookup overrides it.
             termuxSessionListNotifyUpdated();
         }
     }

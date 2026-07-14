@@ -3140,10 +3140,6 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
 
     public void termuxSessionListNotifyUpdated() {
-        if (mTermuxSessionTabsController != null && mTermuxService != null) {
-            mTermuxSessionTabsController.updateTabs(mTermuxService.getTermuxSessions());
-        }
-
         // Keep the horizontal pager in sync with the live session list. Re-point the adapter at the
         // current list and refresh. We preserve the selected page by re-selecting the index of the
         // pending/active session afterwards, so adding/removing a tab does not snap the user to
@@ -3155,6 +3151,10 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         // and rebuilding the adapter there destroys the page ViewHolder mid-animation and the
         // setCurrentItem(false) snaps without the smooth settle — that is what read as an
         // "abrupt" page switch. So we skip the adapter rebuild on a same-size update.
+        //
+        // NOTE: pager sync is done BEFORE updateTabs() so that onTerminalPageSelected — which fires
+        // during the sync — re-points mTerminalView to the correct page. If updateTabs() ran first,
+        // getCurrentSession() would still return the closed session and no tab would be highlighted.
         if (mTerminalPager != null && mTerminalPagerAdapter != null && mTermuxService != null) {
             int newSize = mTermuxService.getTermuxSessionsSize();
             if (mTerminalPagerAdapter.getItemCount() != newSize) {
@@ -3178,6 +3178,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                     restoreIndex = (current != null) ? mTermuxService.getIndexOfSession(current) : mTerminalPager.getCurrentItem();
                 }
                 if (restoreIndex < 0) restoreIndex = mTerminalPager.getCurrentItem();
+                // Clamp to the new upper bound (e.g. closing the last tab should select the
+                // new last tab, not leave the pager on a stale out-of-range position).
+                if (restoreIndex >= newSize) restoreIndex = newSize - 1;
 
                 // Sync the adapter with the live session list using incremental
                 // notifications (notifyItemRangeInserted / notifyItemRangeRemoved)
@@ -3203,8 +3206,16 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 // Re-point the active page after adapter rebuild (same-index guard).
                 int activeIndex = mTerminalPager.getCurrentItem();
                 onTerminalPageSelected(activeIndex);
+            }
         }
+
+        // Update the tab strip AFTER the pager sync, so getCurrentSession() (which reads
+        // mTerminalView — set inside onTerminalPageSelected above) returns the correct session
+        // and the selected tab is properly highlighted.
+        if (mTermuxSessionTabsController != null && mTermuxService != null) {
+            mTermuxSessionTabsController.updateTabs(mTermuxService.getTermuxSessions());
         }
+
         // Keep the open-tabs snapshot fresh while sessions are alive, so a later
         // exit (e.g. the notification's Exit action, which kills sessions before
         // onStop runs) still leaves a snapshot to restore on next launch.

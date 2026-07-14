@@ -663,10 +663,12 @@ public final class TermuxService extends Service implements AppShell.AppShellCli
 
             mShellManager.mTermuxSessions.remove(termuxSession);
 
-            // Notify {@link TermuxSessionsListViewController} that sessions list has been updated if
-            // activity in is foreground
-            if (mTermuxTerminalSessionActivityClient != null)
-                mTermuxTerminalSessionActivityClient.termuxSessionListNotifyUpdated();
+            // No longer notify the activity here — removeFinishedSession() handles a single,
+            // well-timed sync AFTER adjusting the selection index. Calling it from inside this
+            // callback (which is triggered by removeTermuxSession → TermuxSession.finish())
+            // produced a nested sync that ran before removeFinishedSession() could pick the
+            // correct fallback session, causing getCurrentSession() to return the closed session
+            // and leaving the tab strip with no highlighted tab.
         }
 
         updateNotification();
