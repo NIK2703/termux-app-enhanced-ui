@@ -588,6 +588,10 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
             TermuxSession termuxSession = service.getTermuxSession(index);
             if (termuxSession != null)
                 setCurrentSession(termuxSession.getTerminalSession());
+            // Sync the pager adapter and refresh tabs after the session list changed,
+            // otherwise the adapter still holds the removed session and the pager may
+            // display a dead / mismatched page while the tab strip already moved on.
+            termuxSessionListNotifyUpdated();
         }
     }
 
