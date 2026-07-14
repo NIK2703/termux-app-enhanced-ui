@@ -8,7 +8,6 @@
     <!ENTITY TERMUX_TASKER_APP_NAME "Termux:Tasker">
     <!ENTITY TERMUX_WIDGET_APP_NAME "Termux:Widget">
     <!ENTITY TERMUX_STYLING_APP_NAME "Termux:Styling">
-    <!ENTITY TERMUX_PREFIX_DIR_PATH "/data/data/com.termux/files/usr">
 ]>
 <resources>
 
@@ -64,7 +63,7 @@
     <string name="backup_service_notification_success">बैकअप सफलतापूर्वक बनाया गया</string>
     <string name="backup_service_notification_title">Termux डेटा बैकअप</string>
     <string name="bootstrap_error_abort">रद्द करें</string>
-    <string name="bootstrap_error_body">&TERMUX_APP_NAME; बूटस्ट्रैप पैकेज इंस्टॉल करने में असमर्थ रहा।\n%1$s</string>
+    <string name="bootstrap_error_body">&TERMUX_APP_NAME; बूटस्ट्रैप पैकेज इंस्टॉल करने में असमर्थ रहा।</string>
     <string name="bootstrap_error_installed_on_portable_sd">&TERMUX_APP_NAME; को आपके डिवाइस पर पोर्टेबल/बाहरी/हटाने योग्य एसडी कार्ड पर इंस्टॉल नहीं किया जा सकता।\n&TERMUX_APP_NAME; के लिए संकलित बूटस्ट्रैप बाइनरी में $PREFIX पथ हार्डकोड किया गया है और इसे निम्न पथ के अलावा किसी अन्य पथ पर इंस्टॉल नहीं किया जा सकता:\n%1$s.</string>
     <string name="bootstrap_error_not_primary_user_message">&TERMUX_APP_NAME; केवल प्राथमिक उपयोगकर्ता के रूप में चलाया जा सकता है।\n&TERMUX_APP_NAME; के लिए संकलित बूटस्ट्रैप बाइनरी में $PREFIX पथ हार्डकोड किया गया है और इसे निम्न पथ के अलावा किसी अन्य पथ पर इंस्टॉल नहीं किया जा सकता:\n%1$s.</string>
     <string name="bootstrap_error_title">बूटस्ट्रैप इंस्टॉल करने में असमर्थ</string>
@@ -84,15 +83,15 @@
     <string name="error_display_over_other_apps_permission_not_granted_to_start_terminal">एंड्रॉइड >= 10 पर बैकग्राउंड से टर्मिनल सत्र शुरू करने के लिए &TERMUX_APP_NAME; को "अन्य ऐप्स पर प्रदर्शन" अनुमति आवश्यक है। इसे सेटिंग्स -> ऐप्स -> &TERMUX_APP_NAME; -> उन्नत से अनुमति दें</string>
     <string name="error_font_copy_failed">फ़ॉन्ट लागू करने में विफल</string>
     <string name="error_run_command_service_api_help">RUN_COMMAND इंटेंट उपयोग की अधिक जानकारी के लिए %1$s पर जाएँ।</string>
-    <string name="error_run_command_service_invalid_execution_command_runner">RunCommandService के लिए अमान्य निष्पादन कमांड रनर: `%1$s`</string>
+    <string name="error_run_command_service_invalid_execution_command_runner">RunCommandService के लिए अमान्य निष्पादन कमांड निष्पादक: `%1$s`</string>
     <string name="error_run_command_service_invalid_intent_action">RunCommandService के लिए अमान्य इंटेंट क्रिया: `%1$s`</string>
     <string name="error_run_command_service_mandatory_extra_missing">RunCommandService के लिए अनिवार्य एक्स्ट्रा गायब है: \"%1$s\"</string>
     <string name="error_styling_not_installed">&TERMUX_STYLING_APP_NAME; प्लगिन ऐप इंस्टॉल नहीं है।</string>
     <string name="error_termux_service_execution_command_shell_name_unset">शेल का नाम सेट नहीं है लेकिन `%1$s` शेल निर्माण मोड पास किया गया</string>
-    <string name="error_termux_service_invalid_execution_command_runner">TermuxService के लिए अमान्य निष्पादन कमांड रनर: `%1$s`</string>
+    <string name="error_termux_service_invalid_execution_command_runner">TermuxService के लिए अमान्य निष्पादन कमांड निष्पादक: `%1$s`</string>
     <string name="error_termux_service_start_failed_bg">Android पृष्ठभूमि प्रतिबंधों के कारण ऐप पृष्ठभूमि में होने पर TermuxService प्रारंभ करने में विफल।</string>
     <string name="error_termux_service_start_failed_general">TermuxService प्रारंभ करने में विफल। अपवाद संदेश के लिए logcat जाँचें।</string>
-    <string name="error_termux_service_unsupported_execution_command_runner">TermuxService के लिए असमर्थित निष्पादन कमांड रनर: `%1$s`</string>
+    <string name="error_termux_service_unsupported_execution_command_runner">TermuxService के लिए असमर्थित निष्पादन कमांड निष्पादक: `%1$s`</string>
     <string name="error_termux_service_unsupported_execution_command_shell_create_mode">TermuxService के लिए असमर्थित निष्पादन कमांड शेल निर्माण मोड: `%1$s`</string>
     <string name="file_receiver_error_cannot_create_dir">निर्देशिका नहीं बनाई जा सकती: %s</string>
     <string name="file_receiver_error_cannot_open">फ़ाइल नहीं खुल सकती: %s</string>

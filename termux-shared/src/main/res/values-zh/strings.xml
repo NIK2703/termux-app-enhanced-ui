@@ -101,7 +101,7 @@
     <string name="action_disable_launcher_icon">禁用启动器图标</string>
     <string name="msg_enabling_launcher_icon">正在启用 %1$s 应用的启动器图标</string>
     <string name="msg_disabling_launcher_icon">正在禁用 %1$s 应用的启动器图标</string>
-    <string name="setting_launcher_icon_title">启动器图标已启用</string>
+    <string name="setting_launcher_icon_title">启动器图标</string>
     <string name="setting_launcher_icon_enabled_off">启动器图标将被禁用。</string>
     <string name="setting_launcher_icon_enabled_on">启动器图标将启用。（默认）</string>
 

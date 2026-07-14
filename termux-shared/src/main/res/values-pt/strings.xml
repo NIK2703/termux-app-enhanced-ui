@@ -55,7 +55,7 @@
     <string name="msg_requires_dump_and_package_usage_stats_permissions">Requer permissão `DUMP` e `PACKAGE_USAGE_STATS`</string>
     <string name="msg_storage_permission_granted_on_request">A permissão de armazenamento concedida pelo usuário mediante solicitação</string>
     <string name="msg_storage_permission_not_granted">A permissão de armazenamento não foi concedida.</string>
-    <string name="msg_storage_permission_not_granted_on_request">A permissão de armazenamento não concedida pelo usuário mediante solicitação</string>
+    <string name="msg_storage_permission_not_granted_on_request">A permissão de armazenamento não foi concedida pelo usuário mediante a solicitação</string>
     <string name="msg_termux_app_required_by_app">O &TERMUX_APP_NAME; é exigido pelo aplicativo %1$s para executar comandos do Termux.</string>
     <string name="notification_channel_app">Aplicativo Termux</string>
     <string name="notification_channel_plugin_errors">Erros de Comandos do Plugin Termux</string>

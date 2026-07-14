@@ -27,7 +27,7 @@
     <string name="error_display_over_other_apps_permission_not_granted">%1$s nécessite\n        l\'autorisation \"Affichage par-dessus les autres applications\" pour démarrer des activités et des services depuis l\'arrière-plan sur Android >= 10.\n        Accordez-la depuis Paramètres Android -> Applications -> %1$s -> Avancé -> Afficher par-dessus les autres applications.\n        Le nom de l\'autorisation peut différer selon les appareils, comme sur Xiaomi où elle s\'appelle\n        \"Afficher les fenêtres contextuelles en arrière-plan\", consultez https://dontkillmyapp.com\n        pour les problèmes spécifiques à l\'appareil.</string>
     <string name="error_allow_external_apps_ungranted">%1$s nécessite que la propriété `allow-external-apps`\n        soit définie sur `true` dans le fichier `%2$s`.</string>
     <string name="title_report_text">Texte du rapport</string>
-    <string name="msg_report_truncated">**Rapport tronqué**\n\nLe rapport est trop volumineux pour être affiché ici.\n        Utilisez l\'option \`Enregistrer dans un fichier\` du menu d\'options (3 points en haut à droite) et consultez-le dans un éditeur de texte externe.\n\n##\n\n</string>
+    <string name="msg_report_truncated">**Rapport tronqué**\n\nLe rapport est trop volumineux pour être affiché ici.\n        Utilisez l\'option `Enregistrer dans un fichier` du menu d\'options (3 points en haut à droite) et consultez-le dans un éditeur de texte externe.\n\n##\n\n</string>
     <string name="title_share_with">Partager avec</string>
     <string name="title_open_url_with">Ouvrir l\'URL avec</string>
     <string name="msg_storage_permission_not_granted">L\'autorisation de stockage n\'est pas accordée.</string>

@@ -69,10 +69,10 @@
     <string name="error_display_over_other_apps_permission_not_granted_to_start_terminal">&TERMUX_APP_NAME; nécessite
         l\'autorisation \"Affichage par-dessus les autres applications\" pour démarrer des sessions de terminal en arrière-plan sur Android >= 10.
         Accordez-la depuis Paramètres -> Applications -> &TERMUX_APP_NAME; -> Avancé</string>
-    <string name="error_termux_service_invalid_execution_command_runner">Runner de commande d\'exécution invalide envoyé à TermuxService : \`%1$s\`</string>
-    <string name="error_termux_service_unsupported_execution_command_runner">Runner de commande d\'exécution non pris en charge envoyé à TermuxService : \`%1$s\`</string>
-    <string name="error_termux_service_unsupported_execution_command_shell_create_mode">Mode de création de shell de commande non pris en charge envoyé à TermuxService : \`%1$s\`</string>
-    <string name="error_termux_service_execution_command_shell_name_unset">Nom du shell non défini mais le mode de création de shell \`%1$s\` a été transmis</string>
+    <string name="error_termux_service_invalid_execution_command_runner">Runner de commande d\'exécution invalide envoyé à TermuxService : `%1$s`</string>
+    <string name="error_termux_service_unsupported_execution_command_runner">Runner de commande d\'exécution non pris en charge envoyé à TermuxService : `%1$s`</string>
+    <string name="error_termux_service_unsupported_execution_command_shell_create_mode">Mode de création de shell de commande non pris en charge envoyé à TermuxService : `%1$s`</string>
+    <string name="error_termux_service_execution_command_shell_name_unset">Nom du shell non défini mais le mode de création de shell `%1$s` a été transmis</string>
     <string name="error_run_command_service_invalid_intent_action">Action d\'intention invalide pour RunCommandService : `%1$s`</string>
     <string name="error_run_command_service_invalid_execution_command_runner">Runner de commande d\'exécution invalide pour RunCommandService : `%1$s`</string>
     <string name="error_run_command_service_mandatory_extra_missing">Extra obligatoire manquant pour RunCommandService : \"%1$s\"</string>
@@ -82,7 +82,7 @@
     <string name="action_file_received_open_directory">Ouvrir le dossier</string>
     <string name="error_termux_service_start_failed_general">Échec du démarrage de TermuxService. Consultez logcat pour le message d\'exception.</string>
     <string name="error_termux_service_start_failed_bg">Échec du démarrage de TermuxService en arrière-plan en raison des restrictions Android.</string>
-    <string name="title_activity_termux_settings">&TERMUX_APP_NAME; Paramètres</string>
+    <string name="title_activity_termux_settings">Paramètres &TERMUX_APP_NAME;</string>
     <string name="appearance_preferences_title">Apparence</string>
     <string name="appearance_preferences_summary">Préférences pour l\'apparence de l\'application et la transparence du panneau</string>
     <string name="theme_title">Thème</string>

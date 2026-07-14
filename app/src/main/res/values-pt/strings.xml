@@ -229,7 +229,7 @@
     <string name="locale_override_entry_english">Inglês</string>
     <!-- Hide extra keys with keyboard -->
     <string name="hide_extra_keys_with_keyboard_title">Ocultar teclas extras com o teclado</string>
-    <string name="hide_extra_keys_with_keyboard_summary">Ocultar automaticamente botões extras quando o teclado estiver fechado</string>
+    <string name="hide_extra_keys_with_keyboard_summary">Ocultar automaticamente botões extras quando o teclado estiver fechado; mostrar quando aberto</string>
 
     <!-- Text input auto-complete -->
     <string name="suggestions_max_count_title">Máx. sugestões</string>

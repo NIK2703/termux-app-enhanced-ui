@@ -184,7 +184,7 @@
     <string name="termux_terminal_view_preferences_summary">Einstellungen für die Terminalansicht</string>
     <string name="termux_terminal_view_preferences_title">Terminalansicht</string>
     <string name="termux_terminal_view_terminal_margin_adjustment_off">Die Terminalrand-Anpassung wird deaktiviert.</string>
-    <string name="termux_terminal_view_terminal_margin_adjustment_on">Die Terminalrand-Anpassung wird aktiviert. Muss aktiviert sein, um zu versuchen, das Problem zu beheben, bei dem die Soft-Tastatur einen Teil der Zusatztasten/Terminalansicht verdeckt. Falls es auf Ihrem Gerät zu Bildschirmflackern führt, deaktivieren Sie es. (Standard)</string>
+    <string name="termux_terminal_view_terminal_margin_adjustment_on">Die Terminalrand-Anpassung wird aktiviert. Muss aktiviert sein, um zu versuchen, das Problem zu beheben, bei dem die Soft-Tastatur einen Teil der Zusatztasten/Terminalansicht verdeckt. Falls sie auf Ihrem Gerät zu Bildschirmflackern führt, deaktivieren Sie sie. (Standard)</string>
     <string name="termux_terminal_view_terminal_margin_adjustment_title">Terminalrand-Anpassung</string>
     <string name="termux_terminal_view_view_header">Ansicht</string>
     <string name="termux_widget_preferences_summary">Einstellungen für die &TERMUX_WIDGET_APP_NAME;-App</string>

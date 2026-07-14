@@ -79,12 +79,12 @@
 <string name="error_display_over_other_apps_permission_not_granted_to_start_terminal">&TERMUX_APP_NAME;, Android >= 10 üzerinde arka plandan terminal oturumları başlatmak için
         \"Diğer uygulamaların üzerinde görüntüleme\" iznine ihtiyaç duyar.
         Bu izni Ayarlar -> Uygulamalar -> &TERMUX_APP_NAME; -> Gelişmiş yolundan verin.</string>
-<string name="error_termux_service_invalid_execution_command_runner">TermuxService için geçersiz çalıştırma komutu çalıştırıcısı: `%1$s`</string>
-<string name="error_termux_service_unsupported_execution_command_runner">TermuxService için desteklenmeyen çalıştırma komutu çalıştırıcısı: `%1$s`</string>
+<string name="error_termux_service_invalid_execution_command_runner">TermuxService için geçersiz çalıştırma komutu Runner: `%1$s`</string>
+<string name="error_termux_service_unsupported_execution_command_runner">TermuxService için desteklenmeyen çalıştırma komutu Runner: `%1$s`</string>
 <string name="error_termux_service_unsupported_execution_command_shell_create_mode">TermuxService için desteklenmeyen çalıştırma komutu kabuk oluşturma modu: `%1$s`</string>
 <string name="error_termux_service_execution_command_shell_name_unset">Kabuk adı ayarlanmamış ancak `%1$s` kabuk oluşturma modu geçirildi</string>
 <string name="error_run_command_service_invalid_intent_action">RunCommandService için geçersiz intent eylemi: `%1$s`</string>
-<string name="error_run_command_service_invalid_execution_command_runner">RunCommandService için geçersiz çalıştırma komutu çalıştırıcısı: `%1$s`</string>
+<string name="error_run_command_service_invalid_execution_command_runner">RunCommandService için geçersiz çalıştırma komutu Runner: `%1$s`</string>
 <string name="error_run_command_service_mandatory_extra_missing">RunCommandService için zorunlu ek alan eksik: \"%1$s\"</string>
 <string name="error_run_command_service_api_help">RUN_COMMAND Intent kullanımı hakkında daha fazla bilgi için %1$s adresini ziyaret edin.</string>
 <string name="title_file_received">Dosyayı ~/downloads/ içine kaydet</string>
@@ -174,9 +174,9 @@
 <string name="backup_restore_backup_filename">termux-data-backup.tar.gz</string>
 <string name="backup_restore_dialog_title">Termux Veri Yedekleme / Geri Yükleme</string>
 <string name="backup_restore_warning_backup">Bu işlem, Termux veri dizinizin (yüklü paketler ve ev dizinizle birlikte ortam) sıkıştırılmış bir arşivini oluşturacaktır.\n\nYedeklemeyi kaydetmek için bir hedef dosya seçin.</string>
-<string name="backup_restore_warning_restore">Geri yükleme, mevcut Termux veri dizinini (yüklü paketler ve ev diziniz) seçilen yedek dosyasının içeriğiyle DEĞİŞECEKTİR. Mevcut veriler KAYBOLACAKTIR.\n\n⚠ Geri yükleme başarısız olursa — yedek dosyası bozuk, eksik veya işlem sırasında bağlantı kesilirse — Termux ortamınız BOŞ BIRAKILACAKTIR. Orijinal verileri kurtarmanın hiçbir yolu olmayacaktır.\n\nBu işlem geri alınamaz. Öncelikle yedekleme yapmanız ve yedek dosyasının geçerliliğini doğrulamanız kesinlikle önerilir.</string>
+<string name="backup_restore_warning_restore">Geri yükleme, mevcut Termux veri dizinini (yüklü paketler ve ev diziniz) seçilen yedek dosyasının içeriğiyle ÜZERİNE YAZACAKTIR. Mevcut veriler KAYBOLACAKTIR.\n\n⚠ Geri yükleme başarısız olursa — yedek dosyası bozuk, eksik veya işlem sırasında bağlantı kesilirse — Termux ortamınız BOŞ BIRAKILACAKTIR. Orijinal verileri kurtarmanın hiçbir yolu olmayacaktır.\n\nBu işlem geri alınamaz. Öncelikle yedekleme yapmanız ve yedek dosyasının geçerliliğini doğrulamanız kesinlikle önerilir.</string>
 <string name="backup_restore_backup_started">Yedekleme oluşturuluyor…</string>
-<string name="backup_restore_restore_started">Yedekleme geri yükleniyor…</string>
+<string name="backup_restore_restore_started">Yedek geri yükleniyor…</string>
 <string name="backup_restore_backup_success">Yedekleme başarıyla oluşturuldu</string>
 <string name="backup_restore_restore_success">Veriler başarıyla geri yüklendi</string>
 <string name="backup_restore_failed_title">İşlem Başarısız</string>

@@ -66,7 +66,7 @@
     <string name="title_share_selected_text">Текст терминала</string>
     <string name="title_share_selected_text_with">Отправить выделенный текст:</string>
 
-    <string name="action_autofill_username">Автозаполнение имени</string>
+    <string name="action_autofill_username">Автозаполнение имени пользователя</string>
     <string name="action_autofill_password">Автозаполнение пароля</string>
 
     <string name="action_reset_terminal">Сброс</string>

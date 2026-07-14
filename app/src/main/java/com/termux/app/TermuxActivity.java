@@ -322,6 +322,32 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     /** Global layout listener on the input field, used to reposition the auto-complete popup. */
     @Nullable private android.view.ViewTreeObserver.OnGlobalLayoutListener mSuggestionsLayoutListener;
 
+    // ── Incremental auto-complete optimization fields ──
+    /** Previous text tracked before a TextWatcher change, for additive-change detection. */
+    private String mAutoCompletePrevText = "";
+    /** Start index of the pending TextWatcher change (from beforeTextChanged). */
+    private int mAutoCompleteChangeStart;
+    /** Count of characters being replaced (from onTextChanged). */
+    private int mAutoCompleteChangeBefore;
+    /** Count of new characters being inserted (from onTextChanged). */
+    private int mAutoCompleteChangeCount;
+    /** Last text prefix used to build mCurrentSuggestions. */
+    private String mLastAppliedPrefix = "";
+    /** LinearLayout content inside the popup, for in-place view updates. */
+    @Nullable private LinearLayout mSuggestionsContent;
+    /** Version counter incremented on every mMessageHistory mutation, for stale-popup detection. */
+    private int mHistoryVersion = 0;
+    /** Cached version at the time the current popup was built. */
+    private int mLastBuiltHistoryVersion = -1;
+    /** Last explicit width passed to mSuggestionsPopup.update() (avoid -1 on API 21-22). */
+    private int mLastPopupWidth = 0;
+    /** Last explicit height passed to mSuggestionsPopup.update() (avoid -1 on API 21-22). */
+    private int mLastPopupHeight = 0;
+    /** Last X position passed to mSuggestionsPopup.update() (suppress redundant no-op calls). */
+    private int mLastPopupX = 0;
+    /** Last Y position passed to mSuggestionsPopup.update() (suppress redundant no-op calls). */
+    private int mLastPopupY = 0;
+
     /**
 
      * True for a short window right after onStart(), i.e. just after the app
@@ -618,6 +644,13 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             }
             boolean imeWasVisible = mSoftKeyboardVisible;
             mSoftKeyboardVisible = imeVisible;
+
+            // Reposition the auto-complete popup when IME shows/hides, since
+            // the input field's on-screen position may change.
+            if (imeVisible != imeWasVisible && mSuggestionsPopup != null
+                    && mSuggestionsPopup.isShowing()) {
+                repositionAutoCompletePopup();
+            }
 
             // If preference is on, show/hide extra keys with keyboard
             if (imeVisible != imeWasVisible && mExtraKeysView != null
@@ -1461,8 +1494,14 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         // Auto-complete from message history as the user types
         editText.addTextChangedListener(new android.text.TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                mAutoCompletePrevText = s.toString();
+                mAutoCompleteChangeStart = start;
+            }
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                mAutoCompleteChangeBefore = before;
+                mAutoCompleteChangeCount = count;
+            }
             @Override
             public void afterTextChanged(android.text.Editable s) {
                 updateAutoCompleteSuggestions();
@@ -1861,6 +1900,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 mMessageHistoryPerDirectory.put(mHistoryCurrentDirectory,
                         new ArrayList<>(mMessageHistory));
                 mMessageHistory.clear();
+                mHistoryVersion++;
                 mHistoryCurrentDirectory = currentCwd;
             }
         }
@@ -1871,6 +1911,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             mMessageHistory.remove(mMessageHistory.size() - 1);
         }
         saveMessageHistory();
+        mHistoryVersion++;
     }
 
     /** Load the persisted message history from preferences. */
@@ -1901,6 +1942,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             trimmed = true;
         }
         if (trimmed) saveMessageHistory();
+        mHistoryVersion++;
     }
 
     /**
@@ -2054,6 +2096,24 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
     // ── Auto-complete suggestions from message history ────────────────
 
+    /**
+     * Three-way dispatcher for the auto-complete popup:
+     *
+     * Path A (full rebuild) — called when the user deletes, replaces, pastes, or the
+     * history has changed externally.  Re-scans the full mMessageHistory and creates a
+     * brand-new PopupWindow (dismiss + showAtLocation).
+     *
+     * Path B (additive filter) — called when the user only types more characters without
+     * deleting any text.  Filters mCurrentSuggestions in place (O(maxCount) instead of
+     * O(mMessageHistory)), removes non-matching views from the existing popup, top-ups
+     * from history if the result is smaller than maxCount, recalculates bold spans, and
+     * updates the popup size/position (one IPC instead of two).
+     *
+     * Path C (reposition only) — not truly a separate path here; when the text hasn't
+     * changed w.r.t. the previous call the {@link OnGlobalLayoutListener} and
+     * {@link OnTouchListener} already call {@link #repositionAutoCompletePopup()}
+     * separately.  The dispatcher here always receives a text-change event.
+     */
     private void updateAutoCompleteSuggestions() {
         if (mIsInvalidState) return;
         if (mSuppressAutoComplete) return;
@@ -2062,13 +2122,13 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         if (inputField == null) return;
 
         final String text = inputField.getText().toString();
+        Logger.logInfo(LOG_TAG, "[autocomplete] text=\"" + text + "\"");
+
         if (TextUtils.isEmpty(text)) {
             dismissAutoCompleteSuggestions();
             return;
         }
 
-        // Read max suggestions from prefs (in case user changed it).
-        // 0 = disabled, 1-10 = show that many suggestions.
         int maxCount = getSharedPreferences("termux_prefs", MODE_PRIVATE)
                 .getInt("suggestions_max_count", 4);
         if (maxCount < 0) maxCount = 0;
@@ -2078,7 +2138,110 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             return;
         }
 
-        // Search message history (newest first) for completions
+        // ── Early skip for IME re-compose of same text ──
+        // Gboard (and likely other IMEs) re-composes an unchanged composing span
+        // on certain interactions (e.g. after tapping a suggestion candidate in
+        // the IME's own bar). The text is identical to prevText, so the additive
+        // detection correctly says false (length didn't grow), but Path A would
+        // re-scan history and rebuild the popup unnecessarily. Skip the entire
+        // update when text is unchanged, the history version is current, and
+        // the popup is already showing valid suggestions.
+        String prevText = mAutoCompletePrevText;
+        if (text.equals(prevText) && mAutoCompleteChangeCount == mAutoCompleteChangeBefore) {
+            if (mHistoryVersion == mLastBuiltHistoryVersion
+                    && mSuggestionsPopup != null && mSuggestionsPopup.isShowing()
+                    && !mCurrentSuggestions.isEmpty()) {
+                Logger.logInfo(LOG_TAG, "[autocomplete] skip recompose (text==prevText, popup showing)");
+                return;
+            }
+        }
+
+        // ── Detect whether this is an additive (append-only) change ──
+        // Language/IME-agnostic: the new text must extend prevText by appending
+        // (prevText stays a prefix and text grew). We do NOT require before == 0,
+        // because IME composition (e.g. Gboard Cyrillic) replaces the composing span
+        // on every keystroke (before > 0), which made the old check take Path A on
+        // each Cyrillic char. The non-empty list guard forces Path A to bootstrap on
+        // the first keystroke (Path B on an empty list would wrongly dismiss).
+        boolean additive = false;
+        if (mAutoCompleteChangeCount > 0
+                && text.length() > prevText.length()
+                && text.startsWith(prevText)
+                && !mCurrentSuggestions.isEmpty()) {
+            additive = true;
+        }
+        Logger.logInfo(LOG_TAG, "[autocomplete] prev=\"" + prevText + "\" before="
+                + mAutoCompleteChangeBefore + " count=" + mAutoCompleteChangeCount
+                + " additive=" + additive + " hVer=" + mHistoryVersion
+                + "/" + mLastBuiltHistoryVersion);
+
+        // ── Path A (full rebuild): not additive OR history changed externally ──
+        if (!additive || mHistoryVersion != mLastBuiltHistoryVersion) {
+            Logger.logInfo(LOG_TAG, "[autocomplete] → PATH A (fullRescan) reason="
+                    + (!additive ? "non-additive" : "history=" + mHistoryVersion + "≠" + mLastBuiltHistoryVersion));
+            fullRescanSuggestions(text, maxCount);
+            return;
+        }
+
+        // ── Path B (additive filter): only appending characters ──
+        // Filter mCurrentSuggestions in-place
+        final int preFilterCount = mCurrentSuggestions.size();
+        for (int i = mCurrentSuggestions.size() - 1; i >= 0; i--) {
+            String s = mCurrentSuggestions.get(i);
+            if (s.length() <= text.length()
+                    || !s.regionMatches(true, 0, text, 0, text.length())
+                    || s.equals(text)) {
+                mCurrentSuggestions.remove(i);
+            }
+        }
+        int filteredRemoved = preFilterCount - mCurrentSuggestions.size();
+        Logger.logInfo(LOG_TAG, "[autocomplete] → PATH B filteredRemoved=" + filteredRemoved
+                + " remaining=" + mCurrentSuggestions.size());
+
+        if (mCurrentSuggestions.isEmpty()) {
+            // The additive filter emptied the list. This happens when there was
+            // nothing to filter to begin with (e.g. the very first keystroke after
+            // the field was cleared, so mCurrentSuggestions is still empty rather
+            // than a previously-shown popup being filtered down). A plain dismiss
+            // here would silently drop a legitimate character. Fall back to a full
+            // history rescan: it shows suggestions if any match, otherwise it still
+            // dismisses correctly.
+            Logger.logInfo(LOG_TAG, "[autocomplete] filter emptied list → full rescan");
+            fullRescanSuggestions(text, maxCount);
+            return;
+        }
+
+        // Top-up from history if filtered list is smaller than maxCount
+        if (mCurrentSuggestions.size() < maxCount) {
+            for (String msg : mMessageHistory) {
+                if (mCurrentSuggestions.size() >= maxCount) break;
+                if (!mCurrentSuggestions.contains(msg)
+                        && msg.length() > text.length()
+                        && msg.regionMatches(true, 0, text, 0, text.length())
+                        && !msg.equals(text)) {
+                    mCurrentSuggestions.add(msg);
+                }
+            }
+        }
+
+        Logger.logInfo(LOG_TAG, "[autocomplete] after top-up suggestions=" + mCurrentSuggestions.size());
+
+        // If popup isn't showing yet, build it fresh
+        if (mSuggestionsPopup == null || !mSuggestionsPopup.isShowing()) {
+            Logger.logInfo(LOG_TAG, "[autocomplete] → showAutoCompletePopup (popup null or not showing)");
+            showAutoCompletePopup(inputField);
+            return;
+        }
+
+        // In-place update of the existing popup content
+        updatePopupContent(text, inputField);
+    }
+
+    /**
+     * Path A: full re-scan of mMessageHistory and fresh popup creation.
+     * Same logic as the original updateAutoCompleteSuggestions().
+     */
+    private void fullRescanSuggestions(@NonNull String text, int maxCount) {
         mCurrentSuggestions.clear();
         for (String msg : mMessageHistory) {
             if (mCurrentSuggestions.size() >= maxCount) break;
@@ -2089,15 +2252,362 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             }
         }
 
+        Logger.logInfo(LOG_TAG, "[autocomplete] fullRescan text=\"" + text + "\" max=" + maxCount
+                + " matches=" + mCurrentSuggestions.size());
+
         if (mCurrentSuggestions.isEmpty()) {
             dismissAutoCompleteSuggestions();
+        } else {
+            showAutoCompletePopup(findViewById(R.id.terminal_toolbar_text_input));
+        }
+    }
+
+    /** Path separator set used by {@link #wordStartOffset} to find word boundaries. */
+    private static final String WORD_SEPARATORS = " /";  // space + slash
+
+    /**
+     * Returns the starting position of the last word (token) in {@code s},
+     * where words are delimited by any character in {@link #WORD_SEPARATORS}.
+     * Returns 0 if no separator is found (the whole string is the only word)
+     * or if {@code s} is empty.
+     */
+    private static int wordStartOffset(@NonNull String s) {
+        int i = s.length();
+        while (i > 0) {
+            char c = s.charAt(i - 1);
+            if (c == ' ' || c == '/') return i;
+            i--;
+        }
+        return 0;
+    }
+
+    /**
+     * Path B (optimized): update bold spans on the existing popup content when the
+     * suggestion set is unchanged and only the typed prefix grew longer.
+     * Mutates the Spannable buffer in-place via {@code tv.getText()} so no
+     * requestLayout / remeasure is triggered — only {@code invalidate()} for redraw.
+     * When the word-start anchor changes (e.g. user crosses a space/slash boundary)
+     * falls back to {@code setText()} to rebuild the truncated display.
+     */
+    private void updateBoldSpansOnly(@NonNull String newText) {
+        if (mSuggestionsPopup == null || !mSuggestionsPopup.isShowing()) return;
+        android.widget.ScrollView scroll = (android.widget.ScrollView) mSuggestionsPopup.getContentView();
+        if (scroll == null) return;
+        LinearLayout content = (LinearLayout) scroll.getChildAt(0);
+        if (content == null) return;
+
+        // Precompute word-boundary info (shared across all child views)
+        final int inputLen = newText.length();
+        final int wordStart = Math.min(wordStartOffset(newText), inputLen);
+        final int boldLen = inputLen - wordStart;
+        final boolean hasLastWord = boldLen > 0;
+        final String prefix = (wordStart > 0) ? "... " : "";
+        final int prefixLen = prefix.length();
+
+        Logger.logInfo(LOG_TAG, "[autocomplete] updateBoldSpansOnly wordStart=" + wordStart
+                + " boldLen=" + boldLen + " views=" + content.getChildCount());
+        for (int i = 0; i < content.getChildCount(); i++) {
+            View child = content.getChildAt(i);
+            if (!(child instanceof TextView)) continue;
+            TextView tv = (TextView) child;
+            String suggestion = (String) tv.getTag();
+            if (suggestion == null) continue;
+
+            // Compute the expected word-truncated display string
+            int ws = Math.min(wordStart, suggestion.length());
+            String expectedDisplay = (prefixLen > 0)
+                    ? prefix + suggestion.substring(ws)
+                    : suggestion;
+
+            CharSequence currentText = tv.getText();
+            if (!expectedDisplay.contentEquals(currentText)) {
+                // Word-boundary anchor shifted → rebuild text with setText (rare:
+                // crossing a space or / boundary). Path B additive-only guarantees
+                // display can only shrink, so no popup clipping.
+                android.text.SpannableString ss = new android.text.SpannableString(expectedDisplay);
+                if (hasLastWord && prefixLen + boldLen <= expectedDisplay.length()
+                        && suggestion.regionMatches(true, 0, newText, 0, inputLen)) {
+                    ss.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+                            prefixLen, prefixLen + boldLen,
+                            android.text.SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
+                tv.setText(ss, TextView.BufferType.SPANNABLE);
+            } else {
+                // Display buffer unchanged → only mutate bold spans in-place (fast path)
+                android.text.Spannable sp = (android.text.Spannable) currentText;
+                android.text.style.StyleSpan[] old = sp.getSpans(0, sp.length(),
+                        android.text.style.StyleSpan.class);
+                for (android.text.style.StyleSpan s : old) sp.removeSpan(s);
+                if (hasLastWord && prefixLen + boldLen <= sp.length()
+                        && suggestion.regionMatches(true, 0, newText, 0, inputLen)) {
+                    sp.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+                            prefixLen, prefixLen + boldLen,
+                            android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
+                tv.invalidate();
+            }
+        }
+    }
+
+    /**
+     * Path B: update the existing popup in-place after an additive text change.
+     *
+     * Removes non-matching views from {@link #mSuggestionsContent},
+     * recalculates bold-spans for survivors, top-ups with new views if history
+     * had more matches, then measures and resizes the popup.
+     */
+    private void updatePopupContent(@NonNull String newText, @NonNull EditText inputField) {
+        if (mSuggestionsPopup == null || !mSuggestionsPopup.isShowing()) {
+            showAutoCompletePopup(inputField);
+            return;
+        }
+        android.widget.ScrollView scroll = (android.widget.ScrollView) mSuggestionsPopup.getContentView();
+        if (scroll == null) { showAutoCompletePopup(inputField); return; }
+        LinearLayout content = (LinearLayout) scroll.getChildAt(0);
+        if (content == null) { showAutoCompletePopup(inputField); return; }
+
+        // Remove non-matching views (iterate backward so indices stay valid)
+        final int inputLen = newText.length();
+        final int prevChildCount = content.getChildCount();
+        for (int i = prevChildCount - 1; i >= 0; i--) {
+            View child = content.getChildAt(i);
+            String suggestion = (String) child.getTag();
+            if (suggestion == null
+                    || suggestion.length() <= inputLen
+                    || !suggestion.regionMatches(true, 0, newText, 0, inputLen)
+                    || suggestion.equals(newText)) {
+                content.removeViewAt(i);
+            }
+        }
+        boolean contentChanged = (content.getChildCount() != prevChildCount);
+
+        // Rebuild mCurrentSuggestions list to match the current views
+        mCurrentSuggestions.clear();
+        for (int i = 0; i < content.getChildCount(); i++) {
+            View child = content.getChildAt(i);
+            String tag = (String) child.getTag();
+            if (tag != null) mCurrentSuggestions.add(tag);
+        }
+
+        // Top-up from history if needed
+        int maxCount = getSharedPreferences("termux_prefs", MODE_PRIVATE)
+                .getInt("suggestions_max_count", 4);
+        if (maxCount < 0) maxCount = 0;
+        if (maxCount > 10) maxCount = 10;
+        final int preTopUpCount = content.getChildCount();
+        if (mCurrentSuggestions.size() < maxCount) {
+            for (String msg : mMessageHistory) {
+                if (mCurrentSuggestions.size() >= maxCount) break;
+                if (!mCurrentSuggestions.contains(msg)
+                        && msg.length() > newText.length()
+                        && msg.regionMatches(true, 0, newText, 0, newText.length())
+                        && !msg.equals(newText)) {
+                    mCurrentSuggestions.add(msg);
+                    // Create a new TextView for this top-up item
+                    TextView tv = buildSuggestionTextView(msg, newText);
+                    content.addView(tv, new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT));
+                }
+            }
+        }
+        if (content.getChildCount() != preTopUpCount) contentChanged = true;
+
+        Logger.logInfo(LOG_TAG, "[autocomplete] updatePopupContent contentChanged=" + contentChanged
+                + " views=" + content.getChildCount() + " suggestions=" + mCurrentSuggestions.size());
+
+        // Fast path: no structural change — only update bold-spans in-place, skip measure/update
+        if (!contentChanged) {
+            Logger.logInfo(LOG_TAG, "[autocomplete] → FAST PATH (bold-spans only)");
+            updateBoldSpansOnly(newText);
+            mLastAppliedPrefix = newText;
+            applyPopupGeometry(inputField);
             return;
         }
 
-        showAutoCompletePopup(inputField);
+        // Structural change — update bold-spans, measure, resize
+        Logger.logInfo(LOG_TAG, "[autocomplete] → STRUCTURAL CHANGE (measure+update)");
+        updateBoldSpansOnly(newText);
+
+        // Reset scroll to top synchronously before measure (no post() needed,
+        // the ScrollView is already laid out and showing).
+        scroll.setScrollY(0);
+        content.measure(
+                View.MeasureSpec.makeMeasureSpec(mLastPopupWidth, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        int newHeight = content.getMeasuredHeight();
+
+        // Resize and reposition
+        mLastPopupHeight = newHeight;
+        mLastAppliedPrefix = newText;
+        applyPopupGeometry(inputField);
+    }
+
+    /** Build a single suggestion TextView (reusable helper). */
+    private TextView buildSuggestionTextView(@NonNull String suggestion, @NonNull String input) {
+        int padH = dpToPx(14);
+        int padV = dpToPx(10);
+        TextView tv = new TextView(this);
+
+        // Word-based truncated display
+        int wordStart = Math.min(wordStartOffset(input), suggestion.length());
+        int boldLen = input.length() - wordStart;
+        boolean hasLastWord = boldLen > 0;
+        String prefix = (wordStart > 0) ? "... " : "";
+        int prefixLen = prefix.length();
+        String displayText = (prefixLen > 0) ? prefix + suggestion.substring(wordStart) : suggestion;
+
+        android.text.SpannableString ss = new android.text.SpannableString(displayText);
+        if (hasLastWord && prefixLen + boldLen <= displayText.length()
+                && suggestion.regionMatches(true, 0, input, 0, input.length())) {
+            ss.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+                    prefixLen, prefixLen + boldLen,
+                    android.text.SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        tv.setText(ss, TextView.BufferType.SPANNABLE);
+        tv.setMaxLines(2);
+        tv.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        tv.setTextColor(mHistoryTextColor);
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        tv.setPadding(padH, padV, padH, padV);
+        tv.setTag(suggestion);
+        // Solid press highlight matching the message-history popup (per-theme)
+        android.graphics.drawable.StateListDrawable sel = new android.graphics.drawable.StateListDrawable();
+        int highlightColor = mHistoryHighlightFill;
+        sel.addState(new int[]{android.R.attr.state_pressed},
+                new android.graphics.drawable.ColorDrawable(highlightColor));
+        sel.addState(new int[]{},
+                new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+        sel.setEnterFadeDuration(0);
+        sel.setExitFadeDuration(0);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            tv.setBackground(sel);
+        } else {
+            tv.setBackgroundDrawable(sel);
+        }
+        tv.setClickable(true);
+        final String finalSuggestion = suggestion;
+        final EditText inputField = findViewById(R.id.terminal_toolbar_text_input);
+        tv.setOnClickListener(v -> {
+            mSuppressAutoComplete = true;
+            try {
+                if (inputField != null) {
+                    inputField.setText(finalSuggestion);
+                    inputField.setSelection(finalSuggestion.length());
+                }
+            } finally {
+                mSuppressAutoComplete = false;
+            }
+            dismissAutoCompleteSuggestions();
+            dismissMessageHistoryPopup();
+        });
+        return tv;
+    }
+
+    /**
+     * Calculate the X position for the popup at the input caret.
+     * Reusable helper shared by showAutoCompletePopup, updatePopupContent and reposition.
+     */
+    private int calcPopupX(@NonNull EditText inputField, int popupWidth) {
+        int cursorPos = inputField.getSelectionStart();
+        android.text.Layout layout = inputField.getLayout();
+        float cursorX = 0;
+        if (layout != null && cursorPos >= 0) {
+            cursorX = layout.getPrimaryHorizontal(cursorPos);
+        }
+        int[] loc = new int[2];
+        inputField.getLocationInWindow(loc);
+        int popupX = loc[0] + (int) cursorX + dpToPx(4);
+        int displayWidth = getResources().getDisplayMetrics().widthPixels;
+        if (popupX + popupWidth > displayWidth - dpToPx(8)) {
+            popupX = displayWidth - popupWidth - dpToPx(8);
+        }
+        if (popupX < dpToPx(8)) popupX = dpToPx(8);
+        return popupX;
+    }
+
+    /**
+     * Calculate the Y position for the popup (above the caret, fallback below).
+     */
+    private int calcPopupY(@NonNull EditText inputField, int popupHeight, int popupWidth) {
+        int cursorPos = inputField.getSelectionStart();
+        android.text.Layout layout = inputField.getLayout();
+        float cursorY = 0;
+        if (layout != null && cursorPos >= 0) {
+            cursorY = layout.getLineTop(layout.getLineForOffset(cursorPos));
+        }
+        int[] loc = new int[2];
+        inputField.getLocationInWindow(loc);
+        int popupY = loc[1] + (int) cursorY - popupHeight - dpToPx(4);
+        if (popupY < dpToPx(16)) {
+            popupY = loc[1] + (int) cursorY + dpToPx(8);
+        }
+        return popupY;
     }
 
     private void showAutoCompletePopup(@NonNull EditText inputField) {
+        Logger.logInfo(LOG_TAG, "[autocomplete] showAutoCompletePopup suggestions="
+                + mCurrentSuggestions.size() + " popupShown=" + (mSuggestionsPopup != null));
+
+        // ── Reuse the existing window to avoid dismiss→show flicker ──
+        if (mSuggestionsPopup != null && mSuggestionsPopup.isShowing()
+                && mSuggestionsContent != null && !mCurrentSuggestions.isEmpty()
+                && mSuggestionsContent.getParent() != null) {
+            final String input = inputField.getText().toString();
+
+            // Content-changed guard: skip the removeAllViews + addViews + measure cycle
+            // when the suggestion list is identical to what's already shown (e.g. an IME
+            // re-compose of the same text that re-triggers Path A). Mirrors the
+            // contentChanged check in updatePopupContent(), comparing the EXISTING
+            // mSuggestionsContent children against mCurrentSuggestions.
+            boolean contentChanged = mSuggestionsContent.getChildCount() != mCurrentSuggestions.size();
+            if (!contentChanged) {
+                for (int i = 0; i < mCurrentSuggestions.size(); i++) {
+                    String existing = ((TextView) mSuggestionsContent.getChildAt(i)).getText().toString();
+                    if (!existing.equals(mCurrentSuggestions.get(i))) {
+                        contentChanged = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!contentChanged) {
+                // Fast path: identical suggestions — refresh bold spans for the current
+                // prefix in-place (no relayout) and reposition. Height is unchanged, so
+                // no re-measure needed. Keep version tracking in sync with the rebuild path.
+                Logger.logInfo(LOG_TAG, "[autocomplete] popup reuse FAST PATH (bold-spans only)");
+                updateBoldSpansOnly(input);
+                mLastBuiltHistoryVersion = mHistoryVersion;
+                mLastAppliedPrefix = input;
+                applyPopupGeometry(inputField);
+                return;
+            }
+
+            // Reset scroll to top before rebuilding content in-place, so the
+            // user isn't left staring at an empty scroll area after the remove.
+            if (mSuggestionsContent.getParent() instanceof android.widget.ScrollView) {
+                ((android.widget.ScrollView) mSuggestionsContent.getParent()).setScrollY(0);
+            }
+
+            mSuggestionsContent.removeAllViews();
+            for (int i = 0; i < mCurrentSuggestions.size(); i++) {
+                mSuggestionsContent.addView(
+                        buildSuggestionTextView(mCurrentSuggestions.get(i), input),
+                        new LinearLayout.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.WRAP_CONTENT));
+            }
+            mSuggestionsContent.measure(
+                    View.MeasureSpec.makeMeasureSpec(mLastPopupWidth, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+            mLastPopupHeight = mSuggestionsContent.getMeasuredHeight();
+            mLastBuiltHistoryVersion = mHistoryVersion;
+            mLastAppliedPrefix = input;
+            Logger.logInfo(LOG_TAG, "[autocomplete] popup content replaced in-place (no dismiss/show)");
+            applyPopupGeometry(inputField);
+            return;
+        }
+
         // Dismiss any previously shown popup WITHOUT clearing mCurrentSuggestions:
         // dismissAutoCompleteSuggestions() also clears that list, and we still need it
         // below to build the suggestion views. Clearing it here would leave the popup
@@ -2113,49 +2623,11 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         int padH = dpToPx(14);
         int padV = dpToPx(10);
+        final String input = inputField.getText().toString();
 
         for (int i = 0; i < mCurrentSuggestions.size(); i++) {
             final String suggestion = mCurrentSuggestions.get(i);
-
-            TextView tv = new TextView(this);
-            final String input = inputField.getText().toString();
-            android.text.SpannableString ss = new android.text.SpannableString(suggestion);
-            if (!TextUtils.isEmpty(input) && suggestion.regionMatches(true, 0, input, 0, input.length())) {
-                ss.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
-                        0, input.length(), android.text.SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
-            }
-            tv.setText(ss);
-            tv.setMaxLines(2);
-            tv.setTextColor(mHistoryTextColor);
-            tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-            tv.setPadding(padH, padV, padH, padV);
-            // Simple solid highlight on press (no ripple/pulse), matching the history popup.
-            // The popup's GradientDrawable background clips the window to rounded corners,
-            // so the highlight is naturally clipped at the window boundary.
-            android.graphics.drawable.StateListDrawable sel = new android.graphics.drawable.StateListDrawable();
-            int highlightColor = android.graphics.Color.argb(26, 255, 255, 255); // ~10% white
-            sel.addState(new int[]{android.R.attr.state_pressed},
-                    new android.graphics.drawable.ColorDrawable(highlightColor));
-            sel.addState(new int[]{},
-                    new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
-            sel.setEnterFadeDuration(0);
-            sel.setExitFadeDuration(0);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                tv.setBackground(sel);
-            } else {
-                tv.setBackgroundDrawable(sel);
-            }
-            tv.setClickable(true);
-            tv.setOnClickListener(v -> {
-                mSuppressAutoComplete = true;
-                inputField.setText(suggestion);
-                mSuppressAutoComplete = false;
-                inputField.setSelection(suggestion.length());
-                dismissAutoCompleteSuggestions();
-                dismissMessageHistoryPopup();
-                // With focusable=false the EditText never lost focus and the IME is
-                // still open, so no requestFocus()/showSoftInput() is needed here.
-            });
+            TextView tv = buildSuggestionTextView(suggestion, input);
             content.addView(tv, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -2182,41 +2654,14 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         // elevation shadow outline stays valid).
         scroll.setAlpha(0.9f);
 
-        int sumWidth = Math.max(dpToPx(200), inputField.getWidth() - dpToPx(16));
-
         // Position the popup at the input cursor (caret) position
-        int cursorPos = inputField.getSelectionStart();
-        android.text.Layout layout = inputField.getLayout();
-        float cursorX = 0;
-        float cursorY = 0;
-        if (layout != null && cursorPos >= 0) {
-            cursorX = layout.getPrimaryHorizontal(cursorPos);
-            cursorY = layout.getLineTop(layout.getLineForOffset(cursorPos));
-        }
-
-        int[] loc = new int[2];
-        inputField.getLocationInWindow(loc);
-        int popupX = loc[0] + (int) cursorX + dpToPx(4);
-
-        // Measure the content to derive the real height before positioning.
+        int sumWidth = Math.max(dpToPx(200), inputField.getWidth() - dpToPx(16));
         content.measure(
                 View.MeasureSpec.makeMeasureSpec(sumWidth, View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
         int popupHeight = content.getMeasuredHeight();
-
-        int popupY = loc[1] + (int) cursorY - popupHeight - dpToPx(4);
-
-        // If not enough room above cursor, show below it
-        if (popupY < dpToPx(16)) {
-            popupY = loc[1] + (int) cursorY + dpToPx(8);
-        }
-
-        // Clamp horizontal position so the popup doesn't go off-screen
-        int displayWidth = getResources().getDisplayMetrics().widthPixels;
-        if (popupX + sumWidth > displayWidth - dpToPx(8)) {
-            popupX = displayWidth - sumWidth - dpToPx(8);
-        }
-        if (popupX < dpToPx(8)) popupX = dpToPx(8);
+        int popupX = calcPopupX(inputField, sumWidth);
+        int popupY = calcPopupY(inputField, popupHeight, sumWidth);
 
         // focusable=false is the key: a non-focusable PopupWindow receives
         // FLAG_NOT_FOCUSABLE + (default) FLAG_ALT_FOCUSABLE_IM, so it stays
@@ -2261,8 +2706,18 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             // Track layout changes (IME, scroll, resize) to keep the popup at the caret.
             if (mSuggestionsLayoutListener == null) {
                 mSuggestionsLayoutListener = () -> repositionAutoCompletePopup();
-                inputField.getViewTreeObserver().addOnGlobalLayoutListener(mSuggestionsLayoutListener);
+                getWindow().getDecorView().getViewTreeObserver().addOnGlobalLayoutListener(mSuggestionsLayoutListener);
             }
+            // Save references for in-place updates
+            mSuggestionsContent = content;
+            mLastPopupWidth = sumWidth;
+            mLastPopupHeight = popupHeight;
+            mLastPopupX = popupX;
+            mLastPopupY = popupY;
+            mLastBuiltHistoryVersion = mHistoryVersion;
+            mLastAppliedPrefix = input;
+            Logger.logInfo(LOG_TAG, "[autocomplete] popup shown at (" + popupX + "," + popupY
+                    + ") w=" + sumWidth + " h=" + popupHeight);
         } catch (Exception e) {
             Logger.logStackTraceWithMessage(LOG_TAG, "Failed to show auto-complete popup", e);
             mSuggestionsPopup = null;
@@ -2274,43 +2729,72 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         if (mSuggestionsPopup == null || !mSuggestionsPopup.isShowing()) return;
         final EditText inputField = findViewById(R.id.terminal_toolbar_text_input);
         if (inputField == null) return;
+        Logger.logInfo(LOG_TAG, "[autocomplete] repositionAutoCompletePopup");
+        applyPopupGeometry(inputField);
+    }
 
-        int sumWidth = Math.max(dpToPx(200), inputField.getWidth() - dpToPx(16));
-        int cursorPos = inputField.getSelectionStart();
+    /**
+     * Unified popup positioning: calculates x/y from caret, calls
+     * {@code PopupWindow.update()} only when geometry actually changed.
+     * Use from both {@link #updatePopupContent} and {@link #repositionAutoCompletePopup}
+     * to avoid redundant IPC / shadow redraw.
+     */
+    private void applyPopupGeometry(@NonNull EditText inputField) {
+        if (mSuggestionsPopup == null || !mSuggestionsPopup.isShowing()) {
+            Logger.logInfo(LOG_TAG, "[autocomplete] applyPopupGeometry skip (popup not showing)");
+            return;
+        }
         android.text.Layout layout = inputField.getLayout();
-        float cursorX = 0;
-        float cursorY = 0;
-        if (layout != null && cursorPos >= 0) {
-            cursorX = layout.getPrimaryHorizontal(cursorPos);
-            cursorY = layout.getLineTop(layout.getLineForOffset(cursorPos));
+        if (layout == null) {
+            Logger.logInfo(LOG_TAG, "[autocomplete] applyPopupGeometry skip (layout null) — retrying");
+            // Layout isn't ready yet (IME animation / initial frame). Retry
+            // once after the next layout pass — without this the popup stays
+            // pinned to (0,0) forever.
+            inputField.post(() -> applyPopupGeometry(inputField));
+            return;
         }
-        int[] loc = new int[2];
-        inputField.getLocationInWindow(loc);
-        int popupX = loc[0] + (int) cursorX + dpToPx(4);
-        int popupHeight = mSuggestionsPopup.getHeight();
-        int popupY = loc[1] + (int) cursorY - popupHeight - dpToPx(4);
-        if (popupY < dpToPx(16)) {
-            popupY = loc[1] + (int) cursorY + dpToPx(8);
+        int w = mLastPopupWidth > 0 ? mLastPopupWidth :
+                Math.max(dpToPx(200), inputField.getWidth() - dpToPx(16));
+        int h = mLastPopupHeight;
+        if (w <= 0 || h <= 0) {
+            Logger.logInfo(LOG_TAG, "[autocomplete] applyPopupGeometry skip (w=" + w + " h=" + h + ")");
+            return;
         }
-        int displayWidth = getResources().getDisplayMetrics().widthPixels;
-        if (popupX + sumWidth > displayWidth - dpToPx(8)) {
-            popupX = displayWidth - sumWidth - dpToPx(8);
+        int x = calcPopupX(inputField, w);
+        int y = calcPopupY(inputField, h, w);
+        if (x != mLastPopupX || y != mLastPopupY || h != mLastPopupHeight) {
+            Logger.logInfo(LOG_TAG, "[autocomplete] applyPopupGeometry update(" + x + "," + y + " " + w + "x" + h
+                    + ") old=(" + mLastPopupX + "," + mLastPopupY + " h=" + mLastPopupHeight + ")");
+            mSuggestionsPopup.update(x, y, w, h);
+            mLastPopupX = x;
+            mLastPopupY = y;
+        } else {
+            Logger.logInfo(LOG_TAG, "[autocomplete] applyPopupGeometry skip (no change)");
         }
-        if (popupX < dpToPx(8)) popupX = dpToPx(8);
-
-        mSuggestionsPopup.update(popupX, popupY, -1, -1);
     }
 
     private void dismissAutoCompleteSuggestions() {
+        // Guard against redundant calls (e.g. afterTextChanged firing repeatedly on
+        // a clear). When nothing is pending to clean up, skip the diagnostic log and
+        // the rest of the teardown so we don't emit repeated noise.
+        if (mSuggestionsPopup == null && mCurrentSuggestions.isEmpty()) {
+            return;
+        }
+        Logger.logInfo(LOG_TAG, "[autocomplete] dismiss (popup=" + (mSuggestionsPopup != null)
+                + " suggestions=" + mCurrentSuggestions.size() + ")");
         if (mSuggestionsPopup != null) {
             try { mSuggestionsPopup.dismiss(); } catch (Exception ignored) {}
             mSuggestionsPopup = null;
         }
         mCurrentSuggestions.clear();
+        mSuggestionsContent = null;
+        mLastAppliedPrefix = "";
+        mLastPopupX = 0;
+        mLastPopupY = 0;
         if (mSuggestionsLayoutListener != null) {
-            final EditText inputField = findViewById(R.id.terminal_toolbar_text_input);
-            if (inputField != null) {
-                inputField.getViewTreeObserver().removeOnGlobalLayoutListener(mSuggestionsLayoutListener);
+            final android.view.View decor = getWindow().getDecorView();
+            if (decor != null) {
+                decor.getViewTreeObserver().removeOnGlobalLayoutListener(mSuggestionsLayoutListener);
             }
             mSuggestionsLayoutListener = null;
         }
@@ -2653,24 +3137,27 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
     /** Wipe message history for ALL directories (per-directory mode only). */
     private void clearAllDirectoriesHistory() {
-        mMessageHistoryPerDirectory.clear();
-        mMessageHistory.clear();
-        mHistoryCurrentDirectory = null;
+     mMessageHistoryPerDirectory.clear();
+     mMessageHistory.clear();
+     mHistoryVersion++;
+     mHistoryCurrentDirectory = null;
         getSharedPreferences("termux_prefs", MODE_PRIVATE).edit()
                 .remove(PREF_MESSAGE_HISTORY_PER_DIR).apply();
     }
 
     /** Wipe the message history for the current context (global or current directory). */
     private void clearAllHistory() {
-        if (mPerDirectoryMessageHistory) {
-            String cwd = getCurrentCwdForHistory();
-            if (cwd != null) {
-                mMessageHistoryPerDirectory.remove(cwd);
-                mMessageHistory.clear();
-                saveMessageHistoryPerDirectory();
-            }
-        } else {
-            mMessageHistory.clear();
+     if (mPerDirectoryMessageHistory) {
+         String cwd = getCurrentCwdForHistory();
+         if (cwd != null) {
+             mMessageHistoryPerDirectory.remove(cwd);
+             mMessageHistory.clear();
+             mHistoryVersion++;
+             saveMessageHistoryPerDirectory();
+         }
+     } else {
+         mMessageHistory.clear();
+         mHistoryVersion++;
             getSharedPreferences("termux_prefs", MODE_PRIVATE).edit()
                     .remove(PREF_MESSAGE_HISTORY).apply();
         }
@@ -2753,6 +3240,12 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             addToMessageHistory(existing);
         }
 
+        // A history pick replaces the ENTIRE field, so force a full rescan
+        // (Path A) instead of the additive-keystroke heuristic. Without this,
+        // when the field was empty the TextWatcher sees an "appended" change
+        // (before==0) and wrongly takes Path B, which dismisses the popup
+        // instead of showing suggestions for the restored message.
+        mLastBuiltHistoryVersion = -1; // force mismatch → Path A on next update
         editText.setText(message);
         editText.setSelection(message.length());
         setFocusOnInputForCurrentSession(true);

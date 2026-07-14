@@ -31,7 +31,7 @@
     <string name="title_max_terminals_reached">已达最大终端数</string>
     <string name="msg_max_terminals_reached">请先关闭现有终端再创建新终端。</string>
     <string name="title_rename_session">设置会话名称</string>
-    <string name="action_rename_session_confirm">确定</string>
+    <string name="action_rename_session_confirm">设置</string>
     <string name="title_create_named_session">新建命名会话</string>
     <string name="action_create_named_session_confirm">创建</string>
     <string name="action_toggle_soft_keyboard">键盘</string>
