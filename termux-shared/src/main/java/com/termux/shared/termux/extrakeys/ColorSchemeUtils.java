@@ -43,7 +43,56 @@ public final class ColorSchemeUtils {
     private ColorSchemeUtils() {}
 
     /**
-     * @return Whether the given ARGB color is perceived as "light" (used to decide whether
+     * Convert an integer percentage (0‑100) to an alpha byte (0‑255).
+     * Uses {@link Math#round} so 5% → 13 (0x0D) and 12% → 31 (0x1F),
+     * matching the historical hardcoded defaults exactly.
+     */
+    public static int percentToAlpha(int percent) {
+        int a = Math.round(percent * 255.0f / 100.0f);
+        if (a < 0) return 0;
+        if (a > 255) return 255;
+        return a;
+    }
+
+    /** @deprecated Use {@link #getButtonBackground(boolean, int)} to honour user transparency slider. */
+    @Deprecated
+    public static int getButtonBackground(boolean isLight) {
+        return getButtonBackground(isLight, 5);
+    }
+
+    /**
+     * Build a translucent button background colour.
+     *
+     * @param isLight       Whether the colour scheme is perceived as light.
+     * @param alphaPercent  User-configured alpha percentage (0‑20).
+     * @return An ARGB colour with the given alpha over dark (light scheme) or light (dark scheme) base.
+     */
+    public static int getButtonBackground(boolean isLight, int alphaPercent) {
+        int alpha = percentToAlpha(alphaPercent);
+        int base = isLight ? 0x000000 : 0xFFFFFF;
+        return (alpha << 24) | base;
+    }
+
+    /** @deprecated Use {@link #getButtonActiveBackground(boolean, int)} to honour user transparency slider. */
+    @Deprecated
+    public static int getButtonActiveBackground(boolean isLight) {
+        return getButtonActiveBackground(isLight, 12);
+    }
+
+    /**
+     * Build a translucent active/pressed button background colour.
+     *
+     * @param isLight       Whether the colour scheme is perceived as light.
+     * @param alphaPercent  User-configured alpha percentage (10‑20).
+     * @return An ARGB colour with the given alpha over dark (light scheme) or light (dark scheme) base.
+     */
+    public static int getButtonActiveBackground(boolean isLight, int alphaPercent) {
+        int alpha = percentToAlpha(alphaPercent);
+        int base = isLight ? 0x000000 : 0xFFFFFF;
+        return (alpha << 24) | base;
+    }
+
+    /**
      *         panel buttons need a dark or light translucent background and whether the status
      *         bar needs dark or light icons).
      */
@@ -110,14 +159,6 @@ public final class ColorSchemeUtils {
         if (!hasRealColors(props)) return false;
         TerminalColors.COLOR_SCHEME.updateWith(props);
         return true;
-    }
-
-    public static int getButtonBackground(boolean isLight) {
-        return isLight ? BUTTON_BG_LIGHT_SCHEME : BUTTON_BG_DARK_SCHEME;
-    }
-
-    public static int getButtonActiveBackground(boolean isLight) {
-        return isLight ? BUTTON_BG_ACTIVE_LIGHT_SCHEME : BUTTON_BG_ACTIVE_DARK_SCHEME;
     }
 
     /**

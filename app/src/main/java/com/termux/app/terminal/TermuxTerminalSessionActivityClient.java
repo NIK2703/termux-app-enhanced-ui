@@ -27,6 +27,7 @@ import com.termux.shared.interact.ShareUtils;
 import com.termux.shared.termux.shell.command.runner.terminal.TermuxSession;
 import com.termux.shared.termux.interact.TextInputDialogUtils;
 import com.termux.app.TermuxActivity;
+import com.termux.shared.termux.settings.preferences.TermuxAppSharedPreferences;
 import com.termux.shared.termux.terminal.TermuxTerminalSessionClientBase;
 import com.termux.shared.termux.TermuxConstants;
 import com.termux.app.TermuxService;
@@ -98,7 +99,8 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
 
         // The current terminal session may have changed while being away, force
         // a refresh of the displayed terminal.
-        mActivity.getTerminalView().onScreenUpdated();
+        TerminalView tv = mActivity.getTerminalView();
+        if (tv != null) tv.onScreenUpdated();
     }
 
     /**
@@ -140,19 +142,17 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
     public void onTextChanged(@NonNull TerminalSession changedSession) {
         if (!mActivity.isVisible()) return;
 
-        if (mActivity.getCurrentSession() == changedSession) mActivity.getTerminalView().onScreenUpdated();
+        if (mActivity.getCurrentSession() == changedSession) {
+            TerminalView tv = mActivity.getTerminalView();
+            if (tv != null) tv.onScreenUpdated();
+        }
     }
 
     @Override
     public void onTitleChanged(@NonNull TerminalSession updatedSession) {
         if (!mActivity.isVisible()) return;
 
-        if (updatedSession != mActivity.getCurrentSession()) {
-            // Only show toast for other sessions than the current one, since the user
-            // probably consciously caused the title change to change in the current session
-            // and don't want an annoying toast for that.
-            mActivity.showToast(toToastTitle(updatedSession), true);
-        }
+        // Toast suppressed — the user requested no popups on session events.
 
         termuxSessionListNotifyUpdated();
     }
@@ -178,13 +178,6 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
             isPluginExecutionCommandWithPendingResult = termuxSession.getExecutionCommand().isPluginExecutionCommandWithPendingResult();
             if (isPluginExecutionCommandWithPendingResult)
                 Logger.logVerbose(LOG_TAG, "The \"" + finishedSession.mSessionName + "\" session will be force finished automatically since result in pending.");
-        }
-
-        if (mActivity.isVisible() && finishedSession != mActivity.getCurrentSession()) {
-            // Show toast for non-current sessions that exit.
-            // Verify that session was not removed before we got told about it finishing:
-            if (index >= 0)
-                mActivity.showToast(toToastTitle(finishedSession) + " - exited", true);
         }
 
         if (mActivity.getPackageManager().hasSystemFeature(PackageManager.FEATURE_LEANBACK)) {
@@ -216,8 +209,10 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         if (!mActivity.isVisible()) return;
 
         String text = ShareUtils.getTextStringFromClipboardIfSet(mActivity, true);
-        if (text != null)
-            mActivity.getTerminalView().mEmulator.paste(text);
+        if (text != null) {
+            TerminalView tv = mActivity.getTerminalView();
+            if (tv != null && tv.mEmulator != null) tv.mEmulator.paste(text);
+        }
     }
 
     @Override
@@ -255,7 +250,8 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
 
         // If cursor is to enabled now, then start cursor blinking if blinking is enabled
         // otherwise stop cursor blinking
-        mActivity.getTerminalView().setTerminalCursorBlinkerState(enabled, false);
+        TerminalView terminalView = mActivity.getTerminalView();
+        if (terminalView != null) terminalView.setTerminalCursorBlinkerState(enabled, false);
     }
 
     @Override
@@ -275,7 +271,8 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
     public void onResetTerminalSession() {
         // Ensure blinker starts again after reset if cursor blinking was disabled before reset like
         // with "tput civis" which would have called onTerminalCursorStateChange()
-        mActivity.getTerminalView().setTerminalCursorBlinkerState(true, true);
+        TerminalView terminalView = mActivity.getTerminalView();
+        if (terminalView != null) terminalView.setTerminalCursorBlinkerState(true, true);
     }
 
 
@@ -318,32 +315,98 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         setCurrentSession(session, true);
     }
 
-    /** Try switching to session with optional toast notification. */
+    /**
+     * Switch to the given session. In the horizontal-pager model each session has its own
+     * TerminalView (bound by {@link TerminalPagerAdapter}), so switching means scrolling the
+     * pager to that page. The {@code onPageSelected} callback then re-points the activity's active
+     * {@code mTerminalView} and runs the per-session bookkeeping via {@link #onSessionPageSelected}.
+     */
     public void setCurrentSession(TerminalSession session, boolean showToast) {
         if (session == null) return;
 
         // Preserve the text input content of the session we are leaving.
         mActivity.saveTextInputForCurrentSession();
 
-        if (mActivity.getTerminalView().attachSession(session)) {
-            // notify about switched session if not already displaying the session
-            if (showToast) {
-                notifyOfSessionChange();
-            }
+        // If the pager has not been populated yet (e.g. onStart restored the stored session before
+        // onServiceConnected filled the adapter), remember it and bail; syncTerminalPagerToService()
+        // will select it once sessions exist.
+        androidx.viewpager2.widget.ViewPager2 pager = mActivity.getTerminalPager();
+        if (pager == null || pager.getAdapter() == null || pager.getAdapter().getItemCount() == 0) {
+            mActivity.setPendingInitialSession(session);
+            if (showToast) notifyOfSessionChange();
+            return;
         }
+
+        TermuxService service = mActivity.getTermuxService();
+        if (service == null) return;
+        int index = service.getIndexOfSession(session);
+        if (index < 0) return;
+
+        // If the target page is already the current page, pager.setCurrentItem() is a no-op
+        // (the pager silently skips the scroll and fires NO callbacks).  This leaves
+        // switchInProgress stuck at true and onSessionPageSelected() uninvoked, which means
+        // tab highlight, text-input restore and directory recording are skipped for what
+        // should be a perfectly valid session-switch request (e.g. clicking the already-visible
+        // tab). Handle it inline so bookkeeping runs and the flag is cleared.
+        if (index == pager.getCurrentItem()) {
+            onSessionPageSelected(session);
+            mActivity.setTerminalPageSwitchInProgress(false);
+            if (showToast) notifyOfSessionChange();
+            return;
+        }
+
+        if (pager != null) {
+            // Mark a page switch in progress BEFORE the smooth scroll so the per-page focus
+            // listener does not pop the IME while the old page loses focus mid-animation
+            // (scenario #InputPanel6: tab click -> setCurrentItem(true)). onTerminalPageSelected()
+            // clears this flag and becomes the single authority that re-asserts the keyboard.
+            mActivity.setTerminalPageSwitchInProgress(true);
+            // Smoothly scroll the pager to the target page. onPageSelected() will fire and run
+            // onSessionPageSelected(), which performs the text-input restore, tab highlight,
+            // background colour and directory-history update for the newly-visible session.
+            pager.setCurrentItem(index, true);
+        }
+
+        if (showToast) {
+            notifyOfSessionChange();
+        }
+    }
+
+    /**
+     * Per-session bookkeeping for the page the user just landed on (swipe, tab click or keyboard
+     * switch). Kept separate from {@link #setCurrentSession} so a swipe does not re-trigger a pager
+     * scroll / toast loop. The page's TerminalView is already bound to the session by the adapter.
+     */
+    public void onSessionPageSelected(TerminalSession session) {
+        if (session == null) return;
 
         // Re-apply the terminal font/color scheme after the session is attached. This is required
         // after a hot theme swap (recreate / system day-night change): the previously-attached
-        // session is re-bound to a brand-new TerminalView here, and a checkForFontAndColors()
-        // that ran earlier (e.g. from onServiceConnected) may have executed before the emulator
-        // was bound to the new view, so its repaint would have been silently dropped. Re-applying
-        // now guarantees the terminal matches the current night mode.
+        // session is re-bound to a brand-new TerminalView here, and a checkForFontAndColors() that
+        // ran earlier (e.g. from onServiceConnected) may have executed before the emulator was
+        // bound to the new view, so its repaint would have been silently dropped. Re-applying now
+        // guarantees the terminal matches the current night mode.
         checkForFontAndColors();
 
-        // We call the following even when the session is already being displayed since config may
-        // be stale, like current session not selected or scrolled to.
-        checkAndScrollToSession(session);
+        // NOTE: we deliberately do NOT call checkAndScrollToSession() here. That helper ends in
+        // termuxSessionListNotifyUpdated(), which calls notifyDataSetChanged() + setCurrentItem(...,
+        // false). On a plain swipe the session COUNT has not changed, so rebuilding the adapter
+        // mid-animation destroys the page ViewHolder and the setCurrentItem(false) snaps without
+        // the smooth settle — that is exactly the "abrupt page switch" bug. The pager itself
+        // already did the smooth scroll to land here; the tab highlight is refreshed separately
+        // in onTerminalPageSelected() via TermuxSessionTabsController.setCurrentSession().
         updateBackgroundColor();
+
+        // Refresh tab titles for the newly-current session.  This was done by the second
+        // updateTabs() call that used to happen via checkAndScrollToSession() in the legacy
+        // code path.  Without it a freshly-created session keeps its default "Terminal" title
+        // until an unrelated tab redraw happens.  We call updateTabs() directly here (without
+        // the checkAndScrollToSession wrapper) because notifyDataSetChanged+setCurrentItem
+        // would destroy the pager's ViewHolders mid-animation.
+        TermuxService service = mActivity.getTermuxService();
+        if (service != null) {
+            mActivity.getTermuxSessionTabsController().updateTabs(service.getTermuxSessions());
+        }
 
         // Load the text input content saved for the newly-current session.
         mActivity.restoreTextInputForSession(session);
@@ -354,15 +417,14 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         // Record the newly-current session's working directory into the
         // recent-directories history (for the "new tab" button popup).
         mActivity.recordCurrentDirectory();
+
+        // If per-directory message history is enabled, swap to the new
+        // session's directory history.
+        mActivity.onHistoryDirectoryChanged();
     }
 
     void notifyOfSessionChange() {
-        if (!mActivity.isVisible()) return;
-
-        if (!mActivity.getProperties().areTerminalSessionChangeToastsDisabled()) {
-            TerminalSession session = mActivity.getCurrentSession();
-            mActivity.showToast(toToastTitle(session), false);
-        }
+        // Suppressed — the user requested no popups when switching tabs.
     }
 
     public void switchToSession(boolean forward) {
@@ -600,6 +662,52 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         applyTerminalColorScheme(isNight);
     }
 
+    /**
+     * Apply the current terminal font and color scheme to a specific {@link TerminalView} (a pager
+     * page) without touching the shared bottom panel (which is updated once via the active view).
+     * Used to theme pages as they are (re)bound to their session in the horizontal pager.
+     */
+    public void checkForFontAndColorsForView(@NonNull TerminalView terminalView) {
+        final NightMode appNightMode = NightMode.getAppNightMode();
+        final boolean isNight;
+        if (appNightMode == NightMode.SYSTEM) {
+            isNight = ThemeUtils.isSystemNightModeEnabled();
+        } else {
+            isNight = (appNightMode == NightMode.TRUE);
+        }
+        try {
+            File colorsFile = ColorSchemeUtils.getColorSchemeFileForTheme(isNight);
+            boolean customApplied = (colorsFile != null) && ColorSchemeUtils.loadTerminalColorScheme(colorsFile);
+            if (!customApplied) {
+                if (!isNight) {
+                    TerminalColors.COLOR_SCHEME.updateWith(getLightTerminalColorScheme());
+                } else {
+                    TerminalColors.COLOR_SCHEME.updateWith(new Properties());
+                }
+            }
+
+            TerminalEmulator emulator = terminalView.mEmulator;
+            if (emulator == null) {
+                TerminalSession session = terminalView.getCurrentSession();
+                if (session != null) emulator = session.getEmulator();
+            }
+            if (emulator != null) {
+                emulator.mColors.reset();
+            }
+            if (terminalView != null) {
+                terminalView.invalidate();
+                terminalView.onScreenUpdated();
+            }
+
+            final Typeface newTypeface = (TermuxConstants.TERMUX_FONT_FILE.exists()
+                    && TermuxConstants.TERMUX_FONT_FILE.length() > 0)
+                    ? Typeface.createFromFile(TermuxConstants.TERMUX_FONT_FILE) : Typeface.MONOSPACE;
+            terminalView.setTypeface(newTypeface);
+        } catch (Exception e) {
+            Logger.logStackTraceWithMessage(LOG_TAG, "Error in checkForFontAndColorsForView()", e);
+        }
+    }
+
     /** Apply terminal fonts and the color scheme (light or dark) for the given night mode. */
     private void applyTerminalColorScheme(boolean isNight) {
         try {
@@ -657,7 +765,7 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
             }
 
             final Typeface newTypeface = (fontFile.exists() && fontFile.length() > 0) ? Typeface.createFromFile(fontFile) : Typeface.MONOSPACE;
-            mActivity.getTerminalView().setTypeface(newTypeface);
+            if (terminalView != null) terminalView.setTypeface(newTypeface);
         } catch (Exception e) {
             Logger.logStackTraceWithMessage(LOG_TAG, "Error in applyTerminalColorScheme()", e);
         }
@@ -669,14 +777,21 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
      *   buttons themselves show a background.
      * - Each button background becomes a translucent overlay whose tone is picked from the scheme
      *   lightness: dark translucent for light schemes, light translucent for dark schemes.
+     * - The alpha (transparency) of the button backgrounds is read from user preferences so the
+     *   value is applied ONCE at change time, not recomputed on every frame.
+     * - The interactive scrollbar thumb receives the same pre-computed colours.
      * - The status bar icons/theme follow the scheme lightness (light icons on dark schemes,
      *   dark icons on light schemes).
      *
      * @param isSchemeLight Whether the applied terminal color scheme is light.
      */
-    private void applyPanelColors(boolean isSchemeLight) {
-        final int buttonBg = ColorSchemeUtils.getButtonBackground(isSchemeLight);
-        final int buttonActiveBg = ColorSchemeUtils.getButtonActiveBackground(isSchemeLight);
+    public void applyPanelColors(boolean isSchemeLight) {
+        // Read user's alpha preference ONCE and compute final ARGB colours now.
+        TermuxAppSharedPreferences prefs = mActivity.getPreferences();
+        int inactivePct = prefs != null ? prefs.getButtonBgInactiveAlpha() : 5;
+        int activePct   = prefs != null ? prefs.getButtonBgActiveAlpha() : 12;
+        final int buttonBg = ColorSchemeUtils.getButtonBackground(isSchemeLight, inactivePct);
+        final int buttonActiveBg = ColorSchemeUtils.getButtonActiveBackground(isSchemeLight, activePct);
         final int buttonText = ColorSchemeUtils.getSchemeForeground();
 
         // Bottom panel + extra keys backgrounds -> transparent.
@@ -718,6 +833,12 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
                 (android.graphics.drawable.GradientDrawable) textInputContainer.getBackground().mutate();
             d.setColor(buttonBg);
             d.setStroke(Math.round(1.5f * mActivity.getResources().getDisplayMetrics().density), buttonActiveBg);
+        }
+
+        // Push pre-computed scrollbar thumb colours to TerminalView (alpha baked in ONCE here).
+        TerminalView tv = mActivity.getTerminalView();
+        if (tv != null && prefs != null) {
+            tv.setScrollbarColors(buttonBg, buttonActiveBg);
         }
 
         // Status bar follows the scheme lightness.

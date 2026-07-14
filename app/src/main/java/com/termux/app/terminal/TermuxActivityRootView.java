@@ -168,6 +168,31 @@ public class TermuxActivityRootView extends LinearLayout implements ViewTreeObse
         setLayoutParams(params);
     }
 
+    /**
+     * Force-recompute and re-apply the bottom margin, bypassing the tolerance band.
+     */
+    public void forceRelayout() {
+        if (mActivity == null || !mActivity.isVisible()) return;
+
+        View bottomSpaceView = mActivity.getTermuxActivityBottomSpaceView();
+        if (bottomSpaceView == null) return;
+
+        ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) getLayoutParams();
+        if (params == null) return;
+
+        Rect[] windowAndViewRects = ViewUtils.getWindowAndViewRects(bottomSpaceView, mStatusBarHeight);
+        if (windowAndViewRects == null) return;
+
+        Rect windowAvailableRect = windowAndViewRects[0];
+        Rect bottomSpaceViewRect = windowAndViewRects[1];
+
+        int pxHidden = bottomSpaceViewRect.bottom - windowAvailableRect.bottom;
+        if (pxHidden < 0) pxHidden = 0;
+
+        params.setMargins(0, 0, 0, pxHidden);
+        setLayoutParams(params);
+    }
+
     public static class WindowInsetsListener implements View.OnApplyWindowInsetsListener {
         @Override
         public WindowInsets onApplyWindowInsets(View v, WindowInsets insets) {

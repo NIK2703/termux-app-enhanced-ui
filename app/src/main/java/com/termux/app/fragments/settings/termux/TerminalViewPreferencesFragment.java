@@ -27,6 +27,7 @@ public class TerminalViewPreferencesFragment extends PreferenceFragmentCompat {
 
 }
 
+
 class TerminalViewPreferencesDataStore extends PreferenceDataStore {
 
     private final Context mContext;

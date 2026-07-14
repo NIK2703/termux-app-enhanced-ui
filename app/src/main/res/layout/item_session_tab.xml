@@ -16,7 +16,7 @@
         android:layout_weight="1"
         android:maxWidth="100dp"
         android:ellipsize="end"
-        android:maxLines="1"
+        android:maxLines="2"
         android:textSize="13sp"
         android:textColor="@color/terminal_toolbar_text_color" />
 

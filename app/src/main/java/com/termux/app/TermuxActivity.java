@@ -2,12 +2,11 @@ package com.termux.app;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.AlertDialog;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
@@ -16,6 +15,7 @@ import android.content.ServiceConnection;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
+import java.io.File;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -33,7 +33,6 @@ import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.EditText;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -48,6 +47,7 @@ import com.termux.R;
 import com.termux.app.api.file.FileReceiverActivity;
 import com.termux.app.terminal.TermuxActivityRootView;
 import com.termux.app.terminal.TermuxTerminalSessionActivityClient;
+import com.termux.app.terminal.TerminalPagerAdapter;
 import com.termux.app.terminal.io.TermuxTerminalExtraKeys;
 import com.termux.shared.activities.ReportActivity;
 import com.termux.shared.activity.ActivityUtils;
@@ -55,6 +55,8 @@ import com.termux.shared.activity.media.AppCompatActivityUtils;
 import com.termux.shared.data.IntentUtils;
 import com.termux.shared.android.PermissionUtils;
 import com.termux.shared.data.DataUtils;
+import com.termux.shared.errors.Error;
+import com.termux.shared.file.FileUtils;
 import com.termux.shared.termux.TermuxConstants;
 import com.termux.shared.termux.TermuxConstants.TERMUX_APP.TERMUX_ACTIVITY;
 import com.termux.app.activities.HelpActivity;
@@ -88,6 +90,8 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.HashMap;
 
@@ -115,9 +119,68 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     TermuxService mTermuxService;
 
     /**
-     * The {@link TerminalView} shown in  {@link TermuxActivity} that displays the terminal.
+     * The terminal view shown in  {@link TermuxActivity} that displays the terminal.
+     * <p/>
+     * With the horizontal session pager (ViewPager2), this field is a <em>dynamic</em> pointer to
+     * the {@link TerminalView} of the <b>currently selected</b> page. It is updated in
+     * {@link #onTerminalPageSelected(int)} whenever the user swipes to a different session, so the
+     * rest of the codebase that calls {@link #getTerminalView()} keeps working unchanged.
      */
     TerminalView mTerminalView;
+
+    /**
+     * The horizontal session pager (ViewPager2). One page per {@link TerminalSession}, each page
+     * hosting its own {@link TerminalView}. A horizontal finger drag pages between adjacent
+     * sessions and, because ViewPager2 keeps both pages attached during the drag, the neighbouring
+     * session is visible mid-swipe.
+     */
+    androidx.viewpager2.widget.ViewPager2 mTerminalPager;
+
+    /** Adapter backing {@link #mTerminalPager}. */
+    TerminalPagerAdapter mTerminalPagerAdapter;
+
+    /**
+     * Session that should become the selected pager page once the pager is first populated with
+     * sessions (i.e. when {@link #onServiceConnected} runs after {@link #onStart} already asked to
+     * restore the stored/last session). Avoids a race where {@code setCurrentSession} is requested
+     * before the adapter has any items.
+     */
+    TerminalSession mPendingInitialSession;
+
+    public void setPendingInitialSession(@Nullable TerminalSession session) {
+        mPendingInitialSession = session;
+    }
+
+    /**
+     * Populate the pager with the live session list and select the initial page. Called from
+     * {@link #onServiceConnected} once sessions exist. Honours a pending session requested earlier
+     * by {@code setCurrentSession}, otherwise restores the stored/last session.
+     */
+    public void syncTerminalPagerToService() {
+        if (mTerminalPager == null || mTerminalPagerAdapter == null || mTermuxService == null) return;
+
+        mTerminalPagerAdapter.syncWithServiceList(mTermuxService.getTermuxSessions());
+
+        int index;
+        if (mPendingInitialSession != null) {
+            index = mTermuxService.getIndexOfSession(mPendingInitialSession);
+            mPendingInitialSession = null;
+        } else {
+            TerminalSession stored = mTermuxTerminalSessionActivityClient.getCurrentStoredSessionOrLast();
+            index = (stored != null) ? mTermuxService.getIndexOfSession(stored) : 0;
+        }
+        if (index < 0) index = 0;
+        if (index >= mTermuxService.getTermuxSessionsSize()) index = mTermuxService.getTermuxSessionsSize() - 1;
+
+        if (index >= 0) {
+            mTerminalPager.setCurrentItem(index, false);
+            // ViewPager2 does NOT fire onPageSelected() for the initially-selected
+            // page, so the active-view pointer, extra-keys target and IME focus would
+            // stay uninitialised until the first manual swipe. Trigger the same
+            // bookkeeping explicitly for the startup page.
+            onTerminalPageSelected(index);
+        }
+    }
 
     /**
      *  The {@link TerminalViewClient} interface implementation to allow for communication between
@@ -228,6 +291,24 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
      */
     private boolean mJustResumed = false;
 
+    /**
+     * True while a pager page switch is in progress (tab click -> setCurrentItem, or the smooth
+     * settle of a swipe). While set, the per-page focus listener
+     * ({@code TermuxTerminalViewClient.registerTerminalViewFocusListener}) suppresses ALL IME
+     * show/hide churn so the old page losing focus mid-switch cannot pop the keyboard.
+     * {@link #onTerminalPageSelected(int)} is the single authority that re-asserts the keyboard
+     * for the landed page and clears this flag. See scenario #InputPanel6.
+     */
+    private boolean mTerminalPageSwitchInProgress = false;
+
+    public void setTerminalPageSwitchInProgress(boolean inProgress) {
+        mTerminalPageSwitchInProgress = inProgress;
+    }
+
+    public boolean isTerminalPageSwitchInProgress() {
+        return mTerminalPageSwitchInProgress;
+    }
+
     // Per-session text input content, keyed by TerminalSession.mHandle,
     // so each tab keeps its own input field text across tab switches.
     private final HashMap<String, String> mTextInputPerSession = new HashMap<>();
@@ -326,6 +407,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     private static final int CONTEXT_MENU_RESET_TERMINAL_ID = 3;
     private static final int CONTEXT_MENU_KILL_PROCESS_ID = 4;
     private static final int CONTEXT_MENU_STYLING_ID = 5;
+    private static final int CONTEXT_MENU_FONT_ID = 12;
     private static final int CONTEXT_MENU_TOGGLE_KEEP_SCREEN_ON = 6;
     private static final int CONTEXT_MENU_HELP_ID = 7;
     private static final int CONTEXT_MENU_SETTINGS_ID = 8;
@@ -339,6 +421,47 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     private static final String ARG_ACTIVITY_RECREATED = "activity_recreated";
     private static final String PREF_TEXT_INPUT_VISIBLE = "text_input_visible";
     private static final String PREF_MESSAGE_HISTORY = "message_history";
+
+    /** Pref key (in termux_prefs) persisting the per-directory message history map (JSON object). */
+    private static final String PREF_MESSAGE_HISTORY_PER_DIR = "message_history_per_dir";
+
+    /** Whether per-directory message history is enabled (read from settings). */
+    private boolean mPerDirectoryMessageHistory = false;
+
+    /**
+     * Per-directory message history storage, keyed by working directory path.
+     * Only used when {@link #mPerDirectoryMessageHistory} is true.
+     * The currently-active directory's list is synced with {@link #mMessageHistory}.
+     */
+    private final LinkedHashMap<String, ArrayList<String>> mMessageHistoryPerDirectory = new LinkedHashMap<>();
+
+    /** The CWD whose history is currently loaded into {@link #mMessageHistory}, or null. */
+    @Nullable private String mHistoryCurrentDirectory = null;
+
+    /** True once the empty-history Toast has been shown during the current gesture. */
+    private boolean mHistoryEmptyHintShown = false;
+
+    /** Listens for per-directory history settings change from Settings activity. */
+    private final SharedPreferences.OnSharedPreferenceChangeListener mPerDirPrefListener =
+            (prefs, key) -> {
+                if (!"per_directory_message_history".equals(key)) return;
+                boolean newValue = prefs.getBoolean("per_directory_message_history", false);
+                if (newValue == mPerDirectoryMessageHistory) return;
+
+                // Save history under the OLD mode before switching
+                if (mPerDirectoryMessageHistory) {
+                    // Switching FROM per-dir TO global: persist per-dir state
+                    saveMessageHistoryPerDirectory();
+                } else {
+                    // Switching FROM global TO per-dir: persist global state
+                    JSONArray arr = new JSONArray();
+                    for (String s : mMessageHistory) arr.put(s);
+                    prefs.edit().putString(PREF_MESSAGE_HISTORY, arr.toString()).apply();
+                }
+
+                mPerDirectoryMessageHistory = newValue;
+                loadMessageHistory();
+            };
 
     private static final String LOG_TAG = "TermuxActivity";
 
@@ -453,7 +576,11 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         setToggleKeyboardView();
 
-        registerForContextMenu(mTerminalView);
+        // NOTE: the terminal context menu is registered per-page on each TerminalView inside
+        // TerminalPagerAdapter (onBindViewHolder), NOT on the activity root view. Registering it on
+        // the root made a long-press on the sibling text-input panel bubble up to the root's context
+        // menu and show the terminal menu over the input field (regression: long-press on the input
+        // panel opened the terminal context menu instead of selecting a word).
 
         FileReceiverActivity.updateFileReceiverActivityComponentsState(this);
 
@@ -516,6 +643,11 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         if (mPreferences.isTerminalMarginAdjustmentEnabled())
             addTermuxActivityRootViewGlobalLayoutListener();
+        if (mPreferences.isTerminalMarginAdjustmentEnabled()) {
+            final TermuxActivityRootView rootView = getTermuxActivityRootView();
+            if (rootView != null)
+                rootView.forceRelayout();
+        }
     }
 
     @Override
@@ -570,6 +702,11 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         mIsOnResumeAfterOnCreate = false;
         mIsPaused = false;
+        if (mPreferences.isTerminalMarginAdjustmentEnabled()) {
+            final TermuxActivityRootView rootView = getTermuxActivityRootView();
+            if (rootView != null)
+                new Handler(Looper.getMainLooper()).postDelayed(rootView::forceRelayout, 300);
+        }
     }
 
     @Override
@@ -623,6 +760,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         Logger.logDebug(LOG_TAG, "onDestroy");
 
         if (mIsInvalidState) return;
+
+        getSharedPreferences("termux_prefs", MODE_PRIVATE)
+                .unregisterOnSharedPreferenceChangeListener(mPerDirPrefListener);
 
         unregisterTermuxActivityBroadcastReceiver();
 
@@ -755,6 +895,12 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         // not yet attached, so checkForFontAndColors() called earlier had no session to repaint.
         if (mTermuxTerminalSessionActivityClient != null)
             mTermuxTerminalSessionActivityClient.checkForFontAndColors();
+
+        // Populate the horizontal pager with the now-available sessions and select the initial
+        // page (honouring a pending session requested before the adapter had items, otherwise the
+        // stored/last session). Safe to call even if sessions were added asynchronously above —
+        // it is a no-op when the list is still empty.
+        syncTerminalPagerToService();
     }
 
     @Override
@@ -856,15 +1002,221 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         mTermuxTerminalSessionActivityClient = new TermuxTerminalSessionActivityClient(this);
         mTermuxTerminalViewClient = new TermuxTerminalViewClient(this, mTermuxTerminalSessionActivityClient);
 
-        // Set termux terminal view
-        mTerminalView = findViewById(R.id.terminal_view);
-        mTerminalView.setTerminalViewClient(mTermuxTerminalViewClient);
+        // Set up the horizontal session pager (ViewPager2). The pager owns the TerminalViews now;
+        // mTerminalView is (re)assigned to the active page in onTerminalPageSelected().
+        setupTerminalPager();
 
         if (mTermuxTerminalViewClient != null)
             mTermuxTerminalViewClient.onCreate();
 
         if (mTermuxTerminalSessionActivityClient != null)
             mTermuxTerminalSessionActivityClient.onCreate();
+    }
+
+    /**
+     * Initialise the horizontal session pager. The adapter starts empty; sessions are pushed in
+     * once the {@link TermuxService} is connected (see {@link #onServiceConnected}).
+     */
+    private void setupTerminalPager() {
+        mTerminalPager = findViewById(R.id.terminal_view_pager);
+        if (mTermuxService != null) {
+            mTerminalPagerAdapter = new TerminalPagerAdapter(this, mTermuxTerminalViewClient,
+                    mTermuxService.getTermuxSessions());
+        } else {
+            // No sessions yet — an empty backing list; onServiceConnected repopulates it.
+            mTerminalPagerAdapter = new TerminalPagerAdapter(this, mTermuxTerminalViewClient,
+                    new java.util.ArrayList<>());
+        }
+        mTerminalPager.setAdapter(mTerminalPagerAdapter);
+        mTerminalPager.setUserInputEnabled(true);
+        // Keep the neighbouring page bound so a horizontal swipe reveals the adjacent
+        // session LIVE (the original goal: "видно промежуточное листание между
+        // двумя соседними экранами"). With the default limit 0 the neighbour is
+        // only created mid-drag and shows up empty, which reads as an abrupt snap.
+        mTerminalPager.setOffscreenPageLimit(1);
+
+        mTerminalPager.registerOnPageChangeCallback(new androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageScrollStateChanged(int state) {
+                // Suppress IME hide/show churn for the ENTIRE swipe gesture, not just after
+                // onPageSelected() fires. onPageSelected() only runs at the end of the settle, by
+                // which point the old page has already lost focus and its focus listener (if the
+                // guard were still false) would have hidden the keyboard mid-swipe — that is the
+                // keyboard flicker when switching tabs/sessions. Raise the guard on DRAGGING and
+                // SETTLING (the whole transition) and lower it on IDLE (after the settle, posted so
+                // it does not clear while a late focus event is still in flight).
+                if (state == androidx.viewpager2.widget.ViewPager2.SCROLL_STATE_DRAGGING
+                        || state == androidx.viewpager2.widget.ViewPager2.SCROLL_STATE_SETTLING) {
+                    setTerminalPageSwitchInProgress(true);
+                } else if (state == androidx.viewpager2.widget.ViewPager2.SCROLL_STATE_IDLE) {
+                    mTerminalPager.post(() -> setTerminalPageSwitchInProgress(false));
+                }
+            }
+
+            @Override
+            public void onPageSelected(int position) {
+                onTerminalPageSelected(position);
+            }
+        });
+    }
+
+    /**
+     * Called when the user settles on a pager page (swipe or tab/keyboard switch). Re-points
+     * {@link #mTerminalView} to the selected page's TerminalView and runs the per-session
+     * bookkeeping (text input restore, tab highlight, toasts) that the rest of the app expects.
+     */
+    private void onTerminalPageSelected(int position) {
+        TermuxService service = getTermuxService();
+        if (service == null) return;
+
+        TerminalSession selected = null;
+        TermuxSession termuxSession = service.getTermuxSession(position);
+        if (termuxSession != null) {
+            selected = termuxSession.getTerminalSession();
+        }
+        if (selected == null) return;
+
+        // Mark a page switch in progress so the per-page focus listener
+        // (registerTerminalViewFocusListener) suppresses IME hide/show churn while the old page
+        // loses focus and the new one gains it during a swipe / tab / hotkey switch. Cleared at the
+        // end of this method. This fixes the keyboard flicker (hide+show) reported when switching
+        // tabs/sessions — without it, the focus listener of the page being left would pop the IME
+        // and the freshly-landed page would re-show it a frame later.
+        setTerminalPageSwitchInProgress(true);
+
+        // Preserve the panel text of the session we are LEAVING (still pointed to by mTerminalView /
+        // getCurrentSession at this moment) BEFORE we re-point mTerminalView at the incoming page and
+        // onSessionPageSelected() overwrites the single shared EditText with the new session's saved
+        // text. The programmatic setCurrentSession() path already saves here, but a plain swipe goes
+        // straight through onTerminalPageSelected() and would otherwise drop the leaving session's
+        // in-progress input (#InputPanel8).
+        saveTextInputForCurrentSession();
+
+        // If the text input panel currently holds focus, carry that focus intent over to the
+        // incoming session so applyTextInputVisibilityForSession() restores focus onto the panel
+        // (not the terminal). Without this, the terminal page would steal focus and a long-press on
+        // the input panel would hit the terminal's context menu instead of selecting a word
+        // (regression: long-press on the input panel opened the terminal context menu).
+        final EditText currentTextInput = findViewById(R.id.terminal_toolbar_text_input);
+        if (currentTextInput != null && currentTextInput.hasFocus()) {
+            mFocusOnInputPerSession.put(selected.mHandle, true);
+        }
+
+        // Point the shared "active terminal view" at this page's view so that getTerminalView()
+        // (used by IME, extra keys, context menu, selection, etc.) routes to the visible session.
+        TerminalView pageView = getPagerPageView(position);
+        if (pageView == null) {
+            // The pager has not bound the ViewHolder for this position yet. This is expected when a
+            // keyboard shortcut jumps two or more pages in a single smooth scroll: with
+            // offscreenPageLimit == 1 (see setupTerminalPager) only the neighbouring pages are
+            // attached, so the destination (e.g. page 2 when starting from page 0) is not created
+            // until the pager scrolls far enough to bind it. We must NOT leave mTerminalView / the
+            // extra-keys target pointing at the previous session, otherwise input, IME and extra
+            // keys would be routed to the wrong terminal for the whole animation — and, on a quick
+            // back-and-forth switch, the old `getCurrentItem() == pos` guard could cancel the
+            // pending update and strand the old view forever. Wait for the destination page to
+            // actually attach, then run the real bookkeeping, keying off the adapter position
+            // (not just the pager's target index) so a superseded switch does not re-assert it.
+            final int pos = position;
+            if (mTerminalPager != null) {
+                final androidx.recyclerview.widget.RecyclerView rv =
+                    (androidx.recyclerview.widget.RecyclerView) mTerminalPager.getChildAt(0);
+                if (rv != null) {
+                    // Single-fire guard: either the attach listener OR the fallback post may run,
+                    // never both, so the per-session bookkeeping below runs exactly once.
+                    final boolean[] done = { false };
+                    final androidx.recyclerview.widget.RecyclerView.OnChildAttachStateChangeListener listener =
+                        new androidx.recyclerview.widget.RecyclerView.OnChildAttachStateChangeListener() {
+                            @Override
+                            public void onChildViewAttachedToWindow(@NonNull android.view.View view) {
+                                if (!done[0] && rv.getChildAdapterPosition(view) == pos
+                                        && mTerminalPager.getCurrentItem() == pos) {
+                                    done[0] = true;
+                                    rv.removeOnChildAttachStateChangeListener(this);
+                                    onTerminalPageSelected(pos);
+                                }
+                            }
+                            @Override
+                            public void onChildViewDetachedFromWindow(@NonNull android.view.View view) {}
+                        };
+                    rv.addOnChildAttachStateChangeListener(listener);
+                    // Fallback: if the page is already attached by the time we register (the
+                    // listener will not re-fire for an already-attached view), re-check next frame.
+                    mTerminalPager.post(() -> {
+                        if (!done[0] && mTerminalPager.getCurrentItem() == pos
+                                && getPagerPageView(pos) != null) {
+                            done[0] = true;
+                            rv.removeOnChildAttachStateChangeListener(listener);
+                            onTerminalPageSelected(pos);
+                        }
+                    });
+                    // Safety net: if neither the attach listener nor the single-frame post recovers
+                    // (e.g. the page was already attached before the listener was registered and the
+                    // post ran one frame too early), force the switch flag down so we never strand
+                    // IME suppression / input routing on the old session.
+                    mTerminalPager.postDelayed(() -> {
+                        if (!done[0]) {
+                            rv.removeOnChildAttachStateChangeListener(listener);
+                            setTerminalPageSwitchInProgress(false);
+                        }
+                    }, 300);
+                }
+            }
+            return;
+        }
+
+        // Keep the activity's active-view pointer and the extra-keys target in sync with the page
+        // the user is actually looking at, otherwise input / IME / context menu would hit the
+        // previously selected session after a swipe.
+        mTerminalView = pageView;
+        if (mTermuxTerminalExtraKeys != null) mTermuxTerminalExtraKeys.setTerminalView(pageView);
+
+        // Refresh the tab highlight for the page we landed on. We call setCurrentSession(position)
+        // (NOT updateTabs()) because updateTabs() does removeAllViews() + recreate every tab,
+        // which would thrash on every swipe; setCurrentSession() only flips the selection
+        // state / close-button visibility on the EXISTING tab views.
+        if (mTermuxSessionTabsController != null)
+            mTermuxSessionTabsController.setCurrentSession(position);
+
+        // Mirror the existing setCurrentSession() side effects for the newly-visible session so
+        // per-session text input, tab highlight and background colour stay consistent. We avoid
+        // calling setCurrentSession() itself (that would re-trigger a pager scroll / toast loop).
+        // applyTextInputVisibilityForSession() (called inside onSessionPageSelected) is the SINGLE
+        // authority for focus + IME here, so we must NOT also requestFocus()/showSoftInput() below —
+        // doing both caused the keyboard to flicker (hide+show) when switching tabs/sessions.
+        mTermuxTerminalSessionActivityClient.onSessionPageSelected(selected);
+
+        // Page switch bookkeeping done. The IME-suppression guard (mTerminalPageSwitchInProgress)
+        // must stay raised until the focus change requested inside onSessionPageSelected()/applyTextInputVisibilityForSession
+        // (via TerminalView/EditText.requestFocus()) is actually DELIVERED — requestFocus() posts
+        // the focus transition to the main looper, so it runs AFTER this method returns. If we cleared
+        // the guard synchronously here, the old page's onFocusChange(false) would fire with the guard
+        // already false and hide the keyboard mid-switch (the keyboard flicker). So defer the clear to
+        // a posted runnable: it lands in the looper AFTER the requestFocus() focus event, so the guard
+        // is still true while the focus listener processes the switch, then drops. onPageScrollStateChanged(IDLE)
+        // also posts a clear (harmless, idempotent) for the swipe path; the explicit/startup path relies on this one.
+        mTerminalPager.post(() -> setTerminalPageSwitchInProgress(false));
+    }
+
+    /** Returns the {@link TerminalView} for the pager page at {@code position}, or null if not bound. */
+    @Nullable
+    private TerminalView getPagerPageView(int position) {
+        if (mTerminalPager == null || mTerminalPagerAdapter == null) return null;
+        // Prefer the adapter's own position->view map: it is populated in onBindViewHolder and
+        // survives the window where RecyclerView.findViewHolderForAdapterPosition() still
+        // returns null (ViewHolder not yet laid out during a swipe). This is what keeps
+        // mTerminalView / extra-keys / input routing locked onto the visible page instead
+        // of lagging a frame behind and hitting the wrong session.
+        TerminalView attached = mTerminalPagerAdapter.getAttachedView(position);
+        if (attached != null) return attached;
+        // Fallback for the rare case the map entry was dropped but the holder exists.
+        androidx.recyclerview.widget.RecyclerView rv = (androidx.recyclerview.widget.RecyclerView) mTerminalPager.getChildAt(0);
+        if (rv == null) return null;
+        androidx.recyclerview.widget.RecyclerView.ViewHolder vh = rv.findViewHolderForAdapterPosition(position);
+        if (vh instanceof TerminalPagerAdapter.TerminalPageViewHolder) {
+            return ((TerminalPagerAdapter.TerminalPageViewHolder) vh).mTerminalView;
+        }
+        return null;
     }
 
     private void setTermuxSessionsListView() {
@@ -947,7 +1299,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
 
     private void setTerminalToolbarView(Bundle savedInstanceState) {
-        mTermuxTerminalExtraKeys = new TermuxTerminalExtraKeys(this, mTerminalView,
+        mTermuxTerminalExtraKeys = new TermuxTerminalExtraKeys(this, getTerminalView(),
             mTermuxTerminalViewClient, mTermuxTerminalSessionActivityClient);
 
         final LinearLayout terminalToolbarContainer = getTerminalToolbarContainer();
@@ -993,9 +1345,22 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                     String textToSend = editText.getText().toString();
                     boolean hasText = textToSend.length() > 0;
                     // Remember non-empty sent messages in the history (dedup, newest first).
-                    if (hasText) addToMessageHistory(textToSend);
-                    if (!hasText) textToSend = "\r";
-                    session.write(textToSend);
+                    // NOTE: the history stores the raw text WITHOUT the trailing newline.
+                    if (hasText) {
+                        addToMessageHistory(textToSend);
+                        // By default append a carriage return so the line is SUBMITTED (Enter).
+                        // If the user disabled "Append Enter on send" in settings, write raw text
+                        // only (no trailing newline) — this is what some users want when sending
+                        // partial input that should not execute a command yet.
+                        if (mPreferences.shouldTextInputAppendEnter()) {
+                            session.write(textToSend + "\r");
+                        } else {
+                            session.write(textToSend);
+                        }
+                    } else {
+                        // Empty field: just send a lone Enter (newline) to the session.
+                        session.write("\r");
+                    }
 
                     // Clear the field and the per-session saved text/caret BEFORE
                     // hiding the panel. Otherwise setTextInputVisible(false) ->
@@ -1168,7 +1533,15 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             // Load the persisted sent-message history once.
             mMessageHistoryMax = getSharedPreferences("termux_prefs", MODE_PRIVATE)
                     .getInt("message_history_max", MESSAGE_HISTORY_MAX_DEFAULT);
+            mPerDirectoryMessageHistory = getSharedPreferences("termux_prefs", MODE_PRIVATE)
+                    .getBoolean("per_directory_message_history", false);
             loadMessageHistory();
+
+            // Hot-reload: when the user toggles per-directory history in Settings
+            // and returns to the terminal, the mode switches immediately.
+            getSharedPreferences("termux_prefs", MODE_PRIVATE)
+                    .registerOnSharedPreferenceChangeListener(mPerDirPrefListener);
+
             // Load the persisted recent-directories history once.
             mDirectoryHistoryMax = getSharedPreferences("termux_prefs", MODE_PRIVATE)
                     .getInt("directory_history_max", DIRECTORY_HISTORY_MAX_DEFAULT);
@@ -1186,6 +1559,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             toggleTextInputButton.setOnTouchListener((v, event) -> {
                 switch (event.getActionMasked()) {
                     case MotionEvent.ACTION_DOWN:
+                        mHistoryEmptyHintShown = false;
                         downXY[0] = event.getRawX();
                         downXY[1] = event.getRawY();
                         gestureActive[0] = true;
@@ -1263,13 +1637,91 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     // ============================================================================
 
     /**
+     * Called when the current terminal session or working directory has changed
+     * (e.g. tab switch). If per-directory message history is enabled, saves the
+     * current directory's history and loads the new directory's entries into
+     * {@link #mMessageHistory}.
+     *
+     * Also performs lazy migration of global history when a real session CWD
+     * is first encountered and the per-dir store has no entry for it yet
+     * (handles the cold-start case where the session wasn't ready during
+     * {@link #loadMessageHistoryPerDirectory()}).
+     */
+    public void onHistoryDirectoryChanged() {
+        if (!mPerDirectoryMessageHistory) return;
+
+        // Save current CWD's history before switching
+        if (mHistoryCurrentDirectory != null) {
+            ArrayList<String> currentList = new ArrayList<>(mMessageHistory);
+            mMessageHistoryPerDirectory.put(mHistoryCurrentDirectory, currentList);
+        }
+
+        // Load new CWD's history
+        String cwd = getCurrentCwdForHistory();
+        mMessageHistory.clear();
+        mHistoryCurrentDirectory = cwd;
+
+        ArrayList<String> dirHistory = mMessageHistoryPerDirectory.get(cwd);
+
+        // Lazy migration: if this CWD has no per-dir entries but global
+        // history still exists in prefs (cold start with "." fallback
+        // deferred the migration), migrate it now under this real CWD.
+        if (dirHistory == null) {
+            String globalJson = getSharedPreferences("termux_prefs", MODE_PRIVATE)
+                    .getString(PREF_MESSAGE_HISTORY, null);
+            if (!TextUtils.isEmpty(globalJson)) {
+                try {
+                    JSONArray globalArr = new JSONArray(globalJson);
+                    ArrayList<String> migrated = new ArrayList<>();
+                    for (int i = 0; i < globalArr.length(); i++) {
+                        String s = globalArr.optString(i, null);
+                        if (!TextUtils.isEmpty(s) && !migrated.contains(s)) {
+                            migrated.add(s);
+                        }
+                    }
+                    mMessageHistoryPerDirectory.put(cwd, migrated);
+                    mMessageHistory.addAll(migrated);
+                    saveMessageHistoryPerDirectory();
+                    getSharedPreferences("termux_prefs", MODE_PRIVATE).edit()
+                            .remove(PREF_MESSAGE_HISTORY).apply();
+                    return;
+                } catch (JSONException e) {
+                    Logger.logStackTraceWithMessage(LOG_TAG, "Failed lazy migration", e);
+                }
+            }
+        }
+
+        if (dirHistory != null) {
+            mMessageHistory.addAll(dirHistory);
+        }
+    }
+
+    /**
      * Add a just-sent message to the history. Deduplicated by content: if the
      * same text already exists it is removed and re-inserted at the front, so a
      * re-sent message rises to the front (index 0), which is rendered at the
      * BOTTOM of the popup (newest = bottom, nearest the button). Persists the list.
+     *
+     * In per-directory mode, detects cross-directory moves (e.g. after `cd`
+     * within the same tab) and cleanly separates histories so messages sent from
+     * one directory never leak into another.
      */
     private void addToMessageHistory(@NonNull String message) {
         if (TextUtils.isEmpty(message)) return;
+
+        if (mPerDirectoryMessageHistory) {
+            String currentCwd = getCurrentCwdForHistory();
+            if (mHistoryCurrentDirectory != null && !currentCwd.equals(mHistoryCurrentDirectory)) {
+                // CWD changed inside this tab (e.g. user ran `cd /new/path`).
+                // Save the accumulated history under the OLD CWD, then start
+                // fresh under the NEW CWD so messages never leak between dirs.
+                mMessageHistoryPerDirectory.put(mHistoryCurrentDirectory,
+                        new ArrayList<>(mMessageHistory));
+                mMessageHistory.clear();
+                mHistoryCurrentDirectory = currentCwd;
+            }
+        }
+
         mMessageHistory.remove(message);          // dedup by content
         mMessageHistory.add(0, message);          // newest first
         while (mMessageHistory.size() > mMessageHistoryMax) {
@@ -1278,22 +1730,26 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         saveMessageHistory();
     }
 
-    /** Load the persisted message history from preferences (JSON array). */
+    /** Load the persisted message history from preferences. */
     private void loadMessageHistory() {
         mMessageHistory.clear();
-        String json = getSharedPreferences("termux_prefs", MODE_PRIVATE)
-                .getString(PREF_MESSAGE_HISTORY, null);
-        if (json == null) return;
-        try {
-            JSONArray arr = new JSONArray(json);
-            for (int i = 0; i < arr.length(); i++) {
-                String s = arr.optString(i, null);
-                if (!TextUtils.isEmpty(s) && !mMessageHistory.contains(s)) {
-                    mMessageHistory.add(s);
+        if (mPerDirectoryMessageHistory) {
+            loadMessageHistoryPerDirectory();
+        } else {
+            String json = getSharedPreferences("termux_prefs", MODE_PRIVATE)
+                    .getString(PREF_MESSAGE_HISTORY, null);
+            if (json == null) return;
+            try {
+                JSONArray arr = new JSONArray(json);
+                for (int i = 0; i < arr.length(); i++) {
+                    String s = arr.optString(i, null);
+                    if (!TextUtils.isEmpty(s) && !mMessageHistory.contains(s)) {
+                        mMessageHistory.add(s);
+                    }
                 }
+            } catch (JSONException e) {
+                Logger.logStackTraceWithMessage(LOG_TAG, "Failed to parse message history", e);
             }
-        } catch (JSONException e) {
-            Logger.logStackTraceWithMessage(LOG_TAG, "Failed to parse message history", e);
         }
         // Trim to the configured max (e.g. the user lowered the limit in Settings).
         boolean trimmed = false;
@@ -1304,12 +1760,148 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         if (trimmed) saveMessageHistory();
     }
 
+    /**
+     * Load the per-directory message history map from preferences, then populate
+     * {@link #mMessageHistory} with the list for the current session's working
+     * directory (or empty if none found). If the per-directory store is empty
+     * but global history exists, migrate it as the current CWD's history.
+     * Migration is deferred if no real session exists yet (cwd = fallback "."),
+     * and happens lazily in {@link #onHistoryDirectoryChanged()} once a real
+     * session is selected.
+     */
+    private void loadMessageHistoryPerDirectory() {
+        mMessageHistoryPerDirectory.clear();
+        mHistoryCurrentDirectory = null;
+
+        boolean hadPerDirData = false;
+        String json = getSharedPreferences("termux_prefs", MODE_PRIVATE)
+                .getString(PREF_MESSAGE_HISTORY_PER_DIR, null);
+        if (json != null) {
+            // ... load per-dir data from prefs (unchanged) ...
+            try {
+                JSONObject obj = new JSONObject(json);
+                for (Iterator<String> it = obj.keys(); it.hasNext(); ) {
+                    String dir = it.next();
+                    JSONArray arr = obj.optJSONArray(dir);
+                    if (arr == null) continue;
+                    hadPerDirData = true;
+                    ArrayList<String> list = new ArrayList<>();
+                    for (int i = 0; i < arr.length(); i++) {
+                        String s = arr.optString(i, null);
+                        if (!TextUtils.isEmpty(s) && !list.contains(s)) {
+                            list.add(s);
+                        }
+                    }
+                    mMessageHistoryPerDirectory.put(dir, list);
+                }
+            } catch (JSONException e) {
+                Logger.logStackTraceWithMessage(LOG_TAG, "Failed to parse per-directory message history", e);
+            }
+        }
+
+        // If per-directory store is empty but global history exists, migrate it
+        // under the current CWD key so the user's existing history is not lost
+        // when they first enable the feature.
+        if (!hadPerDirData) {
+            String globalJson = getSharedPreferences("termux_prefs", MODE_PRIVATE)
+                    .getString(PREF_MESSAGE_HISTORY, null);
+            if (!TextUtils.isEmpty(globalJson)) {
+                String cwd = getCurrentCwdForHistory();
+                // If no real session exists yet ("." fallback), defer migration
+                // to the first tab switch (onHistoryDirectoryChanged).
+                if (".".equals(cwd)) {
+                    mHistoryCurrentDirectory = ".";
+                    return;
+                }
+                try {
+                    JSONArray globalArr = new JSONArray(globalJson);
+                    ArrayList<String> migrated = new ArrayList<>();
+                    for (int i = 0; i < globalArr.length(); i++) {
+                        String s = globalArr.optString(i, null);
+                        if (!TextUtils.isEmpty(s) && !migrated.contains(s)) {
+                            migrated.add(s);
+                        }
+                    }
+                    mMessageHistoryPerDirectory.put(cwd, migrated);
+                    mHistoryCurrentDirectory = cwd;
+                    mMessageHistory.clear();
+                    mMessageHistory.addAll(migrated);
+                    // Persist the migrated data and clear the global key
+                    saveMessageHistoryPerDirectory();
+                    getSharedPreferences("termux_prefs", MODE_PRIVATE).edit()
+                            .remove(PREF_MESSAGE_HISTORY).apply();
+                    return;
+                } catch (JSONException e) {
+                    Logger.logStackTraceWithMessage(LOG_TAG, "Failed to migrate global history", e);
+                }
+            }
+        }
+
+        // Load the current CWD's history into mMessageHistory
+        String cwd = getCurrentCwdForHistory();
+        if (cwd != null) {
+            mHistoryCurrentDirectory = cwd;
+            ArrayList<String> dirHistory = mMessageHistoryPerDirectory.get(cwd);
+            if (dirHistory != null) {
+                mMessageHistory.clear();
+                mMessageHistory.addAll(dirHistory);
+            }
+        }
+    }
+
+    /**
+     * Returns the current working directory to use as a per-directory history key,
+     * or a fallback if unavailable.
+     */
+    @NonNull
+    private String getCurrentCwdForHistory() {
+        TerminalSession session = getCurrentSession();
+        if (session != null) {
+            String cwd = session.getCwd();
+            if (!TextUtils.isEmpty(cwd)) return cwd;
+        }
+        return ".";
+    }
+
     /** Persist the current message history to preferences as a JSON array. */
     private void saveMessageHistory() {
+        if (mPerDirectoryMessageHistory) {
+            saveMessageHistoryPerDirectory();
+            return;
+        }
         JSONArray arr = new JSONArray();
         for (String s : mMessageHistory) arr.put(s);
         getSharedPreferences("termux_prefs", MODE_PRIVATE).edit()
                 .putString(PREF_MESSAGE_HISTORY, arr.toString()).apply();
+    }
+
+    /**
+     * Persist the per-directory message history map. Syncs the current
+     * {@link #mMessageHistory} back into the map under the current CWD key,
+     * then serialises the whole map as a JSON object.
+     */
+    private void saveMessageHistoryPerDirectory() {
+        // Sync mMessageHistory back into the map for the current directory
+        String cwd = getCurrentCwdForHistory();
+        if (cwd != null) {
+            ArrayList<String> list = new ArrayList<>(mMessageHistory);
+            mMessageHistoryPerDirectory.put(cwd, list);
+            mHistoryCurrentDirectory = cwd;
+        }
+
+        JSONObject obj = new JSONObject();
+        try {
+            for (HashMap.Entry<String, ArrayList<String>> entry : mMessageHistoryPerDirectory.entrySet()) {
+                JSONArray arr = new JSONArray();
+                for (String s : entry.getValue()) arr.put(s);
+                obj.put(entry.getKey(), arr);
+            }
+        } catch (JSONException e) {
+            Logger.logStackTraceWithMessage(LOG_TAG, "Failed to serialize per-directory message history", e);
+            return;
+        }
+        getSharedPreferences("termux_prefs", MODE_PRIVATE).edit()
+                .putString(PREF_MESSAGE_HISTORY_PER_DIR, obj.toString()).apply();
     }
 
     private boolean isHistoryPopupShowing() {
@@ -1326,8 +1918,37 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         mHistoryItemViews.clear();
         mHistoryHighlightIndex = -1;
 
-        // Nothing worth showing: no history and nothing typed in the input panel.
-        if (!shouldShowHistoryPopup()) return;
+        // Sync per-directory history if the current directory changed since
+        // the last swap (e.g. after `cd` or a tab switch where the client
+        // callback was missed). Without this, the popup would show the
+        // previous directory's history until the user sends a message.
+        if (mPerDirectoryMessageHistory) {
+            String cwd = getCurrentCwdForHistory();
+            if (!cwd.equals(mHistoryCurrentDirectory)) {
+                onHistoryDirectoryChanged();
+            }
+        }
+
+        // Early-exit: no history and no typed text → show an empty-state hint.
+        boolean hasHistory = !mMessageHistory.isEmpty();
+        String currInputText = "";
+        EditText inputFieldRO = findViewById(R.id.terminal_toolbar_text_input);
+        if (inputFieldRO != null) {
+            CharSequence cs = inputFieldRO.getText();
+            if (cs != null) currInputText = cs.toString();
+        }
+        boolean hasInput = !TextUtils.isEmpty(currInputText);
+        if (!hasHistory && !hasInput) {
+            // Show a one-shot Toast for the empty state. A guard flag prevents
+            // re-triggering on every ACTION_MOVE pixel while the finger drags.
+            if (!mHistoryEmptyHintShown) {
+                mHistoryEmptyHintShown = true;
+                Toast bottomToast = Toast.makeText(this, "No message history", Toast.LENGTH_SHORT);
+                bottomToast.setGravity(Gravity.BOTTOM, 0, dpToPx(48));
+                bottomToast.show();
+            }
+            return;
+        }
 
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
@@ -1489,9 +2110,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
      * history, or the input panel currently holds some (unsent) text.
      */
     private boolean shouldShowHistoryPopup() {
-        if (!mMessageHistory.isEmpty()) return true;
-        final EditText inputField = findViewById(R.id.terminal_toolbar_text_input);
-        return inputField != null && !TextUtils.isEmpty(inputField.getText().toString());
+        return true; // always show – either history, or the "empty" hint
     }
 
     /** Highlight the history item currently under the finger (raw screen coords). */
@@ -1574,28 +2193,51 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     }
 
     /**
-     * Ask the user to confirm wiping the entire message history. The popup is
-     * already dismissed by the time we get here (finger released over the top
-     * "Clear message history…" row).
+     * Ask the user to confirm wiping the message history. In per-directory mode
+     * the dialog has three buttons: OK (current directory only), All (all
+     * directories), Cancel. In global mode it stays as OK + Cancel.
      */
     private void confirmClearAllHistory() {
-        AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle("Clear message history?")
-                .setMessage("This will permanently remove all remembered messages.")
-                .setPositiveButton(android.R.string.ok, (d, w) -> clearAllHistory())
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
-        // Dark theme dialog text can blend with the background on MIUI/HyperOS
-        // (the system theme overlay overrides MaterialComponents); fix it so the
-        // text/buttons stay readable in night mode.
-        applyNightDialogColors(dialog);
+        final String title = "Clear message history?";
+        final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_TermuxActivity_Dialog)
+                .setTitle(title)
+                .setNegativeButton(android.R.string.cancel, null);
+
+        if (mPerDirectoryMessageHistory) {
+            builder.setMessage("Clear history for the current directory only?")
+                    .setPositiveButton("OK", (d, w) -> clearAllHistory())
+                    .setNeutralButton("All", (d, w) -> clearAllDirectoriesHistory());
+        } else {
+            builder.setMessage("This will permanently remove all remembered messages.")
+                    .setPositiveButton(android.R.string.ok, (d, w) -> clearAllHistory());
+        }
+
+        builder.show();
     }
 
-    /** Wipe the whole message history (in memory + persisted). */
-    private void clearAllHistory() {
+    /** Wipe message history for ALL directories (per-directory mode only). */
+    private void clearAllDirectoriesHistory() {
+        mMessageHistoryPerDirectory.clear();
         mMessageHistory.clear();
+        mHistoryCurrentDirectory = null;
         getSharedPreferences("termux_prefs", MODE_PRIVATE).edit()
-                .remove(PREF_MESSAGE_HISTORY).apply();
+                .remove(PREF_MESSAGE_HISTORY_PER_DIR).apply();
+    }
+
+    /** Wipe the message history for the current context (global or current directory). */
+    private void clearAllHistory() {
+        if (mPerDirectoryMessageHistory) {
+            String cwd = getCurrentCwdForHistory();
+            if (cwd != null) {
+                mMessageHistoryPerDirectory.remove(cwd);
+                mMessageHistory.clear();
+                saveMessageHistoryPerDirectory();
+            }
+        } else {
+            mMessageHistory.clear();
+            getSharedPreferences("termux_prefs", MODE_PRIVATE).edit()
+                    .remove(PREF_MESSAGE_HISTORY).apply();
+        }
     }
 
     /** Dismiss the history popup and reset highlight state. */
@@ -1612,14 +2254,16 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
     /** "Clear message history..." item: ask for confirmation, then wipe all history. */
     private void confirmClearHistory() {
-        final AlertDialog.Builder b = new AlertDialog.Builder(this);
+        final MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_TermuxActivity_Dialog);
         b.setIcon(android.R.drawable.ic_dialog_alert);
         b.setTitle("Clear message history");
-        b.setMessage("Clear the entire message history? This cannot be undone.");
+        String msg = mPerDirectoryMessageHistory
+                ? "Clear all remembered messages for the current directory? This cannot be undone."
+                : "Clear the entire message history? This cannot be undone.";
+        b.setMessage(msg);
         b.setPositiveButton(android.R.string.yes, (dialog, id) -> {
             dialog.dismiss();
-            mMessageHistory.clear();
-            saveMessageHistory();
+            clearAllHistory();
             showToast("Message history cleared", true);
         });
         b.setNegativeButton(android.R.string.no, null);
@@ -2006,7 +2650,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
     /** "CLEAR HISTORY…" item: confirm, then wipe the whole directory history. */
     private void confirmClearDirectoryHistory() {
-        final AlertDialog.Builder b = new AlertDialog.Builder(this);
+        final MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_TermuxActivity_Dialog);
         b.setTitle("Clear directory history");
         b.setMessage("Clear the entire directory history? This cannot be undone.");
         b.setPositiveButton(android.R.string.yes, (dialog, id) -> {
@@ -2016,28 +2660,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             showToast("Directory history cleared", true);
         });
         b.setNegativeButton(android.R.string.no, null);
-        applyNightDialogColors(b.show());
-    }
-
-    /**
-     * On MIUI/HyperOS the system day-night overlay can leave dialog title,
-     * message and buttons a near-black colour that blends into the dark
-     * background. In night mode only, force them white so they stay readable;
-     * in light mode the default (dark) colour is left untouched.
-     */
-    private void applyNightDialogColors(@NonNull AlertDialog dialog) {
-        boolean isNight = (getResources().getConfiguration().uiMode
-                & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
-                == android.content.res.Configuration.UI_MODE_NIGHT_YES;
-        if (!isNight) return;
-        TextView msg = dialog.findViewById(android.R.id.message);
-        if (msg != null) msg.setTextColor(Color.WHITE);
-        TextView title = dialog.findViewById(android.R.id.title);
-        if (title != null) title.setTextColor(Color.WHITE);
-        Button pos = dialog.getButton(DialogInterface.BUTTON_POSITIVE);
-        if (pos != null) pos.setTextColor(Color.WHITE);
-        Button neg = dialog.getButton(DialogInterface.BUTTON_NEGATIVE);
-        if (neg != null) neg.setTextColor(Color.WHITE);
+        b.show();
     }
 
     private int dpToPx(int dp) {
@@ -2129,11 +2752,14 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         TerminalSession currentSession = getCurrentSession();
         if (currentSession == null) return;
 
-        boolean autoFillEnabled = mTerminalView.isAutoFillEnabled();
+        TerminalView terminalView = getTerminalView();
+        if (terminalView == null) return;
+
+        boolean autoFillEnabled = terminalView.isAutoFillEnabled();
 
         menu.add(Menu.NONE, CONTEXT_MENU_SELECT_URL_ID, Menu.NONE, R.string.action_select_url);
         menu.add(Menu.NONE, CONTEXT_MENU_SHARE_TRANSCRIPT_ID, Menu.NONE, R.string.action_share_transcript);
-        if (!DataUtils.isNullOrEmpty(mTerminalView.getStoredSelectedText()))
+        if (!DataUtils.isNullOrEmpty(terminalView.getStoredSelectedText()))
             menu.add(Menu.NONE, CONTEXT_MENU_SHARE_SELECTED_TEXT, Menu.NONE, R.string.action_share_selected_text);
         if (autoFillEnabled)
             menu.add(Menu.NONE, CONTEXT_MENU_AUTOFILL_USERNAME, Menu.NONE, R.string.action_autofill_username);
@@ -2142,6 +2768,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         menu.add(Menu.NONE, CONTEXT_MENU_RESET_TERMINAL_ID, Menu.NONE, R.string.action_reset_terminal);
         menu.add(Menu.NONE, CONTEXT_MENU_KILL_PROCESS_ID, Menu.NONE, getResources().getString(R.string.action_kill_process, getCurrentSession().getPid())).setEnabled(currentSession.isRunning());
         menu.add(Menu.NONE, CONTEXT_MENU_STYLING_ID, Menu.NONE, R.string.action_style_terminal);
+        menu.add(Menu.NONE, CONTEXT_MENU_FONT_ID, Menu.NONE, R.string.action_font_terminal);
         menu.add(Menu.NONE, CONTEXT_MENU_TOGGLE_KEEP_SCREEN_ON, Menu.NONE, R.string.action_toggle_keep_screen_on).setCheckable(true).setChecked(mPreferences.shouldKeepScreenOn());
         menu.add(Menu.NONE, CONTEXT_MENU_HELP_ID, Menu.NONE, R.string.action_open_help);
         menu.add(Menu.NONE, CONTEXT_MENU_SETTINGS_ID, Menu.NONE, R.string.action_open_settings);
@@ -2151,13 +2778,16 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     /** Hook system menu to show context menu instead. */
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        mTerminalView.showContextMenu();
+        TerminalView tv = getTerminalView();
+        if (tv != null)
+            tv.showContextMenu();
         return false;
     }
 
     @Override
     public boolean onContextItemSelected(MenuItem item) {
         TerminalSession session = getCurrentSession();
+        TerminalView terminalView = getTerminalView();
 
         switch (item.getItemId()) {
             case CONTEXT_MENU_SELECT_URL_ID:
@@ -2170,10 +2800,10 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 mTermuxTerminalViewClient.shareSelectedText();
                 return true;
             case CONTEXT_MENU_AUTOFILL_USERNAME:
-                mTerminalView.requestAutoFillUsername();
+                if (terminalView != null) terminalView.requestAutoFillUsername();
                 return true;
             case CONTEXT_MENU_AUTOFILL_PASSWORD:
-                mTerminalView.requestAutoFillPassword();
+                if (terminalView != null) terminalView.requestAutoFillPassword();
                 return true;
             case CONTEXT_MENU_RESET_TERMINAL_ID:
                 onResetTerminalSession(session);
@@ -2183,6 +2813,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 return true;
             case CONTEXT_MENU_STYLING_ID:
                 showStylingDialog();
+                return true;
+            case CONTEXT_MENU_FONT_ID:
+                showFontPicker();
                 return true;
             case CONTEXT_MENU_TOGGLE_KEEP_SCREEN_ON:
                 toggleKeepScreenOn();
@@ -2205,13 +2838,14 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     public void onContextMenuClosed(Menu menu) {
         super.onContextMenuClosed(menu);
         // onContextMenuClosed() is triggered twice if back button is pressed to dismiss instead of tap for some reason
-        mTerminalView.onContextMenuClosed(menu);
+        TerminalView terminalView = getTerminalView();
+        if (terminalView != null) terminalView.onContextMenuClosed(menu);
     }
 
     private void showKillSessionDialog(TerminalSession session) {
         if (session == null) return;
 
-        final AlertDialog.Builder b = new AlertDialog.Builder(this);
+        final MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_TermuxActivity_Dialog);
         b.setIcon(android.R.drawable.ic_dialog_alert);
         b.setMessage(R.string.title_confirm_kill_process);
         b.setPositiveButton(android.R.string.yes, (dialog, id) -> {
@@ -2245,12 +2879,59 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             getString(R.string.error_styling_not_installed),
             () -> updateTermuxActivityStyling(this, false));
     }
+
+    private static final int REQUEST_FONT_PICKER = 0x4650; // 'FP'
+
+    /**
+     * Open the system document picker filtered to font files so the user can choose a .ttf/.otf
+     * to use as the terminal font. The chosen file is copied to {@code ~/.termux/font.ttf}, which
+     * {@link TermuxTerminalSessionActivityClient} already loads via {@code Typeface.createFromFile}
+     * on the next styling reload, applied live without an activity restart.
+     */
+    private void showFontPicker() {
+        final Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("font/ttf");
+        // Some file managers expose fonts as application/octet-stream or by .ttf extension.
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{
+            "font/ttf", "font/otf", "application/octet-stream"});
+        try {
+            startActivityForResult(intent, REQUEST_FONT_PICKER);
+        } catch (final Exception e) {
+            Toast.makeText(this, R.string.error_font_copy_failed, Toast.LENGTH_SHORT).show();
+            Logger.logStackTraceWithMessage(LOG_TAG, "Failed to launch font picker", e);
+        }
+    }
+
+    private void applyFontFromUri(final Uri uri) {
+        if (uri == null) return;
+        final File fontFile = TermuxConstants.TERMUX_FONT_FILE;
+        // Ensure the ~/.termux directory exists before copying.
+        final File fontDir = fontFile.getParentFile();
+        if (fontDir != null && !fontDir.exists()) {
+            //noinspection ResultOfMethodCallIgnored
+            fontDir.mkdirs();
+        }
+        // Copy the picked document into the terminal font path. FileUtils.copyFile handles
+        // content:// URIs by resolving them through the document provider.
+        final Error error = FileUtils.copyFile("font", uri.toString(), fontFile.getAbsolutePath(), false);
+        if (error != null && error.isStateFailed()) {
+            Toast.makeText(this, R.string.error_font_copy_failed, Toast.LENGTH_SHORT).show();
+            Logger.logWarn(LOG_TAG, "Font copy failed: " + error.getMessage());
+            return;
+        }
+        // Reload styling (no activity recreate) so the new typeface is applied live.
+        updateTermuxActivityStyling(this, false);
+        showToast(getResources().getString(R.string.msg_terminal_font_applied), true);
+    }
     private void toggleKeepScreenOn() {
-        if (mTerminalView.getKeepScreenOn()) {
-            mTerminalView.setKeepScreenOn(false);
+        TerminalView terminalView = getTerminalView();
+        if (terminalView == null) return;
+        if (terminalView.getKeepScreenOn()) {
+            terminalView.setKeepScreenOn(false);
             mPreferences.setKeepScreenOn(false);
         } else {
-            mTerminalView.setKeepScreenOn(true);
+            terminalView.setKeepScreenOn(true);
             mPreferences.setKeepScreenOn(true);
         }
     }
@@ -2292,6 +2973,10 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         Logger.logVerbose(LOG_TAG, "onActivityResult: requestCode: " + requestCode + ", resultCode: "  + resultCode + ", data: "  + IntentUtils.getIntentString(data));
         if (requestCode == PermissionUtils.REQUEST_GRANT_STORAGE_PERMISSION) {
             requestStoragePermission(true);
+        } else if (requestCode == REQUEST_FONT_PICKER) {
+            if (resultCode == Activity.RESULT_OK && data != null) {
+                applyFontFromUri(data.getData());
+            }
         }
     }
 
@@ -2344,6 +3029,68 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         if (mTermuxSessionTabsController != null && mTermuxService != null) {
             mTermuxSessionTabsController.updateTabs(mTermuxService.getTermuxSessions());
         }
+
+        // Keep the horizontal pager in sync with the live session list. Re-point the adapter at the
+        // current list and refresh. We preserve the selected page by re-selecting the index of the
+        // pending/active session afterwards, so adding/removing a tab does not snap the user to
+        // page 0. onPageSelected() then keeps mTerminalView (and extra keys) pointed at the active
+        // session.
+        //
+        // IMPORTANT: notifyDataSetChanged() + setCurrentItem(..., false) must ONLY run when the
+        // number of sessions actually changed (add/remove). On a plain swipe the size is unchanged,
+        // and rebuilding the adapter there destroys the page ViewHolder mid-animation and the
+        // setCurrentItem(false) snaps without the smooth settle — that is what read as an
+        // "abrupt" page switch. So we skip the adapter rebuild on a same-size update.
+        if (mTerminalPager != null && mTerminalPagerAdapter != null && mTermuxService != null) {
+            int newSize = mTermuxService.getTermuxSessionsSize();
+            if (mTerminalPagerAdapter.getItemCount() != newSize) {
+                int oldSize = mTerminalPagerAdapter.getItemCount();
+                int restoreIndex;
+                if (mPendingInitialSession != null) {
+                    restoreIndex = mTermuxService.getIndexOfSession(mPendingInitialSession);
+                    mPendingInitialSession = null;
+                } else if (newSize > oldSize) {
+                    // A session was just added at the end of the list. Jump to its index so the
+                    // new tab becomes active immediately. Previously we restored the index of the
+                    // *current* session, leaving the pager parked on the old page with mTerminalView
+                    // still pointing at the old session. Because the freshly-added page sits beyond
+                    // offscreenPageLimit(1) it is not yet bound, so a later click/swipe on the new
+                    // tab hit the pageView==null early-return in onTerminalPageSelected() and — if
+                    // its attach never lined up with the recovery guard — never re-pointed
+                    // mTerminalView, making the new tab appear un-switchable.
+                    restoreIndex = newSize - 1;
+                } else {
+                    TerminalSession current = getCurrentSession();
+                    restoreIndex = (current != null) ? mTermuxService.getIndexOfSession(current) : mTerminalPager.getCurrentItem();
+                }
+                if (restoreIndex < 0) restoreIndex = mTerminalPager.getCurrentItem();
+
+                // Sync the adapter with the live session list using incremental
+                // notifications (notifyItemRangeInserted / notifyItemRangeRemoved)
+                // instead of notifyDataSetChanged.  Incremental notifications properly
+                // update RecyclerView's internal state (including GapWorker prefetch
+                // tasks), so there is no race with ViewFlinger or the GapWorker —
+                // no more "Inconsistency detected" / "Invalid item position" crashes.
+                // stopScroll() + setUserInputEnabled(false) still fire as a safety net
+                // to suppress touch and smooth-scroll animations during the update.
+                final androidx.recyclerview.widget.RecyclerView pagerRv =
+                        (androidx.recyclerview.widget.RecyclerView) mTerminalPager.getChildAt(0);
+                if (pagerRv != null) pagerRv.stopScroll();
+                mTerminalPager.setUserInputEnabled(false);
+
+                mTerminalPagerAdapter.syncWithServiceList(mTermuxService.getTermuxSessions());
+
+                if (restoreIndex >= 0 && restoreIndex < mTermuxService.getTermuxSessionsSize()) {
+                    mTerminalPager.setCurrentItem(restoreIndex, false);
+                }
+
+                mTerminalPager.setUserInputEnabled(true);
+
+                // Re-point the active page after adapter rebuild (same-index guard).
+                int activeIndex = mTerminalPager.getCurrentItem();
+                onTerminalPageSelected(activeIndex);
+        }
+        }
         // Keep the open-tabs snapshot fresh while sessions are alive, so a later
         // exit (e.g. the notification's Exit action, which kills sessions before
         // onStop runs) still leaves a snapshot to restore on next launch.
@@ -2370,6 +3117,28 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
     public TerminalView getTerminalView() {
         return mTerminalView;
+    }
+
+    /**
+     * Resolve the {@link TerminalView} of the currently active pager page, resolving it live rather
+     * than from the cached {@link #mTerminalView}. Returns {@link #getTerminalView()} when that is
+     * already set, otherwise falls back to the pager's selected page so callers that run in a window
+     * where {@code mTerminalView} has not yet been refreshed (e.g. extra-key input right after a
+     * session is added to an empty pager, where {@code onPageSelected} is not re-fired for page 0)
+     * still reach the correct, bound view instead of getting {@code null} and dropping the action.
+     */
+    @Nullable
+    public TerminalView getActiveTerminalView() {
+        if (mTerminalView != null) return mTerminalView;
+        if (mTerminalPager != null) {
+            TerminalView pageView = getPagerPageView(mTerminalPager.getCurrentItem());
+            if (pageView != null) return pageView;
+        }
+        return null;
+    }
+
+    public androidx.viewpager2.widget.ViewPager2 getTerminalPager() {
+        return mTerminalPager;
     }
 
     public TermuxTerminalViewClient getTermuxTerminalViewClient() {
@@ -2506,11 +3275,19 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                     });
                 }
             } else {
-                // Panel hidden, or focus was on the terminal: focus the terminal.
-                if (mTermuxTerminalViewClient != null)
-                    mTermuxTerminalViewClient.ignoreOnceSoftKeyboardOnFocus();
-                if (mTerminalView != null) {
-                    mTerminalView.requestFocus();
+                // Panel hidden, or focus was on the terminal: focus the terminal — UNLESS the
+                // text input EditText still holds focus. Stealing focus here is what makes a later
+                // long-press on the input panel bubble its context menu up to the terminal menu
+                // instead of selecting a word (long-press regression on the input panel). The
+                // EditText is a sibling of the pager (not inside a page), so it must keep focus
+                // across page switches when the user was typing into it.
+                final EditText currentInput = findViewById(R.id.terminal_toolbar_text_input);
+                if (currentInput == null || !currentInput.hasFocus()) {
+                    if (mTermuxTerminalViewClient != null)
+                        mTermuxTerminalViewClient.ignoreOnceSoftKeyboardOnFocus();
+                    if (mTerminalView != null) {
+                        mTerminalView.requestFocus();
+                    }
                 }
             }
         } else if (visible) {

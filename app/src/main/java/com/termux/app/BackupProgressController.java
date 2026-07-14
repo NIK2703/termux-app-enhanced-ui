@@ -8,7 +8,6 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.FragmentActivity;
 
 import com.termux.R;
@@ -116,8 +115,7 @@ public final class BackupProgressController {
         final ProgressDialog progress = new ProgressDialog(activity);
         progress.setTitle(activity.getString(titleRes));
         progress.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-        progress.setMax(100);
-        progress.setProgressNumberFormat(null); // no percentage number — only the bar itself
+        progress.setIndeterminate(true);
         progress.setCancelable(false);
         progress.setButton(DialogInterface.BUTTON_NEUTRAL,
             activity.getString(R.string.backup_dialog_background), (d, which) -> goBackground());
@@ -125,7 +123,7 @@ public final class BackupProgressController {
             activity.getString(R.string.backup_dialog_cancel), (d, which) -> cancel());
         mBackupDialog = progress;
         progress.show();
-        mLastIndeterminate = false;
+        mLastIndeterminate = true;
 
         mBackupPoll = new Handler(Looper.getMainLooper());
         mBackupPoll.post(mBackupPollRunnable);
@@ -140,10 +138,12 @@ public final class BackupProgressController {
                 finish();
                 return;
             }
-            long copied = svc.getProgressCopied();
-            long total = svc.getProgressTotal();
-            long effective = total > 0 ? total : mBackupEstimated;
-            if (mBackupDialog != null && mBackupDialog.isShowing()) {
+            // Restore: progress IS calculated (files extracted one by one).
+            // Backup: tar stream, size unknown — stay indeterminate throughout.
+            if (mBackupIsRestore && mBackupDialog != null && mBackupDialog.isShowing()) {
+                long copied = svc.getProgressCopied();
+                long total = svc.getProgressTotal();
+                long effective = total > 0 ? total : mBackupEstimated;
                 if (effective > 0) {
                     if (mLastIndeterminate) {
                         mBackupDialog.setIndeterminate(false);
@@ -152,7 +152,6 @@ public final class BackupProgressController {
                     int pct = (int) Math.min(copied * 100 / effective, 100);
                     mBackupDialog.setProgress(pct);
                 } else {
-                    // Size unknown (du failed / SAF size unavailable): show indeterminate spinner.
                     if (!mLastIndeterminate) {
                         mBackupDialog.setIndeterminate(true);
                         mLastIndeterminate = true;
@@ -252,11 +251,11 @@ public final class BackupProgressController {
             Toast.makeText(activity, activity.getString(R.string.backup_restore_cancelled),
                 Toast.LENGTH_LONG).show();
         } else {
-            new AlertDialog.Builder(activity)
-                .setTitle(R.string.backup_restore_failed_title)
-                .setMessage(Error.getMinimalErrorString(error))
-                .setPositiveButton(android.R.string.ok, null)
-                .show();
+            String failMsg = activity.getString(mBackupIsRestore
+                    ? R.string.backup_service_notification_restore_failed
+                    : R.string.backup_service_notification_failed)
+                + ": " + Error.getMinimalErrorString(error);
+            Toast.makeText(activity, failMsg, Toast.LENGTH_LONG).show();
         }
         // Stop the (now idle) service — the bottom Toast already reported the result, matching the
         // upstream commit behaviour.

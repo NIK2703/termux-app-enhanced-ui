@@ -16,16 +16,12 @@
         android:layout_marginVertical="0dp"
         android:orientation="vertical">
 
-        <com.termux.view.TerminalView
-            android:id="@+id/terminal_view"
+        <androidx.viewpager2.widget.ViewPager2
+            android:id="@+id/terminal_view_pager"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_above="@id/terminal_toolbar_container"
-            android:defaultFocusHighlightEnabled="false"
-            android:focusableInTouchMode="true"
-            android:scrollbarThumbVertical="@drawable/terminal_scroll_shape"
-            android:scrollbars="vertical"
-            tools:ignore="UnusedAttribute" />
+            android:orientation="horizontal" />
 
         <LinearLayout
             android:id="@+id/terminal_toolbar_container"

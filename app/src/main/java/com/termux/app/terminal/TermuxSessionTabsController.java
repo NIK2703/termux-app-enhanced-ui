@@ -41,56 +41,113 @@ public class TermuxSessionTabsController {
     public void updateTabs(List<TermuxSession> sessions) {
         if (mTabsContainer == null) return;
 
-        mTabsContainer.removeAllViews();
-
         TerminalSession currentSession = mActivity.getCurrentSession();
         int currentSessionIndex = -1;
-
         for (int i = 0; i < sessions.size(); i++) {
-            TermuxSession termuxSession = sessions.get(i);
-            TerminalSession terminalSession = termuxSession.getTerminalSession();
-
-            if (terminalSession == currentSession) {
+            TermuxSession s = sessions.get(i);
+            if (s != null && s.getTerminalSession() == currentSession) {
                 currentSessionIndex = i;
+                break;
             }
-
-            View tabView = createTabView(termuxSession, i, terminalSession == currentSession);
-            mTabsContainer.addView(tabView);
         }
 
-        if (currentSessionIndex != mCurrentSessionIndex) {
-            mCurrentSessionIndex = currentSessionIndex;
+        int oldCount = mTabsContainer.getChildCount();
+        int newCount = sessions.size();
+
+        if (newCount > oldCount) {
+            // Add new tab views at the end. Existing views stay in place, scrollX preserved.
+            for (int i = oldCount; i < newCount; i++) {
+                TermuxSession termuxSession = sessions.get(i);
+                View tabView = createTabView(termuxSession, i, i == currentSessionIndex);
+                mTabsContainer.addView(tabView);
+            }
+        } else if (newCount < oldCount) {
+            // Remove trailing views. No full wipe, scrollX preserved.
+            mTabsContainer.removeViews(newCount, oldCount - newCount);
+        }
+
+        // Update titles, colors and selection state on ALL tabs in-place.
+        // This covers the equal-count case (no structural change) and also syncs the
+        // newly-added tabs above. No removeAllViews(), so the HorizontalScrollView keeps
+        // its current scrollX.
+        for (int i = 0; i < mTabsContainer.getChildCount() && i < newCount; i++) {
+            TermuxSession termuxSession = sessions.get(i);
+            View tabView = mTabsContainer.getChildAt(i);
+            populateTabView(tabView, termuxSession, i, i == currentSessionIndex);
+        }
+
+        // Always scroll to the active tab after the rebuild.  The post from
+        // scrollToTab() uses last-call-wins (removeCallbacks + Runnable field),
+        // so setCurrentSession() calling scrollToTab() first and updateTabs()
+        // calling it right after does NOT queue two competing scrolls.
+        mCurrentSessionIndex = currentSessionIndex;
+        if (currentSessionIndex >= 0) {
             scrollToTab(currentSessionIndex);
         }
     }
 
+    /**
+     * Inflate a brand-new tab view and attach all click listeners.
+     * Used only for newly-added sessions that don't exist as a view yet.
+     */
     private View createTabView(TermuxSession termuxSession, int position, boolean isSelected) {
         LayoutInflater inflater = LayoutInflater.from(mActivity);
         View tabView = inflater.inflate(R.layout.item_session_tab, mTabsContainer, false);
 
+        final TerminalSession terminalSession = termuxSession.getTerminalSession();
+
+        if (terminalSession != null) {
+            // Click to switch session (without toast notification)
+            tabView.setOnClickListener(v -> {
+                if (terminalSession != null) {
+                    mActivity.getTermuxTerminalSessionClient().setCurrentSession(terminalSession, false);
+                }
+            });
+
+            // Long click to rename
+            tabView.setOnLongClickListener(v -> {
+                if (terminalSession != null) {
+                    mActivity.getTermuxTerminalSessionClient().renameSession(terminalSession);
+                }
+                return true;
+            });
+
+            // Close button — finish and remove session
+            ImageButton closeButton = tabView.findViewById(R.id.session_tab_close);
+            if (closeButton != null) {
+                closeButton.setOnClickListener(v -> {
+                    if (terminalSession != null) {
+                        closeSession(terminalSession);
+                    }
+                });
+            }
+        }
+
+        // Populate text, colors, selection state.
+        populateTabView(tabView, termuxSession, position, isSelected);
+        return tabView;
+    }
+
+    /**
+     * Populate or refresh an existing tab view's content (title, colours, selection state,
+     * close button visibility) without recreating the view or resetting click listeners.
+     */
+    private void populateTabView(View tabView, TermuxSession termuxSession, int position, boolean isSelected) {
         TextView titleView = tabView.findViewById(R.id.session_tab_title);
         ImageButton closeButton = tabView.findViewById(R.id.session_tab_close);
+        if (titleView == null) return;
 
         TerminalSession terminalSession = termuxSession.getTerminalSession();
         if (terminalSession != null) {
             String name = terminalSession.mSessionName;
             String title = terminalSession.getTitle();
 
-            String displayTitle = (name != null && !name.isEmpty()) ? name : 
+            String displayTitle = (name != null && !name.isEmpty()) ? name :
                                   (title != null && !title.isEmpty()) ? title : "Terminal";
-            
-            // Truncate if too long
-            if (displayTitle.length() > 15) {
-                displayTitle = displayTitle.substring(0, 12) + "...";
-            }
-            
+
             titleView.setText(displayTitle);
 
-            // Text color: red for finished-with-error sessions. Otherwise use the terminal color
-            // scheme foreground so every tab (including freshly created ones) follows the
-            // Termux:Style scheme instead of the hardcoded layout default color. If the scheme has
-            // not been applied yet, fall back to the layout default until applySchemeColorsToTabs
-            // runs.
+            // Text colour: red for finished-with-error sessions, otherwise scheme foreground.
             boolean sessionRunning = terminalSession.isRunning();
             if (!sessionRunning && terminalSession.getExitStatus() != 0) {
                 int errorColor = androidx.core.content.ContextCompat.getColor(
@@ -100,18 +157,18 @@ public class TermuxSessionTabsController {
                 titleView.setTextColor(mSchemeTextColor);
             }
 
-            // Close-icon color from the scheme (error tabs keep the close icon neutral too).
+            // Close-icon colour from the scheme.
             if (closeButton != null && mSchemeApplied) {
                 closeButton.setColorFilter(mSchemeTextColor, android.graphics.PorterDuff.Mode.SRC_ATOP);
             }
 
-            // Translucent background matching the signal panel (selected = active tone).
+            // Translucent background matching the signal panel.
             if (mSchemeApplied) {
-                tabView.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
+                tabView.setBackgroundTintList(ColorStateList.valueOf(
                         isSelected ? mSchemeBgActive : mSchemeBg));
             }
 
-            // Strike through for finished sessions
+            // Strike through for finished sessions.
             if (!sessionRunning) {
                 titleView.setPaintFlags(titleView.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
             } else {
@@ -119,35 +176,11 @@ public class TermuxSessionTabsController {
             }
         }
 
-        // Set selection state
+        // Selection state and close button visibility.
         tabView.setSelected(isSelected);
-        
-        // Show close button only for selected tab
-        closeButton.setVisibility(isSelected ? View.VISIBLE : View.INVISIBLE);
-
-        // Click to switch session (without toast notification)
-        tabView.setOnClickListener(v -> {
-            if (terminalSession != null) {
-                mActivity.getTermuxTerminalSessionClient().setCurrentSession(terminalSession, false);
-            }
-        });
-
-        // Long click to rename
-        tabView.setOnLongClickListener(v -> {
-            if (terminalSession != null) {
-                mActivity.getTermuxTerminalSessionClient().renameSession(terminalSession);
-            }
-            return true;
-        });
-
-        // Close button - finish and remove session
-        closeButton.setOnClickListener(v -> {
-            if (terminalSession != null) {
-                closeSession(terminalSession);
-            }
-        });
-
-        return tabView;
+        if (closeButton != null) {
+            closeButton.setVisibility(isSelected ? View.VISIBLE : View.INVISIBLE);
+        }
     }
 
     /**
@@ -160,6 +193,16 @@ public class TermuxSessionTabsController {
         session.finishIfRunning();
     }
 
+    /** Index scheduled for the next scroll runnable. */
+    private int mPendingTabScrollIndex = -1;
+
+    /**
+     * Last-call-wins scroll to the tab at {@code index}.  If a scroll is already
+     * queued (from a caller that is about to call again — e.g. addNewSession →
+     * setCurrentSession + updateTabs both call scrollToTab), the earlier one is
+     * cancelled and only the final target survives.  This prevents the animation
+     * fighting that made the tab strip look abrupt/jerky.
+     */
     private void scrollToTab(int index) {
         if (mTabsContainer == null || mTabsScroll == null) return;
         if (index < 0 || index >= mTabsContainer.getChildCount()) return;
@@ -167,11 +210,22 @@ public class TermuxSessionTabsController {
         final View tabView = mTabsContainer.getChildAt(index);
         if (tabView == null) return;
 
-        mTabsScroll.post(() -> {
+        mPendingTabScrollIndex = index;
+        mTabsScroll.removeCallbacks(mTabScrollRunnable);
+        mTabsScroll.post(mTabScrollRunnable);
+    }
+
+    private final Runnable mTabScrollRunnable = new Runnable() {
+        @Override
+        public void run() {
+            final int idx = mPendingTabScrollIndex;
+            if (idx < 0 || idx >= mTabsContainer.getChildCount()) return;
+            final View tabView = mTabsContainer.getChildAt(idx);
+            if (tabView == null) return;
             int scrollX = tabView.getLeft() - mTabsScroll.getWidth() / 2 + tabView.getWidth() / 2;
             mTabsScroll.smoothScrollTo(scrollX, 0);
-        });
-    }
+        }
+    };
 
     /**
      * Re-apply the terminal color scheme to every existing tab view: text/close-icon color and a
@@ -203,7 +257,7 @@ public class TermuxSessionTabsController {
             if (close != null) {
                 close.setColorFilter(textColor, android.graphics.PorterDuff.Mode.SRC_ATOP);
             }
-            tabView.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
+            tabView.setBackgroundTintList(ColorStateList.valueOf(
                     tabView.isSelected() ? bgActive : bg));
         }
     }
@@ -222,7 +276,7 @@ public class TermuxSessionTabsController {
             // control background, the rest use the normal control background (same colors as the
             // other bottom-panel controls). Only once the scheme colors have been applied.
             if (mSchemeApplied) {
-                child.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
+                child.setBackgroundTintList(ColorStateList.valueOf(
                         isSelected ? mSchemeBgActive : mSchemeBg));
             }
 

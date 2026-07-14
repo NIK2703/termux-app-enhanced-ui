@@ -40,6 +40,23 @@ public class TermuxTerminalExtraKeys extends TerminalExtraKeys {
         setExtraKeys();
     }
 
+    /**
+     * Route extra-key input to the live active pager page rather than the cached
+     * {@code mTerminalView}. The cached pointer is normally kept in sync by
+     * {@link TermuxActivity#onTerminalPageSelected(int)}, but it can stay {@code null} in a window
+     * where {@code onPageSelected} is not re-fired (e.g. the very first session being added to an
+     * otherwise-empty pager: {@code setCurrentItem(0, false)} is a no-op and does not emit a page
+     * change). Without this fallback every extra-keys press would hit the {@code null} guard and be
+     * silently dropped — the "buttons don't send" symptom. Falling back to the activity's active
+     * page resolves the correct, bound view instead.
+     */
+    @Override
+    @androidx.annotation.Nullable
+    protected TerminalView getTerminalViewForInput() {
+        TerminalView active = mActivity.getActiveTerminalView();
+        return active != null ? active : super.getTerminalViewForInput();
+    }
+
 
     /**
      * Set the terminal extra keys and style.
@@ -88,7 +105,7 @@ public class TermuxTerminalExtraKeys extends TerminalExtraKeys {
             if(mTermuxTerminalSessionActivityClient != null)
                 mTermuxTerminalSessionActivityClient.onPasteTextFromClipboard(null);
         }  else if ("SCROLL".equals(key)) {
-            TerminalView terminalView = mTermuxTerminalViewClient.getActivity().getTerminalView();
+            TerminalView terminalView = mTermuxTerminalViewClient.getActivity().getActiveTerminalView();
             if (terminalView != null && terminalView.mEmulator != null)
                 terminalView.mEmulator.toggleAutoScrollDisabled();
         } else {

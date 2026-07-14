@@ -7,6 +7,8 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Handler;
@@ -86,6 +88,61 @@ public final class TerminalView extends View {
     /** What was left in from scrolling movement. */
     float mScrollRemainder;
 
+    /**
+     * Axis lock for the current finger gesture. Once the dominant direction is decided by the
+     * first significant displacement, it is locked until the next {@code ACTION_DOWN} so an
+     * accidental tilt cannot be reinterpreted as a horizontal ViewPager2 session swipe (or vice
+     * versa). The terminal only ever scrolls vertically (history); a horizontal-dominant gesture
+     * is left to the ViewPager2 pager.
+     */
+    private static final int SCROLL_AXIS_UNDECIDED = 0;
+    private static final int SCROLL_AXIS_VERTICAL = 1;
+    private static final int SCROLL_AXIS_HORIZONTAL = 2;
+    private int mScrollAxis = SCROLL_AXIS_UNDECIDED;
+    /** Touch position captured at {@link #onDown(float, float)} to measure total displacement. */
+    private float mScrollDownX, mScrollDownY;
+    /** Minimum total displacement (px) before the scroll axis is locked. */
+    private final int mScrollAxisSlop;
+
+    // ── Interactive scrollbar (draggable thumb) ──
+
+    /** Width of the interactive scrollbar touch region in pixels. */
+    private final int mScrollbarWidth;
+    /** Fixed scrollbar thumb height in dp. */
+    private static final int SCROLLBAR_THUMB_SIZE_DP = 64;
+    /** Scrollbar thumb height in pixels (inited once from {@link #SCROLLBAR_THUMB_SIZE_DP}). */
+    private final int mScrollbarThumbSizePx;
+    /** Radius for the rounded corners of the scrollbar track and thumb. */
+    private static final int SCROLLBAR_CORNER_RADIUS = 12;
+    /** Extra touch tolerance (px) around the thumb on each side for finger targeting. */
+    private final int mScrollbarThumbTouchSlop;
+
+    /** Whether the user is currently dragging the scrollbar thumb. */
+    private boolean mScrollbarDragging;
+    /** Finger Y at the {@link MotionEvent#ACTION_DOWN} that started the current drag. */
+    private float mScrollbarDragStartRawY;
+    /** {@link #mTopRow} captured at drag start (used by relative delta tracking). */
+    private int mScrollbarDragStartTopRow;
+
+    /** Paint for the scrollbar track (a thin vertical strip). */
+    private final Paint mScrollbarTrackPaint;
+    /** Paint for the draggable thumb. */
+    private final Paint mScrollbarThumbPaint;
+    /** Paint for the thumb while being dragged (brighter). */
+    private final Paint mScrollbarThumbActivePaint;
+    /** Paint for the thumb outline in resting state (coloured with the active colour). */
+    private final Paint mScrollbarThumbStrokePaint;
+    /**
+     * Pre-computed scrollbar thumb colours, applied once when the alpha preference changes
+     * (or the colour scheme changes) rather than recomputed on every frame. Initialized with
+     * the hardcoded defaults (~5% / ~12%) so a fresh install without the preference set still
+     * renders correctly.
+     */
+    private int mScrollbarInactiveColor = 0x0D000000;
+    private int mScrollbarActiveColor   = 0x1F000000;
+    /** True once {@link #setScrollbarColors(int, int)} has been called. */
+    private boolean mScrollbarColorsSet;
+
     /** If non-zero, this is the last unicode code point received if that was a combining character. */
     int mCombiningAccent;
 
@@ -153,6 +210,8 @@ public final class TerminalView extends View {
                     return true;
                 }
                 scrolledWithFinger = false;
+                mScrollAxis = SCROLL_AXIS_UNDECIDED;
+                if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
                 return false;
             }
 
@@ -179,6 +238,27 @@ public final class TerminalView extends View {
                     // which we do not do for touch input, only mouse in onTouchEvent().
                     sendMouseEventCode(e, TerminalEmulator.MOUSE_LEFT_BUTTON_MOVED, true);
                 } else {
+                    // Lock the scroll axis for this finger once a decisive displacement is seen, so a
+                    // slightly diagonal drag is not re-interpreted by the parent ViewPager2 as a
+                    // horizontal session swipe (and vice versa). The terminal only ever scrolls
+                    // vertically (history); a horizontal-dominant gesture is left to the pager.
+                    if (mScrollAxis == SCROLL_AXIS_UNDECIDED) {
+                        float totalX = Math.abs(e.getX() - mScrollDownX);
+                        float totalY = Math.abs(e.getY() - mScrollDownY);
+                        if (totalX < mScrollAxisSlop && totalY < mScrollAxisSlop) {
+                            return true; // not enough movement to decide yet
+                        }
+                        mScrollAxis = (totalY >= totalX) ? SCROLL_AXIS_VERTICAL : SCROLL_AXIS_HORIZONTAL;
+                    }
+                    if (mScrollAxis == SCROLL_AXIS_VERTICAL && getParent() != null) {
+                        // Claim the gesture: stop ViewPager2 from paging sessions while we scroll
+                        // the terminal history vertically.
+                        getParent().requestDisallowInterceptTouchEvent(true);
+                    }
+                    // Horizontal axis: session paging belongs to the ViewPager2 — ignore here.
+                    if (mScrollAxis == SCROLL_AXIS_HORIZONTAL) {
+                        return true;
+                    }
                     scrolledWithFinger = true;
                     distanceY += mScrollRemainder;
                     int deltaRows = (int) (distanceY / mRenderer.mFontLineSpacing);
@@ -199,6 +279,9 @@ public final class TerminalView extends View {
             @Override
             public boolean onFling(final MotionEvent e2, float velocityX, float velocityY) {
                 if (mEmulator == null) return true;
+                // If this finger was locked to a horizontal (session-paging) axis, let the ViewPager2
+                // handle the fling instead of scrolling terminal history.
+                if (mScrollAxis == SCROLL_AXIS_HORIZONTAL) return true;
                 // Do not start scrolling until last fling has been taken care of:
                 if (!mScroller.isFinished()) return true;
 
@@ -234,6 +317,12 @@ public final class TerminalView extends View {
 
             @Override
             public boolean onDown(float x, float y) {
+                // Reset axis lock for the new finger gesture and hand control back to the parent
+                // (ViewPager2) so a fresh horizontal session swipe is not blocked by a leftover lock.
+                mScrollAxis = SCROLL_AXIS_UNDECIDED;
+                mScrollDownX = x;
+                mScrollDownY = y;
+                if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
                 // Why is true not returned here?
                 // https://developer.android.com/training/gestures/detector.html#detect-a-subset-of-supported-gestures
                 // Although setting this to true still does not solve the following errors when long pressing in terminal view text area
@@ -258,10 +347,34 @@ public final class TerminalView extends View {
                     startTextSelectionMode(event);
                 }
             }
+
+            @Override
+            public void onCancel(MotionEvent event) {
+                // The parent (ViewPager2) stole the gesture via ACTION_CANCEL mid-drag. Drop the axis
+                // lock and hand control back so the next gesture starts clean.
+                mScrollAxis = SCROLL_AXIS_UNDECIDED;
+                if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
+            }
         });
         mScroller = new Scroller(context);
         AccessibilityManager am = (AccessibilityManager) context.getSystemService(Context.ACCESSIBILITY_SERVICE);
         mAccessibilityEnabled = am.isEnabled();
+        mScrollAxisSlop = ViewConfiguration.get(context).getScaledTouchSlop();
+
+        // Interactive scrollbar paint
+        mScrollbarWidth = (int) (24 * context.getResources().getDisplayMetrics().density + 0.5f);
+        mScrollbarThumbSizePx = (int) (SCROLLBAR_THUMB_SIZE_DP * context.getResources().getDisplayMetrics().density + 0.5f);
+        mScrollbarThumbTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop() + 8;
+        mScrollbarTrackPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        mScrollbarTrackPaint.setColor(0x33FFFFFF);
+        mScrollbarThumbPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        mScrollbarThumbPaint.setColor(0x88FFFFFF);
+        mScrollbarThumbActivePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        mScrollbarThumbActivePaint.setColor(0xBBFFFFFF);
+        mScrollbarThumbStrokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        mScrollbarThumbStrokePaint.setStyle(Paint.Style.STROKE);
+        mScrollbarThumbStrokePaint.setStrokeWidth(0.5f * context.getResources().getDisplayMetrics().density);
+        mScrollbarThumbStrokePaint.setColor(0xBBFFFFFF);
     }
 
 
@@ -300,8 +413,8 @@ public final class TerminalView extends View {
 
         updateSize();
 
-        // Wait with enabling the scrollbar until we have a terminal to get scroll position from.
-        setVerticalScrollBarEnabled(true);
+        // System scrollbar is disabled — we draw our own interactive thumb.
+        setVerticalScrollBarEnabled(false);
 
         return true;
     }
@@ -603,12 +716,136 @@ public final class TerminalView extends View {
         return false;
     }
 
+    // ── Interactive scrollbar helpers ──
+
+    /** Check if a horizontal coordinate falls inside the scrollbar touch region. */
+    private boolean isInScrollbarRegion(float x) {
+        return x >= (getWidth() - mScrollbarWidth);
+    }
+
+    /** Check if a touch point is on or near the scrollbar thumb (within touch slop). */
+    private boolean isOnThumb(float x, float y) {
+        if (!isInScrollbarRegion(x)) return false;
+        int range = getScrollbarRange();
+        if (range <= 0) return false;
+        RectF thumb = computeThumbRect();
+        return y >= (thumb.top - mScrollbarThumbTouchSlop)
+            && y <= (thumb.bottom + mScrollbarThumbTouchSlop);
+    }
+
+    /**
+     * Compute the vertical range (in rows) the scrollbar can cover.
+     * Returns 0 when there is nothing to scroll.
+     */
+    private int getScrollbarRange() {
+        if (mEmulator == null) return 0;
+        return mEmulator.getScreen().getActiveTranscriptRows();
+    }
+
+    /**
+     * Return the rectangle (in view coordinates) where the scrollbar thumb sits.
+     * The track occupies the full view height; the thumb is positioned proportionally.
+     */
+    private RectF computeThumbRect() {
+        int range = getScrollbarRange();
+        if (range <= 0) return new RectF(); // no history → zero-size thumb
+
+        float viewW = getWidth();
+        float viewH = getHeight();
+        float trackLeft = viewW - mScrollbarWidth;
+        float thumbW = mScrollbarWidth - 4; // 2px inset on each side
+
+        // Thumb height: fixed size (not proportional)
+        float thumbH = Math.min(mScrollbarThumbSizePx, viewH);
+        if (thumbH > viewH) thumbH = viewH;
+
+        // Vertical position: offset from top of the track
+        // At mTopRow = 0 (bottom) → thumb at bottom of track
+        // At mTopRow = -range (top of history) → thumb at top of track
+        float scrollFraction = (range + mTopRow) / (float) range; // 1 at bottom, 0 at top
+        float maxOffset = viewH - thumbH;
+        float thumbTop = scrollFraction * maxOffset;
+
+        return new RectF(trackLeft + 2, thumbTop, trackLeft + 2 + thumbW, thumbTop + thumbH);
+    }
+
+    /**
+     * Map a finger Y coordinate to the corresponding {@link #mTopRow} value,
+     * clamped within the valid range [-getScrollbarRange(), 0].
+     */
+    private int fingerYtoTopRow(float fingerY) {
+        int range = getScrollbarRange();
+        if (range <= 0) return 0;
+
+        float viewH = getHeight();
+        float thumbH = visibleRowsPerThumbHeight(range);
+        float maxOffset = viewH - thumbH;
+        if (maxOffset < 1f) return 0; // thumb fills view → no scrolling needed
+
+        float clampedY = Math.max(0, Math.min(fingerY, viewH));
+        float scrollFraction = clampedY / maxOffset;
+        // Clamp to [0, 1] — finger past bottom of track stays at bottom
+        if (scrollFraction < 0f) scrollFraction = 0f;
+        if (scrollFraction > 1f) scrollFraction = 1f;
+        return (int) (scrollFraction * range - range);
+    }
+
+    /** Height of the thumb (duplicated from computeThumbRect for drag calculations). */
+    private float visibleRowsPerThumbHeight(int range) {
+        return Math.min(mScrollbarThumbSizePx, getHeight());
+    }
+
     @SuppressLint("ClickableViewAccessibility")
     @Override
     @TargetApi(23)
     public boolean onTouchEvent(MotionEvent event) {
         if (mEmulator == null) return true;
         final int action = event.getAction();
+
+        // ── Scrollbar drag handling ──
+        // Intercept touch in the scrollbar region before anything else.
+        // While dragging we consume all events; once the drag ends, the
+        // gesture recognizer gets nothing so it won't interpret the
+        // scrollbar gesture as a terminal scroll or long-press.
+        if (!isSelectingText()
+                && !event.isFromSource(InputDevice.SOURCE_MOUSE)
+                && event.getPointerCount() == 1) {
+            if (mScrollbarDragging) {
+                switch (action) {
+                    case MotionEvent.ACTION_MOVE: {
+                        int range = getScrollbarRange();
+                        if (range > 0) {
+                            float viewH = getHeight();
+                            float thumbH = visibleRowsPerThumbHeight(range);
+                            float maxOffset = Math.max(viewH - thumbH, 1f);
+                            float rowsPerPx = (float) range / maxOffset;
+                            float deltaY = event.getY() - mScrollbarDragStartRawY;
+                            int deltaRows = Math.round(deltaY * rowsPerPx);
+                            int newTopRow = mScrollbarDragStartTopRow + deltaRows;
+                            mTopRow = Math.max(-range, Math.min(0, newTopRow));
+                            invalidate();
+                        }
+                        return true;
+                    }
+                    case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_CANCEL:
+                        mScrollbarDragging = false;
+                        invalidate();
+                        return true;
+                }
+            } else if (action == MotionEvent.ACTION_DOWN && isOnThumb(event.getX(), event.getY())) {
+                // Lock vertical scroll axis for the whole drag — don't let
+                // ViewPager2 interpret this touch as a page swipe.
+                if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
+                mScrollbarDragging = true;
+                // Don't jump the thumb — record current position; MOVE applies
+                // a relative delta so the thumb stays anchored under the finger.
+                mScrollbarDragStartRawY = event.getY();
+                mScrollbarDragStartTopRow = mTopRow;
+                invalidate();
+                return true;
+            }
+        }
 
         if (isSelectingText()) {
             updateFloatingToolbarVisibility(event);
@@ -1027,6 +1264,68 @@ public final class TerminalView extends View {
 
             // render the text selection handles
             renderTextSelection();
+
+            // ── Interactive scrollbar ──
+            drawScrollbar(canvas);
+        }
+    }
+
+    /**
+     * Push pre-computed scrollbar thumb colours (already alpha-blended against the appropriate
+     * dark/light base) from the settings/app layer. Called once when the alpha preference changes
+     * or the colour scheme is applied — the colour is computed ONE time, not on every frame.
+     */
+    public void setScrollbarColors(int inactiveColor, int activeColor) {
+        mScrollbarInactiveColor = inactiveColor;
+        mScrollbarActiveColor = activeColor;
+        mScrollbarColorsSet = true;
+        invalidate();
+    }
+
+    /**
+     * Draw the interactive scrollbar thumb on the right edge of the view.
+     * The thumb colour is pre-computed by the app layer (see {@link #setScrollbarColors(int, int)})
+     * so the alpha is applied ONCE when the preference changes instead of on every frame.
+     * Falls back to scheme-derived computation when the setter has not been called yet
+     * (e.g. before the activity fully wires up).
+     */
+    private void drawScrollbar(Canvas canvas) {
+        int range = getScrollbarRange();
+        if (range <= 0) return; // no history → nothing to draw
+
+        RectF thumbRect = computeThumbRect();
+        if (thumbRect.width() <= 0 || thumbRect.height() <= 0) return;
+
+        int color;
+        if (mScrollbarColorsSet) {
+            // Use the pre-computed colour (alpha baked in once at preference-change time).
+            color = mScrollbarDragging ? mScrollbarActiveColor : mScrollbarInactiveColor;
+        } else {
+            // Fallback: derive from the terminal scheme background on-the-fly (old behaviour).
+            int bg = TerminalColors.COLOR_SCHEME.mDefaultColors[TextStyle.COLOR_INDEX_BACKGROUND];
+            boolean isLight = TerminalColors.getPerceivedBrightnessOfColor(bg) >= 130;
+            int alpha = mScrollbarDragging ? 0x1F : 0x0D;
+            int base = isLight ? 0x000000 : 0xFFFFFF;
+            color = (alpha << 24) | base;
+        }
+
+        Paint paint = mScrollbarDragging ? mScrollbarThumbActivePaint : mScrollbarThumbPaint;
+        paint.setColor(color);
+        float radius = thumbRect.width() / 2f;
+        canvas.drawRoundRect(thumbRect, radius, radius, paint);
+
+        // Resting state gets an outline in the active colour.
+        if (!mScrollbarDragging) {
+            int strokeColor;
+            if (mScrollbarColorsSet) {
+                strokeColor = mScrollbarActiveColor;
+            } else {
+                int bg = TerminalColors.COLOR_SCHEME.mDefaultColors[TextStyle.COLOR_INDEX_BACKGROUND];
+                boolean isLight = TerminalColors.getPerceivedBrightnessOfColor(bg) >= 130;
+                strokeColor = (0x1F << 24) | (isLight ? 0x000000 : 0xFFFFFF);
+            }
+            mScrollbarThumbStrokePaint.setColor(strokeColor);
+            canvas.drawRoundRect(thumbRect, radius, radius, mScrollbarThumbStrokePaint);
         }
     }
 

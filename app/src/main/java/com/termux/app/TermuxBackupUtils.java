@@ -121,22 +121,15 @@ public final class TermuxBackupUtils {
         }
         final String filesDir = TermuxConstants.TERMUX_FILES_DIR_PATH;
         final String parentDir = TermuxConstants.TERMUX_INTERNAL_PRIVATE_APP_DATA_DIR_PATH;
-        // Measure progress against the *uncompressed* tar stream (we gzip ourselves
-        // inside runTar), so it lines up with the du-based estimate and the bar ends
-        // at 100% without blocking the UI thread to pre-measure a compressed archive.
-        long estimatedSize = getEstimatedBackupSize(context);
-        // tar adds a 512-byte header + block padding per entry (plus two 512-byte end
-        // blocks), so the real uncompressed stream is larger than `du`'s number. Add a
-        // ~5% + 2MB overhead budget so the bar reaches close to 100% at true EOF.
-        // The final onProgress snap (bytesCopied=total) bridges the gap to exactly 100%.
-        if (estimatedSize > 0) {
-            estimatedSize += Math.max(estimatedSize / 20, 2L * 1024 * 1024);
-        }
+
+        // totalBytes=0 → progress callback always gets (copied, 0), so the poll
+        // loop falls back to mBackupEstimated (also 0 for backup) → indeterminate
+        // spinner. No size estimation needed — archiving starts immediately.
         runTar(context,
             new String[]{TAR_BINARY, "-cpf", "-", "--numeric-owner",
                 "-C", filesDir, "."},
             null, out, listener, progress,
-            new File(parentDir), estimatedSize, cancelled);
+            new File(parentDir), 0L, cancelled);
     }
 
     // -----------------------------------------------------------------------

@@ -229,20 +229,21 @@ public final class TermuxBackupService extends Service {
         // and the service would stopSelf() without ever cancelling the running operation.
         if (intent != null && ACTION_CANCEL.equals(intent.getAction())) {
             cancelOperation();
-            // If no live operation exists (worker already finished or never started), the flag
-            // alone won't produce any result notification or stopSelf. Clean up the empty service
-            // here so it doesn't linger with a stale notification.
-            if (mWorker == null || !mWorker.isAlive()) {
-                NotificationManager nm = NotificationUtils.getNotificationManager(this);
-                if (nm != null) nm.cancel(TermuxConstants.TERMUX_BACKUP_NOTIFICATION_ID);
-                if (mStartedForeground) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        stopForeground(STOP_FOREGROUND_REMOVE);
-                    } else {
-                        stopForeground(true);
-                    }
-                    mStartedForeground = false;
+            // Immediately remove the notification from the shade — the user asked to cancel.
+            NotificationManager nm = NotificationUtils.getNotificationManager(this);
+            if (nm != null) nm.cancel(TermuxConstants.TERMUX_BACKUP_NOTIFICATION_ID);
+            if (mStartedForeground) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    stopForeground(STOP_FOREGROUND_REMOVE);
+                } else {
+                    stopForeground(true);
                 }
+                mStartedForeground = false;
+            }
+            mInForeground = false;
+            // If no live operation exists, clean up entirely. Otherwise the worker eventually
+            // finishes and sees !mInForeground && isCancelled → stopSelf() by itself.
+            if (mWorker == null || !mWorker.isAlive()) {
                 stopSelf();
             }
             return START_NOT_STICKY;
@@ -412,11 +413,17 @@ public final class TermuxBackupService extends Service {
     }
 
     private Notification buildProgressNotification(boolean isRestore, long copied, long total) {
-        int pct = (total > 0) ? (int) Math.min(copied * 100 / total, 100) : 0;
         CharSequence title = getString(isRestore
             ? R.string.backup_service_notification_restore_title
             : R.string.backup_service_notification_title);
-        CharSequence text = getString(R.string.backup_service_notification_progress, pct);
+        // Restore: show calculated percentage. Backup: tar stream, empty text (indeterminate only).
+        CharSequence text;
+        if (isRestore) {
+            int pct = (total > 0) ? (int) Math.min(copied * 100 / total, 100) : 0;
+            text = getString(R.string.backup_service_notification_progress, pct);
+        } else {
+            text = "";
+        }
 
         Notification.Builder builder = NotificationUtils.geNotificationBuilder(this,
             TermuxConstants.TERMUX_BACKUP_PROGRESS_NOTIFICATION_CHANNEL_ID,
@@ -432,10 +439,17 @@ public final class TermuxBackupService extends Service {
             .setOnlyAlertOnce(true)
             .addAction(android.R.drawable.ic_menu_close_clear_cancel,
                 getString(R.string.backup_service_notification_cancel), cancelIntent());
-        if (total > 0) {
-            builder.setProgress(100, pct, false);
+        if (isRestore) {
+            // Restore: determinate bar with known progress.
+            if (total > 0) {
+                int pct = (int) Math.min(copied * 100 / total, 100);
+                builder.setProgress(100, pct, false);
+            } else {
+                builder.setProgress(0, 0, true);
+            }
         } else {
-            builder.setProgress(0, 0, true); // indeterminate when size is unknown
+            // Backup: indeterminate — tar stream, size unknown.
+            builder.setProgress(0, 0, true);
         }
         return builder.build();
     }

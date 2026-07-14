@@ -1,42 +1,20 @@
-# From https://gist.github.com/iainconnor/8605514
-# with the addition of the /captures below.
-/captures
+# Agent artifacts
+AGENT*.md
+AGENT*.java
+AGENT*.txt
+agent*.patch
+agent*.diff
+*.patch
+patches/
 
-# Built application files
-build/
-release/
-*.apk
-*.so
-.externalNativeBuild
-.cxx
-*.zip
+# Secrets / generated
+app/keystore.properties
+app/src/main/cpp/bootstrap-*.zip
 
-# Local configuration file (sdk path, etc)
-local.properties
-
-# Gradle generated files
-.gradle/
-
-# Signing files
-.signing/
-
-# Intellij
+# IDE
 .idea/
 *.iml
-
-# Log files (build logs, ad-hoc verify logs)
-*.log
-
-# OS-specific files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-.swp
-ehthumbs.db
-Thumbs.db
-
-# Local signing / SDK config (contains secrets)
-app/keystore.properties
+.gradle/
+build/
 local.properties
+*.log

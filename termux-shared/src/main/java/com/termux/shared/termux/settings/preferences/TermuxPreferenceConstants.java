@@ -102,6 +102,13 @@ public final class TermuxPreferenceConstants {
         public static final String KEY_SHOW_TERMINAL_TOOLBAR = "show_extra_keys";
         public static final boolean DEFAULT_VALUE_SHOW_TERMINAL_TOOLBAR = true;
 
+        /**
+         * Defines the key for whether sending text from the text input field also appends a
+         * carriage return ("Enter") to submit the line, instead of writing the raw text only.
+         */
+        public static final String KEY_TEXT_INPUT_APPEND_ENTER = "text_input_append_enter";
+        public static final boolean DEFAULT_VALUE_TEXT_INPUT_APPEND_ENTER = true;
+
 
         /**
          * Defines the key for whether the soft keyboard will be enabled, for cases where users want
@@ -179,6 +186,23 @@ public final class TermuxPreferenceConstants {
          */
         public static final String KEY_CRASH_REPORT_NOTIFICATIONS_ENABLED = "crash_report_notifications_enabled";
         public static final boolean DEFAULT_VALUE_CRASH_REPORT_NOTIFICATIONS_ENABLED = true;
+
+
+        /**
+         * Defines the key for the background transparency (alpha) of inactive panel elements
+         * (bottom buttons, scrollbar thumb). Stored as an integer percentage 0–10, where 5 means
+         * ~5% alpha (0x0D = ~13/255). Applied ONCE when the setting changes.
+         */
+        public static final String KEY_BUTTON_BG_INACTIVE_ALPHA = "button_bg_inactive_alpha";
+        public static final int DEFAULT_BUTTON_BG_INACTIVE_ALPHA = 5;
+
+        /**
+         * Defines the key for the background transparency (alpha) of active / pressed panel
+         * elements. Stored as an integer percentage 10–20, where 12 means ~12% alpha
+         * (0x1F = ~31/255). Applied ONCE when the setting changes.
+         */
+        public static final String KEY_BUTTON_BG_ACTIVE_ALPHA = "button_bg_active_alpha";
+        public static final int DEFAULT_BUTTON_BG_ACTIVE_ALPHA = 12;
 
     }
 

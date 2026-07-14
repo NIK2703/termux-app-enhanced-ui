@@ -24,6 +24,9 @@ final class GestureAndScaleRecognizer {
         boolean onUp(MotionEvent e);
 
         void onLongPress(MotionEvent e);
+
+        /** Called when the gesture is cancelled (e.g. parent View intercepts via ACTION_CANCEL). */
+        void onCancel(MotionEvent e);
     }
 
     private final GestureDetector mGestureDetector;
@@ -101,6 +104,10 @@ final class GestureAndScaleRecognizer {
                     // want to move the cursor when lifting finger after a long press.
                     mListener.onUp(event);
                 }
+                break;
+            case MotionEvent.ACTION_CANCEL:
+                isAfterLongPress = false;
+                mListener.onCancel(event);
                 break;
         }
     }

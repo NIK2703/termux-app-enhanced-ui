@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A single terminal page inside the horizontal session pager (ViewPager2).
+     Each page hosts its own TerminalView bound to one TerminalSession, so a
+     horizontal swipe reveals the neighbouring session mid-drag (smooth paging). -->
+<com.termux.view.TerminalView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/terminal_view_page"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:defaultFocusHighlightEnabled="false"
+    android:focusableInTouchMode="true"
+    android:scrollbarThumbVertical="@drawable/terminal_scroll_shape"
+    android:scrollbars="vertical" />

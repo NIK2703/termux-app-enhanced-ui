@@ -83,6 +83,10 @@ public class TermuxAppSharedPreferences extends AppSharedPreferences {
     }
 
 
+    public boolean shouldTextInputAppendEnter() {
+        return SharedPreferenceUtils.getBoolean(mSharedPreferences, TERMUX_APP.KEY_TEXT_INPUT_APPEND_ENTER, TERMUX_APP.DEFAULT_VALUE_TEXT_INPUT_APPEND_ENTER);
+    }
+
 
     public boolean isTerminalMarginAdjustmentEnabled() {
         return SharedPreferenceUtils.getBoolean(mSharedPreferences, TERMUX_APP.KEY_TERMINAL_MARGIN_ADJUSTMENT, TERMUX_APP.DEFAULT_TERMINAL_MARGIN_ADJUSTMENT);
@@ -245,6 +249,25 @@ public class TermuxAppSharedPreferences extends AppSharedPreferences {
         SharedPreferenceUtils.setBoolean(mSharedPreferences, TERMUX_APP.KEY_PLUGIN_ERROR_NOTIFICATIONS_ENABLED, value, false);
     }
 
+
+
+
+
+    public int getButtonBgInactiveAlpha() {
+        return SharedPreferenceUtils.getInt(mSharedPreferences, TERMUX_APP.KEY_BUTTON_BG_INACTIVE_ALPHA, TERMUX_APP.DEFAULT_BUTTON_BG_INACTIVE_ALPHA);
+    }
+
+    public void setButtonBgInactiveAlpha(int value) {
+        SharedPreferenceUtils.setInt(mSharedPreferences, TERMUX_APP.KEY_BUTTON_BG_INACTIVE_ALPHA, value, false);
+    }
+
+    public int getButtonBgActiveAlpha() {
+        return SharedPreferenceUtils.getInt(mSharedPreferences, TERMUX_APP.KEY_BUTTON_BG_ACTIVE_ALPHA, TERMUX_APP.DEFAULT_BUTTON_BG_ACTIVE_ALPHA);
+    }
+
+    public void setButtonBgActiveAlpha(int value) {
+        SharedPreferenceUtils.setInt(mSharedPreferences, TERMUX_APP.KEY_BUTTON_BG_ACTIVE_ALPHA, value, false);
+    }
 
 
     public boolean areCrashReportNotificationsEnabled(boolean readFromFile) {

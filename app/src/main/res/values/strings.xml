@@ -79,11 +79,15 @@
 
     <string name="action_reset_terminal">Reset</string>
     <string name="msg_terminal_reset">Terminal reset</string>
+    <string name="msg_terminal_font_applied">Font applied</string>
 
     <string name="action_kill_process">Kill process (%d)</string>
     <string name="title_confirm_kill_process">Really kill this session?</string>
 
     <string name="action_style_terminal">Style</string>
+    <string name="action_font_terminal">Font</string>
+    <string name="font_picker_title">Select a font (.ttf)</string>
+    <string name="error_font_copy_failed">Failed to apply font</string>
     <string name="action_toggle_keep_screen_on">Keep screen on</string>
     <string name="action_open_help">Help</string>
     <string name="action_open_settings">Settings</string>
@@ -140,6 +144,11 @@
     <string name="title_activity_termux_settings">&TERMUX_APP_NAME; Settings</string>
 
     <!-- Termux App Preferences -->
+    <string name="appearance_preferences_title">Appearance</string>
+    <string name="appearance_preferences_summary">Preferences for app appearance and panel transparency</string>
+    <string name="theme_title">Theme</string>
+    <string name="panel_transparency_title">Panel Transparency</string>
+
     <string name="termux_preferences_title">&TERMUX_APP_NAME;</string>
     <string name="termux_preferences_summary">Preferences for &TERMUX_APP_NAME; app</string>
 
@@ -202,6 +211,12 @@
             <!-- View Category -->
             <string name="termux_terminal_view_view_header">View</string>
 
+                <!-- Button Background Inactive Alpha -->
+                <string name="termux_button_bg_inactive_alpha_title">Inactive element transparency (0–10%)</string>
+
+                <!-- Button Background Active Alpha -->
+                <string name="termux_button_bg_active_alpha_title">Active element transparency (10–20%)</string>
+
                 <!-- Terminal View Margin Adjustment -->
                 <string name="termux_terminal_view_terminal_margin_adjustment_title">Terminal Margin Adjustment</string>
                 <string name="termux_terminal_view_terminal_margin_adjustment_off">Terminal margin adjustment will be disabled.</string>
@@ -252,6 +267,13 @@
     <!-- Message history preferences -->
     <string name="message_history_title">Message History</string>
     <string name="message_history_max_title">Max remembered messages</string>
+    <string name="per_directory_message_history_title">Per-directory message history</string>
+    <string name="per_directory_message_history_summary">Keep a separate message history for each working directory. When off, all sessions share one global history.</string>
+
+    <!-- Text input preferences -->
+    <string name="text_input_title">Text Input</string>
+    <string name="text_input_append_enter_title">Append Enter on send</string>
+    <string name="text_input_append_enter_summary">When sending from the input field, also submit the line (press Enter). Disable to send raw text without a trailing newline.</string>
 
     <!-- Directory history preferences -->
     <string name="directory_history_title">Directory History</string>

@@ -1,26 +1,5 @@
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <ListPreference
-        app:key="theme_mode"
-        app:title="@string/theme_mode_title"
-        app:summary="@string/theme_mode_summary"
-        app:entries="@array/theme_mode_entries"
-        app:entryValues="@array/theme_mode_values"
-        app:defaultValue="system"
-        app:iconSpaceReserved="false" />
-
-    <Preference
-        app:key="color_scheme_light"
-        app:title="@string/color_scheme_light_title"
-        app:summary="@string/color_scheme_light_summary"
-        app:iconSpaceReserved="false" />
-
-    <Preference
-        app:key="color_scheme_dark"
-        app:title="@string/color_scheme_dark_title"
-        app:summary="@string/color_scheme_dark_summary"
-        app:iconSpaceReserved="false" />
-
     <Preference
         app:title="@string/termux_debugging_preferences_title"
         app:summary="@string/termux_debugging_preferences_summary"
@@ -42,6 +21,22 @@
             app:title="@string/message_history_max_title"
             app:defaultValue="20"
             app:showSeekBarValue="true"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="per_directory_message_history"
+            app:title="@string/per_directory_message_history_title"
+            app:summary="@string/per_directory_message_history_summary"
+            app:defaultValue="false"
+            app:iconSpaceReserved="false" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/text_input_title" app:iconSpaceReserved="false">
+        <SwitchPreferenceCompat
+            app:key="text_input_append_enter"
+            app:title="@string/text_input_append_enter_title"
+            app:summary="@string/text_input_append_enter_summary"
+            app:defaultValue="true"
             app:iconSpaceReserved="false" />
     </PreferenceCategory>
 

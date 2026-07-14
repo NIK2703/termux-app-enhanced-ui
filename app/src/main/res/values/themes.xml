@@ -61,4 +61,19 @@
         <item name="extraKeysButtonActiveBackgroundColor">@color/extra_keys_button_active_background_light</item>
     </style>
 
+    <!--
+      Dialog theme overlay for TermuxActivity dialogs on MIUI/HyperOS.
+      The system overlay can force dialog button text to near-black even in
+      night mode; override materialAlertDialogButtonStyle with an explicit
+      text colour that stays readable on a dark background.
+    -->
+    <style name="ThemeOverlay.TermuxActivity.Dialog" parent="ThemeOverlay.BaseDialog.DayNight">
+        <item name="android:buttonBarButtonStyle">@style/TermuxActivity.Dialog.Button</item>
+    </style>
+
+    <style name="TermuxActivity.Dialog.Button" parent="@style/Widget.MaterialComponents.Button.TextButton">
+        <!-- Light-mode: black text on the light dialog background. -->
+        <item name="android:textColor">@color/black</item>
+    </style>
+
 </resources>
