@@ -367,6 +367,17 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     /** Cached separator colour (foreground @ ~24% alpha). */
     private int mHistoryPopupSepColor = 0;
 
+    /** Cached panel/button background colour (scheme-derived, inactive). */
+    private int mButtonBg = 0;
+    /** Cached panel/button active background colour. */
+    private int mButtonActiveBg = 0;
+    /** Cached panel/button text colour (scheme foreground). */
+    private int mButtonText = 0;
+    /** Cached text selection highlight colour (black/white @15%). */
+    private int mTextSelectionHighlightColor = 0;
+    /** Cached scheme lightness flag. */
+    private boolean mIsSchemeLight = false;
+
     /** Currently highlighted history item index while dragging, or -1 for none. */
     private int mHistoryHighlightIndex = -1;
 
@@ -1962,7 +1973,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
-        // Popup colours are pre-cached by recomputePopupColors() (called from reloadActivityStyling()).
+        // Popup colours are pre-cached by recomputeUIColors() (called from reloadActivityStyling()).
         // Content itself is transparent; the popup background drawable provides the visual colour
         // + 15% transparency + elevation shadow behind the rounded corners.
         content.setBackgroundColor(Color.TRANSPARENT);
@@ -2096,7 +2107,10 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 super.getOutline(outline);
                 if (!outline.isEmpty()) {
                     // Keep elevation large, but make the shadow softer/transparent.
-                    outline.setAlpha(0.40f);
+                    // setAlpha requires API 31+.
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        outline.setAlpha(0.65f);
+                    }
                 }
             }
         };
@@ -2583,7 +2597,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
-        // Popup colours are pre-cached by recomputePopupColors() (called from reloadActivityStyling()).
+        // Popup colours are pre-cached by recomputeUIColors() (called from reloadActivityStyling()).
         // Content itself is transparent; the popup background drawable provides the visual colour
         // + 15% transparency + elevation shadow behind the rounded corners.
         content.setBackgroundColor(Color.TRANSPARENT);
@@ -2672,7 +2686,10 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 super.getOutline(outline);
                 if (!outline.isEmpty()) {
                     // Keep elevation large, but make the shadow softer/transparent.
-                    outline.setAlpha(0.40f);
+                    // setAlpha requires API 31+.
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        outline.setAlpha(0.65f);
+                    }
                 }
             }
         };
@@ -2749,24 +2766,49 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     }
 
     /**
-     * (Re)compute popup colours from the current terminal colour scheme and panel transparency prefs.
-     * Must be called whenever the scheme or the inactive-alpha slider changes so that context windows
-     * ({@link #showMessageHistoryPopup(View)} and {@link #showDirectoryHistoryPopup(View)}) use fresh
-     * colours without recomputing them on every open.
+     * (Re)compute ALL UI colours derived from the terminal colour scheme and panel transparency
+     * prefs — panel buttons, text selection highlight, context-popup backgrounds and separators.
+     * Must be called whenever the scheme or the inactive-alpha slider changes so that every styled
+     * element uses fresh colours without recomputing them on every draw / event.
+     * <p>
+     * Both light and dark scheme variants are covered: when the scheme switches, this runs again
+     * and overwrites the cached fields with the new values.
      */
-    public void recomputePopupColors() {
-        boolean isSchemeLight = ColorSchemeUtils.isTerminalSchemeLight();
+    public void recomputeUIColors() {
+        mIsSchemeLight = ColorSchemeUtils.isTerminalSchemeLight();
         TermuxAppSharedPreferences prefs = getPreferences();
         int inactivePct = prefs != null ? prefs.getButtonBgInactiveAlpha() : 5;
-        int inactiveOverlay = ColorSchemeUtils.getButtonBackground(isSchemeLight, inactivePct);
+        int activePct   = prefs != null ? prefs.getButtonBgActiveAlpha() : 12;
+
+        // Panel button colours
+        mButtonBg = ColorSchemeUtils.getButtonBackground(mIsSchemeLight, inactivePct);
+        mButtonActiveBg = ColorSchemeUtils.getButtonActiveBackground(mIsSchemeLight, activePct);
+        mButtonText = ColorSchemeUtils.getSchemeForeground();
+        mTextSelectionHighlightColor = mIsSchemeLight
+                ? Color.argb(38, 0, 0, 0)        // light scheme -> black @15%
+                : Color.argb(38, 255, 255, 255); // dark scheme -> white @15%
+
+        // Context-popup colours (history message <Esc>… and directory history)
+        int inactiveOverlay = ColorSchemeUtils.getButtonBackground(mIsSchemeLight, inactivePct);
         int schemeBg = TerminalColors.COLOR_SCHEME.mDefaultColors[TextStyle.COLOR_INDEX_BACKGROUND];
         mHistoryPopupBg = compositeColors(schemeBg, inactiveOverlay);
-        mHistoryTextColor = ColorSchemeUtils.getSchemeForeground();
+        mHistoryTextColor = mButtonText;
         mHistoryPopupSepColor = (mHistoryTextColor & 0x00FFFFFF) | (0x3C << 24);
-        mHistoryHighlightFill = isSchemeLight
+        mHistoryHighlightFill = mIsSchemeLight
                 ? Color.argb(26, 0, 0, 0)
                 : Color.argb(26, 255, 255, 255);
     }
+
+    /** @return Cached panel/button background colour. */
+    public int getButtonBg() { return mButtonBg; }
+    /** @return Cached panel/button active background colour. */
+    public int getButtonActiveBg() { return mButtonActiveBg; }
+    /** @return Cached panel/button text (scheme foreground) colour. */
+    public int getButtonText() { return mButtonText; }
+    /** @return Cached text selection highlight colour. */
+    public int getTextSelectionHighlightColor() { return mTextSelectionHighlightColor; }
+    /** @return Whether the current scheme is perceived as light. */
+    public boolean isCachedSchemeLight() { return mIsSchemeLight; }
 
     /**
      * Check if text input field is enabled in settings.
@@ -3530,8 +3572,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         if (mTermuxTerminalSessionActivityClient != null)
             mTermuxTerminalSessionActivityClient.onReloadActivityStyling();
 
-        // Popup colours follow the same colour scheme & transparency pipeline as the bottom panel.
-        recomputePopupColors();
+        // Cache all UI colours from the (now-updated) COLOR_SCHEME so every consumer reads
+        // fresh values without computing them on the fly.
+        recomputeUIColors();
 
         if (mTermuxTerminalViewClient != null)
             mTermuxTerminalViewClient.onReloadActivityStyling();

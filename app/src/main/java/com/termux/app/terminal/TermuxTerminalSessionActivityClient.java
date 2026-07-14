@@ -10,6 +10,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.media.AudioAttributes;
 import android.media.SoundPool;
 import android.os.Build;
@@ -18,6 +19,7 @@ import android.view.View;
 import android.view.Window;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -48,6 +50,7 @@ import com.termux.shared.termux.extrakeys.ExtraKeysView;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.util.Properties;
 
 /** The {@link TerminalSessionClient} implementation that may require an {@link Activity} for its interface methods. */
@@ -734,6 +737,10 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
                 }
             }
 
+            // Cache all derived colours from the now-applied COLOR_SCHEME before styling the
+            // panel, so applyPanelColors() reads fresh values via the activity's getters.
+            mActivity.recomputeUIColors();
+
             // Drive the bottom panel + status bar from the now-applied scheme (works for both
             // custom schemes and the theme-derived light/dark fallback).
             applyPanelColors(ColorSchemeUtils.isTerminalSchemeLight());
@@ -786,13 +793,11 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
      * @param isSchemeLight Whether the applied terminal color scheme is light.
      */
     public void applyPanelColors(boolean isSchemeLight) {
-        // Read user's alpha preference ONCE and compute final ARGB colours now.
-        TermuxAppSharedPreferences prefs = mActivity.getPreferences();
-        int inactivePct = prefs != null ? prefs.getButtonBgInactiveAlpha() : 5;
-        int activePct   = prefs != null ? prefs.getButtonBgActiveAlpha() : 12;
-        final int buttonBg = ColorSchemeUtils.getButtonBackground(isSchemeLight, inactivePct);
-        final int buttonActiveBg = ColorSchemeUtils.getButtonActiveBackground(isSchemeLight, activePct);
-        final int buttonText = ColorSchemeUtils.getSchemeForeground();
+        // All derived colours are pre-cached by TermuxActivity.recomputeUIColors().
+        final int buttonBg = mActivity.getButtonBg();
+        final int buttonActiveBg = mActivity.getButtonActiveBg();
+        final int buttonText = mActivity.getButtonText();
+        final int selectionHighlight = mActivity.getTextSelectionHighlightColor();
 
         // Bottom panel + extra keys backgrounds -> transparent.
         View toolbar = mActivity.findViewById(R.id.terminal_toolbar_container);
@@ -824,6 +829,10 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         if (textInput != null) {
             textInput.setTextColor(buttonText);
             textInput.setHintTextColor((buttonText & 0x00FFFFFF) | 0x80000000);
+            // Selection highlight uses the cached colour (recomputedUIColors).
+            textInput.setHighlightColor(selectionHighlight);
+            // Drag handles for text selection also follow the scheme foreground colour.
+            tintSelectionHandles(textInput, buttonText);
         }
         View textInputContainer = mActivity.findViewById(R.id.terminal_toolbar_text_input_container);
         if (textInputContainer != null && textInputContainer.getBackground() instanceof android.graphics.drawable.GradientDrawable) {
@@ -837,7 +846,7 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
 
         // Push pre-computed scrollbar thumb colours to TerminalView (alpha baked in ONCE here).
         TerminalView tv = mActivity.getTerminalView();
-        if (tv != null && prefs != null) {
+        if (tv != null) {
             tv.setScrollbarColors(buttonBg, buttonActiveBg);
         }
 
@@ -901,6 +910,57 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         props.setProperty("color15", "#ffffff");
         // cursor color is auto-picked based on background brightness by TerminalColorScheme.
         return props;
+    }
+
+    /**
+     * Tint the three text-selection drag handles (left, right, paste/cursor) of the text input field
+     * to the given {@code color}, so they match the terminal colour scheme instead of the theme's
+     * static accent colour.
+     * <p>
+     * Uses reflection to call the public {@code getTextSelectHandle*()} / {@code setTextSelectHandle*()}
+     * methods (public API since API 29).  The fields themselves are avoided because on modern Android
+     * the hidden-API blocklist prevents accessing {@code mSelectHandleLeft} etc. via reflection.
+     * <p>
+     * On API < 29 this is a silent no-op (no public API, and fields are blocked on API 28+).
+     * <p>
+     * Silent best-effort: does nothing on API levels or ROM variants that lack these methods.
+     */
+    @SuppressLint("DiscouragedPrivateApi,PrivateApi")
+    private static void tintSelectionHandles(@NonNull EditText editText, int tintColor) {
+        try {
+            Class<?> tvClass = TextView.class;
+            // Public API methods available since API 29 → accessible via reflection even when
+            // compileSdk < 29.  Not blocked by hidden API restrictions because they are public.
+            String[][] apiDefs = {
+                {"getTextSelectHandleLeft",   "setTextSelectHandleLeft"},
+                {"getTextSelectHandleRight",  "setTextSelectHandleRight"},
+                {"getTextSelectHandle",       "setTextSelectHandle"},
+            };
+            for (String[] def : apiDefs) {
+                String getterName = def[0];
+                String setterName = def[1];
+                Method getter;
+                try {
+                    getter = tvClass.getMethod(getterName);
+                } catch (NoSuchMethodException e) {
+                    continue; // API level below 29 → skip
+                }
+                Object obj = getter.invoke(editText);
+                if (obj instanceof Drawable) {
+                    Drawable d = ((Drawable) obj).mutate();
+                    d.setTint(tintColor);
+                    try {
+                        Method setter = tvClass.getMethod(setterName, Drawable.class);
+                        setter.invoke(editText, d);
+                    } catch (NoSuchMethodException ignored) {
+                        // Setter not available on this ROM
+                    }
+                }
+            }
+            editText.invalidate();
+        } catch (Exception e) {
+            // Best-effort — silently ignore.
+        }
     }
 
 }
