@@ -13,6 +13,9 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.PowerManager;
 
+import android.view.Gravity;
+import android.widget.Toast;
+
 import androidx.annotation.Nullable;
 
 import com.termux.R;
@@ -241,6 +244,10 @@ public final class TermuxBackupService extends Service {
                 mStartedForeground = false;
             }
             mInForeground = false;
+            // Let the user know the operation was cancelled via a bottom Toast.
+            Toast bottomToast = Toast.makeText(this, R.string.backup_restore_cancelled, Toast.LENGTH_SHORT);
+            bottomToast.setGravity(Gravity.BOTTOM, 0, 0);
+            bottomToast.show();
             // If no live operation exists, clean up entirely. Otherwise the worker eventually
             // finishes and sees !mInForeground && isCancelled → stopSelf() by itself.
             if (mWorker == null || !mWorker.isAlive()) {

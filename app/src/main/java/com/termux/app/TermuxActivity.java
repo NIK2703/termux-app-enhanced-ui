@@ -13,6 +13,7 @@ import android.content.pm.ActivityInfo;
 import android.content.SharedPreferences;
 import android.content.ServiceConnection;
 import android.graphics.Color;
+import android.graphics.Outline;
 import android.net.Uri;
 import android.os.Build;
 import java.io.File;
@@ -31,6 +32,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
+import android.view.ViewOutlineProvider;
 import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -77,8 +79,11 @@ import com.termux.shared.termux.theme.TermuxThemeUtils;
 import com.termux.shared.theme.NightMode;
 import com.termux.shared.theme.ThemeUtils;
 import com.termux.shared.view.ViewUtils;
+import com.termux.terminal.TerminalColors;
 import com.termux.terminal.TerminalSession;
 import com.termux.terminal.TerminalSessionClient;
+import com.termux.terminal.TextStyle;
+import android.graphics.drawable.GradientDrawable;
 import com.termux.shared.shell.command.ExecutionCommand;
 import com.termux.shared.termux.shell.command.runner.terminal.TermuxSession;
 import com.termux.view.TerminalView;
@@ -356,6 +361,11 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
     /** Default (non-highlighted) item text colour. */
     private int mHistoryTextColor = 0;
+
+    /** Cached popup background colour (scheme bg + inactive overlay). */
+    private int mHistoryPopupBg = 0;
+    /** Cached separator colour (foreground @ ~24% alpha). */
+    private int mHistoryPopupSepColor = 0;
 
     /** Currently highlighted history item index while dragging, or -1 for none. */
     private int mHistoryHighlightIndex = -1;
@@ -1952,22 +1962,13 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
-        int bg = ContextCompat.getColor(this, com.termux.shared.R.color.terminal_toolbar_text_input_bg);
-        content.setBackgroundColor(bg);
+        // Popup colours are pre-cached by recomputePopupColors() (called from reloadActivityStyling()).
+        // Content itself is transparent; the popup background drawable provides the visual colour
+        // + 15% transparency + elevation shadow behind the rounded corners.
+        content.setBackgroundColor(Color.TRANSPARENT);
 
         int padH = dpToPx(14);
         int padV = dpToPx(10);
-        int textColor = ContextCompat.getColor(this, com.termux.shared.R.color.terminal_toolbar_text_color);
-        // Sharp (non-pulse) highlight: a faint 10%-alpha wash, black in light
-        // theme and white in dark theme, detected via uiMode so it works even
-        // for near-white popup backgrounds like #f0f0f0.
-        mHistoryTextColor = textColor;
-        boolean isNight = (getResources().getConfiguration().uiMode
-                & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
-                == android.content.res.Configuration.UI_MODE_NIGHT_YES;
-        mHistoryHighlightFill = isNight
-                ? Color.argb(26, 255, 255, 255)   // dark theme  -> white @10%
-                : Color.argb(26, 0,   0,   0);     // light theme -> black @10%
 
         // Synthetic "CLEAR HISTORY…" row pinned at the TOP of the popup.
         // Selecting it opens a confirmation dialog; confirming wipes all history.
@@ -1978,7 +1979,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             tv.setText("CLEAR HISTORY…");
             tv.setGravity(Gravity.CENTER);
             tv.setAllCaps(true);
-            tv.setTextColor(textColor);
+            tv.setTextColor(mHistoryTextColor);
             tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
             tv.setTypeface(tv.getTypeface(), android.graphics.Typeface.BOLD);
             tv.setPadding(padH, padV, padH, padV);
@@ -1989,9 +1990,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                     ViewGroup.LayoutParams.WRAP_CONTENT));
             mHistoryItemViews.add(tv);
 
-            // Thin separator below the "clear all" row to visually group it.
+            // Thin separator below the clear all row to visually group it.
             View sep = new View(this);
-            sep.setBackgroundColor(Color.argb(60, 128, 128, 128));
+            sep.setBackgroundColor(mHistoryPopupSepColor);
             content.addView(sep, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
         }
@@ -2007,7 +2008,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             tv.setText(message.replace("\n", " ").trim());
             tv.setMaxLines(2);
             tv.setEllipsize(TextUtils.TruncateAt.END);
-            tv.setTextColor(textColor);
+            tv.setTextColor(mHistoryTextColor);
             tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
             tv.setPadding(padH, padV, padH, padV);
             tv.setClickable(true);
@@ -2029,7 +2030,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             tv.setText("Clear");
             tv.setGravity(Gravity.CENTER);
             tv.setAllCaps(true);
-            tv.setTextColor(textColor);
+            tv.setTextColor(mHistoryTextColor);
             tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
             tv.setTypeface(tv.getTypeface(), android.graphics.Typeface.BOLD);
             tv.setPadding(padH, padV, padH, padV);
@@ -2045,7 +2046,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             // when there IS a history list to separate it from.
             if (!mMessageHistory.isEmpty()) {
                 View sepBottom = new View(this);
-                sepBottom.setBackgroundColor(Color.argb(60, 128, 128, 128));
+                sepBottom.setBackgroundColor(mHistoryPopupSepColor);
                 content.addView(sepBottom, content.getChildCount() - 1,
                         new LinearLayout.LayoutParams(
                                 ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
@@ -2065,12 +2066,47 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
         mHistoryScroll = scroll;
+        // Clip child views to the popup's rounded corners so highlights and
+        // separators near the edges don't spill outside the rounded shape.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            scroll.setOutlineProvider(new ViewOutlineProvider() {
+                @Override
+                public void getOutline(View view, android.graphics.Outline outline) {
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dpToPx(12));
+                }
+            });
+            scroll.setClipToOutline(true);
+        }
 
         mHistoryPopup = new PopupWindow(scroll, popupWidth,
                 ViewGroup.LayoutParams.WRAP_CONTENT, false);
-        mHistoryPopup.setElevation(dpToPx(8));
-        mHistoryPopup.setBackgroundDrawable(
-                ContextCompat.getDrawable(this, R.drawable.text_input_background));
+        // Smooth elevation shadow — background drawable must be fully opaque for the
+        // WindowManager to derive a valid Outline (GradientDrawable.getOutline bails
+        // when alpha < 255).  The 10% visual transparency is applied to the ScrollView
+        // itself via setAlpha(), which does not affect the popup's background outline.
+        // Larger elevation (16dp) for a bigger shadow, but outline alpha is
+        // reduced so the shadow renders more transparent/softer.
+        mHistoryPopup.setElevation(dpToPx(16));
+        // Background: rounded rect, fully opaque scheme composite colour.
+        // getOutline() is overridden to call outline.setAlpha() — this controls
+        // the shadow opacity independently from the elevation size.
+        GradientDrawable popupBgDrawable = new GradientDrawable() {
+            @Override
+            public void getOutline(@NonNull Outline outline) {
+                super.getOutline(outline);
+                if (!outline.isEmpty()) {
+                    // Keep elevation large, but make the shadow softer/transparent.
+                    outline.setAlpha(0.40f);
+                }
+            }
+        };
+        popupBgDrawable.setShape(GradientDrawable.RECTANGLE);
+        popupBgDrawable.setCornerRadius(dpToPx(12));
+        popupBgDrawable.setColor(mHistoryPopupBg); // must be opaque for getOutline
+        mHistoryPopup.setBackgroundDrawable(popupBgDrawable);
+        // 10% visual transparency on the content (not the background drawable, so the
+        // elevation shadow outline stays valid).
+        scroll.setAlpha(0.9f);
         mHistoryPopup.setClippingEnabled(true);
         // Do NOT let the popup intercept touches: the pencil button keeps the
         // gesture so we track the finger over items via raw coordinates.
@@ -2547,19 +2583,13 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
-        int bg = ContextCompat.getColor(this, com.termux.shared.R.color.terminal_toolbar_text_input_bg);
-        content.setBackgroundColor(bg);
+        // Popup colours are pre-cached by recomputePopupColors() (called from reloadActivityStyling()).
+        // Content itself is transparent; the popup background drawable provides the visual colour
+        // + 15% transparency + elevation shadow behind the rounded corners.
+        content.setBackgroundColor(Color.TRANSPARENT);
 
         int padH = dpToPx(14);
         int padV = dpToPx(10);
-        int textColor = ContextCompat.getColor(this, com.termux.shared.R.color.terminal_toolbar_text_color);
-        mHistoryTextColor = textColor;
-        boolean isNight = (getResources().getConfiguration().uiMode
-                & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
-                == android.content.res.Configuration.UI_MODE_NIGHT_YES;
-        mHistoryHighlightFill = isNight
-                ? Color.argb(26, 255, 255, 255)
-                : Color.argb(26, 0, 0, 0);
 
         // Synthetic "CLEAR HISTORY…" row pinned at the TOP of the popup.
         if (!mDirectoryHistory.isEmpty()) {
@@ -2567,7 +2597,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             tv.setText("CLEAR HISTORY…");
             tv.setGravity(Gravity.CENTER);
             tv.setAllCaps(true);
-            tv.setTextColor(textColor);
+            tv.setTextColor(mHistoryTextColor);
             tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
             tv.setTypeface(tv.getTypeface(), android.graphics.Typeface.BOLD);
             tv.setPadding(padH, padV, padH, padV);
@@ -2579,7 +2609,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             mHistoryItemViews.add(tv);
 
             View sep = new View(this);
-            sep.setBackgroundColor(Color.argb(60, 128, 128, 128));
+            sep.setBackgroundColor(mHistoryPopupSepColor);
             content.addView(sep, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
         }
@@ -2591,7 +2621,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             tv.setText(directory);
             tv.setMaxLines(2);
             tv.setEllipsize(TextUtils.TruncateAt.MIDDLE);
-            tv.setTextColor(textColor);
+            tv.setTextColor(mHistoryTextColor);
             tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
             tv.setPadding(padH, padV, padH, padV);
             tv.setClickable(true);
@@ -2612,12 +2642,47 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
         mHistoryScroll = scroll;
+        // Clip child views to the popup's rounded corners so highlights and
+        // separators near the edges don't spill outside the rounded shape.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            scroll.setOutlineProvider(new ViewOutlineProvider() {
+                @Override
+                public void getOutline(View view, android.graphics.Outline outline) {
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dpToPx(12));
+                }
+            });
+            scroll.setClipToOutline(true);
+        }
 
         mHistoryPopup = new PopupWindow(scroll, popupWidth,
                 ViewGroup.LayoutParams.WRAP_CONTENT, false);
-        mHistoryPopup.setElevation(dpToPx(8));
-        mHistoryPopup.setBackgroundDrawable(
-                ContextCompat.getDrawable(this, R.drawable.text_input_background));
+        // Smooth elevation shadow — background drawable must be fully opaque for the
+        // WindowManager to derive a valid Outline (GradientDrawable.getOutline bails
+        // when alpha < 255).  The 10% visual transparency is applied to the ScrollView
+        // itself via setAlpha(), which does not affect the popup's background outline.
+        // Larger elevation (16dp) for a bigger shadow, but outline alpha is
+        // reduced so the shadow renders more transparent/softer.
+        mHistoryPopup.setElevation(dpToPx(16));
+        // Background: rounded rect, fully opaque scheme composite colour.
+        // getOutline() is overridden to call outline.setAlpha() — this controls
+        // the shadow opacity independently from the elevation size.
+        GradientDrawable popupBgDrawable = new GradientDrawable() {
+            @Override
+            public void getOutline(@NonNull Outline outline) {
+                super.getOutline(outline);
+                if (!outline.isEmpty()) {
+                    // Keep elevation large, but make the shadow softer/transparent.
+                    outline.setAlpha(0.40f);
+                }
+            }
+        };
+        popupBgDrawable.setShape(GradientDrawable.RECTANGLE);
+        popupBgDrawable.setCornerRadius(dpToPx(12));
+        popupBgDrawable.setColor(mHistoryPopupBg); // must be opaque for getOutline
+        mHistoryPopup.setBackgroundDrawable(popupBgDrawable);
+        // 10% visual transparency on the content (not the background drawable, so the
+        // elevation shadow outline stays valid).
+        scroll.setAlpha(0.9f);
         mHistoryPopup.setClippingEnabled(true);
         mHistoryPopup.setTouchable(false);
         mHistoryPopup.setFocusable(false);
@@ -2665,6 +2730,42 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
     private int dpToPx(int dp) {
         return Math.round(dp * getResources().getDisplayMetrics().density);
+    }
+
+    /**
+     * Alpha-composite {@code overlay} (with alpha) on top of {@code background}
+     * (assumed opaque) using standard over operator.
+     * @return Fully opaque ARGB colour.
+     */
+    private static int compositeColors(int background, int overlay) {
+        int alpha = Color.alpha(overlay);
+        if (alpha == 0) return background;
+        if (alpha == 255) return overlay;
+        int invAlpha = 255 - alpha;
+        int r = (Color.red(background) * invAlpha + Color.red(overlay) * alpha) / 255;
+        int g = (Color.green(background) * invAlpha + Color.green(overlay) * alpha) / 255;
+        int b = (Color.blue(background) * invAlpha + Color.blue(overlay) * alpha) / 255;
+        return Color.rgb(r, g, b);
+    }
+
+    /**
+     * (Re)compute popup colours from the current terminal colour scheme and panel transparency prefs.
+     * Must be called whenever the scheme or the inactive-alpha slider changes so that context windows
+     * ({@link #showMessageHistoryPopup(View)} and {@link #showDirectoryHistoryPopup(View)}) use fresh
+     * colours without recomputing them on every open.
+     */
+    public void recomputePopupColors() {
+        boolean isSchemeLight = ColorSchemeUtils.isTerminalSchemeLight();
+        TermuxAppSharedPreferences prefs = getPreferences();
+        int inactivePct = prefs != null ? prefs.getButtonBgInactiveAlpha() : 5;
+        int inactiveOverlay = ColorSchemeUtils.getButtonBackground(isSchemeLight, inactivePct);
+        int schemeBg = TerminalColors.COLOR_SCHEME.mDefaultColors[TextStyle.COLOR_INDEX_BACKGROUND];
+        mHistoryPopupBg = compositeColors(schemeBg, inactiveOverlay);
+        mHistoryTextColor = ColorSchemeUtils.getSchemeForeground();
+        mHistoryPopupSepColor = (mHistoryTextColor & 0x00FFFFFF) | (0x3C << 24);
+        mHistoryHighlightFill = isSchemeLight
+                ? Color.argb(26, 0, 0, 0)
+                : Color.argb(26, 255, 255, 255);
     }
 
     /**
@@ -3428,6 +3529,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         if (mTermuxTerminalSessionActivityClient != null)
             mTermuxTerminalSessionActivityClient.onReloadActivityStyling();
+
+        // Popup colours follow the same colour scheme & transparency pipeline as the bottom panel.
+        recomputePopupColors();
 
         if (mTermuxTerminalViewClient != null)
             mTermuxTerminalViewClient.onReloadActivityStyling();

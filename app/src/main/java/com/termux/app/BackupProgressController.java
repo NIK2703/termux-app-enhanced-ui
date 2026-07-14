@@ -114,6 +114,9 @@ public final class BackupProgressController {
 
         final ProgressDialog progress = new ProgressDialog(activity);
         progress.setTitle(activity.getString(titleRes));
+        // Both backup and restore use a horizontal bar.
+        // Backup: indeterminate throughout (tar stream, size unknown).
+        // Restore: starts indeterminate, switches to determinate once progress is calculated.
         progress.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
         progress.setIndeterminate(true);
         progress.setCancelable(false);
