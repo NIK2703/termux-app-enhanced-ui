@@ -2086,7 +2086,6 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         for (int i = 0; i < mCurrentSuggestions.size(); i++) {
             final String suggestion = mCurrentSuggestions.get(i);
-            final int index = i;
 
             TextView tv = new TextView(this);
             final String input = inputField.getText().toString();
@@ -2125,16 +2124,32 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         int maxHeight = dpToPx(200);
         int popupHeight = Math.min(totalHeight, maxHeight);
 
+        // Position the popup at the input cursor (caret) position
+        int cursorPos = inputField.getSelectionStart();
+        android.text.Layout layout = inputField.getLayout();
+        float cursorX = 0;
+        float cursorY = 0;
+        if (layout != null && cursorPos >= 0) {
+            cursorX = layout.getPrimaryHorizontal(cursorPos);
+            cursorY = layout.getLineTop(layout.getLineForOffset(cursorPos));
+        }
+
         int[] loc = new int[2];
         inputField.getLocationInWindow(loc);
-        int inputTop = loc[1];
-        int inputLeft = loc[0];
+        int popupX = loc[0] + (int) cursorX + dpToPx(4);
+        int popupY = loc[1] + (int) cursorY - popupHeight - dpToPx(4);
 
-        android.graphics.Rect displayRect = new android.graphics.Rect();
-        getWindowManager().getDefaultDisplay().getRectSize(displayRect);
-        int displayHeight = displayRect.height();
+        // If not enough room above cursor, show below it
+        if (popupY < dpToPx(16)) {
+            popupY = loc[1] + (int) cursorY + dpToPx(8);
+        }
 
-        boolean showAbove = (inputTop > popupHeight + dpToPx(20));
+        // Clamp horizontal position so the popup doesn't go off-screen
+        int displayWidth = getResources().getDisplayMetrics().widthPixels;
+        if (popupX + sumWidth > displayWidth - dpToPx(8)) {
+            popupX = displayWidth - sumWidth - dpToPx(8);
+        }
+        if (popupX < dpToPx(8)) popupX = dpToPx(8);
 
         mSuggestionsPopup = new PopupWindow(content, sumWidth, popupHeight, true);
         mSuggestionsPopup.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(
@@ -2143,13 +2158,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         mSuggestionsPopup.setOutsideTouchable(true);
 
         try {
-            if (showAbove) {
-                mSuggestionsPopup.showAtLocation(inputField, Gravity.NO_GRAVITY,
-                        inputLeft + dpToPx(8), inputTop - popupHeight - dpToPx(4));
-            } else {
-                mSuggestionsPopup.showAtLocation(inputField, Gravity.NO_GRAVITY,
-                        inputLeft + dpToPx(8), inputTop + inputField.getHeight() + dpToPx(2));
-            }
+            mSuggestionsPopup.showAtLocation(inputField, Gravity.NO_GRAVITY, popupX, popupY);
         } catch (Exception e) {
             Logger.logStackTraceWithMessage(LOG_TAG, "Failed to show auto-complete popup", e);
             mSuggestionsPopup = null;
