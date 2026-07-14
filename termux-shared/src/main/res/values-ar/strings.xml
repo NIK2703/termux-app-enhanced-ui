@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE resources [
+    <!ENTITY TERMUX_PACKAGE_NAME "com.termux">
+    <!ENTITY TERMUX_APP_NAME "Termux">
+    <!ENTITY TERMUX_API_APP_NAME "Termux:API">
+    <!ENTITY TERMUX_FLOAT_APP_NAME "Termux:Float">
+    <!ENTITY TERMUX_TASKER_APP_NAME "Termux:Tasker">
+    <!ENTITY TERMUX_WIDGET_APP_NAME "Termux:Widget">
+    <!ENTITY TERMUX_STYLING_APP_NAME "Termux:Styling">
+
+    <!ENTITY TERMUX_PREFIX_DIR_PATH "/data/data/com.termux/files/usr">
+]>
+<resources>
+
+    <string name="action_cancel">إلغاء</string>
+    <string name="action_copy">نسخ</string>
+    <string name="action_disable_launcher_icon">تعطيل أيقونة المشغل</string>
+    <string name="action_enable_launcher_icon">تمكين أيقونة المشغل</string>
+    <string name="action_no">لا</string>
+    <string name="action_save_to_file">حفظ في ملف</string>
+    <string name="action_share">مشاركة</string>
+    <string name="action_yes">نعم</string>
+    <string name="error_allow_external_apps_ungranted">%1$s يتطلب تعيين الخاصية `allow-external-apps`
+        إلى `true` في ملف `%2$s`.</string>
+    <string name="error_app_not_installed_or_disabled_warning">تطبيق %1$s (%2$s) غير مثبت أو معطل.</string>
+    <string name="error_attempted_to_ask_for_permissions_not_requested">تمت محاولة طلب أذونات لم يتم طلبها في بيان التطبيق: %1$s</string>
+    <string name="error_attempted_to_check_for_permissions_not_requested">تمت محاولة التحقق من أذونات لم يتم طلبها في بيان التطبيق: %1$s</string>
+    <string name="error_disable_component_failed">فشل تعطيل المكون %1$s/%2$s</string>
+    <string name="error_display_over_other_apps_permission_not_granted">%1$s يتطلب
+        إذن \"العرض فوق التطبيقات الأخرى\" لبدء الأنشطة والخدمات من الخلفية على Android >= 10.
+        امنحه من إعدادات Android -> التطبيقات -> %1$s -> متقدم -> العرض فوق التطبيقات الأخرى.
+        قد يختلف اسم الإذن على الأجهزة المختلفة، مثل Xiaomi، يُسمى
+        \"عرض النوافذ المنبثقة أثناء التشغيل في الخلفية\"، راجع https://dontkillmyapp.com
+        للمشكلات الخاصة بالجهاز.</string>
+    <string name="error_enable_component_failed">فشل تمكين المكون %1$s/%2$s</string>
+    <string name="error_exception_received_while_executing_app_shell_command">تم استلام استثناء أثناء تنفيذ أمر shell للتطبيق \"%1$s\".\nالاستثناء: %2$s</string>
+    <string name="error_exception_received_while_executing_termux_session_command">تم استلام استثناء أثناء تنفيذ أمر جلسة termux \"%1$s\".\nالاستثناء: %2$s</string>
+    <string name="error_executable_unset">لم يتم تعيين المنفذ \"%1$s\" لأمر shell</string>
+    <string name="error_execution_cancelled">تم إلغاء التنفيذ لأنه يتم إنهاء خدمة التنفيذ</string>
+    <string name="error_failed_to_execute_app_shell_command">فشل تنفيذ أمر shell للتطبيق \"%1$s\"</string>
+    <string name="error_failed_to_execute_termux_session_command">فشل تنفيذ أمر جلسة termux \"%1$s\"</string>
+    <string name="error_failed_to_request_permissions">فشل طلب الأذونات برمز الطلب %1$d: %2$s</string>
+    <string name="error_get_component_state_failed">فشل الحصول على حالة المكون %1$s/%2$s</string>
+    <string name="error_get_package_context_failed_help_url_message">راجع %1$s لمزيد من التفاصيل.</string>
+    <string name="error_get_package_context_failed_message">فشل الحصول على سياق الحزمة للحزمة \"%1$s\".
+        قد يكون ذلك لأن حزمة التطبيق غير مثبتة أو أن توقيع APK الخاص بها يختلف عن توقيع التطبيق الحالي.</string>
+    <string name="error_get_package_context_failed_title">فشل الحصول على سياق الحزمة</string>
+    <string name="error_has_not_requested_legacy_external_storage">الحزمة \"%1$s\" تستهدف targetSdkVersion %2$d وتعمل على android sdk %3$d ولكنها لم تعين requestLegacyExternalStorage إلى true في بيان التطبيق</string>
+    <string name="error_sending_sigkill_to_process">إرسال SIGKILL إلى العملية بناءً على طلب المستخدم أو لأن Android يقتل خدمة التنفيذ</string>
+    <string name="error_termux_app_package_context_not_accessible">تطبيق &TERMUX_APP_NAME; (سياق الحزمة) غير قابل للوصول.</string>
+    <string name="error_termux_prefix_dir_path_not_accessible">دليل $PREFIX لتطبيق &TERMUX_APP_NAME; غير قابل للوصول بواسطة تطبيق %1$s.
+        قد يكون ذلك لأنك لم تقم بتثبيت أو إعداد تطبيق &TERMUX_APP_NAME; أو
+        أن توقيعي APK لتطبيق &TERMUX_APP_NAME; وتطبيق %1$s مختلفان لأنك تمكنت من تثبيت كلا التطبيقين من مصادر مختلفة.
+        قد يكون أيضًا لأن دليل $PREFIX لتطبيق &TERMUX_APP_NAME; \"&TERMUX_PREFIX_DIR_PATH;\" غير موجود أو لا يملك أذونات القراءة
+        والكتابة والتنفيذ.</string>
+    <string name="font_picker_title">اختر خط (.ttf)</string>
+    <string name="log_level_debug">تصحيح</string>
+    <string name="log_level_normal">عادي</string>
+    <string name="log_level_off">إيقاف</string>
+    <string name="log_level_title">مستوى السجل</string>
+    <string name="log_level_unknown">*غير معروف*</string>
+    <string name="log_level_value">تم تعيين مستوى سجل Logcat إلى \"%1$s\"</string>
+    <string name="log_level_verbose">مفصل</string>
+    <string name="message_sudo_please_grant_permissions">الرجاء منح الأذونات المطلوبة</string>
+    <string name="msg_directory_absolute_path">المسار المطلق لدليل %1$s: \"%2$s\"</string>
+    <string name="msg_disabling_launcher_icon">جارٍ تعطيل أيقونة المشغل لتطبيق %1$s</string>
+    <string name="msg_enabling_launcher_icon">جارٍ تمكين أيقونة المشغل لتطبيق %1$s</string>
+    <string name="msg_file_saved_successfully">تم حفظ ملف %1$s بنجاح في \"%2$s\"</string>
+    <string name="msg_report_issue">
+        إذا كنت ترغب في الإبلاغ عن هذه المشكلة، فانسخ نصها من قائمة الخيارات (النقاط الثلاث في الأعلى اليمين) وانشر
+        مشكلة على أحد الروابط التالية.
+        \n\nإذا كنت تنشر تقرير تعطل تطبيق Termux، فيرجى تقديم تفاصيل حول ما كنت تفعله
+        الذي تسبب في التعطل وكيفية إعادة إنتاجه، إن أمكن.
+        \n\nإذا كنت تنشر مشكلة على GitHub، فانشرها في المستودع الذي ينتمي إليه التقرير.
+        المشكلات المفتوحة أو رسائل البريد الإلكتروني المرسلة مع **لقطات شاشة (جزئية)** بدلاً من النص المنسوخ أو ملف لهذا التقرير
+        **من المرجح أن يتم إغلاقها/حذفها تلقائياً**. يمكنك اختيارياً إزالة أي معلومات خاصة بالجهاز
+        تعتبرها خاصة أو لا ترغب في مشاركتها أو ليست ذات صلة بالمشكلة.
+        \n\nنحن لا نقدم دعماً لأي أدوات/نصوص برمجية متعلقة بالاختراق. أي أسئلة تُطرح عنها عبر البريد الإلكتروني،
+        على GitHub أو منتديات مجتمع termux الرسمية الأخرى **من المرجح أن يتم إغلاقها/حذفها تلقائياً** وقد
+        تؤدي حتى إلى **حظر مؤقت أو دائم**. راجع %1$s/wiki/Hacking للتفاصيل.</string>
+    <string name="msg_report_truncated">**تم اقتطاع التقرير**\n\nالتقرير كبير جداً لعرضه هنا.
+        استخدم خيار `حفظ في ملف` من قائمة الخيارات (النقاط الثلاث في الأعلى اليمين) واعرضه في تطبيق محرر نصوص خارجي.\n\n##\n\n</string>
+    <string name="msg_requires_dump_and_package_usage_stats_permissions">يتطلب أذون `DUMP` و `PACKAGE_USAGE_STATS`</string>
+    <string name="msg_storage_permission_granted_on_request">تم منح إذن التخزين من قبل المستخدم عند الطلب</string>
+    <string name="msg_storage_permission_not_granted">لم يتم منح إذن التخزين.</string>
+    <string name="msg_storage_permission_not_granted_on_request">لم يتم منح إذن التخزين من قبل المستخدم عند الطلب</string>
+    <string name="msg_termux_app_required_by_app">تطبيق &TERMUX_APP_NAME; مطلوب بواسطة تطبيق %1$s لتشغيل أوامر termux.</string>
+    <string name="notification_channel_app">تطبيق Termux</string>
+    <string name="notification_channel_plugin_errors">أخطاء أوامر إضافات Termux</string>
+    <string name="notification_channel_run_command">خدمة RunCommand لـ Termux</string>
+    <string name="setting_launcher_icon_enabled_off">سيتم تعطيل أيقونة المشغل.</string>
+    <string name="setting_launcher_icon_enabled_on">سيتم تمكين أيقونة المشغل. (افتراضي)</string>
+    <string name="setting_launcher_icon_title">أيقونة المشغل مفعلة</string>
+    <string name="title_open_url_with">فتح الرابط باستخدام</string>
+    <string name="title_report_text">نص التقرير</string>
+    <string name="title_share_with">مشاركة مع</string>
+</resources>

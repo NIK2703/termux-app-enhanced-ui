@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!DOCTYPE resources [
+    <!ENTITY TERMUX_PACKAGE_NAME "com.termux">
+    <!ENTITY TERMUX_APP_NAME "Termux">
+    <!ENTITY TERMUX_API_APP_NAME "Termux:API">
+    <!ENTITY TERMUX_BOOT_APP_NAME "Termux:Boot">
+    <!ENTITY TERMUX_FLOAT_APP_NAME "Termux:Float">
+    <!ENTITY TERMUX_STYLING_APP_NAME "Termux:Styling">
+    <!ENTITY TERMUX_TASKER_APP_NAME "Termux:Tasker">
+    <!ENTITY TERMUX_WIDGET_APP_NAME "Termux:Widget">
+    ]>
+
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Turkish translation - Termux EnhancedUI -->
+
+    <!-- Turkish translation -->
+    <!-- Source language: en -->
+<string name="application_name">Termux EnhancedUI</string>
+<string name="shared_user_label">&TERMUX_APP_NAME; kullanıcısı</string>
+<string name="permission_run_command_label">&TERMUX_APP_NAME; ortamında komut çalıştır</string>
+<string name="permission_run_command_description">&TERMUX_APP_NAME;\n        ortamında istenen komutları çalıştır ve dosyalara eriş</string>
+<string name="bootstrap_installer_body">Başlangıç paketleri yükleniyor…</string>
+<string name="bootstrap_error_title">Başlangıç yüklenemedi</string>
+<string name="bootstrap_error_body">&TERMUX_APP_NAME; başlangıç paketlerini yükleyemedi.</string>
+<string name="bootstrap_error_abort">İptal</string>
+<string name="bootstrap_error_try_again">Yeniden dene</string>
+<string name="bootstrap_error_not_primary_user_message">&TERMUX_APP_NAME; yalnızca birincil kullanıcı olarak çalıştırılabilir.
+        \n&TERMUX_APP_NAME; için derlenen başlangıç ikili dosyaları $PREFIX yolunu sabit kodlar ve yalnızca
+        şu yola kurulabilir:\n%1$s.</string>
+<string name="bootstrap_error_installed_on_portable_sd">&TERMUX_APP_NAME; cihazınızdaki taşınabilir/dış/çıkarılabilir
+        SD karta kurulamaz.
+        \n&TERMUX_APP_NAME; için derlenen başlangıç ikili dosyaları $PREFIX yolunu sabit kodlar ve yalnızca
+        şu yola kurulabilir:\n%1$s.</string>
+<string name="action_new_session">Yeni oturum</string>
+<string name="action_new_session_failsafe">Güvenli oturum</string>
+<string name="title_max_terminals_reached">Maksimum terminal sayısına ulaşıldı</string>
+<string name="msg_max_terminals_reached">Yeni oluşturmadan önce mevcut olanları kapatın.</string>
+<string name="title_rename_session">Oturum adını ayarla</string>
+<string name="action_rename_session_confirm">Ayarla</string>
+<string name="title_create_named_session">Yeni adlı oturum</string>
+<string name="action_create_named_session_confirm">Oluştur</string>
+<string name="action_toggle_soft_keyboard">Klavye</string>
+<string name="action_toggle_text_input">Metin girişini değiştir</string>
+<string name="msg_enabling_terminal_toolbar">Terminal Araç Çubuğu Etkinleştiriliyor</string>
+<string name="msg_disabling_terminal_toolbar">Terminal Araç Çubuğu Devre Dışı Bırakılıyor</string>
+<string name="action_select_url">URL seç</string>
+<string name="title_select_url_dialog">Kopyalamak için URL'ye dokunun, açmak için uzun basın</string>
+<string name="title_select_url_none_found">Terminalde URL bulunamadı.</string>
+<string name="msg_select_url_copied_to_clipboard">URL panoya kopyalandı</string>
+<string name="action_share_transcript">Dökümü paylaş</string>
+<string name="title_share_transcript">Terminal dökümü</string>
+<string name="title_share_transcript_with">Dökümü gönder:</string>
+<string name="action_share_selected_text">Seçili metni paylaş</string>
+<string name="title_share_selected_text">Terminal Metni</string>
+<string name="title_share_selected_text_with">Seçili metni gönder:</string>
+<string name="action_autofill_username">Kullanıcı adını otomatik doldur</string>
+<string name="action_autofill_password">Şifreyi otomatik doldur</string>
+<string name="action_reset_terminal">Sıfırla</string>
+<string name="msg_terminal_reset">Terminal sıfırlandı</string>
+<string name="msg_terminal_font_applied">Yazı tipi uygulandı</string>
+<string name="action_kill_process">İşlemi sonlandır (%d)</string>
+<string name="title_confirm_kill_process">Bu oturumu gerçekten sonlandırmak istiyor musunuz?</string>
+<string name="action_style_terminal">Stil</string>
+<string name="action_font_terminal">Yazı tipi</string>
+<string name="font_picker_title">Bir yazı tipi seçin (.ttf)</string>
+<string name="error_font_copy_failed">Yazı tipi uygulanamadı</string>
+<string name="action_toggle_keep_screen_on">Ekranı açık tut</string>
+<string name="action_open_help">Yardım</string>
+<string name="action_open_settings">Ayarlar</string>
+<string name="action_report_issue">Sorun Bildir</string>
+<string name="msg_generating_report">Rapor Oluşturuluyor</string>
+<string name="msg_add_termux_debug_info">Rapora termux hata ayıklama bilgisi eklensin mi?</string>
+<string name="error_styling_not_installed">&TERMUX_STYLING_APP_NAME; Eklenti Uygulaması yüklü değil.</string>
+<string name="action_styling_install">Yükle</string>
+<string name="notification_action_exit">Çık</string>
+<string name="notification_action_wake_lock">Uyanıklık kilidi al</string>
+<string name="notification_action_wake_unlock">Uyanıklık kilidini serbest bırak</string>
+<string name="error_display_over_other_apps_permission_not_granted_to_start_terminal">&TERMUX_APP_NAME;, Android >= 10 üzerinde arka plandan terminal oturumları başlatmak için
+        \"Diğer uygulamaların üzerinde görüntüleme\" iznine ihtiyaç duyar.
+        Bu izni Ayarlar -> Uygulamalar -> &TERMUX_APP_NAME; -> Gelişmiş yolundan verin.</string>
+<string name="error_termux_service_invalid_execution_command_runner">TermuxService için geçersiz çalıştırma komutu çalıştırıcısı: `%1$s`</string>
+<string name="error_termux_service_unsupported_execution_command_runner">TermuxService için desteklenmeyen çalıştırma komutu çalıştırıcısı: `%1$s`</string>
+<string name="error_termux_service_unsupported_execution_command_shell_create_mode">TermuxService için desteklenmeyen çalıştırma komutu kabuk oluşturma modu: `%1$s`</string>
+<string name="error_termux_service_execution_command_shell_name_unset">Kabuk adı ayarlanmamış ancak `%1$s` kabuk oluşturma modu geçirildi</string>
+<string name="error_run_command_service_invalid_intent_action">RunCommandService için geçersiz intent eylemi: `%1$s`</string>
+<string name="error_run_command_service_invalid_execution_command_runner">RunCommandService için geçersiz çalıştırma komutu çalıştırıcısı: `%1$s`</string>
+<string name="error_run_command_service_mandatory_extra_missing">RunCommandService için zorunlu ek alan eksik: \"%1$s\"</string>
+<string name="error_run_command_service_api_help">RUN_COMMAND Intent kullanımı hakkında daha fazla bilgi için %1$s adresini ziyaret edin.</string>
+<string name="title_file_received">Dosyayı ~/downloads/ içine kaydet</string>
+<string name="action_file_received_edit">Düzenle</string>
+<string name="action_file_received_open_directory">Dizini aç</string>
+<string name="error_termux_service_start_failed_general">TermuxService başlatılamadı. Hata mesajı için logcat'i kontrol edin.</string>
+<string name="error_termux_service_start_failed_bg">Uygulama arka plandayken android arka plan kısıtlamaları nedeniyle TermuxService başlatılamadı.</string>
+<string name="title_activity_termux_settings">&TERMUX_APP_NAME; Ayarları</string>
+<string name="appearance_preferences_title">Görünüm</string>
+<string name="appearance_preferences_summary">Uygulama görünümü ve panel saydamlığı tercihleri</string>
+<string name="theme_title">Tema</string>
+<string name="panel_transparency_title">Panel Saydamlığı</string>
+<string name="termux_preferences_title">&TERMUX_APP_NAME;</string>
+<string name="termux_preferences_summary">&TERMUX_APP_NAME; uygulaması tercihleri</string>
+<string name="termux_debugging_preferences_title">Hata Ayıklama</string>
+<string name="termux_debugging_preferences_summary">Hata ayıklama tercihleri</string>
+<string name="termux_logging_header">Günlük Kaydı</string>
+<string name="termux_log_level_title">Günlük Seviyesi</string>
+<string name="termux_terminal_view_key_logging_enabled_title">Terminal Görünümü Tuş Günlük Kaydı</string>
+<string name="termux_terminal_view_key_logging_enabled_off">Günlüklerde terminal görünümü tuşları için kayıt olmayacaktır. (Varsayılan)</string>
+<string name="termux_terminal_view_key_logging_enabled_on">Logcat günlüklerinde terminal görünümü tuşları için kayıtlar olacaktır.
+                    Bunlar çok ayrıntılıdır ve normal koşullarda devre dışı bırakılmalıdır, aksi takdirde performans sorunlarına neden olur.</string>
+<string name="termux_plugin_error_notifications_enabled_title">Eklenti Hata Bildirimleri</string>
+<string name="termux_plugin_error_notifications_enabled_off">Eklenti hataları için flaşları ve bildirimleri devre dışı bırak.</string>
+<string name="termux_plugin_error_notifications_enabled_on">Eklenti hataları için flaşları ve bildirimleri göster. (Varsayılan)</string>
+<string name="termux_crash_report_notifications_enabled_title">Çökme Raporu Bildirimleri</string>
+<string name="termux_crash_report_notifications_enabled_off">Çökme raporları için bildirimleri devre dışı bırak.</string>
+<string name="termux_crash_report_notifications_enabled_on">Çökme raporları için bildirimleri göster. (Varsayılan)</string>
+<string name="termux_terminal_io_preferences_title">Terminal G/Ç</string>
+<string name="termux_terminal_io_preferences_summary">Terminal G/Ç tercihleri</string>
+<string name="termux_keyboard_header">Klavye</string>
+<string name="termux_soft_keyboard_enabled_title">Yazılımsal Klavye Etkin</string>
+<string name="termux_soft_keyboard_enabled_off">Yazılımsal klavye devre dışı bırakılacaktır.</string>
+<string name="termux_soft_keyboard_enabled_on">Yazılımsal klavye etkinleştirilecektir. (Varsayılan)</string>
+<string name="termux_settings_button_enabled_title">Ayarlar düğmesini göster</string>
+<string name="termux_settings_button_enabled_on">Ayarlar düğmesi sekmeler panelinde gösterilir. (Varsayılan)</string>
+<string name="termux_settings_button_enabled_off">Ayarlar düğmesi gizlidir. Terminalde uzun basarak &#8594; Daha Fazlası… &#8594; Ayarlar yolunu izleyerek ayarları açın.</string>
+<string name="termux_soft_keyboard_enabled_only_if_no_hardware_title">Yazılımsal Klavye Yalnızca Donanım Klavyesi Yoksa</string>
+<string name="termux_soft_keyboard_enabled_only_if_no_hardware_off">Yazılımsal klavye donanım klavyesi bağlı olsa bile
+                    etkinleştirilecektir. (Varsayılan)</string>
+<string name="termux_soft_keyboard_enabled_only_if_no_hardware_on">Yazılımsal klavye yalnızca donanım klavyesi bağlı değilse
+                    etkinleştirilecektir.</string>
+<string name="termux_terminal_view_preferences_title">Terminal Görünümü</string>
+<string name="termux_terminal_view_preferences_summary">Terminal görünümü için tercihler</string>
+<string name="termux_terminal_view_view_header">Görünüm</string>
+<string name="termux_button_bg_inactive_alpha_title">Pasif eleman saydamlığı (0–10%)</string>
+<string name="termux_button_bg_active_alpha_title">Aktif eleman saydamlığı (10–20%)</string>
+<string name="termux_terminal_view_terminal_margin_adjustment_title">Terminal Kenar Boşluğu Ayarı</string>
+<string name="termux_terminal_view_terminal_margin_adjustment_off">Terminal kenar boşluğu ayarı devre dışı bırakılacak.</string>
+<string name="termux_terminal_view_terminal_margin_adjustment_on">Terminal kenar boşluğu ayarı etkinleştirilecek.
+                    Yumuşak klavyenin ek tuşları/terminal görünümünün bir kısmını kapladığı sorunu çözmek için etkinleştirilmelidir.
+                    Cihazlarınızda ekran titremesine neden oluyorsa devre dışı bırakın. (Varsayılan)</string>
+<string name="termux_api_preferences_title">&TERMUX_API_APP_NAME;</string>
+<string name="termux_api_preferences_summary">&TERMUX_API_APP_NAME; uygulaması için tercihler</string>
+<string name="termux_float_preferences_title">&TERMUX_FLOAT_APP_NAME;</string>
+<string name="termux_float_preferences_summary">&TERMUX_FLOAT_APP_NAME; uygulaması için tercihler</string>
+<string name="termux_tasker_preferences_title">&TERMUX_TASKER_APP_NAME;</string>
+<string name="termux_tasker_preferences_summary">&TERMUX_TASKER_APP_NAME; uygulaması için tercihler</string>
+<string name="termux_widget_preferences_title">&TERMUX_WIDGET_APP_NAME;</string>
+<string name="termux_widget_preferences_summary">&TERMUX_WIDGET_APP_NAME; uygulaması için tercihler</string>
+<string name="about_preference_title">Hakkında</string>
+<string name="theme_mode_title">Uygulama Teması</string>
+<string name="theme_mode_summary">Uygulama ve terminal temasını seçin</string>
+<string name="color_scheme_dialog_title">Terminal Renk Şeması</string>
+<string name="color_scheme_light_title">Terminal Renk Şeması (Açık Tema)</string>
+<string name="color_scheme_light_summary">Uygulama teması açıkken uygulanan renk şeması</string>
+<string name="color_scheme_dark_title">Terminal Renk Şeması (Koyu Tema)</string>
+<string name="color_scheme_dark_summary">Uygulama teması koyuyken uygulanan renk şeması</string>
+<string name="message_history_title">Mesaj Geçmişi</string>
+<string name="message_history_max_title">Maks. hatırlanan mesaj sayısı</string>
+<string name="per_directory_message_history_title">Dizin başına mesaj geçmişi</string>
+<string name="per_directory_message_history_summary">Her çalışma dizini için ayrı bir mesaj geçmişi tutun. Kapalıyken tüm oturumlar ortak bir geçmiş kullanır.</string>
+<string name="text_input_title">Metin Girdisi</string>
+<string name="text_input_append_enter_title">Gönderirken Enter ekle</string>
+<string name="text_input_append_enter_summary">Girdi alanından gönderirken satırı da doğrulayın (Enter'a basın). Sondaki yeni satır karakteri olmadan ham metin göndermek için devre dışı bırakın.</string>
+<string name="directory_history_title">Dizin Geçmişi</string>
+<string name="directory_history_max_title">Maks. hatırlanan dizin sayısı</string>
+<string name="restore_sessions_title">Başlatıldığında sekmeleri geri yükle</string>
+<string name="restore_sessions_summary">Uygulama başlatıldığında tüm sekmeleri ve dizinlerini yeniden açın</string>
+<string name="screen_orientation_title">Ekran yönlendirmesi</string>
+<string name="screen_orientation_summary">"Sensörü takip et" varyantları iki yönlendirme arasında döner (ör. 0°/180° dikey).</string>
+<string name="donate_preference_title">Bağış Yap</string>
+<string name="backup_preference_title">Termux Verilerini Yedekle</string>
+<string name="backup_preference_summary">Termux veri dizinini (yüklü paketler + ev) bir tar.gz dosyasına kaydet</string>
+<string name="restore_preference_title">Termux Verilerini Geri Yükle</string>
+<string name="restore_preference_summary">Termux veri dizinini bir tar.gz yedek dosyasından geri yükle</string>
+<string name="backup_restore_backup_filename">termux-data-backup.tar.gz</string>
+<string name="backup_restore_dialog_title">Termux Veri Yedekleme / Geri Yükleme</string>
+<string name="backup_restore_warning_backup">Bu işlem, Termux veri dizinizin (yüklü paketler ve ev dizinizle birlikte ortam) sıkıştırılmış bir arşivini oluşturacaktır.\n\nYedeklemeyi kaydetmek için bir hedef dosya seçin.</string>
+<string name="backup_restore_warning_restore">Geri yükleme, mevcut Termux veri dizinini (yüklü paketler ve ev diziniz) seçilen yedek dosyasının içeriğiyle DEĞİŞECEKTİR. Mevcut veriler KAYBOLACAKTIR.\n\n⚠ Geri yükleme başarısız olursa — yedek dosyası bozuk, eksik veya işlem sırasında bağlantı kesilirse — Termux ortamınız BOŞ BIRAKILACAKTIR. Orijinal verileri kurtarmanın hiçbir yolu olmayacaktır.\n\nBu işlem geri alınamaz. Öncelikle yedekleme yapmanız ve yedek dosyasının geçerliliğini doğrulamanız kesinlikle önerilir.</string>
+<string name="backup_restore_backup_started">Yedekleme oluşturuluyor…</string>
+<string name="backup_restore_restore_started">Yedekleme geri yükleniyor…</string>
+<string name="backup_restore_backup_success">Yedekleme başarıyla oluşturuldu</string>
+<string name="backup_restore_restore_success">Veriler başarıyla geri yüklendi</string>
+<string name="backup_restore_failed_title">İşlem Başarısız</string>
+<string name="backup_restore_need_termux">Termux ikili dosyası (tar) bulunamadı. Lütfen konteynerin kurulması için Termux'u en az bir kez açın.</string>
+<string name="backup_restore_choose_backup">Geri yüklemek için bir .tar.gz yedek dosyası seçin</string>
+<string name="backup_service_channel_name">Termux Yedekleme / Geri Yükleme</string>
+<string name="backup_service_notification_title">Termux veri yedekleme</string>
+<string name="backup_service_notification_restore_title">Termux veri geri yükleme</string>
+<string name="backup_service_notification_progress">%1$d%%</string>
+<string name="backup_service_notification_success">Yedekleme başarıyla oluşturuldu</string>
+<string name="backup_service_notification_restore_success">Veriler başarıyla geri yüklendi</string>
+<string name="backup_service_notification_failed">Yedekleme başarısız oldu</string>
+<string name="backup_service_notification_restore_failed">Geri yükleme başarısız oldu</string>
+<string name="backup_dialog_background">Arka plan</string>
+<string name="backup_dialog_cancel">İptal</string>
+<string name="backup_service_notification_cancel">İptal</string>
+<string name="backup_restore_cancelled">İşlem iptal edildi</string>
+<string name="tab_close_description">Sekmeyi kapat</string>
+<string name="session_default_title">Terminal</string>
+<string name="text_input_show_title">Metin giriş alanını göster</string>
+<string name="text_input_show_summary_on">Metin giriş alanı ek tuşlarının üzerinde görünür</string>
+<string name="text_input_show_summary_off">Metin giriş alanı gizli</string>
+<string name="message_history_empty">Mesaj geçmişi yok</string>
+<string name="message_history_clear_all">GEÇMİŞİ TEMİZLE…</string>
+<string name="message_history_clear">Temizle</string>
+<string name="message_history_clear_dialog_title">Mesaj geçmişini temizle</string>
+<string name="message_history_clear_question">Mesaj geçmişi temizlensin mi?</string>
+<string name="message_history_clear_confirm_current">Geçerli dizin için hatırlanan tüm mesajlar temizlensin mi? Bu işlem geri alınamaz.</string>
+<string name="message_history_clear_confirm_all">Tüm mesaj geçmişi temizlensin mi? Bu işlem geri alınamaz.</string>
+<string name="message_history_clear_ok">Tamam</string>
+<string name="message_history_clear_all_btn">Tümü</string>
+<string name="message_history_clear_current_only_question">Yalnızca geçerli dizinin geçmişi temizlensin mi?</string>
+<string name="message_history_clear_all_question">Bu, hatırlanan tüm mesajları kalıcı olarak kaldıracaktır.</string>
+<string name="message_history_cleared">Mesaj geçmişi temizlendi</string>
+<string name="directory_history_clear_dialog_title">Dizin geçmişini temizle</string>
+<string name="directory_history_clear_confirm">Tüm dizin geçmişi temizlensin mi? Bu işlem geri alınamaz.</string>
+<string name="directory_history_cleared">Dizin geçmişi temizlendi</string>
+<string name="file_receiver_error_no_content">İçerik olmadan gönderme eylemi - kaydedilecek bir şey yok.</string>
+<string name="file_receiver_error_no_data_uri">Veri URI'sı iletilmedi.</string>
+<string name="file_receiver_error_invalid_path">Veri URI'sından alınan dosya yolu boş, geçersiz veya null.</string>
+<string name="file_receiver_error_cannot_open">Dosya açılamıyor: %s</string>
+<string name="file_receiver_error_cannot_receive">Dosya veya URL alınamıyor.</string>
+<string name="file_receiver_error_handle_shared">Paylaşılan içerik işlenemiyor:\n\n%s</string>
+<string name="file_receiver_error_no_editor">Aşağıdaki dosya mevcut değil:\n$HOME/bin/termux-file-editor\n\nBu dosyayı bir betik olarak veya sembolik bağ olarak oluşturun - alınan dosya tek argüman olarak çağrılacaktır.</string>
+<string name="file_receiver_error_no_url_opener">Aşağıdaki dosya mevcut değil:\n$HOME/bin/termux-url-opener\n\nBu dosyayı bir betik olarak veya sembolik bağ olarak oluşturun - paylaşılan URL ilk argüman olarak çağrılacaktır.</string>
+<string name="file_receiver_error_empty_name">Dosya adı boş veya null olamaz</string>
+<string name="file_receiver_error_cannot_create_dir">Dizin oluşturulamıyor: %s</string>
+<string name="file_receiver_error_saving_file">Dosya kaydedilirken hata oluştu:\n\n%s</string>
+<string name="notification_wake_lock_held"> (uyandırma kilidi tutuluyor)</string>
+<string name="session_null_title">boş oturum</string>
+<string name="msg_extra_keys_load_failed">Özellikler dosyasından \"%s\" özelliği yüklenip ayarlanamadı: %s</string>
+<string name="msg_extra_keys_create_failed">Varsayılan ek tuşlar oluşturulamıyor</string>
+<plurals name="notification_sessions">
+        <item quantity="one">%d oturum</item>
+        <item quantity="other">%d oturum</item>
+    </plurals>
+
+<plurals name="notification_tasks_separator">
+        <item quantity="one">, %d görev</item>
+        <item quantity="other">, %d görev</item>
+    </plurals>
+
+<string-array name="screen_orientation_entries">
+        <item>Sensörü takip et</item>
+        <item>Dikey (sensörü takip et)</item>
+        <item>Yatay (sensörü takip et)</item>
+        <item>Dikey</item>
+        <item>Yatay</item>
+    </string-array>
+
+<string-array name="screen_orientation_values">
+        <item>sensor</item>
+        <item>portrait_follow_sensor</item>
+        <item>landscape_follow_sensor</item>
+        <item>portrait</item>
+        <item>landscape</item>
+    </string-array>
+
+</resources>

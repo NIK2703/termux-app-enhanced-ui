@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!DOCTYPE resources [
+    <!ENTITY TERMUX_PACKAGE_NAME "com.termux">
+    <!ENTITY TERMUX_APP_NAME "Termux">
+    <!ENTITY TERMUX_PREFIX_DIR_PATH "/data/data/com.termux/files/usr">
+]>
+
+<resources>
+    <string name="action_cancel">Abbrechen</string>
+    <string name="action_copy">Kopieren</string>
+    <string name="action_disable_launcher_icon">Launcher-Symbol deaktivieren</string>
+    <string name="action_enable_launcher_icon">Launcher-Symbol aktivieren</string>
+    <string name="action_no">Nein</string>
+    <string name="action_save_to_file">In Datei speichern</string>
+    <string name="action_share">Teilen</string>
+    <string name="action_yes">Ja</string>
+    <string name="error_allow_external_apps_ungranted">%1$s erfordert, dass die Eigenschaft `allow-external-apps` in der Datei `%2$s` auf `true` gesetzt ist.</string>
+    <string name="error_app_not_installed_or_disabled_warning">Die %1$s (%2$s) App ist nicht installiert oder ist deaktiviert.</string>
+    <string name="error_attempted_to_ask_for_permissions_not_requested">Es wurde versucht, Berechtigungen anzufragen, die nicht im App-Manifest angefordert wurden: %1$s</string>
+    <string name="error_attempted_to_check_for_permissions_not_requested">Es wurde versucht, Berechtigungen zu prüfen, die nicht im App-Manifest angefordert wurden: %1$s</string>
+    <string name="error_disable_component_failed">Konnte %1$s/%2$s Komponente nicht deaktivieren</string>
+    <string name="error_display_over_other_apps_permission_not_granted">%1$s benötigt die Berechtigung \"Display over other apps\", um Aktivitäten und Dienste aus dem Hintergrund auf Android >= 10 zu starten. Gewähren Sie diese in den Android-Einstellungen -> Apps -> %1$s -> Erweitert -> Über anderen Apps einblenden. Der Berechtigungsname kann auf verschiedenen Geräten abweichen, wie bei Xiaomi heißt er \"Display pop-up windows while running in the background\", überprüfen Sie https://dontkillmyapp.com für gerätespezifische Probleme.</string>
+    <string name="error_enable_component_failed">Konnte %1$s/%2$s Komponente nicht aktivieren</string>
+    <string name="error_exception_received_while_executing_app_shell_command">Ausnahme beim Ausführen des App-Shell-Befehls \"%1$s\" aufgetreten.\nAusnahme: %2$s</string>
+    <string name="error_exception_received_while_executing_termux_session_command">Ausnahme beim Ausführen des Termux-Sitzungsbefehls \"%1$s\" aufgetreten.\nAusnahme: %2$s</string>
+    <string name="error_executable_unset">Ausführbare Datei \"%1$s\" für Shell-Befehl nicht festgelegt</string>
+    <string name="error_execution_cancelled">Ausführung wurde abgebrochen, da der Ausführungsdienst beendet wird</string>
+    <string name="error_failed_to_execute_app_shell_command">Fehler beim Ausführen des App-Shell-Befehls \"%1$s\"</string>
+    <string name="error_failed_to_execute_termux_session_command">Fehler beim Ausführen des Termux-Sitzungsbefehls \"%1$s\"</string>
+    <string name="error_failed_to_request_permissions">Fehler beim Anfordern von Berechtigungen mit Anfragecode %1$d: %2$s</string>
+    <string name="error_get_component_state_failed">Konnte %1$s/%2$s Komponentenstatus nicht abrufen</string>
+    <string name="error_get_package_context_failed_help_url_message">Siehe %1$s für weitere Details.</string>
+    <string name="error_get_package_context_failed_message">Konnte Paketkontext für das \"%1$s\" Paket nicht abrufen. Dies kann daran liegen, dass das App-Paket nicht installiert ist oder eine andere APK-Signatur als die aktuelle App aufweist.</string>
+    <string name="error_get_package_context_failed_title">Konnte Paketkontext nicht abrufen</string>
+    <string name="error_has_not_requested_legacy_external_storage">Das \"%1$s\" Paket zielt auf targetSdkVersion %2$d ab und läuft auf Android SDK %3$d, hat aber requestLegacyExternalStorage nicht auf true im App-Manifest gesetzt</string>
+    <string name="error_sending_sigkill_to_process">Sende SIGKILL an Prozess auf Benutzeranfrage oder weil Android den Ausführungsdienst beendet</string>
+    <string name="error_termux_app_package_context_not_accessible">Die &TERMUX_APP_NAME; App (Paketkontext) ist nicht zugänglich.</string>
+    <string name="error_termux_prefix_dir_path_not_accessible">Das $PREFIX-Verzeichnis der &TERMUX_APP_NAME; App ist für die %1$s App nicht zugänglich. Dies kann daran liegen, dass Sie die &TERMUX_APP_NAME; App nicht installiert oder eingerichtet haben, oder dass die &TERMUX_APP_NAME; App und die %1$s App unterschiedliche APK-Signaturen aufweisen, weil Sie beide Apps aus verschiedenen Quellen installiert haben. Es kann auch daran liegen, dass das $PREFIX-Verzeichnis \"&TERMUX_PREFIX_DIR_PATH;\" der &TERMUX_APP_NAME; nicht existiert oder keine Lese-, Schreib- und Ausführungsberechtigungen besitzt.</string>
+    <string name="font_picker_title">Schriftart auswählen (.ttf)</string>
+    <string name="log_level_debug">Debug</string>
+    <string name="log_level_normal">Normal</string>
+    <string name="log_level_off">Aus</string>
+    <string name="log_level_title">Log-Level</string>
+    <string name="log_level_unknown">*Unbekannt*</string>
+    <string name="log_level_value">Logcat-Log-Level auf \"%1$s\" gesetzt</string>
+    <string name="log_level_verbose">Ausführlich</string>
+    <string name="message_sudo_please_grant_permissions">Bitte gewähren Sie die angeforderte(n) Berechtigung(en)</string>
+    <string name="msg_directory_absolute_path">%1$s Verzeichnis absoluter Pfad: \"%2$s\"</string>
+    <string name="msg_disabling_launcher_icon">Deaktiviere Launcher-Symbol der %1$s App</string>
+    <string name="msg_enabling_launcher_icon">Aktiviere Launcher-Symbol der %1$s App</string>
+    <string name="msg_file_saved_successfully">Die Datei %1$s wurde erfolgreich unter \"%2$s\" gespeichert</string>
+    <string name="msg_report_issue">Wenn Sie dieses Problem melden möchten, kopieren Sie den Text aus dem Optionsmenü (3-Punkte oben rechts) und erstellen Sie ein Issue auf einem der folgenden Links.\n\nWenn Sie einen Termux-App-Absturzbericht einreichen, geben Sie bitte nach Möglichkeit Details dazu an, was Sie zum Zeitpunkt des Absturzes getan haben und wie er reproduziert werden kann.\n\nWenn Sie ein Issue auf GitHub erstellen, posten Sie es in dem Repository, zu dem der Bericht gehört. Issues oder E-Mails mit **(teilweisen) Screenshots** anstelle von kopiertem Text oder einer Datei dieses Berichts **werden wahrscheinlich automatisch geschlossen/gelöscht**. Sie können optional gerätespezifische Informationen entfernen, die Sie als privat betrachten oder nicht teilen möchten oder die für das Issue nicht relevant sind.\n\nWir bieten keine Unterstützung für Hacking-bezogene Tools/Skripte. Alle Fragen dazu per E-Mail, auf GitHub oder in anderen offiziellen Termux-Community-Foren **werden wahrscheinlich automatisch geschlossen/gelöscht** und können sogar zu einem **vorübergehenden oder dauerhaften** Bann führen. Siehe %1$s/wiki/Hacking für Details.</string>
+    <string name="msg_report_truncated">**Bericht gekürzt**\n\nDer Bericht ist zu groß, um ihn hier anzuzeigen. Verwenden Sie die Option `Save To File` im Optionsmenü (3-Punkte oben rechts) und öffnen Sie ihn in einer externen Texteditor-App.\n\n##\n\n</string>
+    <string name="msg_requires_dump_and_package_usage_stats_permissions">Erfordert `DUMP`- und `PACKAGE_USAGE_STATS`-Berechtigung</string>
+    <string name="msg_storage_permission_granted_on_request">Die Speicherberechtigung wurde vom Benutzer auf Anfrage gewährt</string>
+    <string name="msg_storage_permission_not_granted">Die Speicherberechtigung wurde nicht erteilt.</string>
+    <string name="msg_storage_permission_not_granted_on_request">Die Speicherberechtigung wurde vom Benutzer auf Anfrage nicht gewährt</string>
+    <string name="msg_termux_app_required_by_app">Die &TERMUX_APP_NAME; wird von der %1$s App benötigt, um Termux-Befehle auszuführen.</string>
+    <string name="notification_channel_app">Termux App</string>
+    <string name="notification_channel_plugin_errors">Termux Plugin-Befehlsfehler</string>
+    <string name="notification_channel_run_command">Termux RunCommandService</string>
+    <string name="setting_launcher_icon_enabled_off">Launcher-Symbol wird deaktiviert.</string>
+    <string name="setting_launcher_icon_enabled_on">Launcher-Symbol wird aktiviert. (Standard)</string>
+    <string name="setting_launcher_icon_title">Launcher-Symbol aktiviert</string>
+    <string name="title_open_url_with">URL öffnen mit</string>
+    <string name="title_report_text">Berichtstext</string>
+    <string name="title_share_with">Teilen mit</string>
+</resources>

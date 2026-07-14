@@ -226,7 +226,7 @@
     <string name="directory_history_cleared">目录历史已清除</string>
     <string name="file_receiver_error_no_content">发送操作无内容 - 无内容可保存。</string>
     <string name="file_receiver_error_no_data_uri">未传递数据 URI。</string>
-    <string name="file_receiver_error_invalid_path">数据 URI 中的文件路径为空或无效。</string>
+    <string name="file_receiver_error_invalid_path">数据 URI 中的文件路径为 null、空或无效。</string>
     <string name="file_receiver_error_cannot_open">无法打开文件：%s</string>
     <string name="file_receiver_error_cannot_receive">无法接收任何文件或 URL。</string>
     <string name="file_receiver_error_handle_shared">无法处理共享内容：\n\n%s</string>

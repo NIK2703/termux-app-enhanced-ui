@@ -50,11 +50,11 @@
     <string name="action_reset_terminal">Reiniciar</string>
     <string name="msg_terminal_reset">Terminal reiniciada</string>
     <string name="msg_terminal_font_applied">Fuente aplicada</string>
-    <string name="action_kill_process">Matar proceso (%d)</string>
-    <string name="title_confirm_kill_process">¿Matar esta sesión?</string>
+    <string name="action_kill_process">Finalizar proceso (%d)</string>
+    <string name="title_confirm_kill_process">¿Finalizar esta sesión?</string>
     <string name="action_style_terminal">Estilo</string>
     <string name="action_font_terminal">Fuente</string>
-    <string name="font_picker_title">Seleccionar una fuente (.ttf)</string>
+    <string name="font_picker_title">Seleccione una fuente (.ttf)</string>
     <string name="error_font_copy_failed">Error al aplicar la fuente</string>
     <string name="action_toggle_keep_screen_on">Mantener pantalla encendida</string>
     <string name="action_open_help">Ayuda</string>
@@ -68,12 +68,12 @@
     <string name="notification_action_wake_lock">Adquirir bloqueo de activación</string>
     <string name="notification_action_wake_unlock">Liberar bloqueo de activación</string>
     <string name="error_display_over_other_apps_permission_not_granted_to_start_terminal">&TERMUX_APP_NAME; requiere permiso \"Mostrar sobre otras aplicaciones\" para iniciar sesiones de terminal desde segundo plano en Android >= 10. Concédelo desde Ajustes -> Aplicaciones -> &TERMUX_APP_NAME; -> Avanzado</string>
-    <string name="error_termux_service_invalid_execution_command_runner">Ejecutor de comando de ejecución no válido para TermuxService: `%1$s`</string>
-    <string name="error_termux_service_unsupported_execution_command_runner">Ejecutor de comando de ejecución no compatible para TermuxService: `%1$s`</string>
+    <string name="error_termux_service_invalid_execution_command_runner">Runner de comando de ejecución no válido para TermuxService: `%1$s`</string>
+    <string name="error_termux_service_unsupported_execution_command_runner">Runner de comando de ejecución no compatible para TermuxService: `%1$s`</string>
     <string name="error_termux_service_unsupported_execution_command_shell_create_mode">Modo de creación de shell de comando de ejecución no compatible para TermuxService: `%1$s`</string>
     <string name="error_termux_service_execution_command_shell_name_unset">Nombre de shell no establecido pero se pasó modo de creación de shell `%1$s`</string>
     <string name="error_run_command_service_invalid_intent_action">Acción de intent no válida para RunCommandService: `%1$s`</string>
-    <string name="error_run_command_service_invalid_execution_command_runner">Ejecutor de comando de ejecución no válido para RunCommandService: `%1$s`</string>
+    <string name="error_run_command_service_invalid_execution_command_runner">Runner de comando de ejecución no válido para RunCommandService: `%1$s`</string>
     <string name="error_run_command_service_mandatory_extra_missing">Extra obligatorio faltante para RunCommandService: \"%1$s\"</string>
     <string name="error_run_command_service_api_help">Visita %1$s para más información sobre el uso del Intent RUN_COMMAND.</string>
     <string name="title_file_received">Guardar archivo en ~/downloads/</string>
@@ -143,7 +143,7 @@
     <string name="per_directory_message_history_summary">Mantener un historial de mensajes separado para cada directorio de trabajo. Cuando está desactivado, todas las sesiones comparten un historial global.</string>
     <string name="text_input_title">Entrada de texto</string>
     <string name="text_input_append_enter_title">Añadir Enter al enviar</string>
-    <string name="text_input_append_enter_summary">Al enviar texto desde el campo de entrada, enviar también la señal Enter</string>
+    <string name="text_input_append_enter_summary">Al enviar texto desde el campo de entrada, enviar también la línea (presione Enter). Desactive para enviar texto sin una nueva línea al final.</string>
     <string name="directory_history_title">Historial de directorios</string>
     <string name="directory_history_max_title">Máx. de directorios guardados</string>
     <string name="restore_sessions_title">Restaurar pestañas al inicio</string>

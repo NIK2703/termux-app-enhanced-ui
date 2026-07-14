@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!DOCTYPE resources [
+    <!ENTITY TERMUX_PACKAGE_NAME "com.termux">
+    <!ENTITY TERMUX_APP_NAME "Termux">
+    <!ENTITY TERMUX_API_APP_NAME "Termux:API">
+    <!ENTITY TERMUX_FLOAT_APP_NAME "Termux:Float">
+    <!ENTITY TERMUX_TASKER_APP_NAME "Termux:Tasker">
+    <!ENTITY TERMUX_WIDGET_APP_NAME "Termux:Widget">
+    <!ENTITY TERMUX_STYLING_APP_NAME "Termux:Styling">
+    <!ENTITY TERMUX_PREFIX_DIR_PATH "/data/data/com.termux/files/usr">
+]>
+
+<resources>
+    <string name="msg_directory_absolute_path">%1$s ディレクトリの絶対パス: \"%2$s\"</string>
+<string name="error_app_not_installed_or_disabled_warning">%1$s (%2$s) アプリがインストールされていないか、無効になっています。</string>
+<string name="error_get_package_context_failed_title">パッケージコンテキストの取得に失敗しました</string>
+<string name="error_get_package_context_failed_message">\"%1$s\" パッケージのパッケージコンテキストの取得に失敗しました。アプリパッケージがインストールされていないか、現在のアプリとは異なる APK 署名が使用されている可能性があります。</string>
+<string name="error_get_package_context_failed_help_url_message">詳細は %1$s を確認してください。</string>
+<string name="error_get_component_state_failed">%1$s/%2$s コンポーネントの状態の取得に失敗しました</string>
+<string name="error_enable_component_failed">%1$s/%2$s コンポーネントの有効化に失敗しました</string>
+<string name="error_disable_component_failed">%1$s/%2$s コンポーネントの無効化に失敗しました</string>
+<string name="message_sudo_please_grant_permissions">要求された権限を許可してください</string>
+<string name="error_failed_to_request_permissions">リクエストコード %1$d で権限の要求に失敗しました: %2$s</string>
+<string name="error_attempted_to_check_for_permissions_not_requested">アプリマニフェストで要求されていない権限を確認しようとしました: %1$s</string>
+<string name="error_attempted_to_ask_for_permissions_not_requested">アプリマニフェストで要求されていない権限を要求しようとしました: %1$s</string>
+<string name="error_has_not_requested_legacy_external_storage">\"%1$s\" パッケージは targetSdkVersion %2$d を対象としており、Android SDK %3$d で実行されていますが、アプリマニフェストで requestLegacyExternalStorage が true に設定されていません</string>
+<string name="msg_requires_dump_and_package_usage_stats_permissions">`DUMP` および `PACKAGE_USAGE_STATS` 権限が必要です</string>
+<string name="error_display_over_other_apps_permission_not_granted">%1$s は Android 10 以降でバックグラウンドからアクティビティやサービスを開始するために「他のアプリの上に表示」権限が必要です。Android の設定 → アプリ → %1$s → 詳細設定 → 他のアプリの上に表示 から許可してください。権限名はデバイスによって異なる場合があり、Xiaomi では「バックグラウンド実行中にポップアップウィンドウを表示」と呼ばれています。デバイス固有の問題については https://dontkillmyapp.com を確認してください。</string>
+<string name="error_allow_external_apps_ungranted">%1$s は `%2$s` ファイルで `allow-external-apps` プロパティが `true` に設定されている必要があります。</string>
+<string name="title_report_text">報告テキスト</string>
+<string name="msg_report_truncated">**レポートは切り詰められています**\n\nレポートが大きすぎてここでは表示できません。オプションメニュー（右上の3つのドット）から「ファイルに保存」オプションを使用して、外部テキストエディタアプリで表示してください。\n\n##\n\n</string>
+<string name="title_share_with">共有</string>
+<string name="title_open_url_with">URL を開く</string>
+<string name="msg_storage_permission_not_granted">ストレージ権限が許可されていません。</string>
+<string name="msg_file_saved_successfully">%1$s ファイルが \"%2$s\" に保存されました</string>
+<string name="error_sending_sigkill_to_process">ユーザーリクエスト、または Android が実行サービスを強制終了しているため、プロセスに SIGKILL を送信しています</string>
+<string name="error_executable_unset">シェルコマンドの実行可能ファイル \"%1$s\" が設定されていません</string>
+<string name="error_execution_cancelled">実行サービスが強制終了されているため、実行がキャンセルされました</string>
+<string name="error_failed_to_execute_termux_session_command">\"%1$s\" termux セッションコマンドの実行に失敗しました</string>
+<string name="error_failed_to_execute_app_shell_command">\"%1$s\" アプリシェルコマンドの実行に失敗しました</string>
+<string name="error_exception_received_while_executing_termux_session_command">\"%1$s\" termux セッションコマンドの実行中に例外が発生しました。\n例外: %2$s</string>
+<string name="error_exception_received_while_executing_app_shell_command">\"%1$s\" アプリシェルコマンドの実行中に例外が発生しました。\n例外: %2$s</string>
+<string name="msg_report_issue">この問題を報告する場合は、オプションメニュー（右上の3つのドット）からテキストをコピーして、以下のリンクのいずれかに問題を投稿してください。\n\nTermux アプリのクラッシュレポートを投稿する場合は、クラッシュの原因となった操作と、可能であれば再現手順の詳細を提供してください。\n\nGitHub に問題を投稿する場合は、レポートが属するリポジトリに投稿してください。コピーしたテキストやこのレポートのファイルではなく**（部分的な）スクリーンショット**で開かれた問題や送信されたメールは**自動的にクローズ/削除される可能性があります**。プライベートと考えるデバイス固有の情報や共有したくない情報、問題に関連しない情報は必要に応じて削除しても構いません。\n\nハッキング関連のツール/スクリプトに関するサポートは提供していません。メール、GitHub、またはその他の公式 Termux コミュニティフォーラムでのそれらに関する質問は**自動的にクローズ/削除される可能性が高く**、**一時的または永久的な**禁止処分を受ける可能性があります。詳細は %1$s/wiki/Hacking を確認してください。</string>
+<string name="msg_termux_app_required_by_app">&TERMUX_APP_NAME; は %1$s アプリが termux コマンドを実行するために必要です。</string>
+<string name="error_termux_app_package_context_not_accessible">&TERMUX_APP_NAME; アプリ（パッケージコンテキスト）にアクセスできません。</string>
+<string name="error_termux_prefix_dir_path_not_accessible">&TERMUX_APP_NAME; アプリの $PREFIX ディレクトリに %1$s アプリからアクセスできません。これは、&TERMUX_APP_NAME; アプリをインストールまたはセットアップしていないか、&TERMUX_APP_NAME; アプリと %1$s アプリの両方が異なるソースからインストールされたため APK 署名が異なることが原因である可能性があります。また、&TERMUX_APP_NAME; の $PREFIX ディレクトリ \"&TERMUX_PREFIX_DIR_PATH;\" が存在しないか、読み取り、書き込み、実行の権限がない可能性もあります。</string>
+<string name="action_yes">はい</string>
+<string name="action_no">いいえ</string>
+<string name="action_copy">コピー</string>
+<string name="action_share">共有</string>
+<string name="action_cancel">キャンセル</string>
+<string name="action_save_to_file">ファイルに保存</string>
+<string name="msg_storage_permission_granted_on_request">ユーザーのリクエストによりストレージ権限が許可されました</string>
+<string name="msg_storage_permission_not_granted_on_request">ユーザーのリクエストによりストレージ権限が許可されませんでした</string>
+<string name="action_enable_launcher_icon">ランチャーアイコンを有効にする</string>
+<string name="font_picker_title">フォントを選択 (.ttf)</string>
+<string name="action_disable_launcher_icon">ランチャーアイコンを無効にする</string>
+<string name="msg_enabling_launcher_icon">%1$s アプリのランチャーアイコンを有効にしています</string>
+<string name="msg_disabling_launcher_icon">%1$s アプリのランチャーアイコンを無効にしています</string>
+<string name="setting_launcher_icon_title">ランチャーアイコン有効</string>
+<string name="setting_launcher_icon_enabled_off">ランチャーアイコンは無効になります。</string>
+<string name="setting_launcher_icon_enabled_on">ランチャーアイコンは有効になります。（デフォルト）</string>
+<string name="log_level_title">ログレベル</string>
+<string name="log_level_off">オフ</string>
+<string name="log_level_normal">通常</string>
+<string name="log_level_debug">デバッグ</string>
+<string name="log_level_verbose">詳細</string>
+<string name="log_level_unknown">*不明*</string>
+<string name="log_level_value">ログキャットのログレベルが \"%1$s\" に設定されました</string>
+<string name="notification_channel_app">Termux アプリ</string>
+<string name="notification_channel_run_command">Termux RunCommandService</string>
+<string name="notification_channel_plugin_errors">Termux プラグインコマンドエラー</string>
+</resources>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE resources [
+    <!ENTITY TERMUX_APP_NAME "Termux EnhancedUI">
+    <!ENTITY TERMUX_API_APP_NAME "Termux:API">
+    <!ENTITY TERMUX_FLOAT_APP_NAME "Termux:Float">
+    <!ENTITY TERMUX_TASKER_APP_NAME "Termux:Tasker">
+    <!ENTITY TERMUX_WIDGET_APP_NAME "Termux:Widget">
+    <!ENTITY TERMUX_STYLING_APP_NAME "Termux:Styling">
+    <!ENTITY TERMUX_PREFIX_DIR_PATH "/data/data/com.termux/files/usr">
+]>
+<resources>
+
+    <string name="action_cancel">रद्द करें</string>
+    <string name="action_copy">कॉपी करें</string>
+    <string name="action_disable_launcher_icon">लॉन्चर आइकन अक्षम करें</string>
+    <string name="action_enable_launcher_icon">लॉन्चर आइकन सक्षम करें</string>
+    <string name="action_no">नहीं</string>
+    <string name="action_save_to_file">फ़ाइल में सहेजें</string>
+    <string name="action_share">साझा करें</string>
+    <string name="action_yes">हाँ</string>
+    <string name="error_allow_external_apps_ungranted">%1$s को `%2$s` फ़ाइल में `allow-external-apps` प्रॉपर्टी को `true` पर सेट करने की आवश्यकता है।</string>
+    <string name="error_app_not_installed_or_disabled_warning">%1$s (%2$s) ऐप इंस्टॉल नहीं है या अक्षम है।</string>
+    <string name="error_attempted_to_ask_for_permissions_not_requested">ऐप मैनिफेस्ट में अनुरोध नहीं की गई अनुमतियों के लिए पूछने का प्रयास किया गया: %1$s</string>
+    <string name="error_attempted_to_check_for_permissions_not_requested">ऐप मैनिफेस्ट में अनुरोध नहीं की गई अनुमतियों की जांच करने का प्रयास किया गया: %1$s</string>
+    <string name="error_disable_component_failed">%1$s/%2$s कंपोनेंट अक्षम करने में विफल</string>
+    <string name="error_display_over_other_apps_permission_not_granted">Android >= 10 पर बैकग्राउंड से गतिविधियों और सेवाओं को शुरू करने के लिए %1$s को \"डिस्प्ले ओवर अदर ऐप्स\" अनुमति आवश्यक है। इसे Android सेटिंग्स -> ऐप्स -> %1$s -> उन्नत -> अन्य ऐप्स पर ड्रॉ करें से प्रदान करें। अनुमति का नाम विभिन्न उपकरणों पर अलग हो सकता है, जैसे Xiaomi पर इसे \"बैकग्राउंड में चलते समय पॉप-अप विंडो प्रदर्शित करें\" कहा जाता है, डिवाइस-विशिष्ट समस्याओं के लिए https://dontkillmyapp.com देखें।</string>
+    <string name="error_enable_component_failed">%1$s/%2$s कंपोनेंट सक्षम करने में विफल</string>
+    <string name="error_exception_received_while_executing_app_shell_command">\"%1$s\" ऐप शेल कमांड निष्पादित करते समय अपवाद प्राप्त हुआ।\nअपवाद: %2$s</string>
+    <string name="error_exception_received_while_executing_termux_session_command">\"%1$s\" टर्मेक्स सत्र कमांड निष्पादित करते समय अपवाद प्राप्त हुआ।\nअपवाद: %2$s</string>
+    <string name="error_executable_unset">शेल कमांड के लिए एक्ज़ीक्यूटेबल \"%1$s\" सेट नहीं है</string>
+    <string name="error_execution_cancelled">एक्ज़ीक्यूशन सर्विस को मारा जा रहा है इसलिए एक्ज़ीक्यूशन रद्द कर दिया गया है</string>
+    <string name="error_failed_to_execute_app_shell_command">\"%1$s\" ऐप शेल कमांड निष्पादित करने में विफल</string>
+    <string name="error_failed_to_execute_termux_session_command">\"%1$s\" टर्मेक्स सत्र कमांड निष्पादित करने में विफल</string>
+    <string name="error_failed_to_request_permissions">अनुरोध कोड %1$d के साथ अनुमतियाँ अनुरोध करने में विफल: %2$s</string>
+    <string name="error_get_package_context_failed_help_url_message">अधिक जानकारी के लिए %1$s देखें।</string>
+    <string name="error_get_package_context_failed_message">\"%1$s\" पैकेज के लिए पैकेज संदर्भ प्राप्त करने में विफल। यह इसलिए हो सकता है क्योंकि ऐप पैकेज इंस्टॉल नहीं है या इसका वर्तमान ऐप से APK हस्ताक्षर अलग है।</string>
+    <string name="error_get_package_context_failed_title">पैकेज संदर्भ प्राप्त करने में विफल</string>
+    <string name="error_has_not_requested_legacy_external_storage">\"%1$s\" पैकेज targetSdkVersion %2$d को टारगेट कर रहा है और Android SDK %3$d पर चल रहा है लेकिन ऐप मैनिफेस्ट में requestLegacyExternalStorage को true पर सेट नहीं किया है</string>
+    <string name="error_sending_sigkill_to_process">उपयोगकर्ता के अनुरोध पर या इसलिए कि Android एक्ज़ीक्यूशन सर्विस को मार रहा है, प्रक्रिया को SIGKILL भेजा जा रहा है</string>
+    <string name="error_termux_app_package_context_not_accessible">&TERMUX_APP_NAME; ऐप (पैकेज संदर्भ) तक नहीं पहुँचा जा सकता।</string>
+    <string name="error_termux_prefix_dir_path_not_accessible">&TERMUX_APP_NAME; ऐप $PREFIX डायरेक्टरी %1$s ऐप द्वारा एक्सेस नहीं की जा सकती। यह इसलिए हो सकता है क्योंकि आपने &TERMUX_APP_NAME; ऐप इंस्टॉल या सेटअप नहीं किया है या &TERMUX_APP_NAME; ऐप और %1$s ऐप दोनों के अलग-अलग स्रोतों से इंस्टॉल किए गए होने के कारण अलग APK हस्ताक्षर हैं। यह इसलिए भी हो सकता है क्योंकि &TERMUX_APP_NAME; $PREFIX डायरेक्टरी \"&TERMUX_PREFIX_DIR_PATH;\" मौजूद नहीं है या उसके पास पढ़ने, लिखने और निष्पादन की अनुमतियाँ नहीं हैं।</string>
+    <string name="log_level_debug">डीबग</string>
+    <string name="log_level_normal">सामान्य</string>
+    <string name="log_level_off">बंद</string>
+    <string name="log_level_title">लॉग स्तर</string>
+    <string name="log_level_unknown">*अज्ञात*</string>
+    <string name="log_level_value">Logcat लॉग स्तर \"%1$s\" पर सेट किया गया</string>
+    <string name="log_level_verbose">विस्तृत</string>
+    <string name="message_sudo_please_grant_permissions">कृपया अनुरोधित अनुमतियाँ प्रदान करें</string>
+    <string name="msg_directory_absolute_path">%1$s डायरेक्टरी पूर्ण पथ: \"%2$s\"</string>
+    <string name="msg_disabling_launcher_icon">%1$s ऐप लॉन्चर आइकन अक्षम किया जा रहा है</string>
+    <string name="msg_enabling_launcher_icon">%1$s ऐप लॉन्चर आइकन सक्षम किया जा रहा है</string>
+    <string name="msg_file_saved_successfully">%1$s फ़ाइल \"%2$s\" पर सफलतापूर्वक सहेजी गई</string>
+    <string name="msg_report_truncated">**रिपोर्ट छोटी की गई**\n\nरिपोर्ट यहाँ देखने के लिए बहुत बड़ी है। विकल्प मेनू (ऊपर दाईं ओर 3 डॉट्स) से `फ़ाइल में सहेजें` विकल्प का उपयोग करें और इसे बाहरी टेक्स्ट एडिटर ऐप में देखें।\n\n##\n\n</string>
+    <string name="msg_requires_dump_and_package_usage_stats_permissions">`DUMP` और `PACKAGE_USAGE_STATS` अनुमति आवश्यक है</string>
+    <string name="msg_storage_permission_granted_on_request">उपयोगकर्ता ने अनुरोध पर स्टोरेज अनुमति प्रदान की</string>
+    <string name="msg_storage_permission_not_granted">स्टोरेज अनुमति प्रदान नहीं की गई।</string>
+    <string name="msg_storage_permission_not_granted_on_request">उपयोगकर्ता ने अनुरोध पर स्टोरेज अनुमति प्रदान नहीं की</string>
+    <string name="msg_termux_app_required_by_app">&TERMUX_APP_NAME; ऐप द्वारा टर्मेक्स कमांड चलाने के लिए %1$s ऐप को इसकी आवश्यकता है।</string>
+    <string name="notification_channel_app">टर्मेक्स ऐप</string>
+    <string name="notification_channel_plugin_errors">टर्मेक्स प्लगइन कमांड त्रुटियाँ</string>
+    <string name="notification_channel_run_command">टर्मेक्स RunCommandService</string>
+    <string name="setting_launcher_icon_enabled_off">लॉन्चर आइकन अक्षम हो जाएगा।</string>
+    <string name="setting_launcher_icon_enabled_on">लॉन्चर आइकन सक्षम हो जाएगा। (डिफ़ॉल्ट)</string>
+    <string name="setting_launcher_icon_title">लॉन्चर आइकन सक्षम</string>
+    <string name="title_open_url_with">URL इसके साथ खोलें</string>
+    <string name="title_report_text">रिपोर्ट टेक्स्ट</string>
+    <string name="title_share_with">इसके साथ साझा करें</string>
+    <string name="msg_report_issue">यदि आप इस समस्या की रिपोर्ट करना चाहते हैं, तो विकल्प मेनू (ऊपर दाईं ओर 3 डॉट्स) से इसका टेक्स्ट कॉपी करें और निम्न लिंक में से किसी पर इसे पोस्ट करें।
+
+यदि आप टर्मेक्स ऐप क्रैश रिपोर्ट पोस्ट कर रहे हैं, तो कृपया बताएं कि आप क्या कर रहे थे जिससे क्रैश हुआ और यदि संभव हो तो इसे कैसे पुनरुत्पन्न करें।
+
+यदि आप GitHub पर कोई समस्या पोस्ट कर रहे हैं, तो उस रिपोज़िटरी में पोस्ट करें जिससे रिपोर्ट संबंधित है। कॉपी किए गए टेक्स्ट या इस रिपोर्ट की फ़ाइल के बजाय **(आंशिक) स्क्रीनशॉट** के साथ खोली गई समस्याएँ या भेजे गए ईमेल **स्वचालित रूप से बंद/हटाए जाने की संभावना** हैं। आप वैकल्पिक रूप से कोई भी डिवाइस-विशिष्ट जानकारी हटा सकते हैं जो आप निजी मानते हैं या साझा नहीं करना चाहते या जो समस्या से प्रासंगिक नहीं है।
+
+हम किसी भी हैकिंग संबंधी टूल्स/स्क्रिप्ट्स के लिए सहायता प्रदान नहीं करते। उनके बारे में ईमेल, GitHub या अन्य आधिकारिक टर्मेक्स कम्युनिटी फोरम पर पूछे गए कोई भी प्रश्न **स्वचालित रूप से बंद/हटाए जाने की संभावना** हैं और **अस्थायी या स्थायी** प्रतिबंध भी हो सकता है। विवरण के लिए %1$s/wiki/Hacking देखें।</string>
+    <string name="error_get_component_state_failed">%1$s/%2$s कंपोनेंट स्थिति प्राप्त करने में विफल</string>
+</resources>

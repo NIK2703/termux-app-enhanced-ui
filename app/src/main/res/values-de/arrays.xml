@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="theme_mode_entries">
+<item>Dunkel</item>
+    <item>Hell</item>
+    <item>Systemstandard</item>
+    </string-array>
+    <string-array name="theme_mode_values">
+<item>true</item>
+    <item>false</item>
+    <item>system</item>
+    </string-array>
+</resources>

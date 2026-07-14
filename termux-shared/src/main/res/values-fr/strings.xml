@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE resources [
+    <!ENTITY TERMUX_PACKAGE_NAME "com.termux">
+    <!ENTITY TERMUX_APP_NAME "Termux">
+    <!ENTITY TERMUX_API_APP_NAME "Termux:API">
+    <!ENTITY TERMUX_FLOAT_APP_NAME "Termux:Float">
+    <!ENTITY TERMUX_TASKER_APP_NAME "Termux:Tasker">
+    <!ENTITY TERMUX_WIDGET_APP_NAME "Termux:Widget">
+    <!ENTITY TERMUX_STYLING_APP_NAME "Termux:Styling">
+    <!ENTITY TERMUX_PREFIX_DIR_PATH "/data/data/com.termux/files/usr">
+]>
+<resources>
+    <string name="msg_directory_absolute_path">%1$s : Chemin absolu du répertoire : \"%2$s\"</string>
+    <string name="error_app_not_installed_or_disabled_warning">L\'application %1$s (%2$s) n\'est pas installée ou est désactivée.</string>
+    <string name="error_get_package_context_failed_title">Échec de l\'obtention du contexte du package</string>
+    <string name="error_get_package_context_failed_message">Échec de l\'obtention du contexte du package pour le package \"%1$s\".\n        Cela peut être dû au fait que le package de l\'application n\'est pas installé ou qu\'il a une signature APK différente de celle de l\'application actuelle.</string>
+    <string name="error_get_package_context_failed_help_url_message">Consultez %1$s pour plus de détails.</string>
+    <string name="error_get_component_state_failed">Échec de l\'obtention de l\'état du composant %1$s/%2$s</string>
+    <string name="error_enable_component_failed">Échec de l\'activation du composant %1$s/%2$s</string>
+    <string name="error_disable_component_failed">Échec de la désactivation du composant %1$s/%2$s</string>
+    <string name="message_sudo_please_grant_permissions">Veuillez accorder les autorisations demandées</string>
+    <string name="error_failed_to_request_permissions">Échec de la demande d\'autorisations avec le code de demande %1$d : %2$s</string>
+    <string name="error_attempted_to_check_for_permissions_not_requested">Tentative de vérification d\'autorisations non demandées dans le manifeste de l\'application : %1$s</string>
+    <string name="error_attempted_to_ask_for_permissions_not_requested">Tentative de demande d\'autorisations non demandées dans le manifeste de l\'application : %1$s</string>
+    <string name="error_has_not_requested_legacy_external_storage">Le package \"%1$s\" cible targetSdkVersion %2$d et s\'exécute sur android sdk %3$d mais n\'a pas défini requestLegacyExternalStorage sur true dans le manifeste de l\'application</string>
+    <string name="msg_requires_dump_and_package_usage_stats_permissions">Nécessite les autorisations `DUMP` et `PACKAGE_USAGE_STATS`</string>
+    <string name="error_display_over_other_apps_permission_not_granted">%1$s nécessite\n        l\'autorisation \"Affichage par-dessus les autres applications\" pour démarrer des activités et des services depuis l\'arrière-plan sur Android >= 10.\n        Accordez-la depuis Paramètres Android -> Applications -> %1$s -> Avancé -> Afficher par-dessus les autres applications.\n        Le nom de l\'autorisation peut différer selon les appareils, comme sur Xiaomi où elle s\'appelle\n        \"Afficher les fenêtres contextuelles en arrière-plan\", consultez https://dontkillmyapp.com\n        pour les problèmes spécifiques à l\'appareil.</string>
+    <string name="error_allow_external_apps_ungranted">%1$s nécessite que la propriété `allow-external-apps`\n        soit définie sur `true` dans le fichier `%2$s`.</string>
+    <string name="title_report_text">Texte du rapport</string>
+    <string name="msg_report_truncated">**Rapport tronqué**\n\nLe rapport est trop volumineux pour être affiché ici.\n        Utilisez l\'option \`Enregistrer dans un fichier\` du menu d\'options (3 points en haut à droite) et consultez-le dans un éditeur de texte externe.\n\n##\n\n</string>
+    <string name="title_share_with">Partager avec</string>
+    <string name="title_open_url_with">Ouvrir l\'URL avec</string>
+    <string name="msg_storage_permission_not_granted">L\'autorisation de stockage n\'est pas accordée.</string>
+    <string name="msg_file_saved_successfully">Le fichier %1$s a été enregistré avec succès dans \"%2$s\"</string>
+    <string name="error_sending_sigkill_to_process">Envoi de SIGKILL au processus sur demande de l\'utilisateur ou parce qu\'Android arrête le service d\'exécution</string>
+    <string name="error_executable_unset">Exécutable non défini \"%1$s\" pour la commande shell</string>
+    <string name="error_execution_cancelled">L\'exécution a été annulée car le service d\'exécution est en cours d\'arrêt</string>
+    <string name="error_failed_to_execute_termux_session_command">Échec de l\'exécution de la commande de session termux \"%1$s\"</string>
+    <string name="error_failed_to_execute_app_shell_command">Échec de l\'exécution de la commande shell de l\'application \"%1$s\"</string>
+    <string name="error_exception_received_while_executing_termux_session_command">Exception reçue lors de l\'exécution de la commande de session termux \"%1$s\".\nException : %2$s</string>
+    <string name="error_exception_received_while_executing_app_shell_command">Exception reçue lors de l\'exécution de la commande shell de l\'application \"%1$s\".\nException : %2$s</string>
+    <string name="msg_report_issue">Si vous souhaitez signaler ce problème, copiez son texte depuis le menu d\'options (3 points en haut à droite) et publiez\n        un signalement sur l\'un des liens suivants.\n        \n\nSi vous publiez un rapport de crash de l\'application Termux, veuillez fournir des détails sur ce que vous faisiez qui\n        a provoqué le crash et comment le reproduire, si possible.\n        \n\nSi vous publiez un signalement sur GitHub, publiez-le dans le dépôt auquel le rapport appartient.\n        Les signalements ouverts ou les e-mails envoyés avec des **(partielles) captures d\'écran** au lieu du texte copié ou d\'un fichier de ce rapport\n        **seront probablement automatiquement fermés/supprimés**. Vous pouvez éventuellement supprimer toute information spécifique à l\'appareil que\n        vous considérez comme privée ou que vous ne souhaitez pas partager ou qui n\'est pas pertinente pour le problème.\n        \n\nNous ne fournissons pas d\'assistance pour les outils/scripts liés au piratage. Toute question posée à leur sujet par e-mail,\n        sur GitHub ou sur d\'autres forums officiels de la communauté termux **sera probablement automatiquement fermée/supprimée** et peut\n        même entraîner une **interdiction temporaire ou permanente**. Consultez %1$s/wiki/Hacking pour plus de détails.</string>
+    <string name="msg_termux_app_required_by_app">&TERMUX_APP_NAME; est requis par l\'application %1$s pour exécuter des commandes termux.</string>
+    <string name="error_termux_app_package_context_not_accessible">L\'application &TERMUX_APP_NAME; (contexte du package) n\'est pas accessible.</string>
+    <string name="error_termux_prefix_dir_path_not_accessible">Le répertoire $PREFIX de l\'application &TERMUX_APP_NAME; n\'est pas accessible par l\'application %1$s.\n        Cela peut être dû au fait que vous n\'avez pas installé ou configuré l\'application &TERMUX_APP_NAME; ou\n        que l\'application &TERMUX_APP_NAME; et l\'application %1$s ont des signatures APK différentes car vous avez installé les deux applications à partir de sources différentes.\n        Il se peut également que le répertoire $PREFIX de &TERMUX_APP_NAME; \"&TERMUX_PREFIX_DIR_PATH;\" n\'existe pas ou n\'a pas les permissions\n        de lecture, d\'écriture et d\'exécution.</string>
+    <string name="action_yes">Oui</string>
+    <string name="action_no">Non</string>
+    <string name="action_copy">Copier</string>
+    <string name="action_share">Partager</string>
+    <string name="action_cancel">Annuler</string>
+    <string name="action_save_to_file">Enregistrer dans un fichier</string>
+    <string name="msg_storage_permission_granted_on_request">L\'autorisation de stockage a été accordée par l\'utilisateur sur demande</string>
+    <string name="msg_storage_permission_not_granted_on_request">L\'autorisation de stockage n\'a pas été accordée par l\'utilisateur sur demande</string>
+    <string name="action_enable_launcher_icon">Activer l\'icône du lanceur</string>
+    <string name="action_disable_launcher_icon">Désactiver l\'icône du lanceur</string>
+    <string name="msg_enabling_launcher_icon">Activation de l\'icône du lanceur de l\'application %1$s</string>
+    <string name="msg_disabling_launcher_icon">Désactivation de l\'icône du lanceur de l\'application %1$s</string>
+    <string name="setting_launcher_icon_title">Icône du lanceur activée</string>
+    <string name="setting_launcher_icon_enabled_off">L\'icône du lanceur sera désactivée.</string>
+    <string name="setting_launcher_icon_enabled_on">L\'icône du lanceur sera activée. (Par défaut)</string>
+    <string name="log_level_title">Niveau de journalisation</string>
+    <string name="log_level_off">Désactivé</string>
+    <string name="log_level_normal">Normal</string>
+    <string name="log_level_debug">Débogage</string>
+    <string name="log_level_verbose">Verbeux</string>
+    <string name="log_level_unknown">*Inconnu*</string>
+    <string name="log_level_value">Niveau de journalisation Logcat défini sur \"%1$s\"</string>
+    <string name="notification_channel_app">Application Termux</string>
+    <string name="notification_channel_run_command">Service RunCommand de Termux</string>
+    <string name="notification_channel_plugin_errors">Erreurs des commandes de plugin Termux</string>
+    <string name="font_picker_title">Sélectionnez une police (.ttf)</string>
+</resources>

@@ -192,10 +192,10 @@
             <string name="termux_terminal_view_view_header">Вид</string>
 
                 <!-- Button Background Inactive Alpha -->
-                <string name="termux_button_bg_inactive_alpha_title">Прозрачность фона неактивных элементов</string>
+                <string name="termux_button_bg_inactive_alpha_title">Прозрачность фона неактивных элементов </string>
 
                 <!-- Button Background Active Alpha -->
-                <string name="termux_button_bg_active_alpha_title">Прозрачность фона активных элементов</string>
+                <string name="termux_button_bg_active_alpha_title">Прозрачность фона активных элементов </string>
 
                 <!-- Terminal View Margin Adjustment -->
                 <string name="termux_terminal_view_terminal_margin_adjustment_title">Корректировка отступов терминала</string>

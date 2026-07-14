@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!DOCTYPE resources [
+    <!ENTITY TERMUX_PACKAGE_NAME "com.termux">
+    <!ENTITY TERMUX_APP_NAME "Termux">
+    <!ENTITY TERMUX_API_APP_NAME "Termux:API">
+    <!ENTITY TERMUX_FLOAT_APP_NAME "Termux:Float">
+    <!ENTITY TERMUX_TASKER_APP_NAME "Termux:Tasker">
+    <!ENTITY TERMUX_WIDGET_APP_NAME "Termux:Widget">
+    <!ENTITY TERMUX_STYLING_APP_NAME "Termux:Styling">
+]>
+
+<resources>
+<string name="action_autofill_password">Passwort automatisch ausfüllen</string>
+    <string name="action_autofill_username">Benutzernamen automatisch ausfüllen</string>
+    <string name="action_create_named_session_confirm">Erstellen</string>
+    <string name="action_file_received_edit">Bearbeiten</string>
+    <string name="action_file_received_open_directory">Verzeichnis öffnen</string>
+    <string name="action_font_terminal">Schriftart</string>
+    <string name="action_kill_process">Prozess beenden (%d)</string>
+    <string name="action_new_session">Neue Sitzung</string>
+    <string name="action_new_session_failsafe">Abgesicherter Modus</string>
+    <string name="action_open_help">Hilfe</string>
+    <string name="action_open_settings">Einstellungen</string>
+    <string name="action_rename_session_confirm">Festlegen</string>
+    <string name="action_report_issue">Problem melden</string>
+    <string name="action_reset_terminal">Zurücksetzen</string>
+    <string name="action_select_url">URL auswählen</string>
+    <string name="action_share_selected_text">Markierten Text teilen</string>
+    <string name="action_share_transcript">Protokoll teilen</string>
+    <string name="action_style_terminal">Stil</string>
+    <string name="action_styling_install">Installieren</string>
+    <string name="action_toggle_keep_screen_on">Bildschirm eingeschaltet lassen</string>
+    <string name="action_toggle_soft_keyboard">Tastatur</string>
+    <string name="action_toggle_text_input">Texteingabe umschalten</string>
+    <string name="appearance_preferences_summary">App-Erscheinungsbild und Panel-Transparenzeinstellungen</string>
+    <string name="appearance_preferences_title">Erscheinungsbild</string>
+    <string name="application_name">Termux EnhancedUI</string>
+    <string name="backup_dialog_background">Hintergrund</string>
+    <string name="backup_dialog_cancel">Abbrechen</string>
+    <string name="backup_preference_summary">Termux-Datenverzeichnis (installierte Pakete + Home) in eine tar.gz-Backupdatei speichern</string>
+    <string name="backup_preference_title">Termux-Daten sichern</string>
+    <string name="backup_restore_backup_filename">termux-data-backup.tar.gz</string>
+    <string name="backup_restore_backup_started">Backup wird erstellt…</string>
+    <string name="backup_restore_backup_success">Backup erfolgreich erstellt</string>
+    <string name="backup_restore_cancelled">Vorgang abgebrochen</string>
+    <string name="backup_restore_choose_backup">Wählen Sie eine .tar.gz-Backupdatei zum Wiederherstellen aus</string>
+    <string name="backup_restore_dialog_title">Termux-Daten-Backup/-Wiederherstellung</string>
+    <string name="backup_restore_failed_title">Vorgang fehlgeschlagen</string>
+    <string name="backup_restore_need_termux">Das Termux-Binary (tar) wurde nicht gefunden. Öffnen Sie Termux mindestens einmal, um das Container-Setup durchzuführen.</string>
+    <string name="backup_restore_restore_started">Backup wird wiederhergestellt…</string>
+    <string name="backup_restore_restore_success">Daten erfolgreich wiederhergestellt</string>
+    <string name="backup_restore_warning_backup">Dies erstellt ein komprimiertes Archiv Ihres Termux-Datenverzeichnisses (installierte Pakete und Umgebung sowie Ihr Home-Verzeichnis).\n\nWählen Sie eine Zieldatei zum Speichern des Backups.</string>
+    <string name="backup_restore_warning_restore">Die Wiederherstellung ÜBERSCHREIBT Ihr aktuelles Termux-Datenverzeichnis (installierte Pakete und Ihr Home-Verzeichnis) mit dem Inhalt der ausgewählten Backupdatei. Vorhandene Daten GEHEN VERLOREN.\n\n⚠ Wenn die Wiederherstellung fehlschlägt — weil die Backupdatei beschädigt, unvollständig ist oder die Verbindung während des Vorgangs abbricht — wird Ihre Termux-Umgebung LEER ZURÜCKGELASSEN. Es gibt keine Möglichkeit, die ursprünglichen Daten wiederherzustellen.\n\nDies kann nicht rückgängig gemacht werden. Es wird dringend empfohlen, ZUERST ein Backup zu erstellen und zu überprüfen, ob die Backupdatei gültig ist.</string>
+    <string name="backup_service_channel_name">Termux-Backup/-Wiederherstellung</string>
+    <string name="backup_service_notification_cancel">Abbrechen</string>
+    <string name="backup_service_notification_failed">Backup fehlgeschlagen</string>
+    <string name="backup_service_notification_progress">%1$d%%</string>
+    <string name="backup_service_notification_restore_failed">Wiederherstellung fehlgeschlagen</string>
+    <string name="backup_service_notification_restore_success">Daten erfolgreich wiederhergestellt</string>
+    <string name="backup_service_notification_restore_title">Termux-Daten-Wiederherstellung</string>
+    <string name="backup_service_notification_success">Backup erfolgreich erstellt</string>
+    <string name="backup_service_notification_title">Termux-Daten-Backup</string>
+    <string name="bootstrap_error_abort">Abbrechen</string>
+    <string name="bootstrap_error_body">&TERMUX_APP_NAME; konnte die Bootstrap-Pakete nicht installieren.</string>
+    <string name="bootstrap_error_installed_on_portable_sd">&TERMUX_APP_NAME; kann nicht auf einer tragbaren/externen/entfernbaren SD-Karte installiert werden.\nDie kompilierten Bootstrap-Binärdateien für &TERMUX_APP_NAME; haben den $PREFIX-Pfad fest codiert und können nicht unter einem anderen Pfad installiert werden als:\n%1$s.</string>
+    <string name="bootstrap_error_not_primary_user_message">&TERMUX_APP_NAME; kann nur als primärer Benutzer ausgeführt werden.\nDie kompilierten Bootstrap-Binärdateien für &TERMUX_APP_NAME; haben den $PREFIX-Pfad fest codiert und können nicht unter einem anderen Pfad installiert werden als:\n%1$s.</string>
+    <string name="bootstrap_error_title">Bootstrap kann nicht installiert werden</string>
+    <string name="bootstrap_error_try_again">Erneut versuchen</string>
+    <string name="bootstrap_installer_body">Bootstrap-Pakete werden installiert…</string>
+    <string name="color_scheme_dark_summary">Farbschema, das bei dunklem App-Design angewendet wird</string>
+    <string name="color_scheme_dark_title">Terminal-Farbschema (Dunkles Design)</string>
+    <string name="color_scheme_light_summary">Farbschema, das bei hellem App-Design angewendet wird</string>
+    <string name="color_scheme_light_title">Terminal-Farbschema (Helles Design)</string>
+<string name="directory_history_clear_confirm">Gesamten Verzeichnisverlauf löschen? Dieser Vorgang kann nicht rückgängig gemacht werden.</string>
+    <string name="directory_history_clear_dialog_title">Verzeichnisverlauf löschen</string>
+    <string name="directory_history_cleared">Verzeichnisverlauf gelöscht</string>
+    <string name="directory_history_max_title">Max. gespeicherte Verzeichnisse</string>
+    <string name="directory_history_title">Verzeichnisverlauf</string>
+    <string name="donate_preference_title">Spenden</string>
+    <string name="error_display_over_other_apps_permission_not_granted_to_start_terminal">&TERMUX_APP_NAME; benötigt die Berechtigung \"Über anderen Apps einblenden\"
+        um Terminalsitzungen aus dem Hintergrund auf Android >= 10 zu starten.
+        Gewähren Sie diese unter Einstellungen -> Apps -> &TERMUX_APP_NAME; -> Erweitert</string>
+    <string name="error_font_copy_failed">Schriftart konnte nicht angewendet werden</string>
+    <string name="error_run_command_service_api_help">Besuchen Sie %1$s für weitere Informationen zur Verwendung des RUN_COMMAND-Intents.</string>
+    <string name="error_run_command_service_invalid_execution_command_runner">Ungültiger Ausführungsbefehl-Runner für RunCommandService: `%1$s`</string>
+    <string name="error_run_command_service_invalid_intent_action">Ungültige Intent-Aktion für RunCommandService: `%1$s`</string>
+    <string name="error_run_command_service_mandatory_extra_missing">Erforderliches Extra fehlt für RunCommandService: \"%1$s\"</string>
+    <string name="error_styling_not_installed">Die &TERMUX_STYLING_APP_NAME;-Plugin-App ist nicht installiert.</string>
+    <string name="error_termux_service_execution_command_shell_name_unset">Shell-Name nicht gesetzt, aber Shell-Erstellungsmodus `%1$s` wurde übergeben</string>
+    <string name="error_termux_service_invalid_execution_command_runner">Ungültiger Ausführungsbefehl-Runner für TermuxService: `%1$s`</string>
+    <string name="error_termux_service_start_failed_bg">TermuxService konnte nicht gestartet werden, während die App aufgrund von Android-Hintergrundbeschränkungen im Hintergrund läuft.</string>
+    <string name="error_termux_service_start_failed_general">TermuxService konnte nicht gestartet werden. Überprüfen Sie logcat auf die Ausnahmefehlermeldung.</string>
+    <string name="error_termux_service_unsupported_execution_command_runner">Nicht unterstützter Ausführungsbefehl-Runner für TermuxService: `%1$s`</string>
+    <string name="error_termux_service_unsupported_execution_command_shell_create_mode">Nicht unterstützter Ausführungsbefehl-Shell-Erstellungsmodus für TermuxService: `%1$s`</string>
+    <string name="file_receiver_error_cannot_create_dir">Kann Verzeichnis nicht erstellen: %s</string>
+    <string name="file_receiver_error_cannot_open">Kann Datei nicht öffnen: %s</string>
+    <string name="file_receiver_error_cannot_receive">Kann keine Datei oder URL empfangen.</string>
+    <string name="file_receiver_error_empty_name">Dateiname darf nicht null oder leer sein</string>
+    <string name="file_receiver_error_handle_shared">Kann geteilten Inhalt nicht verarbeiten:\n\n%s</string>
+    <string name="file_receiver_error_invalid_path">Der Dateipfad aus der Daten-URI ist null, leer oder ungültig.</string>
+    <string name="file_receiver_error_no_content">Sendeaktion ohne Inhalt — nichts zu speichern.</string>
+    <string name="file_receiver_error_no_data_uri">Keine Daten-URI angegeben.</string>
+    <string name="file_receiver_error_no_editor">Die folgende Datei existiert nicht:\n$HOME/bin/termux-file-editor\n\nErstellen Sie diese Datei als Skript oder Symlink — sie wird mit der empfangenen Datei als einzigem Argument aufgerufen.</string>
+    <string name="file_receiver_error_no_url_opener">Die folgende Datei existiert nicht:\n$HOME/bin/termux-url-opener\n\nErstellen Sie diese Datei als Skript oder Symlink — sie wird mit der geteilten URL als erstem Argument aufgerufen.</string>
+    <string name="file_receiver_error_saving_file">Fehler beim Speichern der Datei:\n\n%s</string>
+    <string name="message_history_clear">Löschen</string>
+    <string name="message_history_clear_all">VERLAUF LÖSCHEN…</string>
+    <string name="message_history_clear_all_btn">Alle</string>
+    <string name="message_history_clear_all_question">Dies löscht dauerhaft alle gespeicherten Nachrichten.</string>
+    <string name="message_history_clear_confirm_all">Gesamten Nachrichtenverlauf löschen? Dieser Vorgang kann nicht rückgängig gemacht werden.</string>
+    <string name="message_history_clear_confirm_current">Alle gespeicherten Nachrichten des aktuellen Verzeichnisses löschen? Dieser Vorgang kann nicht rückgängig gemacht werden.</string>
+    <string name="message_history_clear_current_only_question">Nur Verlauf des aktuellen Verzeichnisses löschen?</string>
+    <string name="message_history_clear_dialog_title">Nachrichtenverlauf löschen</string>
+    <string name="message_history_clear_ok">OK</string>
+    <string name="message_history_clear_question">Nachrichtenverlauf löschen?</string>
+    <string name="message_history_cleared">Nachrichtenverlauf gelöscht</string>
+    <string name="message_history_empty">Kein Nachrichtenverlauf</string>
+    <string name="message_history_max_title">Max. gespeicherte Nachrichten</string>
+    <string name="message_history_title">Nachrichtenverlauf</string>
+    <string name="msg_add_termux_debug_info">Termux-Debug-Info zum Bericht hinzufügen?</string>
+    <string name="msg_disabling_terminal_toolbar">Terminal-Symbolleiste wird deaktiviert</string>
+    <string name="msg_enabling_terminal_toolbar">Terminal-Symbolleiste wird aktiviert</string>
+    <string name="msg_extra_keys_create_failed">Fehler beim Erstellen der Standard-Zusatztasten</string>
+    <string name="msg_extra_keys_load_failed">Fehler beim Laden und Setzen der Eigenschaft \"%s\" aus der Eigenschaftsdatei: %s</string>
+    <string name="msg_generating_report">Bericht wird erstellt</string>
+    <string name="msg_max_terminals_reached">Schließen Sie bestehende, bevor Sie eine neue erstellen.</string>
+    <string name="msg_select_url_copied_to_clipboard">URL in die Zwischenablage kopiert</string>
+    <string name="msg_terminal_font_applied">Schriftart angewendet</string>
+    <string name="msg_terminal_reset">Terminal zurückgesetzt</string>
+    <string name="notification_action_exit">Beenden</string>
+    <string name="notification_action_wake_lock">Wake-Lock erwerben</string>
+    <string name="notification_action_wake_unlock">Wake-Lock freigeben</string>
+    <string name="notification_wake_lock_held"> (Wake-Lock gehalten)</string>
+    <string name="panel_transparency_title">Panel-Transparenz</string>
+<string name="per_directory_message_history_summary">Einen separaten Nachrichtenverlauf für jedes Arbeitsverzeichnis führen. Wenn deaktiviert, teilen sich alle Sitzungen einen globalen Verlauf.</string>
+    <string name="per_directory_message_history_title">Nachrichtenverlauf pro Verzeichnis</string>
+    <string name="permission_run_command_description">beliebige Befehle in der &TERMUX_APP_NAME;-Umgebung ausführen und auf Dateien zugreifen</string>
+    <string name="permission_run_command_label">Befehle in der &TERMUX_APP_NAME;-Umgebung ausführen</string>
+    <string name="restore_preference_summary">Termux-Datenverzeichnis aus einer tar.gz-Backupdatei wiederherstellen</string>
+    <string name="restore_preference_title">Termux-Daten wiederherstellen</string>
+    <string name="restore_sessions_summary">Alle Tabs und deren Verzeichnisse beim App-Start erneut öffnen</string>
+    <string name="restore_sessions_title">Tabs beim Start wiederherstellen</string>
+    <string name="screen_orientation_summary">"Folge Sensor"-Varianten rotieren zwischen den beiden Ausrichtungen (z. B. 0°/180° Hochformat).</string>
+    <string name="screen_orientation_title">Bildschirmausrichtung</string>
+    <string name="session_default_title">Terminal</string>
+    <string name="session_null_title">null-Sitzung</string>
+    <string name="shared_user_label">&TERMUX_APP_NAME;-Benutzer</string>
+    <string name="tab_close_description">Tab schließen</string>
+    <string name="termux_api_preferences_summary">Einstellungen für die &TERMUX_API_APP_NAME;-App</string>
+    <string name="termux_api_preferences_title">&TERMUX_API_APP_NAME;</string>
+    <string name="termux_button_bg_active_alpha_title">Hintergrundtransparenz des aktiven Elements (10–20%)</string>
+    <string name="termux_button_bg_inactive_alpha_title">Hintergrundtransparenz des inaktiven Elements (0–10%)</string>
+    <string name="termux_crash_report_notifications_enabled_off">Benachrichtigungen für Absturzberichte deaktivieren.</string>
+    <string name="termux_crash_report_notifications_enabled_on">Benachrichtigungen für Absturzberichte anzeigen. (Standard)</string>
+    <string name="termux_crash_report_notifications_enabled_title">Absturzbericht-Benachrichtigungen</string>
+    <string name="termux_debugging_preferences_summary">Debugging-Einstellungen</string>
+    <string name="termux_debugging_preferences_title">Debugging</string>
+    <string name="termux_float_preferences_summary">Einstellungen für die &TERMUX_FLOAT_APP_NAME;-App</string>
+    <string name="termux_float_preferences_title">&TERMUX_FLOAT_APP_NAME;</string>
+    <string name="termux_log_level_title">Protokollebene</string>
+    <string name="termux_logging_header">Protokollierung</string>
+    <string name="termux_plugin_error_notifications_enabled_off">Kurzanzeigen und Benachrichtigungen für Plugin-Fehler deaktivieren.</string>
+    <string name="termux_plugin_error_notifications_enabled_on">Kurzanzeigen und Benachrichtigungen für Plugin-Fehler anzeigen. (Standard)</string>
+    <string name="termux_plugin_error_notifications_enabled_title">Plugin-Fehlerbenachrichtigungen</string>
+    <string name="termux_preferences_summary">&TERMUX_APP_NAME;-App-Einstellungen</string>
+    <string name="termux_preferences_title">&TERMUX_APP_NAME;</string>
+    <string name="termux_settings_button_enabled_off">Die Einstellungs-Schaltfläche ist ausgeblendet. Öffnen Sie die Einstellungen durch langes Drücken auf das Terminal &#8594; Mehr… &#8594; Einstellungen.</string>
+    <string name="termux_settings_button_enabled_on">Die Einstellungs-Schaltfläche wird im Tab-Bereich angezeigt. (Standard)</string>
+    <string name="termux_settings_button_enabled_title">Einstellungs-Schaltfläche anzeigen</string>
+    <string name="termux_soft_keyboard_enabled_off">Die Soft-Tastatur wird deaktiviert.</string>
+    <string name="termux_soft_keyboard_enabled_on">Die Soft-Tastatur wird aktiviert. (Standard)</string>
+    <string name="termux_soft_keyboard_enabled_only_if_no_hardware_off">Die Soft-Tastatur wird auch bei angeschlossener Hardware-Tastatur aktiviert. (Standard)</string>
+    <string name="termux_soft_keyboard_enabled_only_if_no_hardware_on">Die Soft-Tastatur wird nur aktiviert, wenn keine Hardware-Tastatur angeschlossen ist.</string>
+    <string name="termux_soft_keyboard_enabled_only_if_no_hardware_title">Soft-Tastatur nur ohne Hardware-Tastatur</string>
+    <string name="termux_soft_keyboard_enabled_title">Soft-Tastatur aktiviert</string>
+    <string name="termux_tasker_preferences_summary">Einstellungen für die &TERMUX_TASKER_APP_NAME;-App</string>
+    <string name="termux_tasker_preferences_title">&TERMUX_TASKER_APP_NAME;</string>
+    <string name="termux_terminal_io_preferences_summary">Terminal I/O-Einstellungen</string>
+    <string name="termux_terminal_io_preferences_title">Terminal I/O</string>
+    <string name="termux_terminal_view_key_logging_enabled_off">Protokolle enthalten keine Terminal-View-Key-Einträge. (Standard)</string>
+    <string name="termux_terminal_view_key_logging_enabled_on">Logcat-Protokolle enthalten Terminal-View-Key-Einträge. Diese sind sehr ausführlich und sollten unter normalen Umständen deaktiviert sein, da sie sonst Leistungsprobleme verursachen.</string>
+    <string name="termux_terminal_view_key_logging_enabled_title">Terminal-View-Key-Protokollierung</string>
+    <string name="termux_terminal_view_preferences_summary">Einstellungen für die Terminalansicht</string>
+    <string name="termux_terminal_view_preferences_title">Terminalansicht</string>
+    <string name="termux_terminal_view_terminal_margin_adjustment_off">Die Terminalrand-Anpassung wird deaktiviert.</string>
+    <string name="termux_terminal_view_terminal_margin_adjustment_on">Die Terminalrand-Anpassung wird aktiviert. Muss aktiviert sein, um zu versuchen, das Problem zu beheben, bei dem die Soft-Tastatur einen Teil der Zusatztasten/Terminalansicht verdeckt. Falls es auf Ihrem Gerät zu Bildschirmflackern führt, deaktivieren Sie es. (Standard)</string>
+    <string name="termux_terminal_view_terminal_margin_adjustment_title">Terminalrand-Anpassung</string>
+    <string name="termux_terminal_view_view_header">Ansicht</string>
+    <string name="termux_widget_preferences_summary">Einstellungen für die &TERMUX_WIDGET_APP_NAME;-App</string>
+    <string name="termux_widget_preferences_title">&TERMUX_WIDGET_APP_NAME;</string>
+    <string name="text_input_append_enter_summary">Beim Senden aus dem Eingabefeld auch die Zeile absenden (Eingabetaste drücken). Deaktivieren, um Rohtext ohne abschließende neue Zeile zu senden.</string>
+    <string name="text_input_append_enter_title">Eingabetaste beim Senden anhängen</string>
+    <string name="text_input_show_summary_off">Texteingabefeld ist ausgeblendet</string>
+    <string name="text_input_show_summary_on">Texteingabefeld ist über den Zusatztasten sichtbar</string>
+    <string name="text_input_show_title">Texteingabefeld anzeigen</string>
+    <string name="text_input_title">Texteingabe</string>
+<string name="theme_title">App-Design</string>
+    <string name="title_activity_termux_settings">&TERMUX_APP_NAME;-Einstellungen</string>
+    <string name="title_confirm_kill_process">Diese Sitzung wirklich beenden?</string>
+    <string name="title_create_named_session">Neue benannte Sitzung</string>
+    <string name="title_file_received">Datei in ~/downloads/ speichern</string>
+    <string name="title_max_terminals_reached">Maximale Anzahl Terminals erreicht</string>
+    <string name="title_rename_session">Sitzungsname festlegen</string>
+    <string name="title_select_url_dialog">Tippen Sie auf die URL, um sie zu kopieren, oder langes Drücken zum Öffnen</string>
+    <string name="title_select_url_none_found">Keine URL im Terminal gefunden.</string>
+    <string name="title_share_selected_text">Terminal-Text</string>
+    <string name="title_share_selected_text_with">Ausgewählten Text senden an:</string>
+    <string name="title_share_transcript">Terminal-Protokoll</string>
+    <string name="title_share_transcript_with">Protokoll senden an:</string>
+    <string-array name="screen_orientation_entries">
+<item>Folge Sensor</item>
+    <item>Hochformat (Folge Sensor)</item>
+    <item>Querformat (Folge Sensor)</item>
+    <item>Hochformat</item>
+    <item>Querformat</item>
+    </string-array>
+    <string-array name="screen_orientation_values">
+<item>sensor</item>
+    <item>portrait_follow_sensor</item>
+    <item>landscape_follow_sensor</item>
+    <item>portrait</item>
+    <item>landscape</item>
+    </string-array>
+    <plurals name="notification_sessions">
+<item quantity="one">%d Sitzung</item>
+    <item quantity="other">%d Sitzungen</item>
+    </plurals>
+    <plurals name="notification_tasks_separator">
+<item quantity="one">, %d Aufgabe</item>
+    <item quantity="other">, %d Aufgaben</item>
+    </plurals>
+
+    <string name="about_preference_title">Info</string>
+    <string name="color_scheme_dialog_title">Terminal-Farbschema</string>
+    <string name="font_picker_title">Schriftart auswählen (.ttf)</string>
+    <string name="termux_keyboard_header">Tastatur</string>
+    <string name="theme_mode_summary">App- und Terminal-Design auswählen</string>
+    <string name="theme_mode_title">App-Design</string>
+
+</resources>

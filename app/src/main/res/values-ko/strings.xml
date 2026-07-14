@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE resources [
+    <!ENTITY TERMUX_APP_NAME "Termux EnhancedUI">
+    <!ENTITY TERMUX_API_APP_NAME "Termux:API">
+    <!ENTITY TERMUX_FLOAT_APP_NAME "Termux:Float">
+    <!ENTITY TERMUX_TASKER_APP_NAME "Termux:Tasker">
+    <!ENTITY TERMUX_WIDGET_APP_NAME "Termux:Widget">
+    <!ENTITY TERMUX_STYLING_APP_NAME "Termux:Styling">
+    <!ENTITY TERMUX_PREFIX_DIR_PATH "/data/data/com.termux/files/usr">
+]>
+<resources>
+
+    <string name="about_preference_title">정보</string>
+    <string name="action_autofill_password">비밀번호 자동 입력</string>
+    <string name="action_autofill_username">사용자 이름 자동 입력</string>
+    <string name="action_create_named_session_confirm">생성</string>
+    <string name="action_file_received_edit">편집</string>
+    <string name="action_file_received_open_directory">디렉터리 열기</string>
+    <string name="action_font_terminal">터미널 폰트</string>
+    <string name="action_kill_process">프로세스 강제 종료 (%d)</string>
+    <string name="action_new_session">새 세션</string>
+    <string name="action_new_session_failsafe">안전 모드로 새 세션</string>
+    <string name="action_open_help">도움말</string>
+    <string name="action_open_settings">설정</string>
+    <string name="action_rename_session_confirm">이름 변경</string>
+    <string name="action_report_issue">문제 신고</string>
+    <string name="action_reset_terminal">터미널 초기화</string>
+    <string name="action_select_url">URL 선택</string>
+    <string name="action_share_selected_text">선택한 텍스트 공유</string>
+    <string name="action_share_transcript">세션 기록 공유</string>
+    <string name="action_style_terminal">터미널 스타일</string>
+    <string name="action_styling_install">&TERMUX_STYLING_APP_NAME; 설치</string>
+    <string name="action_toggle_keep_screen_on">화면 켜짐 유지</string>
+    <string name="action_toggle_soft_keyboard">소프트 키보드 전환</string>
+    <string name="action_toggle_text_input">텍스트 입력 전환</string>
+    <string name="appearance_preferences_summary">앱 모양 및 패널 투명도 설정</string>
+    <string name="appearance_preferences_title">모양</string>
+    <string name="application_name">Termux EnhancedUI</string>
+    <string name="backup_dialog_background">백그라운드에서 실행</string>
+    <string name="backup_dialog_cancel">취소</string>
+    <string name="backup_preference_summary">데이터와 설정을 tar.gz 파일로 백업합니다</string>
+    <string name="backup_preference_title">백업</string>
+    <string name="backup_restore_backup_filename">termux-data-backup.tar.gz</string>
+    <string name="backup_restore_backup_started">백업 시작</string>
+    <string name="backup_restore_backup_success">백업 성공</string>
+    <string name="backup_restore_cancelled">취소됨</string>
+    <string name="backup_restore_choose_backup">백업 파일 선택</string>
+    <string name="backup_restore_dialog_title">백업 복원</string>
+    <string name="backup_restore_failed_title">작업 실패</string>
+    <string name="backup_restore_need_termux">&TERMUX_APP_NAME; 필요</string>
+    <string name="backup_restore_restore_started">복원 시작</string>
+    <string name="backup_restore_restore_success">복원 성공</string>
+    <string name="backup_restore_warning_backup">Termux 데이터 디렉터리(설치된 패키지, 환경, 홈 디렉터리)의 압축 아카이브를 생성합니다.
+
+백업을 저장할 대상 파일을 선택하세요.</string>
+    <string name="backup_restore_warning_restore">백업 아카이브에서 모든 Termux 데이터를 복원합니다. 계속하시겠습니까?</string>
+    <string name="backup_service_channel_name">백업 서비스</string>
+    <string name="backup_service_notification_cancel">취소됨</string>
+    <string name="backup_service_notification_failed">백업 실패</string>
+    <string name="backup_service_notification_progress">백업 진행 중: %1$d%%</string>
+    <string name="backup_service_notification_restore_failed">복원 실패</string>
+    <string name="backup_service_notification_restore_success">복원 완료</string>
+    <string name="backup_service_notification_restore_title">복원 중…</string>
+    <string name="backup_service_notification_success">백업 완료</string>
+    <string name="backup_service_notification_title">백업 중…</string>
+    <string name="bootstrap_error_abort">중단</string>
+    <string name="bootstrap_error_body">&TERMUX_APP_NAME;이(가) 초기화 패키지를 설치하지 못했습니다.
+%1$s</string>
+    <string name="bootstrap_error_installed_on_portable_sd">&TERMUX_APP_NAME;은(는) 기기의 이동식/외부/분리가능한 SD 카드에 설치할 수 없습니다.
+&TERMUX_APP_NAME;을(를) 위해 컴파일된 부트스트랩 바이너리는 $PREFIX 경로가 하드코딩되어 있으므로 다른 경로에 설치할 수 없습니다:
+%1$s.</string>
+    <string name="bootstrap_error_not_primary_user_message">&TERMUX_APP_NAME;은(는) 기기의 기본 사용자로만 실행할 수 있습니다.
+&TERMUX_APP_NAME;을(를) 위해 컴파일된 부트스트랩 바이너리는 $PREFIX 경로가 하드코딩되어 있으므로 다른 경로에 설치할 수 없습니다:
+%1$s.</string>
+    <string name="bootstrap_error_title">초기화 패키지 오류</string>
+    <string name="bootstrap_error_try_again">다시 시도</string>
+    <string name="bootstrap_installer_body">초기화 패키지를 설치하는 중입니다…</string>
+    <string name="color_scheme_dark_summary">어두운 색 구성표를 사용합니다</string>
+    <string name="color_scheme_dark_title">다크</string>
+    <string name="color_scheme_light_summary">밝은 색 구성표를 사용합니다</string>
+    <string name="color_scheme_light_title">라이트</string>
+    <string name="color_scheme_preferences_summary">터미널 색 구성표를 선택합니다</string>
+    <string name="color_scheme_preferences_title">색 구성표</string>
+    <string name="directory_history_clear_confirm">디렉터리 기록을 지우시겠습니까?</string>
+    <string name="directory_history_clear_dialog_title">디렉터리 기록 지우기</string>
+    <string name="directory_history_cleared">디렉터리 기록이 지워졌습니다</string>
+    <string name="directory_history_max_title">최대 디렉터리 기록 수</string>
+    <string name="directory_history_title">디렉터리 기록</string>
+    <string name="donate_preference_title">후원하기</string>
+    <string name="error_display_over_other_apps_permission_not_granted_to_start_terminal">&TERMUX_APP_NAME;은(는) Android >= 10에서 백그라운드에서 터미널 세션을 시작하려면 "다른 앱 위에 표시" 권한이 필요합니다. 설정 -> 앱 -> &TERMUX_APP_NAME; -> 고급에서 부여하세요.</string>
+    <string name="error_font_copy_failed">폰트 파일 복사 실패</string>
+    <string name="error_run_command_service_api_help">RUN_COMMAND 인텐트 사용법에 대한 자세한 내용은 %1$s를 방문하세요.</string>
+    <string name="error_run_command_service_invalid_execution_command_runner">RunCommandService에 잘못된 실행 명령 러너: `%1$s`</string>
+    <string name="error_run_command_service_invalid_intent_action">RunCommandService에 잘못된 인텐트 액션: `%1$s`</string>
+    <string name="error_run_command_service_mandatory_extra_missing">RunCommandService에 필수 extra 누락: \"%1$s\"</string>
+    <string name="error_styling_not_installed">&TERMUX_STYLING_APP_NAME;이 설치되어 있지 않습니다</string>
+    <string name="error_termux_service_execution_command_shell_name_unset">실행 명령 셸 이름이 설정되지 않았습니다: `%1$s` 셸 생성 모드가 전달되었습니다</string>
+    <string name="error_termux_service_invalid_execution_command_runner">잘못된 실행 명령 러너입니다: `%1$s`</string>
+    <string name="error_termux_service_start_failed_bg">Android 백그라운드 제한으로 인해 앱이 백그라운드에 있는 동안 TermuxService를 시작하지 못했습니다.</string>
+    <string name="error_termux_service_start_failed_general">TermuxService를 시작하지 못했습니다. 예외 메시지에 대해 logcat을 확인하세요.</string>
+    <string name="error_termux_service_unsupported_execution_command_runner">지원되지 않는 실행 명령 러너입니다: `%1$s`</string>
+    <string name="error_termux_service_unsupported_execution_command_shell_create_mode">지원되지 않는 셸 생성 모드입니다: `%1$s`</string>
+    <string name="file_receiver_error_cannot_create_dir">다음 디렉토리를 만들 수 없습니다: %s</string>
+    <string name="file_receiver_error_cannot_open">다음 파일을 열 수 없습니다: %s</string>
+    <string name="file_receiver_error_cannot_receive">파일이나 URL을 수신할 수 없습니다.</string>
+    <string name="file_receiver_error_empty_name">파일 이름이 비어 있음</string>
+    <string name="file_receiver_error_handle_shared">공유된 콘텐츠를 처리할 수 없습니다:
+
+%s</string>
+    <string name="file_receiver_error_invalid_path">잘못된 경로</string>
+    <string name="file_receiver_error_no_content">콘텐츠가 없음</string>
+    <string name="file_receiver_error_no_data_uri">데이터 URI가 없음</string>
+    <string name="file_receiver_error_no_editor">다음 파일이 존재하지 않습니다:
+$HOME/bin/termux-file-editor
+
+파일을 열 앱에 대한 스크립트 또는 심볼릭 링크로 이 파일을 생성하세요.
+자세한 내용은 Termux 위키를 참조하십시오.</string>
+    <string name="file_receiver_error_no_url_opener">다음 파일이 존재하지 않습니다:
+$HOME/bin/termux-url-opener
+
+URL을 열 앱에 대한 스크립트 또는 심볼릭 링크로 이 파일을 생성하세요.
+자세한 내용은 Termux 위키를 참조하십시오.</string>
+    <string name="file_receiver_error_saving_file">파일을 저장하는 중 오류가 발생했습니다:
+
+%s</string>
+    <string name="font_picker_title">글꼴 선택 (.ttf)</string>
+    <string name="message_history_clear">지우기</string>
+    <string name="message_history_clear_all">모두 지우기</string>
+    <string name="message_history_clear_all_btn">모두 지우기</string>
+    <string name="message_history_clear_all_question">모든 세션 기록을 지우시겠습니까?</string>
+    <string name="message_history_clear_confirm_all">모든 기록 지우기</string>
+    <string name="message_history_clear_confirm_current">현재 세션만 지우기</string>
+    <string name="message_history_clear_current_only_question">현재 세션 기록만 지우시겠습니까?</string>
+    <string name="message_history_clear_dialog_title">기록 지우기</string>
+    <string name="message_history_clear_ok">확인</string>
+    <string name="message_history_clear_question">기록을 지우시겠습니까?</string>
+    <string name="message_history_cleared">기록이 지워졌습니다</string>
+    <string name="message_history_empty">기록이 없습니다</string>
+    <string name="message_history_max_title">최대 메시지 기록 수</string>
+    <string name="message_history_title">메시지 기록</string>
+    <string name="msg_add_termux_debug_info">&TERMUX_APP_NAME; 디버그 정보 추가</string>
+    <string name="msg_disabling_terminal_toolbar">터미널 도구 모음을 비활성화하는 중…</string>
+    <string name="msg_enabling_terminal_toolbar">터미널 도구 모음을 활성화하는 중…</string>
+    <string name="msg_extra_keys_create_failed">추가 키를 만들지 못했습니다</string>
+    <string name="msg_extra_keys_load_failed">속성 파일에서 \"%s\" 속성을 로드하여 설정할 수 없습니다: %s</string>
+    <string name="msg_generating_report">보고서 생성 중…</string>
+    <string name="msg_max_terminals_reached">최대 %d개의 터미널 세션에 도달했습니다. 기존 세션을 닫은 후 다시 시도해 주세요.</string>
+    <string name="msg_select_url_copied_to_clipboard">URL이 클립보드에 복사되었습니다.</string>
+    <string name="msg_terminal_font_applied">폰트가 적용되었습니다</string>
+    <string name="msg_terminal_reset">터미널이 초기화되었습니다</string>
+    <string name="notification_action_exit">종료</string>
+    <string name="notification_action_wake_lock">활동 잠금 켜기</string>
+    <string name="notification_action_wake_unlock">활동 잠금 끄기</string>
+    <string name="notification_wake_lock_held">(웨이크 락 유지 중)</string>
+    <string name="panel_transparency_title">패널 투명도</string>
+    <string name="per_directory_message_history_summary">각 디렉터리마다 개별적인 메시지 기록을 유지합니다</string>
+    <string name="per_directory_message_history_title">디렉터리별 메시지 기록</string>
+    <string name="permission_run_command_description">&TERMUX_APP_NAME;에서 명령을 실행할 수 있도록 허용합니다</string>
+    <string name="permission_run_command_label">&TERMUX_APP_NAME; 환경에서 명령 실행</string>
+    <string name="restore_preference_summary">tar.gz 백업 파일에서 데이터와 설정을 복원합니다</string>
+    <string name="restore_preference_title">복원</string>
+    <string name="restore_sessions_summary">종료 시 열려 있던 세션을 다시 복원합니다</string>
+    <string name="restore_sessions_title">세션 복원</string>
+    <string name="screen_orientation_summary">터미널 세션의 화면 방향을 설정합니다</string>
+    <string name="screen_orientation_title">화면 방향</string>
+    <string name="session_default_title">세션</string>
+    <string name="session_null_title">세션</string>
+    <string name="shared_user_label">&TERMUX_APP_NAME;의 공유 사용자</string>
+    <string name="tab_close_description">탭 닫기</string>
+    <string name="termux_api_preferences_summary">&TERMUX_API_APP_NAME; 앱 설정</string>
+    <string name="termux_api_preferences_title">&TERMUX_API_APP_NAME;</string>
+    <string name="termux_button_bg_active_alpha_title">활성 버튼 배경 투명도 </string>
+    <string name="termux_button_bg_inactive_alpha_title">비활성 버튼 배경 투명도 </string>
+    <string name="termux_crash_report_notifications_enabled_off">충돌 보고서에 대한 알림을 비활성화합니다.</string>
+    <string name="termux_crash_report_notifications_enabled_on">충돌 보고서에 대한 알림을 표시합니다. (기본값)</string>
+    <string name="termux_crash_report_notifications_enabled_title">충돌 보고서 알림</string>
+    <string name="termux_debugging_preferences_summary">디버깅 설정</string>
+    <string name="termux_debugging_preferences_title">디버깅</string>
+    <string name="termux_float_preferences_summary">&TERMUX_FLOAT_APP_NAME; 앱 설정</string>
+    <string name="termux_float_preferences_title">&TERMUX_FLOAT_APP_NAME;</string>
+    <string name="termux_log_level_title">로그 수준</string>
+    <string name="termux_logging_header">로깅</string>
+    <string name="termux_plugin_error_notifications_enabled_off">플러그인 오류에 대한 플래시 및 알림을 비활성화합니다.</string>
+    <string name="termux_plugin_error_notifications_enabled_on">플러그인 오류에 대한 플래시 및 알림을 표시합니다. (기본값)</string>
+    <string name="termux_plugin_error_notifications_enabled_title">플러그인 오류 알림</string>
+    <string name="termux_preferences_summary">&TERMUX_APP_NAME; 앱 설정</string>
+    <string name="termux_preferences_title">&TERMUX_APP_NAME;</string>
+    <string name="termux_settings_button_enabled_off">숨김</string>
+    <string name="termux_settings_button_enabled_on">표시</string>
+    <string name="termux_settings_button_enabled_title">설정 버튼 표시</string>
+    <string name="termux_soft_keyboard_enabled_off">사용 안 함</string>
+    <string name="termux_soft_keyboard_enabled_on">사용</string>
+    <string name="termux_soft_keyboard_enabled_only_if_no_hardware_off">항상 사용 안 함</string>
+    <string name="termux_soft_keyboard_enabled_only_if_no_hardware_on">하드웨어 키보드 없을 때만</string>
+    <string name="termux_soft_keyboard_enabled_only_if_no_hardware_title">하드웨어 키보드가 없을 때만 소프트 키보드 사용</string>
+    <string name="termux_soft_keyboard_enabled_title">소프트 키보드 사용</string>
+    <string name="termux_tasker_preferences_summary">&TERMUX_TASKER_APP_NAME; 앱 설정</string>
+    <string name="termux_tasker_preferences_title">&TERMUX_TASKER_APP_NAME;</string>
+    <string name="termux_terminal_io_preferences_summary">터미널 입출력(I/O) 관련 설정을 관리합니다</string>
+    <string name="termux_terminal_io_preferences_title">터미널 I/O 설정</string>
+    <string name="termux_terminal_view_key_logging_enabled_off">터미널 뷰 키에 대한 로그 항목이 기록되지 않습니다. (기본값)</string>
+    <string name="termux_terminal_view_key_logging_enabled_on">Logcat 로그에 터미널 뷰 키 항목이 기록됩니다.\n                    매우 상세하므로 일반적인 상황에서는 비활성화해야 하며, 그렇지 않으면 성능 문제가 발생할 수 있습니다.</string>
+    <string name="termux_terminal_view_key_logging_enabled_title">터미널 뷰 키 로깅</string>
+    <string name="termux_terminal_view_preferences_summary">터미널 화면 표시 관련 설정을 관리합니다</string>
+    <string name="termux_terminal_view_preferences_title">터미널 보기 설정</string>
+    <string name="termux_terminal_view_terminal_margin_adjustment_off">여백 없음</string>
+    <string name="termux_terminal_view_terminal_margin_adjustment_on">여백 조정 사용</string>
+    <string name="termux_terminal_view_terminal_margin_adjustment_title">터미널 여백 조정</string>
+    <string name="termux_terminal_view_view_header">터미널 보기</string>
+    <string name="termux_widget_preferences_summary">&TERMUX_WIDGET_APP_NAME; 앱 설정</string>
+    <string name="termux_widget_preferences_title">&TERMUX_WIDGET_APP_NAME;</string>
+    <string name="text_input_append_enter_summary">Enter 키를 눌러 입력한 텍스트를 현재 명령줄에 추가합니다</string>
+    <string name="text_input_append_enter_title">Enter 키로 텍스트 추가</string>
+    <string name="text_input_show_summary_off">숨기기</string>
+    <string name="text_input_show_summary_on">항상 표시</string>
+    <string name="text_input_show_title">텍스트 입력 표시</string>
+    <string name="text_input_title">텍스트 입력</string>
+    <string name="theme_mode_title">테마 모드</string>
+    <string name="theme_title">테마</string>
+    <string name="title_activity_termux_settings">&TERMUX_APP_NAME; 설정</string>
+    <string name="title_confirm_kill_process">프로세스 강제 종료 확인</string>
+    <string name="title_create_named_session">이름을 지정하여 세션 생성</string>
+    <string name="title_file_received">~/downloads/에 파일 저장</string>
+    <string name="title_max_terminals_reached">최대 터미널 수 초과</string>
+    <string name="title_rename_session">세션 이름 변경</string>
+    <string name="title_select_url_dialog">클릭하여 복사하거나 길게 누르면 URL을 엽니다</string>
+    <string name="title_select_url_none_found">발견된 URL이 없음</string>
+    <string name="title_share_selected_text">선택한 텍스트 공유</string>
+    <string name="title_share_selected_text_with">다른 앱으로 공유…</string>
+    <string name="title_share_transcript">세션 기록 공유</string>
+    <string name="title_share_transcript_with">공유 대상 선택</string>
+</resources>

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!DOCTYPE resources [
+    <!ENTITY TERMUX_PACKAGE_NAME "com.termux">
+    <!ENTITY TERMUX_APP_NAME "Termux">
+    <!ENTITY TERMUX_API_APP_NAME "Termux:API">
+    <!ENTITY TERMUX_BOOT_APP_NAME "Termux:Boot">
+    <!ENTITY TERMUX_FLOAT_APP_NAME "Termux:Float">
+    <!ENTITY TERMUX_STYLING_APP_NAME "Termux:Styling">
+    <!ENTITY TERMUX_TASKER_APP_NAME "Termux:Tasker">
+    <!ENTITY TERMUX_WIDGET_APP_NAME "Termux:Widget">
+    <!ENTITY TERMUX_PREFIX_DIR_PATH "/data/data/com.termux/files/usr">
+    ]>
+
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Turkish translation - Termux Shared -->
+
+    <!-- Turkish translation -->
+<string name="msg_directory_absolute_path">%1$s Dizin Mutlak Yolu: \"%2$s\"</string>
+<string name="error_app_not_installed_or_disabled_warning">%1$s (%2$s) uygulaması yüklü değil veya devre dışı bırakılmış.</string>
+<string name="error_get_package_context_failed_title">Paket Bağlamı Alınamadı</string>
+<string name="error_get_package_context_failed_message">\"%1$s\" paketi için paket bağlamı alınamadı.
+        Bunun nedeni uygulama paketinin yüklü olmaması veya mevcut uygulamadan farklı bir APK imzasına sahip olması olabilir.</string>
+<string name="error_get_package_context_failed_help_url_message">Daha fazla bilgi için %1$s adresine bakın.</string>
+<string name="error_get_component_state_failed">%1$s/%2$s bileşen durumu alınamadı</string>
+<string name="error_enable_component_failed">%1$s/%2$s bileşeni etkinleştirilemedi</string>
+<string name="error_disable_component_failed">%1$s/%2$s bileşeni devre dışı bırakılamadı</string>
+<string name="message_sudo_please_grant_permissions">Lütfen istenen izin(leri) verin</string>
+<string name="error_failed_to_request_permissions">İzinler istek kodu %1$d ile istenemedi: %2$s</string>
+<string name="error_attempted_to_check_for_permissions_not_requested">Uygulama bildiriminde istenmemiş izinler kontrol edilmeye çalışıldı: %1$s</string>
+<string name="error_attempted_to_ask_for_permissions_not_requested">Uygulama bildiriminde istenmemiş izinler sorulmaya çalışıldı: %1$s</string>
+<string name="error_has_not_requested_legacy_external_storage">\"%1$s\" paketi targetSdkVersion %2$d hedefliyor ve android sdk %3$d üzerinde çalışıyor ancak uygulama bildiriminde requestLegacyExternalStorage değerini true olarak ayarlamamış</string>
+<string name="msg_requires_dump_and_package_usage_stats_permissions">`DUMP` ve `PACKAGE_USAGE_STATS` izni gerektirir</string>
+<string name="error_display_over_other_apps_permission_not_granted">%1$s, Android >= 10 üzerinde arka plandan etkinlik ve hizmet başlatmak için
+        \"Diğer uygulamaların üzerinde görüntüleme\" iznine ihtiyaç duyar.
+        Bu izni Android Ayarları -> Uygulamalar -> %1$s -> Gelişmiş -> Diğer uygulamaların üzerinde çizim yoluyla verin.
+        İzin adı cihaza göre farklı olabilir, örneğin Xiaomi'de
+        \"Arka planda çalışırken açılır pencereleri göster\" olarak adlandırılır, cihaza özgü sorunlar için https://dontkillmyapp.com adresini kontrol edin.</string>
+<string name="error_allow_external_apps_ungranted">%1$s, `%2$s` dosyasında `allow-external-apps`
+        özelliğinin `true` olarak ayarlanmasını gerektirir.</string>
+<string name="title_report_text">Rapor Metni</string>
+<string name="msg_report_truncated">**Rapor Kısaltıldı**\n\nRapor burada görüntülenemeyecek kadar büyük.
+        Seçenekler menüsünden (sağ üstteki 3 nokta) `Dosyaya Kaydet` seçeneğini kullanın ve harici bir metin düzenleyici uygulamasında görüntüleyin.\n\n##\n\n</string>
+<string name="title_share_with">Şununla Paylaş</string>
+<string name="title_open_url_with">URL'yi Şununla Aç</string>
+<string name="msg_storage_permission_not_granted">Depolama izni verilmemiş.</string>
+<string name="msg_file_saved_successfully">%1$s dosyası başarıyla \"%2$s\" konumuna kaydedildi</string>
+<string name="error_sending_sigkill_to_process">Kullanıcı isteğiyle veya android çalıştırma hizmetini öldürdüğü için işleme SIGKILL gönderiliyor</string>
+<string name="error_executable_unset">Kabuk komutu için çalıştırılabilir dosya ayarlanmamış \"%1$s\"</string>
+<string name="error_execution_cancelled">Çalıştırma hizmeti öldürüldüğü için çalışma iptal edildi</string>
+<string name="error_failed_to_execute_termux_session_command">\"%1$s\" termux oturum komutu çalıştırılamadı</string>
+<string name="error_failed_to_execute_app_shell_command">\"%1$s\" uygulama kabuk komutu çalıştırılamadı</string>
+<string name="error_exception_received_while_executing_termux_session_command">\"%1$s\" termux oturum komutu çalıştırılırken istisna alındı.\nİstisna: %2$s</string>
+<string name="error_exception_received_while_executing_app_shell_command">\"%1$s\" uygulama kabuk komutu çalıştırılırken istisna alındı.\nİstisna: %2$s</string>
+<string name="msg_report_issue">
+        Bu sorunu bildirmek istiyorsanız, seçenekler menüsünden (sağ üstteki 3 nokta) metni kopyalayın ve
+        aşağıdaki bağlantılardan birinde bir sorun açın.
+        \n\nTermux uygulama çökme raporu oluşturuyorsanız, lütfen ne yaptığınızı ve
+        çökmenin nasıl oluştuğunu, mümkünse nasıl yeniden üretileceğini açıkça belirtin.
+        \n\nGitHub'da bir sorun oluşturuyorsanız, raporun ait olduğu depoda oluşturun.
+        Kopyalanmış metin veya bu raporun dosyası yerine **(kısmi) ekran görüntüsü** ile açılan sorunlar veya gönderilen e-postalar
+        **muhtemelen otomatik olarak kapatılacaktır/silinecektir**. Cihaza özgü diğer bilgileri
+        özel bulduğunuz veya paylaşmak istemediğiniz ya da sorunla ilgili olmayanları isteğe bağlı olarak kaldırabilirsiniz.
+        \n\nHackerlık ile ilgili araçlara/komut dosyalarına destek sağlamıyoruz.
+        topluluk forumlarında bu tür sorular **muhtemelen otomatik olarak kapatılacaktır/silinecektir** ve
+        **geçici veya kalıcı** yasaklamaya yol açabilir. Ayrıntılar için %1$s/wiki/Hacking adresini kontrol edin.</string>
+<string name="msg_termux_app_required_by_app">&TERMUX_APP_NAME;, %1$s uygulaması tarafından termux komutlarını çalıştırmak için gereklidir.</string>
+<string name="error_termux_app_package_context_not_accessible">&TERMUX_APP_NAME; uygulaması (paket bağlamı) erişilebilir değil.</string>
+<string name="error_termux_prefix_dir_path_not_accessible">&TERMUX_APP_NAME; uygulaması $PREFIX dizinine %1$s uygulaması tarafından erişilemiyor.
+        Bunun nedeni &TERMUX_APP_NAME; uygulamasını henüz kurmamış veya ayarlamamış olmanız ya da
+        &TERMUX_APP_NAME; ve %1$s uygulamalarının farklı kaynaklardan yüklendiği için farklı APK imzalarına sahip olması olabilir.
+        Ayrıca &TERMUX_APP_NAME; $PREFIX dizininin \"&TERMUX_PREFIX_DIR_PATH;\" mevcut olmaması veya
+        okuma, yazma ve çalıştırma izinlerine sahip olmaması da neden olabilir.</string>
+<string name="action_yes">Evet</string>
+<string name="action_no">Hayır</string>
+<string name="action_copy">Kopyala</string>
+<string name="action_share">Paylaş</string>
+<string name="action_cancel">İptal</string>
+<string name="action_save_to_file">Dosyaya Kaydet</string>
+<string name="msg_storage_permission_granted_on_request">Depolama izni kullanıcı tarafından istek üzerine verildi</string>
+<string name="msg_storage_permission_not_granted_on_request">Depolama izni kullanıcı tarafından istek üzerine verilmedi</string>
+<string name="action_enable_launcher_icon">Başlatıcı Simgesini Etkinleştir</string>
+<string name="action_disable_launcher_icon">Başlatıcı Simgesini Devre Dışı Bırak</string>
+<string name="msg_enabling_launcher_icon">%1$s uygulama başlatıcı simgesi etkinleştiriliyor</string>
+<string name="msg_disabling_launcher_icon">%1$s uygulama başlatıcı simgesi devre dışı bırakılıyor</string>
+<string name="setting_launcher_icon_title">Başlatıcı Simgesi Etkin</string>
+<string name="setting_launcher_icon_enabled_off">Başlatıcı Simgesi devre dışı bırakılacak.</string>
+<string name="setting_launcher_icon_enabled_on">Başlatıcı Simgesi etkinleştirilecek. (Varsayılan)</string>
+<string name="log_level_title">Kayıt Düzeyi</string>
+<string name="log_level_off">Kapalı</string>
+<string name="log_level_normal">Normal</string>
+<string name="log_level_debug">Hata Ayıklama</string>
+<string name="log_level_verbose">Ayrıntılı</string>
+<string name="log_level_unknown">*Bilinmeyen*</string>
+<string name="log_level_value">Logcat kayıt düzeyi \"%1$s\" olarak ayarlandı</string>
+<string name="notification_channel_app">Termux Uygulaması</string>
+<string name="notification_channel_run_command">Termux RunCommandService</string>
+<string name="notification_channel_plugin_errors">Termux Eklenti Komut Hataları</string>
+<string name="font_picker_title">Bir yazı tipi seçin (.ttf)</string>
+</resources>
