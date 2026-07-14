@@ -18,7 +18,7 @@
 <string name="bootstrap_installer_body">ブートストラップパッケージをインストール中…</string>
 <string name="bootstrap_error_title">ブートストラップをインストールできません</string>
 <string name="bootstrap_error_body">&TERMUX_APP_NAME; はブートストラップパッケージをインストールできませんでした。</string>
-<string name="bootstrap_error_abort">キャンセル</string>
+<string name="bootstrap_error_abort">中止</string>
 <string name="bootstrap_error_try_again">再試行</string>
 <string name="bootstrap_error_not_primary_user_message">&TERMUX_APP_NAME; はプライマリユーザーとしてのみ実行できます。\n&TERMUX_APP_NAME; 用にコンパイルされたブートストラップバイナリは $PREFIX パスがハードコードされており、以下のパス以外にはインストールできません。\n%1$s。</string>
 <string name="bootstrap_error_installed_on_portable_sd">&TERMUX_APP_NAME; はデバイスのポータブル/外部/リムーバブル SD カードにインストールできません。\n&TERMUX_APP_NAME; 用にコンパイルされたブートストラップバイナリは $PREFIX パスがハードコードされており、以下のパス以外にはインストールできません。\n%1$s。</string>
@@ -104,21 +104,21 @@
 <string name="termux_terminal_io_preferences_summary">ターミナルの入出力設定</string>
 <string name="termux_soft_keyboard_enabled_title">ソフトウェアキーボードを有効にする</string>
 <string name="termux_soft_keyboard_enabled_off">ソフトウェアキーボードを無効にします。</string>
-<string name="termux_soft_keyboard_enabled_on">ソフトウェアキーボードを有効にします。（デフォルト）</string>
+<string name="termux_soft_keyboard_enabled_on">ソフトウェアキーボードを有効にします。(デフォルト)</string>
 <string name="termux_settings_button_enabled_title">設定ボタンを表示</string>
-<string name="termux_settings_button_enabled_on">設定ボタンがタブパネルに表示されます。（デフォルト）</string>
+<string name="termux_settings_button_enabled_on">設定ボタンがタブパネルに表示されます。(デフォルト)</string>
 <string name="termux_settings_button_enabled_off">設定ボタンは非表示です。ターミナルを長押し &#8594; その他… &#8594; 設定から設定を開きます。</string>
 <string name="termux_soft_keyboard_enabled_only_if_no_hardware_title">ハードウェアキーボードがない場合のみソフトウェアキーボード</string>
-<string name="termux_soft_keyboard_enabled_only_if_no_hardware_off">ハードウェアキーボードが接続されている場合でもソフトウェアキーボードを有効にします。（デフォルト）</string>
+<string name="termux_soft_keyboard_enabled_only_if_no_hardware_off">ハードウェアキーボードが接続されている場合でもソフトウェアキーボードを有効にします。(デフォルト)</string>
 <string name="termux_soft_keyboard_enabled_only_if_no_hardware_on">ハードウェアキーボードが接続されていない場合のみソフトウェアキーボードを有効にします。</string>
 <string name="termux_terminal_view_preferences_title">ターミナル表示</string>
 <string name="termux_terminal_view_preferences_summary">ターミナル表示の設定</string>
 <string name="termux_terminal_view_view_header">表示</string>
-<string name="termux_button_bg_inactive_alpha_title">非アクティブ項目の背景透明度（0–10%）</string>
-<string name="termux_button_bg_active_alpha_title">アクティブ項目の背景透明度（10–20%）</string>
+<string name="termux_button_bg_inactive_alpha_title" formatted="false">非アクティブ項目の背景透明度（0–10%）</string>
+<string name="termux_button_bg_active_alpha_title" formatted="false">アクティブ項目の背景透明度（10–20%）</string>
 <string name="termux_terminal_view_terminal_margin_adjustment_title">ターミナルマージン調整</string>
 <string name="termux_terminal_view_terminal_margin_adjustment_off">ターミナルのマージン調整を無効にします。</string>
-<string name="termux_terminal_view_terminal_margin_adjustment_on">ターミナルのマージン調整を有効にします。ソフトウェアキーボードがエクストラキーやターミナル表示の一部を覆う問題を修正するには有効にする必要があります。デバイスで画面のちらつきが発生する場合は無効にしてください。（デフォルト）</string>
+<string name="termux_terminal_view_terminal_margin_adjustment_on">ターミナルのマージン調整を有効にします。ソフトウェアキーボードが追加キーやターミナル表示の一部を覆う問題を修正するには有効にする必要があります。デバイスで画面のちらつきが発生する場合は無効にしてください。(デフォルト)</string>
 <string name="termux_api_preferences_title">&TERMUX_API_APP_NAME;</string>
 <string name="termux_api_preferences_summary">&TERMUX_API_APP_NAME; アプリの設定</string>
 <string name="termux_float_preferences_title">&TERMUX_FLOAT_APP_NAME;</string>
@@ -144,20 +144,7 @@
 <string name="restore_sessions_summary">アプリ起動時にすべてのタブとそのディレクトリを再度開きます</string>
 <string name="screen_orientation_title">画面の向き</string>
 <string name="screen_orientation_summary">\"センサーに従う\"バリエーションは2つの向き（例：ポートレート0°/180°）の間で回転します。</string>
-<string-array name="screen_orientation_entries">
-    <item>センサーに従う</item>
-    <item>ポートレート（センサーに従う）</item>
-    <item>ランドスケープ（センサーに従う）</item>
-    <item>ポートレート</item>
-    <item>ランドスケープ</item>
-</string-array>
-<string-array name="screen_orientation_values">
-    <item>sensor</item>
-    <item>portrait_follow_sensor</item>
-    <item>landscape_follow_sensor</item>
-    <item>portrait</item>
-    <item>landscape</item>
-</string-array>
+
 <string name="donate_preference_title">寄付</string>
 <string name="backup_preference_title">Termuxデータのバックアップ</string>
 <string name="backup_preference_summary">Termuxデータディレクトリ（インストール済みパッケージ + ホーム）をバックアップtar.gzファイルに保存します</string>
@@ -192,7 +179,7 @@
 <string name="text_input_show_summary_on">テキスト入力欄が追加キーの上に表示されています</string>
 <string name="text_input_show_summary_off">テキスト入力欄は非表示です</string>
 <string name="message_history_empty">メッセージ履歴はありません</string>
-<string name="message_history_clear_all">履歴をすべてクリア…</string>
+<string name="message_history_clear_all">履歴をクリア…</string>
 <string name="message_history_clear">クリア</string>
 <string name="message_history_clear_dialog_title">メッセージ履歴をクリア</string>
 <string name="message_history_clear_question">メッセージ履歴をクリアしますか？</string>
@@ -212,8 +199,8 @@
 <string name="file_receiver_error_cannot_open">ファイルを開けません: %s</string>
 <string name="file_receiver_error_cannot_receive">ファイルまたはURLを受信できません。</string>
 <string name="file_receiver_error_handle_shared">共有コンテンツを処理できません:\n\n%s</string>
-<string name="file_receiver_error_no_editor">以下のファイルが存在しません:\n$HOME/bin/termux-file-editor\n\nこのファイルをスクリプトまたはシンボリックリンクとして作成してください — 受信したファイルを唯一の引数として呼び出されます。</string>
-<string name="file_receiver_error_no_url_opener">以下のファイルが存在しません:\n$HOME/bin/termux-url-opener\n\nこのファイルをスクリプトまたはシンボリックリンクとして作成してください — 共有URLを最初の引数として呼び出されます。</string>
+<string name="file_receiver_error_no_editor">以下のファイルが存在しません:\n$HOME/bin/termux-file-editor\n\nこのファイルをスクリプトまたはシンボリックリンクとして作成してください — 受信したファイルを唯一の引数として渡して呼び出します。</string>
+<string name="file_receiver_error_no_url_opener">以下のファイルが存在しません:\n$HOME/bin/termux-url-opener\n\nこのファイルをスクリプトまたはシンボリックリンクとして作成してください — 共有URLを最初の引数として渡して呼び出します。</string>
 <string name="file_receiver_error_empty_name">ファイル名はnullまたは空にできません</string>
 <string name="file_receiver_error_cannot_create_dir">ディレクトリを作成できません: %s</string>
 <string name="file_receiver_error_saving_file">ファイルの保存エラー:\n\n%s</string>
@@ -227,7 +214,7 @@
 </plurals>
 <string name="notification_wake_lock_held">（ウェイクロック保持中）</string>
 <string name="session_null_title">null セッション</string>
-<string name="msg_extra_keys_load_failed">プロパティファイルから\"%s\"プロパティを読み込んで設定できませんでした: %s</string>
+<string name="msg_extra_keys_load_failed">プロパティファイルから\"%1$s\"プロパティを読み込んで設定できませんでした: %2$s</string>
 <string name="msg_extra_keys_create_failed">デフォルトの追加キーを作成できませんでした</string>
     <string name="about_preference_title">バージョン情報</string>
     <string name="theme_mode_title">アプリのテーマ</string>

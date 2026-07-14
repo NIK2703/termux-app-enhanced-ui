@@ -16,14 +16,10 @@
     <string name="application_name">Termux EnhancedUI</string>
     <string name="shared_user_label">&TERMUX_APP_NAME; user</string>
 
-
-
     <!-- Termux RUN_COMMAND permission -->
     <string name="permission_run_command_label">Run commands in &TERMUX_APP_NAME; environment</string>
     <string name="permission_run_command_description">execute arbitrary commands within &TERMUX_APP_NAME;
         environment and access files</string>
-
-
 
     <!-- Termux Bootstrap Packages Installation -->
     <string name="bootstrap_installer_body">Installing bootstrap packages…</string>
@@ -38,8 +34,6 @@
         portable/external/removable sd card on your device.
         \nBootstrap binaries compiled for &TERMUX_APP_NAME; have hardcoded $PREFIX path and cannot be installed
         under any path other than:\n%1$s.</string>
-
-
 
     <!-- Terminal Sidebar and Shortcuts -->
     <string name="action_new_session">New session</string>
@@ -57,8 +51,6 @@
 
     <string name="msg_enabling_terminal_toolbar">Enabling Terminal Toolbar</string>
     <string name="msg_disabling_terminal_toolbar">Disabling Terminal Toolbar</string>
-
-
 
     <!-- Terminal Popup -->
     <string name="action_select_url">Select URL</string>
@@ -99,14 +91,10 @@
     <string name="error_styling_not_installed">The &TERMUX_STYLING_APP_NAME; Plugin App is not installed.</string>
     <string name="action_styling_install">Install</string>
 
-
-
     <!-- Termux Notifications -->
     <string name="notification_action_exit">Exit</string>
     <string name="notification_action_wake_lock">Acquire wakelock</string>
     <string name="notification_action_wake_unlock">Release wakelock</string>
-
-
 
     <!-- TermuxService -->
     <string name="error_display_over_other_apps_permission_not_granted_to_start_terminal">&TERMUX_APP_NAME; requires
@@ -117,28 +105,20 @@
     <string name="error_termux_service_unsupported_execution_command_shell_create_mode">Unsupported execution command shell create mode to TermuxService: `%1$s`</string>
     <string name="error_termux_service_execution_command_shell_name_unset">Shell name not set but `%1$s` shell create mode passed</string>
 
-
-
     <!-- Termux RunCommandService -->
     <string name="error_run_command_service_invalid_intent_action">Invalid intent action to RunCommandService: `%1$s`</string>
     <string name="error_run_command_service_invalid_execution_command_runner">Invalid execution command runner to RunCommandService: `%1$s`</string>
     <string name="error_run_command_service_mandatory_extra_missing">Mandatory extra missing to RunCommandService: \"%1$s\"</string>
     <string name="error_run_command_service_api_help">Visit %1$s for more info on RUN_COMMAND Intent usage.</string>
 
-
-
     <!-- Termux File Receiver -->
     <string name="title_file_received">Save file in ~/downloads/</string>
     <string name="action_file_received_edit">Edit</string>
     <string name="action_file_received_open_directory">Open directory</string>
 
-
-
     <!-- Miscellaneous -->
     <string name="error_termux_service_start_failed_general">Failed to start TermuxService. Check logcat for exception message.</string>
     <string name="error_termux_service_start_failed_bg">Failed to start TermuxService while app is in background due to android bg restrictions.</string>
-
-
 
     <!-- Termux Settings -->
     <string name="title_activity_termux_settings">&TERMUX_APP_NAME; Settings</string>
@@ -178,7 +158,6 @@
                 <string name="termux_crash_report_notifications_enabled_off">Disable notifications for crash reports.</string>
                 <string name="termux_crash_report_notifications_enabled_on">Show notifications for crash reports. (Default)</string>
 
-
         <!-- Terminal IO Preferences -->
         <string name="termux_terminal_io_preferences_title">Terminal I/O</string>
         <string name="termux_terminal_io_preferences_summary">Preferences for terminal I/O</string>
@@ -203,7 +182,6 @@
                 <string name="termux_soft_keyboard_enabled_only_if_no_hardware_on">Soft keyboard will be enabled only if
                     no hardware keyboard is connected.</string>
 
-
         <!-- Terminal View Preferences -->
         <string name="termux_terminal_view_preferences_title">Terminal View</string>
         <string name="termux_terminal_view_preferences_summary">Preferences for terminal view</string>
@@ -212,10 +190,10 @@
             <string name="termux_terminal_view_view_header">View</string>
 
                 <!-- Button Background Inactive Alpha -->
-                <string name="termux_button_bg_inactive_alpha_title">Inactive element transparency (0–10%)</string>
+                <string name="termux_button_bg_inactive_alpha_title" formatted="false">Inactive element transparency (0–10%)</string>
 
                 <!-- Button Background Active Alpha -->
-                <string name="termux_button_bg_active_alpha_title">Active element transparency (10–20%)</string>
+                <string name="termux_button_bg_active_alpha_title" formatted="false">Active element transparency (10–20%)</string>
 
                 <!-- Terminal View Margin Adjustment -->
                 <string name="termux_terminal_view_terminal_margin_adjustment_title">Terminal Margin Adjustment</string>
@@ -224,31 +202,21 @@
                     It should be enabled to try to fix the issue where soft keyboard covers part of extra keys/terminal view.
                     If it causes screen flickering on your devices, then disable it. (Default)</string>
 
-
-
     <!-- Termux:API App Preferences -->
     <string name="termux_api_preferences_title">&TERMUX_API_APP_NAME;</string>
     <string name="termux_api_preferences_summary">Preferences for &TERMUX_API_APP_NAME; app</string>
-
-
 
     <!-- Termux:Float App Preferences -->
     <string name="termux_float_preferences_title">&TERMUX_FLOAT_APP_NAME;</string>
     <string name="termux_float_preferences_summary">Preferences for &TERMUX_FLOAT_APP_NAME; app</string>
 
-
-
     <!-- Termux:Tasker App Preferences -->
     <string name="termux_tasker_preferences_title">&TERMUX_TASKER_APP_NAME;</string>
     <string name="termux_tasker_preferences_summary">Preferences for &TERMUX_TASKER_APP_NAME; app</string>
 
-
-
     <!-- Termux:Widget App Preferences -->
     <string name="termux_widget_preferences_title">&TERMUX_WIDGET_APP_NAME;</string>
     <string name="termux_widget_preferences_summary">Preferences for &TERMUX_WIDGET_APP_NAME; app</string>
-
-
 
     <!-- About Preference -->
     <string name="about_preference_title">About</string>
@@ -286,20 +254,6 @@
     <!-- Screen orientation preference -->
     <string name="screen_orientation_title">Screen orientation</string>
     <string name="screen_orientation_summary">"Follow sensor" variants rotate between the two orientations (e.g. 0°/180° portrait).</string>
-    <string-array name="screen_orientation_entries">
-        <item>Follow sensor</item>
-        <item>Portrait (follow sensor)</item>
-        <item>Landscape (follow sensor)</item>
-        <item>Portrait</item>
-        <item>Landscape</item>
-    </string-array>
-    <string-array name="screen_orientation_values">
-        <item>sensor</item>
-        <item>portrait_follow_sensor</item>
-        <item>landscape_follow_sensor</item>
-        <item>portrait</item>
-        <item>landscape</item>
-    </string-array>
 
     <!-- Donate Preference -->
     <string name="donate_preference_title">Donate</string>
@@ -393,7 +347,7 @@
     <string name="session_null_title">null session</string>
 
     <!-- Extra keys -->
-    <string name="msg_extra_keys_load_failed">Could not load and set the \"%s\" property from the properties file: %s</string>
+    <string name="msg_extra_keys_load_failed">Could not load and set the \"%1$s\" property from the properties file: %2$s</string>
     <string name="msg_extra_keys_create_failed">Can\'t create default extra keys</string>
 
 </resources>

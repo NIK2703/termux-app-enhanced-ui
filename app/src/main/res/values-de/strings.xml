@@ -122,7 +122,7 @@
     <string name="msg_disabling_terminal_toolbar">Terminal-Symbolleiste wird deaktiviert</string>
     <string name="msg_enabling_terminal_toolbar">Terminal-Symbolleiste wird aktiviert</string>
     <string name="msg_extra_keys_create_failed">Fehler beim Erstellen der Standard-Zusatztasten</string>
-    <string name="msg_extra_keys_load_failed">Fehler beim Laden und Setzen der Eigenschaft \"%s\" aus der Eigenschaftsdatei: %s</string>
+    <string name="msg_extra_keys_load_failed">Fehler beim Laden und Setzen der Eigenschaft \"%1$s\" aus der Eigenschaftsdatei: %2$s</string>
     <string name="msg_generating_report">Bericht wird erstellt</string>
     <string name="msg_max_terminals_reached">Schließen Sie bestehende, bevor Sie eine neue erstellen.</string>
     <string name="msg_select_url_copied_to_clipboard">URL in die Zwischenablage kopiert</string>
@@ -149,8 +149,8 @@
     <string name="tab_close_description">Tab schließen</string>
     <string name="termux_api_preferences_summary">Einstellungen für die &TERMUX_API_APP_NAME;-App</string>
     <string name="termux_api_preferences_title">&TERMUX_API_APP_NAME;</string>
-    <string name="termux_button_bg_active_alpha_title">Hintergrundtransparenz des aktiven Elements (10–20%)</string>
-    <string name="termux_button_bg_inactive_alpha_title">Hintergrundtransparenz des inaktiven Elements (0–10%)</string>
+    <string name="termux_button_bg_active_alpha_title" formatted="false">Hintergrundtransparenz des aktiven Elements (10–20%)</string>
+    <string name="termux_button_bg_inactive_alpha_title" formatted="false">Hintergrundtransparenz des inaktiven Elements (0–10%)</string>
     <string name="termux_crash_report_notifications_enabled_off">Benachrichtigungen für Absturzberichte deaktivieren.</string>
     <string name="termux_crash_report_notifications_enabled_on">Benachrichtigungen für Absturzberichte anzeigen. (Standard)</string>
     <string name="termux_crash_report_notifications_enabled_title">Absturzbericht-Benachrichtigungen</string>
@@ -208,20 +208,7 @@
     <string name="title_share_selected_text_with">Ausgewählten Text senden an:</string>
     <string name="title_share_transcript">Terminal-Protokoll</string>
     <string name="title_share_transcript_with">Protokoll senden an:</string>
-    <string-array name="screen_orientation_entries">
-<item>Folge Sensor</item>
-    <item>Hochformat (Folge Sensor)</item>
-    <item>Querformat (Folge Sensor)</item>
-    <item>Hochformat</item>
-    <item>Querformat</item>
-    </string-array>
-    <string-array name="screen_orientation_values">
-<item>sensor</item>
-    <item>portrait_follow_sensor</item>
-    <item>landscape_follow_sensor</item>
-    <item>portrait</item>
-    <item>landscape</item>
-    </string-array>
+
     <plurals name="notification_sessions">
 <item quantity="one">%d Sitzung</item>
     <item quantity="other">%d Sitzungen</item>

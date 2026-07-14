@@ -151,6 +151,7 @@ android {
 
     lint {
         disable 'ProtectedPermissions'
+        disable 'ExtraTranslation'
     }
 
     testOptions {

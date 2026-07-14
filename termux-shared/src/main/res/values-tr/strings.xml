@@ -34,7 +34,7 @@
 <string name="error_display_over_other_apps_permission_not_granted">%1$s, Android >= 10 üzerinde arka plandan etkinlik ve hizmet başlatmak için
         \"Diğer uygulamaların üzerinde görüntüleme\" iznine ihtiyaç duyar.
         Bu izni Android Ayarları -> Uygulamalar -> %1$s -> Gelişmiş -> Diğer uygulamaların üzerinde çizim yoluyla verin.
-        İzin adı cihaza göre farklı olabilir, örneğin Xiaomi'de
+        İzin adı cihaza göre farklı olabilir, örneğin Xiaomi\'de
         \"Arka planda çalışırken açılır pencereleri göster\" olarak adlandırılır, cihaza özgü sorunlar için https://dontkillmyapp.com adresini kontrol edin.</string>
 <string name="error_allow_external_apps_ungranted">%1$s, `%2$s` dosyasında `allow-external-apps`
         özelliğinin `true` olarak ayarlanmasını gerektirir.</string>
@@ -42,7 +42,7 @@
 <string name="msg_report_truncated">**Rapor Kısaltıldı**\n\nRapor burada görüntülenemeyecek kadar büyük.
         Seçenekler menüsünden (sağ üstteki 3 nokta) `Dosyaya Kaydet` seçeneğini kullanın ve harici bir metin düzenleyici uygulamasında görüntüleyin.\n\n##\n\n</string>
 <string name="title_share_with">Şununla Paylaş</string>
-<string name="title_open_url_with">URL'yi Şununla Aç</string>
+<string name="title_open_url_with">URL\'yi Şununla Aç</string>
 <string name="msg_storage_permission_not_granted">Depolama izni verilmemiş.</string>
 <string name="msg_file_saved_successfully">%1$s dosyası başarıyla \"%2$s\" konumuna kaydedildi</string>
 <string name="error_sending_sigkill_to_process">Kullanıcı isteğiyle veya android çalıştırma hizmetini öldürdüğü için işleme SIGKILL gönderiliyor</string>
@@ -57,7 +57,7 @@
         aşağıdaki bağlantılardan birinde bir sorun açın.
         \n\nTermux uygulama çökme raporu oluşturuyorsanız, lütfen ne yaptığınızı ve
         çökmenin nasıl oluştuğunu, mümkünse nasıl yeniden üretileceğini açıkça belirtin.
-        \n\nGitHub'da bir sorun oluşturuyorsanız, raporun ait olduğu depoda oluşturun.
+        \n\nGitHub\'da bir sorun oluşturuyorsanız, raporun ait olduğu depoda oluşturun.
         Kopyalanmış metin veya bu raporun dosyası yerine **(kısmi) ekran görüntüsü** ile açılan sorunlar veya gönderilen e-postalar
         **muhtemelen otomatik olarak kapatılacaktır/silinecektir**. Cihaza özgü diğer bilgileri
         özel bulduğunuz veya paylaşmak istemediğiniz ya da sorunla ilgili olmayanları isteğe bağlı olarak kaldırabilirsiniz.

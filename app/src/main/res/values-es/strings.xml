@@ -150,20 +150,7 @@
     <string name="restore_sessions_summary">Reabrir todas las pestañas y sus directorios cuando se inicie la aplicación</string>
     <string name="screen_orientation_title">Orientación de pantalla</string>
     <string name="screen_orientation_summary">Las variantes \"Seguir sensor\" rotan entre las dos orientaciones (ej. retrato 0°/180°).</string>
-    <string-array name="screen_orientation_entries">
-    <item>Seguir sensor</item>
-    <item>Retrato (seguir sensor)</item>
-    <item>Paisaje (seguir sensor)</item>
-    <item>Retrato</item>
-    <item>Paisaje</item>
-    </string-array>
-    <string-array name="screen_orientation_values">
-    <item>sensor</item>
-    <item>portrait_follow_sensor</item>
-    <item>landscape_follow_sensor</item>
-    <item>portrait</item>
-    <item>landscape</item>
-    </string-array>
+
     <string name="donate_preference_title">Donar</string>
     <string name="backup_preference_title">Respaldar datos de Termux</string>
     <string name="backup_preference_summary">Guardar el directorio de datos de Termux (paquetes instalados + home) en un archivo tar.gz de copia de seguridad</string>
@@ -233,6 +220,6 @@
     </plurals>
     <string name="notification_wake_lock_held"> (bloqueo de activación activo)</string>
     <string name="session_null_title">sesión nula</string>
-    <string name="msg_extra_keys_load_failed">No se pudo cargar y establecer la propiedad \"%s\" del archivo de propiedades: %s</string>
+    <string name="msg_extra_keys_load_failed">No se pudo cargar y establecer la propiedad \"%1$s\" del archivo de propiedades: %2$s</string>
     <string name="msg_extra_keys_create_failed">No se pueden crear las teclas adicionales predeterminadas</string>
 </resources>

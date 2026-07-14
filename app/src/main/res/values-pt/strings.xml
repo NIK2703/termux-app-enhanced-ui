@@ -126,7 +126,7 @@
     <string name="msg_disabling_terminal_toolbar">Desativando barra de ferramentas do terminal</string>
     <string name="msg_enabling_terminal_toolbar">Ativando barra de ferramentas do terminal</string>
     <string name="msg_extra_keys_create_failed">Falha ao criar teclas extras padrão</string>
-    <string name="msg_extra_keys_load_failed">Falha ao carregar e definir propriedade \"%s\" do arquivo de propriedades: %s</string>
+    <string name="msg_extra_keys_load_failed">Falha ao carregar e definir propriedade \"%1$s\" do arquivo de propriedades: %2$s</string>
     <string name="msg_generating_report">Gerando relatório</string>
     <string name="msg_max_terminals_reached">Feche os existentes antes de criar um novo.</string>
     <string name="msg_select_url_copied_to_clipboard">URL copiada para a área de transferência</string>
@@ -154,8 +154,8 @@
     <string name="tab_close_description">Fechar aba</string>
     <string name="termux_api_preferences_summary">Preferências para o aplicativo &TERMUX_API_APP_NAME;</string>
     <string name="termux_api_preferences_title">&TERMUX_API_APP_NAME;</string>
-    <string name="termux_button_bg_active_alpha_title">Transparência de elemento ativo (10–20%)</string>
-    <string name="termux_button_bg_inactive_alpha_title">Transparência de elemento inativo (0–10%)</string>
+    <string name="termux_button_bg_active_alpha_title" formatted="false">Transparência de elemento ativo (10–20%)</string>
+    <string name="termux_button_bg_inactive_alpha_title" formatted="false">Transparência de elemento inativo (0–10%)</string>
     <string name="termux_crash_report_notifications_enabled_off">Desativar notificações para relatórios de falha.</string>
     <string name="termux_crash_report_notifications_enabled_on">Mostrar notificações para relatórios de falha. (Padrão)</string>
     <string name="termux_crash_report_notifications_enabled_title">Notificações de Relatório de Falha</string>
@@ -222,25 +222,7 @@
     <string name="title_share_selected_text_with">Enviar texto selecionado para:</string>
     <string name="title_share_transcript">Transcrição do terminal</string>
     <string name="title_share_transcript_with">Enviar transcrição para:</string>
-    <string-array name="screen_orientation_entries">
-<item>Seguir sensor</item>
-    <item>Retrato (seguir sensor)</item>
-    <item>Paisagem (seguir sensor)</item>
-    <item>Retrato</item>
-    <item>Paisagem</item>
-    </string-array>
-    <string-array name="screen_orientation_values">
-<item>sensor</item>
-    <item>portrait_follow_sensor</item>
-    <item>landscape_follow_sensor</item>
-    <item>portrait</item>
-    <item>landscape</item>
-    </string-array>
-    <string-array name="theme_mode_entries">
-<item>Escuro</item>
-    <item>Claro</item>
-    <item>Padrão do Sistema</item>
-    </string-array>
+
     <plurals name="notification_sessions">
 <item quantity="one">%d sessão</item>
     <item quantity="other">%d sessões</item>

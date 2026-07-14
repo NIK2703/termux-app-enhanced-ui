@@ -10,4 +10,21 @@
         <item>false</item>
         <item>system</item>
     </string-array>
+
+    <string-array name="screen_orientation_entries">
+        <item>센서에 따르기</item>
+        <item>세로 (센서에 따르기)</item>
+        <item>가로 (센서에 따르기)</item>
+        <item>세로</item>
+        <item>가로</item>
+    </string-array>
+
+    <string-array name="screen_orientation_values">
+        <item>sensor</item>
+        <item>portrait_follow_sensor</item>
+        <item>landscape_follow_sensor</item>
+        <item>portrait</item>
+        <item>landscape</item>
+    </string-array>
+
 </resources>

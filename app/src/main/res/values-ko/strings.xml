@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE resources [
-    <!ENTITY TERMUX_APP_NAME "Termux EnhancedUI">
+    <!ENTITY TERMUX_PACKAGE_NAME "com.termux">
+    <!ENTITY TERMUX_APP_NAME "Termux">
     <!ENTITY TERMUX_API_APP_NAME "Termux:API">
+    <!ENTITY TERMUX_BOOT_APP_NAME "Termux:Boot">
     <!ENTITY TERMUX_FLOAT_APP_NAME "Termux:Float">
     <!ENTITY TERMUX_TASKER_APP_NAME "Termux:Tasker">
     <!ENTITY TERMUX_WIDGET_APP_NAME "Termux:Widget">
@@ -142,7 +144,7 @@ URL을 열 앱에 대한 스크립트 또는 심볼릭 링크로 이 파일을 �
     <string name="msg_disabling_terminal_toolbar">터미널 도구 모음을 비활성화하는 중…</string>
     <string name="msg_enabling_terminal_toolbar">터미널 도구 모음을 활성화하는 중…</string>
     <string name="msg_extra_keys_create_failed">추가 키를 만들지 못했습니다</string>
-    <string name="msg_extra_keys_load_failed">속성 파일에서 \"%s\" 속성을 로드하여 설정할 수 없습니다: %s</string>
+    <string name="msg_extra_keys_load_failed">속성 파일에서 \"%1$s\" 속성을 로드하여 설정할 수 없습니다: %2$s</string>
     <string name="msg_generating_report">보고서 생성 중…</string>
     <string name="msg_max_terminals_reached">최대 %d개의 터미널 세션에 도달했습니다. 기존 세션을 닫은 후 다시 시도해 주세요.</string>
     <string name="msg_select_url_copied_to_clipboard">URL이 클립보드에 복사되었습니다.</string>

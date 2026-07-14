@@ -158,7 +158,6 @@
                 <string name="termux_crash_report_notifications_enabled_off">Отключить уведомления об отчётах о сбоях.</string>
                 <string name="termux_crash_report_notifications_enabled_on">Показывать уведомления об отчётах о сбоях. (По умолчанию)</string>
 
-
         <!-- Terminal IO Preferences -->
         <string name="termux_terminal_io_preferences_title">Ввод-вывод терминала</string>
         <string name="termux_terminal_io_preferences_summary">Настройки ввода-вывода терминала</string>
@@ -182,7 +181,6 @@
                     подключена аппаратная клавиатура. (По умолчанию)</string>
                 <string name="termux_soft_keyboard_enabled_only_if_no_hardware_on">Экранная клавиатура будет включена, только если
                     не подключена аппаратная клавиатура.</string>
-
 
         <!-- Terminal View Preferences -->
         <string name="termux_terminal_view_preferences_title">Вид терминала</string>
@@ -256,13 +254,6 @@
     <!-- Screen orientation preference -->
     <string name="screen_orientation_title">Ориентация экрана</string>
     <string name="screen_orientation_summary">Варианты «По датчику» вращаются между двумя ориентациями (например, 0°/180° книжная).</string>
-    <string-array name="screen_orientation_entries">
-        <item>По датчику</item>
-        <item>Книжная (по датчику)</item>
-        <item>Альбомная (по датчику)</item>
-        <item>Книжная</item>
-        <item>Альбомная</item>
-    </string-array>
 
     <!-- Donate Preference -->
     <string name="donate_preference_title">Пожертвовать</string>
@@ -360,7 +351,7 @@
     <string name="session_null_title">null сеанс</string>
 
     <!-- Дополнительные клавиши -->
-    <string name="msg_extra_keys_load_failed">Не удалось загрузить и установить свойство «%s» из файла свойств: %s</string>
+    <string name="msg_extra_keys_load_failed">Не удалось загрузить и установить свойство «%1$s» из файла свойств: %2$s</string>
     <string name="msg_extra_keys_create_failed">Не удаётся создать дополнительные клавиши по умолчанию</string>
 
 </resources>

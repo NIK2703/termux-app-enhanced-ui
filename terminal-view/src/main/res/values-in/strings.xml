@@ -1,9 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-
-<!DOCTYPE resources [
-    
-]>
-
 <resources>
     <string name="copy_text">Salin</string>
     <string name="paste_text">Tempel</string>

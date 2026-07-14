@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE resources [
-    <!ENTITY TERMUX_APP_NAME "Termux EnhancedUI">
+    <!ENTITY TERMUX_PACKAGE_NAME "com.termux">
+    <!ENTITY TERMUX_APP_NAME "Termux">
     <!ENTITY TERMUX_API_APP_NAME "Termux:API">
+    <!ENTITY TERMUX_BOOT_APP_NAME "Termux:Boot">
     <!ENTITY TERMUX_FLOAT_APP_NAME "Termux:Float">
     <!ENTITY TERMUX_TASKER_APP_NAME "Termux:Tasker">
     <!ENTITY TERMUX_WIDGET_APP_NAME "Termux:Widget">
@@ -123,7 +125,7 @@
     <string name="msg_disabling_terminal_toolbar">टर्मिनल टूलबार अक्षम हो रहा है</string>
     <string name="msg_enabling_terminal_toolbar">टर्मिनल टूलबार सक्षम हो रहा है</string>
     <string name="msg_extra_keys_create_failed">डिफ़ॉल्ट एक्स्ट्रा कीज़ नहीं बनाई जा सकीं</string>
-    <string name="msg_extra_keys_load_failed">गुण फ़ाइल से \"%s\" गुण लोड और सेट नहीं किया जा सका: %s</string>
+    <string name="msg_extra_keys_load_failed">गुण फ़ाइल से \"%1$s\" गुण लोड और सेट नहीं किया जा सका: %2$s</string>
     <string name="msg_generating_report">रिपोर्ट बनाई जा रही है</string>
     <string name="msg_max_terminals_reached">नया बनाने से पहले मौजूदा वाले बंद करें।</string>
     <string name="msg_select_url_copied_to_clipboard">URL क्लिपबोर्ड पर कॉपी हो गया</string>
@@ -150,8 +152,8 @@
     <string name="tab_close_description">टैब बंद करें</string>
     <string name="termux_api_preferences_summary">&TERMUX_API_APP_NAME; ऐप के लिए प्राथमिकताएँ</string>
     <string name="termux_api_preferences_title">&TERMUX_API_APP_NAME;</string>
-    <string name="termux_button_bg_active_alpha_title">सक्रिय तत्व पारदर्शिता (10–20%)</string>
-    <string name="termux_button_bg_inactive_alpha_title">निष्क्रिय तत्व पारदर्शिता (0–10%)</string>
+    <string name="termux_button_bg_active_alpha_title" formatted="false">सक्रिय तत्व पारदर्शिता (10–20%)</string>
+    <string name="termux_button_bg_inactive_alpha_title" formatted="false">निष्क्रिय तत्व पारदर्शिता (0–10%)</string>
     <string name="termux_crash_report_notifications_enabled_off">क्रैश रिपोर्ट के लिए सूचनाएँ अक्षम करें।</string>
     <string name="termux_crash_report_notifications_enabled_on">क्रैश रिपोर्ट के लिए सूचनाएँ दिखाएँ। (डिफ़ॉल्ट)</string>
     <string name="termux_crash_report_notifications_enabled_title">क्रैश रिपोर्ट सूचनाएँ</string>

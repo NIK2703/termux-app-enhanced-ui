@@ -12,4 +12,21 @@
         <item>system</item>
     </string-array>
 
+
+
+    <string-array name="screen_orientation_entries">
+        <item>Sensörü takip et</item>
+        <item>Dikey (sensörü takip et)</item>
+        <item>Yatay (sensörü takip et)</item>
+        <item>Dikey</item>
+        <item>Yatay</item>
+    </string-array>
+
+    <string-array name="screen_orientation_values">
+        <item>sensor</item>
+        <item>portrait_follow_sensor</item>
+        <item>landscape_follow_sensor</item>
+        <item>portrait</item>
+        <item>landscape</item>
+    </string-array>
 </resources>

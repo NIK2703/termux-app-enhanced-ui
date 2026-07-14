@@ -127,7 +127,7 @@
     <string name="msg_disabling_terminal_toolbar">جارٍ تعطيل شريط أدوات الطرفية</string>
     <string name="msg_enabling_terminal_toolbar">جارٍ تمكين شريط أدوات الطرفية</string>
     <string name="msg_extra_keys_create_failed">لا يمكن إنشاء المفاتيح الإضافية الافتراضية</string>
-    <string name="msg_extra_keys_load_failed">تعذر تحميل وتعيين الخاصية \"%s\" من ملف الخصائص: %s</string>
+    <string name="msg_extra_keys_load_failed">تعذر تحميل وتعيين الخاصية \"%1$s\" من ملف الخصائص: %2$s</string>
     <string name="msg_generating_report">جارٍ إنشاء التقرير</string>
     <string name="msg_max_terminals_reached">أغلق المحطات الحالية قبل إنشاء محطات جديدة.</string>
     <string name="msg_select_url_copied_to_clipboard">تم نسخ الرابط إلى الحافظة</string>
@@ -164,28 +164,15 @@
     <string name="restore_sessions_title">استعادة علامات التبويب عند التشغيل</string>
     <string name="screen_orientation_summary">تتنوع المتغيرات "تابع المستشعر" بين اتجاهين (مثل ٠°/١٨٠° عمودي).</string>
     <string name="screen_orientation_title">اتجاه الشاشة</string>
-    <string-array name="screen_orientation_entries">
-        <item>تابع المستشعر</item>
-        <item>عمودي (تابع المستشعر)</item>
-        <item>أفقي (تابع المستشعر)</item>
-        <item>عمودي</item>
-        <item>أفقي</item>
-    </string-array>
-    <string-array name="screen_orientation_values">
-        <item>sensor</item>
-        <item>portrait_follow_sensor</item>
-        <item>landscape_follow_sensor</item>
-        <item>portrait</item>
-        <item>landscape</item>
-    </string-array>
+
     <string name="session_default_title">طرفية</string>
     <string name="session_null_title">جلسة فارغة</string>
     <string name="shared_user_label">مستخدم &TERMUX_APP_NAME;</string>
     <string name="tab_close_description">إغلاق علامة التبويب</string>
     <string name="termux_api_preferences_summary">تفضيلات تطبيق &TERMUX_API_APP_NAME;</string>
     <string name="termux_api_preferences_title">&TERMUX_API_APP_NAME;</string>
-    <string name="termux_button_bg_active_alpha_title">شفافية العنصر النشط (10–20%)</string>
-    <string name="termux_button_bg_inactive_alpha_title">شفافية العنصر غير النشط (0–10%)</string>
+    <string name="termux_button_bg_active_alpha_title" formatted="false">شفافية العنصر النشط (10–20%)</string>
+    <string name="termux_button_bg_inactive_alpha_title" formatted="false">شفافية العنصر غير النشط (0–10%)</string>
     <string name="termux_crash_report_notifications_enabled_off">تعطيل الإشعارات لتقارير الأعطال.</string>
     <string name="termux_crash_report_notifications_enabled_on">عرض الإشعارات لتقارير الأعطال. (افتراضي)</string>
     <string name="termux_crash_report_notifications_enabled_title">إشعارات تقارير الأعطال</string>

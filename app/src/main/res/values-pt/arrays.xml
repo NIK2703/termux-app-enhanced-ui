@@ -10,4 +10,21 @@
     <item>false</item>
     <item>system</item>
     </string-array>
+
+
+    <string-array name="screen_orientation_entries">
+<item>Seguir sensor</item>
+    <item>Retrato (seguir sensor)</item>
+    <item>Paisagem (seguir sensor)</item>
+    <item>Retrato</item>
+    <item>Paisagem</item>
+    </string-array>
+
+    <string-array name="screen_orientation_values">
+<item>sensor</item>
+    <item>portrait_follow_sensor</item>
+    <item>landscape_follow_sensor</item>
+    <item>portrait</item>
+    <item>landscape</item>
+    </string-array>
 </resources>

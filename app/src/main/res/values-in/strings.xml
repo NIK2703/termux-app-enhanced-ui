@@ -141,7 +141,6 @@
     <string name="message_history_empty">Tidak ada riwayat pesan</string>
     <string name="message_history_max_title">Maks. pesan tersimpan</string>
     <string name="message_history_title">Riwayat Pesan</string>
-    <string name="msg_add_termux_debug_info">Sertakan info debug &TERMUX_APP_NAME;</string>
     <string name="msg_delete_transcript">Hapus transkrip</string>
     <string name="msg_delete_transcript_confirm">Apakah Anda yakin ingin menghapus transkrip saat ini?</string>
     <string name="msg_disable_notification_listener">Pendengar notifikasi akan dinonaktifkan.</string>
@@ -149,7 +148,7 @@
     <string name="msg_enable_notification_listener">Pendengar notifikasi akan diaktifkan.</string>
     <string name="msg_enabling_terminal_toolbar">Mengaktifkan bilah alat terminal</string>
     <string name="msg_extra_keys_create_failed">Gagal membuat tombol tambahan bawaan</string>
-    <string name="msg_extra_keys_load_failed">Gagal memuat dan menyetel properti \"%s\" dari file properti: %s</string>
+    <string name="msg_extra_keys_load_failed">Gagal memuat dan menyetel properti \"%1$s\" dari file properti: %2$s</string>
     <string name="msg_generating_report">Membuat laporan…</string>
     <string name="msg_max_terminals_reached">Jumlah terminal maksimum tercapai</string>
     <string name="msg_notification_listener_settings_off">Pendengar notifikasi belum diaktifkan. Buka Pengaturan -&gt; %1$s -&gt; Pendengar Notifikasi dan aktifkan %2$s.</string>
@@ -281,25 +280,7 @@
     <string name="title_show_transcript">Tampilkan Transkrip</string>
     <string name="toast_transcript_saved">Transkrip disimpan</string>
     <string name="url_handling_title">Penanganan URL</string>
-    <string-array name="screen_orientation_entries">
-<item>Ikuti sensor</item>
-    <item>Potret (ikuti sensor)</item>
-    <item>Lanskap (ikuti sensor)</item>
-    <item>Potret</item>
-    <item>Lanskap</item>
-    </string-array>
-    <string-array name="screen_orientation_values">
-<item>sensor</item>
-    <item>portrait_follow_sensor</item>
-    <item>landscape_follow_sensor</item>
-    <item>portrait</item>
-    <item>landscape</item>
-    </string-array>
-    <string-array name="theme_mode_entries">
-<item>Gelap</item>
-    <item>Terang</item>
-    <item>Default sistem</item>
-    </string-array>
+
     <plurals name="notification_sessions">
 <item quantity="other">%d sesi</item>
     </plurals>

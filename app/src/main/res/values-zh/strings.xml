@@ -161,20 +161,7 @@
     <string name="restore_sessions_summary">应用启动时重新打开所有标签页及其目录</string>
     <string name="screen_orientation_title">屏幕方向</string>
     <string name="screen_orientation_summary">\"跟随传感器\"变体在两个方向之间旋转（例如 0°/180° 竖屏）。</string>
-    <string-array name="screen_orientation_entries">
-        <item>跟随传感器</item>
-        <item>竖屏（跟随传感器）</item>
-        <item>横屏（跟随传感器）</item>
-        <item>竖屏</item>
-        <item>横屏</item>
-    </string-array>
-    <string-array name="screen_orientation_values">
-        <item>sensor</item>
-        <item>portrait_follow_sensor</item>
-        <item>landscape_follow_sensor</item>
-        <item>portrait</item>
-        <item>landscape</item>
-    </string-array>
+
     <string name="donate_preference_title">捐赠</string>
     <string name="backup_preference_title">备份 Termux 数据</string>
     <string name="backup_preference_summary">将 Termux 数据目录（已安装的软件包 + 主目录）保存为 tar.gz 文件</string>
@@ -245,7 +232,7 @@
     </plurals>
     <string name="notification_wake_lock_held">（保持唤醒锁）</string>
     <string name="session_null_title">空会话</string>
-    <string name="msg_extra_keys_load_failed">无法从属性文件加载并设置 \"%s\" 属性：%s</string>
+    <string name="msg_extra_keys_load_failed">无法从属性文件加载并设置 \"%1$s\" 属性：%2$s</string>
     <string name="msg_extra_keys_create_failed">无法创建默认额外按键</string>
 
 </resources>
