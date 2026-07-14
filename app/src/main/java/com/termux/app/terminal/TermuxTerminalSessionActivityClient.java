@@ -499,6 +499,45 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
             if (newTermuxSession == null) return;
 
             TerminalSession newTerminalSession = newTermuxSession.getTerminalSession();
+
+            // Cold-start detection: the pager has never been populated (adapter has 0 items)
+            // and we just created the first session.  The emulator subprocess
+            // (JNI.createSubprocess → fork) takes long enough to cause a visible UI stutter
+            // if it runs inside the pager layout pass on the UI thread.  Instead, initialize
+            // the emulator with default dimensions on a background thread, then attach the
+            // session to the pager once the subprocess is alive.
+            androidx.viewpager2.widget.ViewPager2 pager = mActivity.getTerminalPager();
+            boolean isColdStart = (pager == null || pager.getAdapter() == null
+                    || pager.getAdapter().getItemCount() == 0)
+                    && service.getTermuxSessionsSize() == 1
+                    && newTerminalSession.getEmulator() == null;
+            if (isColdStart) {
+                mActivity.setColdStartSessionPending(true);
+                final TermuxActivity activity = mActivity;
+                final TerminalSession session = newTerminalSession;
+                new Thread(() -> {
+                    android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_DEFAULT);
+                    // Initialize the emulator with reasonable default dimensions.
+                    // JNI.createSubprocess() (fork + PTY setup) runs here, NOT on the UI thread.
+                    session.updateSize(80, 24, 10, 10);
+                    activity.runOnUiThread(() -> {
+                        if (activity.isFinishing()) return;
+                        mActivity.setColdStartSessionPending(false);
+                        // Run the full pager sync now.  syncWithServiceList will notify
+                        // RecyclerView that items are available, triggering a layout pass
+                        // that creates the ViewHolder and binds it to the session via
+                        // attachSession() → updateSize().  Since the emulator is already
+                        // initialized, that updateSize() will find mEmulator != null and
+                        // only resize — no fork on the UI thread.
+                        // onTerminalPageSelected will run through its deferred path
+                        // (pageView == null initially) and complete once the layout
+                        // pass creates the page — all without blocking the UI.
+                        activity.syncTerminalPagerToService();
+                    });
+                }).start();
+                return;
+            }
+
             setCurrentSession(newTerminalSession);
         }
     }

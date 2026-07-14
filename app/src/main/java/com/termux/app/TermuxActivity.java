@@ -153,6 +153,14 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         mPendingInitialSession = session;
     }
 
+    public void setColdStartSessionPending(boolean pending) {
+        mColdStartSessionPending = pending;
+    }
+
+    public boolean isColdStartSessionPending() {
+        return mColdStartSessionPending;
+    }
+
     /**
      * Populate the pager with the live session list and select the initial page. Called from
      * {@link #onServiceConnected} once sessions exist. Honours a pending session requested earlier
@@ -160,6 +168,15 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
      */
     public void syncTerminalPagerToService() {
         if (mTerminalPager == null || mTerminalPagerAdapter == null || mTermuxService == null) return;
+
+        // If a cold-start session is being initialized on a background thread, defer the
+        // ENTIRE pager sync (both adapter population and page selection).  The emulator
+        // subprocess (JNI.createSubprocess / fork) runs off the UI thread; once it completes,
+        // the callback will call this method again with the flag cleared.  The adapter then
+        // gets its items via syncWithServiceList() and the RecyclerView creates/binds the
+        // ViewHolder for page 0.  At that point the session already has a running emulator,
+        // so attachSession() → updateSize() will only resize, not fork again.
+        if (mColdStartSessionPending) return;
 
         mTerminalPagerAdapter.syncWithServiceList(mTermuxService.getTermuxSessions());
 
@@ -251,6 +268,15 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
      * time, so if the session causing a change is not in the foreground it should probably be treated as background.
      */
     private boolean mIsVisible;
+
+    /**
+     * True while a cold-start session is being initialized on a background thread
+     * (emulator subprocess creation, which involves a blocking fork()).  When set,
+     * {@link #syncTerminalPagerToService()} skips {@code setCurrentItem()} so the
+     * pager layout pass does not call {@code JNI.createSubprocess()} on the UI thread.
+     * Cleared once the background init completes and the page is selected normally.
+     */
+    private volatile boolean mColdStartSessionPending = false;
 
     /**
      * True once onPause() has run (app going to background / screen turning off).
@@ -882,7 +908,40 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                         }
                         // Reopen the tabs from the last session if the feature is on and a
                         // snapshot exists; otherwise fall back to a single fresh session.
-                        if (!launchFailsafe && restoreSessionSnapshot()) return;
+                        if (!launchFailsafe && restoreSessionSnapshot()) {
+                            // Sessions restored from snapshot, but their emulators are
+                            // not yet initialized (no JNI.createSubprocess / fork has
+                            // run).  The immediate syncTerminalPagerToService() below
+                            // would trigger fork() for every restored session on the UI
+                            // thread during the first layout pass, causing the visible
+                            // stutter the user reported.
+                            // Instead, initialize all restored sessions on a background
+                            // thread and defer the pager sync until they are ready.
+                            if (!mColdStartSessionPending) {
+                                List<TermuxSession> restoredSessions = mTermuxService.getTermuxSessions();
+                                if (!restoredSessions.isEmpty()) {
+                                    setColdStartSessionPending(true);
+                                    final TermuxActivity activity = this;
+                                    new Thread(() -> {
+                                        android.os.Process.setThreadPriority(
+                                            android.os.Process.THREAD_PRIORITY_DEFAULT);
+                                        for (int i = 0; i < restoredSessions.size(); i++) {
+                                            TerminalSession ts = restoredSessions.get(i)
+                                                .getTerminalSession();
+                                            if (ts != null && ts.getEmulator() == null) {
+                                                ts.updateSize(80, 24, 10, 10);
+                                            }
+                                        }
+                                        activity.runOnUiThread(() -> {
+                                            if (activity.isFinishing()) return;
+                                            setColdStartSessionPending(false);
+                                            syncTerminalPagerToService();
+                                        });
+                                    }).start();
+                                }
+                            }
+                            return;
+                        }
                         mTermuxTerminalSessionActivityClient.addNewSession(launchFailsafe, null);
                     } catch (WindowManager.BadTokenException e) {
                         // Activity finished - ignore.
@@ -1068,6 +1127,22 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                     setTerminalPageSwitchInProgress(true);
                 } else if (state == androidx.viewpager2.widget.ViewPager2.SCROLL_STATE_IDLE) {
                     mTerminalPager.post(() -> setTerminalPageSwitchInProgress(false));
+                    // If the swipe was cancelled (released back to the same page),
+                    // onPageSelected never fires and the tab strip may be left in an
+                    // intermediate blended state. Reset to clean selection state here.
+                    if (mTermuxSessionTabsController != null) {
+                        mTermuxSessionTabsController.resetPageSelection(mTerminalPager.getCurrentItem());
+                    }
+                }
+            }
+
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+                // Forward the intermediate scroll progress to the tab strip so the
+                // selection highlight and scroll position follow the user's finger
+                // smoothly rather than snapping at the end of the settle.
+                if (mTermuxSessionTabsController != null) {
+                    mTermuxSessionTabsController.onPageScrolled(position, positionOffset);
                 }
             }
 
@@ -2804,6 +2879,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         mHistoryHighlightFill = mIsSchemeLight
                 ? Color.argb(26, 0, 0, 0)
                 : Color.argb(26, 255, 255, 255);
+
     }
 
     /** @return Cached panel/button background colour. */

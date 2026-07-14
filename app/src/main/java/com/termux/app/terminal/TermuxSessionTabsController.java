@@ -291,4 +291,102 @@ public class TermuxSessionTabsController {
         mCurrentSessionIndex = index;
         scrollToTab(index);
     }
+
+    // ── Intermediate page-scroll support ──────────────────────────────────
+
+    /**
+     * Called during a horizontal page swipe ({@code onPageScrolled} from ViewPager2).
+     * Interpolates the tab strip scroll position and the selection background of the
+     * two adjacent tabs so the user sees a smooth transition between tabs rather than
+     * an abrupt snap.
+     *
+     * @param position       the index of the left (leaving) page
+     * @param positionOffset fraction from 0.0 (left page fully visible) to 1.0 (right
+     *                       page fully visible)
+     */
+    public void onPageScrolled(int position, float positionOffset) {
+        if (mTabsContainer == null || mTabsScroll == null) return;
+        if (!mSchemeApplied) return;
+
+        int leftIdx = position;
+        int rightIdx = position + 1;
+
+        // At offset 0 there is no transition, and at the very first frame of a
+        // swipe the blend would be a no-op anyway (ratio ≈ 0). Guard to stay
+        // efficient, but allow offset up to 1.0 so the final frame of a
+        // cancelled gesture is full-strength.
+        if (positionOffset <= 0f) return;
+        if (leftIdx < 0 || rightIdx >= mTabsContainer.getChildCount()) return;
+
+        View leftTab = mTabsContainer.getChildAt(leftIdx);
+        View rightTab = mTabsContainer.getChildAt(rightIdx);
+        if (leftTab == null || rightTab == null) return;
+
+        // 1. Interpolate the HorizontalScrollView scroll position so the tab
+        //    strip follows the finger during the swipe.
+        int leftCenter = leftTab.getLeft() + leftTab.getWidth() / 2;
+        int rightCenter = rightTab.getLeft() + rightTab.getWidth() / 2;
+        int interpolatedCenter = (int) (leftCenter + (rightCenter - leftCenter) * positionOffset);
+        int targetScrollX = interpolatedCenter - mTabsScroll.getWidth() / 2;
+        mTabsScroll.scrollTo(targetScrollX, 0);
+
+        // 2. Interpolate background tints: left tab fades from active → normal,
+        //    right tab fades from normal → active.
+        int blendedLeft = blendColors(mSchemeBgActive, mSchemeBg, positionOffset);
+        int blendedRight = blendColors(mSchemeBg, mSchemeBgActive, positionOffset);
+        leftTab.setBackgroundTintList(ColorStateList.valueOf(blendedLeft));
+        rightTab.setBackgroundTintList(ColorStateList.valueOf(blendedRight));
+
+        // 3. Show the close button on whichever tab the user is closer to.
+        ImageButton leftClose = leftTab.findViewById(R.id.session_tab_close);
+        ImageButton rightClose = rightTab.findViewById(R.id.session_tab_close);
+        boolean closerToLeft = positionOffset < 0.5f;
+        if (leftClose != null) leftClose.setVisibility(closerToLeft ? View.VISIBLE : View.INVISIBLE);
+        if (rightClose != null) rightClose.setVisibility(closerToLeft ? View.INVISIBLE : View.VISIBLE);
+    }
+
+    /**
+     * Reset the visual tab selection state to a clean, non-interpolated state for
+     * the given {@code currentIndex}.  Called from
+     * {@code onPageScrollStateChanged(IDLE)} to clean up any intermediate blending
+     * left by {@link #onPageScrolled} when a swipe gesture was cancelled (the
+     * user started swiping then released back to the original page, which does
+     * <b>not</b> fire {@code onPageSelected}).
+     * <p>
+     * This mirrors what {@link #setCurrentSession} does for selection state and
+     * background tint, but without calling {@code smoothScrollTo} (which would
+     * fight the already-correct scroll position).
+     */
+    public void resetPageSelection(int currentIndex) {
+        if (mTabsContainer == null) return;
+        for (int i = 0; i < mTabsContainer.getChildCount(); i++) {
+            View child = mTabsContainer.getChildAt(i);
+            boolean isSelected = (i == currentIndex);
+            child.setSelected(isSelected);
+            if (mSchemeApplied) {
+                child.setBackgroundTintList(ColorStateList.valueOf(
+                        isSelected ? mSchemeBgActive : mSchemeBg));
+            }
+            ImageButton closeButton = child.findViewById(R.id.session_tab_close);
+            if (closeButton != null) {
+                closeButton.setVisibility(isSelected ? View.VISIBLE : View.INVISIBLE);
+            }
+        }
+        mCurrentSessionIndex = currentIndex;
+    }
+
+    /**
+     * Linearly interpolate between two ARGB colours.
+     *
+     * @param from  colour at ratio = 0.0
+     * @param to    colour at ratio = 1.0
+     * @param ratio blend factor in [0, 1]
+     */
+    private static int blendColors(int from, int to, float ratio) {
+        int a = (int) (Color.alpha(from) * (1f - ratio) + Color.alpha(to) * ratio);
+        int r = (int) (Color.red(from) * (1f - ratio) + Color.red(to) * ratio);
+        int g = (int) (Color.green(from) * (1f - ratio) + Color.green(to) * ratio);
+        int b = (int) (Color.blue(from) * (1f - ratio) + Color.blue(to) * ratio);
+        return Color.argb(a, r, g, b);
+    }
 }
