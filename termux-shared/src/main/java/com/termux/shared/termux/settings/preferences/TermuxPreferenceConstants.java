@@ -134,6 +134,16 @@ public final class TermuxPreferenceConstants {
 
 
         /**
+         * Defines the key for the maximum number of auto-complete suggestions to show
+         * in the text input popup, based on message history. Range 1-10, default 4.
+         */
+        public static final String KEY_SUGGESTIONS_MAX_COUNT = "suggestions_max_count";
+        public static final int DEFAULT_VALUE_SUGGESTIONS_MAX_COUNT = 4;
+        public static final int SUGGESTIONS_MAX_COUNT_MIN = 1;
+        public static final int SUGGESTIONS_MAX_COUNT_MAX = 10;
+
+
+        /**
          * Defines the key for whether to always keep screen on.
          */
         public static final String KEY_KEEP_SCREEN_ON = "screen_always_on";

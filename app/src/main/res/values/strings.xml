@@ -359,4 +359,8 @@
     <!-- Hide extra keys with keyboard -->
     <string name="hide_extra_keys_with_keyboard_title">Hide extra keys with keyboard</string>
     <string name="hide_extra_keys_with_keyboard_summary">Automatically hide extra buttons when keyboard is closed, show when opened</string>
+
+    <!-- Text input auto-complete -->
+    <string name="suggestions_max_count_title">Max suggestions</string>
+    <string name="suggestions_max_count_summary">Auto-complete suggestions from message history (1–10)</string>
 </resources>

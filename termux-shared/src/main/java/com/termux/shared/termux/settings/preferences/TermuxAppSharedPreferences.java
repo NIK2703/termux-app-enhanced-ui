@@ -98,6 +98,22 @@ public class TermuxAppSharedPreferences extends AppSharedPreferences {
     }
 
 
+    /**
+     * Get the maximum number of auto-complete suggestions to show in the text input popup.
+     *
+     * @return Returns the max suggestions count (clamped to 1-10, default 4).
+     */
+    public int getSuggestionsMaxCount() {
+        return SharedPreferenceUtils.getInt(mSharedPreferences, TERMUX_APP.KEY_SUGGESTIONS_MAX_COUNT, TERMUX_APP.DEFAULT_VALUE_SUGGESTIONS_MAX_COUNT);
+    }
+
+    public void setSuggestionsMaxCount(int value) {
+        if (value < TERMUX_APP.SUGGESTIONS_MAX_COUNT_MIN) value = TERMUX_APP.SUGGESTIONS_MAX_COUNT_MIN;
+        if (value > TERMUX_APP.SUGGESTIONS_MAX_COUNT_MAX) value = TERMUX_APP.SUGGESTIONS_MAX_COUNT_MAX;
+        SharedPreferenceUtils.setInt(mSharedPreferences, TERMUX_APP.KEY_SUGGESTIONS_MAX_COUNT, value, false);
+    }
+
+
     public boolean isTerminalMarginAdjustmentEnabled() {
         return SharedPreferenceUtils.getBoolean(mSharedPreferences, TERMUX_APP.KEY_TERMINAL_MARGIN_ADJUSTMENT, TERMUX_APP.DEFAULT_TERMINAL_MARGIN_ADJUSTMENT);
     }

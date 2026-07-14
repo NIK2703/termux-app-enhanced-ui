@@ -248,4 +248,8 @@
     <!-- Hide extra keys with keyboard -->
     <string name="hide_extra_keys_with_keyboard_title">Ekstra tuşları klavyeyle gizle</string>
     <string name="hide_extra_keys_with_keyboard_summary">Klavye kapatıldığında ekstra düğmeleri otomatik gizle, açıldığında göster</string>
+
+    <!-- Text input auto-complete -->
+    <string name="suggestions_max_count_title">Maks. öneri</string>
+    <string name="suggestions_max_count_summary">Mesaj geçmişinden otomatik tamamlama (1–10)</string>
 </resources>

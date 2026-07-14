@@ -234,4 +234,8 @@
     <!-- Hide extra keys with keyboard -->
     <string name="hide_extra_keys_with_keyboard_title">Zusatztasten mit Tastatur ausblenden</string>
     <string name="hide_extra_keys_with_keyboard_summary">Zusatztasten automatisch ausblenden wenn Tastatur geschlossen, anzeigen wenn geöffnet</string>
+
+    <!-- Text input auto-complete -->
+    <string name="suggestions_max_count_title">Max. Vorschläge</string>
+    <string name="suggestions_max_count_summary">Autovervollständigung aus Nachrichtenverlauf (1–10)</string>
 </resources>

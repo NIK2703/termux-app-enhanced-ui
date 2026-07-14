@@ -244,4 +244,8 @@
     <!-- Hide extra keys with keyboard -->
     <string name="hide_extra_keys_with_keyboard_title">随键盘隐藏快捷键</string>
     <string name="hide_extra_keys_with_keyboard_summary">键盘关闭时自动隐藏附加按钮，打开时显示</string>
+
+    <!-- Text input auto-complete -->
+    <string name="suggestions_max_count_title">最大建议数</string>
+    <string name="suggestions_max_count_summary">从消息历史中自动补全（1-10）</string>
 </resources>

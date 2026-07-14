@@ -230,4 +230,8 @@
     <!-- Hide extra keys with keyboard -->
     <string name="hide_extra_keys_with_keyboard_title">キーボードで拡張キーを隠す</string>
     <string name="hide_extra_keys_with_keyboard_summary">キーボードが閉じられたときに追加ボタンを自動的に非表示にし、開かれたときに表示します</string>
+
+    <!-- Text input auto-complete -->
+    <string name="suggestions_max_count_title">最大候補数</string>
+    <string name="suggestions_max_count_summary">メッセージ履歴から自動補完（1〜10）</string>
 </resources>

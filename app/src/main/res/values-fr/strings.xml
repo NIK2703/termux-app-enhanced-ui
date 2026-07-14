@@ -231,4 +231,8 @@
     <!-- Hide extra keys with keyboard -->
     <string name="hide_extra_keys_with_keyboard_title">Masquer les touches supp. avec le clavier</string>
     <string name="hide_extra_keys_with_keyboard_summary">Masquer automatiquement les touches supplémentaires quand le clavier est fermé</string>
+
+    <!-- Text input auto-complete -->
+    <string name="suggestions_max_count_title">Max suggestions</string>
+    <string name="suggestions_max_count_summary">Saisie semi-automatique depuis l\'historique (1–10)</string>
 </resources>

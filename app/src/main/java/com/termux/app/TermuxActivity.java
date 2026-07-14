@@ -312,6 +312,13 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     // being hidden while the text input panel is open.
     private boolean mSoftKeyboardVisible = false;
 
+    // ── Auto-complete suggestions popup ────────────────
+    /** Popup window showing auto-complete suggestions from message history. */
+    private PopupWindow mSuggestionsPopup;
+    /** Current list of suggestion strings being displayed. */
+    private final ArrayList<String> mCurrentSuggestions = new ArrayList<>();
+
+
     /**
      * True for a short window right after onStart(), i.e. just after the app
      * returned from the background / was recreated. Used to suppress the
@@ -1444,6 +1451,17 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         // input goes to the panel (true) for the current session.
         editText.setOnFocusChangeListener((v, hasFocus) -> {
             if (hasFocus) setFocusOnInputForCurrentSession(true);
+            if (!hasFocus) dismissAutoCompleteSuggestions();
+        });
+
+        // Auto-complete from message history as the user types
+        editText.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                updateAutoCompleteSuggestions();
+            }
         });
 
         editText.setOnEditorActionListener((v, actionId, event) -> {
@@ -2015,6 +2033,137 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     private boolean isHistoryPopupShowing() {
         return mHistoryPopup != null && mHistoryPopup.isShowing();
     }
+
+
+    // ── Auto-complete suggestions from message history ────────────────
+
+    private void updateAutoCompleteSuggestions() {
+        if (mIsInvalidState) return;
+
+        final EditText inputField = findViewById(R.id.terminal_toolbar_text_input);
+        if (inputField == null) return;
+
+        final String text = inputField.getText().toString();
+        if (TextUtils.isEmpty(text)) {
+            dismissAutoCompleteSuggestions();
+            return;
+        }
+
+        // Read max suggestions from prefs (in case user changed it)
+        int maxCount = getSharedPreferences("termux_prefs", MODE_PRIVATE)
+                .getInt("suggestions_max_count", 4);
+        if (maxCount < 1) maxCount = 1;
+        if (maxCount > 10) maxCount = 10;
+
+        // Search message history (newest first) for completions
+        mCurrentSuggestions.clear();
+        for (String msg : mMessageHistory) {
+            if (mCurrentSuggestions.size() >= maxCount) break;
+            if (msg.length() > text.length()
+                    && msg.regionMatches(true, 0, text, 0, text.length())
+                    && !msg.equals(text)) {
+                mCurrentSuggestions.add(msg);
+            }
+        }
+
+        if (mCurrentSuggestions.isEmpty()) {
+            dismissAutoCompleteSuggestions();
+            return;
+        }
+
+        showAutoCompletePopup(inputField);
+    }
+
+    private void showAutoCompletePopup(@NonNull EditText inputField) {
+        dismissAutoCompleteSuggestions();
+
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setBackgroundColor(Color.TRANSPARENT);
+
+        int padH = dpToPx(14);
+        int padV = dpToPx(10);
+
+        for (int i = 0; i < mCurrentSuggestions.size(); i++) {
+            final String suggestion = mCurrentSuggestions.get(i);
+            final int index = i;
+
+            TextView tv = new TextView(this);
+            final String input = inputField.getText().toString();
+            android.text.SpannableString ss = new android.text.SpannableString(suggestion);
+            if (!TextUtils.isEmpty(input) && suggestion.regionMatches(true, 0, input, 0, input.length())) {
+                ss.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+                        0, input.length(), android.text.SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            tv.setText(ss);
+            tv.setMaxLines(1);
+            tv.setEllipsize(TextUtils.TruncateAt.END);
+            tv.setTextColor(mHistoryTextColor);
+            tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+            tv.setPadding(padH, padV, padH, padV);
+            tv.setClickable(true);
+            tv.setOnClickListener(v -> {
+                inputField.setText(suggestion);
+                inputField.setSelection(suggestion.length());
+                dismissAutoCompleteSuggestions();
+                dismissMessageHistoryPopup();
+            });
+            content.addView(tv, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            if (i < mCurrentSuggestions.size() - 1) {
+                View sep = new View(this);
+                sep.setBackgroundColor(mHistoryPopupSepColor);
+                content.addView(sep, new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
+            }
+        }
+
+        int sumWidth = Math.max(dpToPx(200), inputField.getWidth() - dpToPx(16));
+        int totalHeight = mCurrentSuggestions.size() * (dpToPx(36)) + dpToPx(4);
+        int maxHeight = dpToPx(200);
+        int popupHeight = Math.min(totalHeight, maxHeight);
+
+        int[] loc = new int[2];
+        inputField.getLocationInWindow(loc);
+        int inputTop = loc[1];
+        int inputLeft = loc[0];
+
+        android.graphics.Rect displayRect = new android.graphics.Rect();
+        getWindowManager().getDefaultDisplay().getRectSize(displayRect);
+        int displayHeight = displayRect.height();
+
+        boolean showAbove = (inputTop > popupHeight + dpToPx(20));
+
+        mSuggestionsPopup = new PopupWindow(content, sumWidth, popupHeight, true);
+        mSuggestionsPopup.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(
+                mHistoryPopupBg));
+        mSuggestionsPopup.setElevation(dpToPx(6));
+        mSuggestionsPopup.setOutsideTouchable(true);
+
+        try {
+            if (showAbove) {
+                mSuggestionsPopup.showAtLocation(inputField, Gravity.NO_GRAVITY,
+                        inputLeft + dpToPx(8), inputTop - popupHeight - dpToPx(4));
+            } else {
+                mSuggestionsPopup.showAtLocation(inputField, Gravity.NO_GRAVITY,
+                        inputLeft + dpToPx(8), inputTop + inputField.getHeight() + dpToPx(2));
+            }
+        } catch (Exception e) {
+            Logger.logStackTraceWithMessage(LOG_TAG, "Failed to show auto-complete popup", e);
+            mSuggestionsPopup = null;
+        }
+    }
+
+    private void dismissAutoCompleteSuggestions() {
+        if (mSuggestionsPopup != null) {
+            try { mSuggestionsPopup.dismiss(); } catch (Exception ignored) {}
+            mSuggestionsPopup = null;
+        }
+        mCurrentSuggestions.clear();
+    }
+
 
     /**
      * Build and show the message-history popup anchored above the pencil button.
@@ -3413,6 +3562,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
      * @param visible true to show, false to hide
      */
     public void setTextInputVisible(boolean visible) {
+        // Dismiss auto-complete suggestions when hiding the panel
+        if (!visible) dismissAutoCompleteSuggestions();
+
         View textInputContainer = findViewById(R.id.terminal_toolbar_text_input_container);
         if (textInputContainer != null) {
             // The text input panel and the extra keys share one slot below the tabs:

@@ -244,4 +244,8 @@
     <!-- Hide extra keys with keyboard -->
     <string name="hide_extra_keys_with_keyboard_title">إخفاء المفاتيح الإضافية مع لوحة المفاتيح</string>
     <string name="hide_extra_keys_with_keyboard_summary">إخفاء الأزرار الإضافية تلقائيًا عند إغلاق لوحة المفاتيح</string>
+
+    <!-- Text input auto-complete -->
+    <string name="suggestions_max_count_title">أقصى اقتراحات</string>
+    <string name="suggestions_max_count_summary">الإكمال التلقائي من سجل الرسائل (1–10)</string>
 </resources>

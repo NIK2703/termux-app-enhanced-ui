@@ -363,4 +363,8 @@
     <!-- Hide extra keys with keyboard -->
     <string name="hide_extra_keys_with_keyboard_title">Прятать кнопки с клавиатурой</string>
     <string name="hide_extra_keys_with_keyboard_summary">Автоматически скрывать доп. кнопки при закрытии клавиатуры, показывать при открытии</string>
+
+    <!-- Text input auto-complete -->
+    <string name="suggestions_max_count_title">Макс. подсказок</string>
+    <string name="suggestions_max_count_summary">Автодополнение из истории сообщений (1–10)</string>
 </resources>

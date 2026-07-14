@@ -231,4 +231,8 @@
     <!-- Hide extra keys with keyboard -->
     <string name="hide_extra_keys_with_keyboard_title">Ocultar teclas extra con teclado</string>
     <string name="hide_extra_keys_with_keyboard_summary">Ocultar automáticamente los botones adicionales al cerrar el teclado, mostrar al abrir</string>
+
+    <!-- Text input auto-complete -->
+    <string name="suggestions_max_count_title">Máx. sugerencias</string>
+    <string name="suggestions_max_count_summary">Autocompletar del historial de mensajes (1–10)</string>
 </resources>

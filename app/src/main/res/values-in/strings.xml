@@ -296,4 +296,8 @@
     <!-- Hide extra keys with keyboard -->
     <string name="hide_extra_keys_with_keyboard_title">Sembunyikan tombol ekstra dengan keyboard</string>
     <string name="hide_extra_keys_with_keyboard_summary">Sembunyikan tombol tambahan saat keyboard ditutup, tampilkan saat dibuka</string>
+
+    <!-- Text input auto-complete -->
+    <string name="suggestions_max_count_title">Maks saran</string>
+    <string name="suggestions_max_count_summary">Pelengkapan otomatis dari riwayat pesan (1–10)</string>
 </resources>

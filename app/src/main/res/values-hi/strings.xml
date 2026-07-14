@@ -229,4 +229,8 @@
     <!-- Hide extra keys with keyboard -->
     <string name="hide_extra_keys_with_keyboard_title">कीबोर्ड से अतिरिक्त कुंजियाँ छिपाएँ</string>
     <string name="hide_extra_keys_with_keyboard_summary">कीबोर्ड बंद होने पर अतिरिक्त बटन छिपाएँ, खुलने पर दिखाएँ</string>
+
+    <!-- Text input auto-complete -->
+    <string name="suggestions_max_count_title">अधिकतम सुझाव</string>
+    <string name="suggestions_max_count_summary">संदेश इतिहास से स्वतः पूर्ण (1–10)</string>
 </resources>
