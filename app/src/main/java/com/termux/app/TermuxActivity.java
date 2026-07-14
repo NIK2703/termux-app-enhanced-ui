@@ -204,6 +204,21 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             // bookkeeping explicitly for the startup page.
             onTerminalPageSelected(index);
         }
+
+        // With fewer than two sessions there is nothing to swipe between, so disable
+        // user input to suppress the stretch/bounce edge-effect animation on drag.
+        updatePagerUserInputEnabled();
+    }
+
+    /**
+     * Enable/disable horizontal pager swipe based on how many sessions are open.
+     * With zero or one sessions there is nothing to swipe between, so stretch/bounce
+     * edge effects must be suppressed.
+     */
+    private void updatePagerUserInputEnabled() {
+        if (mTerminalPager == null) return;
+        int count = (mTermuxService != null) ? mTermuxService.getTermuxSessionsSize() : 0;
+        mTerminalPager.setUserInputEnabled(count >= 2);
     }
 
     /**
@@ -1165,7 +1180,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                     new java.util.ArrayList<>());
         }
         mTerminalPager.setAdapter(mTerminalPagerAdapter);
-        mTerminalPager.setUserInputEnabled(true);
+        // With fewer than two sessions there is nothing to swipe between, so disable user input
+        // to suppress the stretch/bounce edge-effect animation on a horizontal drag.
+        updatePagerUserInputEnabled();
         // Keep the neighbouring page bound so a horizontal swipe reveals the adjacent
         // session LIVE (the original goal: "видно промежуточное листание между
         // двумя соседними экранами"). With the default limit 0 the neighbour is
@@ -2282,6 +2299,119 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     }
 
     /**
+
+     * Build the display {@link android.text.SpannableString} for an auto-complete
+     * suggestion. Applies the word-based leading truncation (the {@code "... "}
+     * prefix added when the match starts mid-word) and, when the result would
+     * exceed {@code maxLines} lines, manually truncates it and appends a trailing
+     * {@code '…'}.
+     *
+     * <p>Why manual truncation instead of {@code TextView.setEllipsize(END)}:
+     * on Android (API 21-28 in particular) {@code ellipsize=end} is only reliably
+     * honored for <b>single-line</b> text. With {@code setMaxLines(n)} where
+     * {@code n > 1} the framework routes to {@code StaticLayout} but the trailing
+     * ellipsis on the last line is unreliable and frequently never appears. We
+     * therefore measure and cut the text ourselves so the {@code '…'} is
+     * guaranteed for long suggestions/messages regardless of OS version. The
+     * matched input prefix is rendered in BOLD on top of the (possibly truncated)
+     * display text.
+     *
+     * @param availWidth available text width in px (popup width minus padding);
+     *                   pass {@code 0} to skip truncation (e.g. not yet laid out).
+     */
+    @NonNull
+    private android.text.SpannableString buildSuggestionSpannable(@NonNull String suggestion,
+            @NonNull String input, int availWidth, @NonNull android.text.TextPaint paint) {
+        int wordStart = Math.min(wordStartOffset(input), suggestion.length());
+        int boldLen = input.length() - wordStart;
+        boolean hasLastWord = boldLen > 0;
+        String prefix = (wordStart > 0) ? "... " : "";
+        int prefixLen = prefix.length();
+        String displayText = (prefixLen > 0) ? prefix + suggestion.substring(wordStart) : suggestion;
+
+        if (availWidth > 0) {
+            displayText = truncateToLines(displayText, availWidth, paint, 2, false);
+        }
+
+        android.text.SpannableString ss = new android.text.SpannableString(displayText);
+        int spanEnd = Math.min(prefixLen + boldLen, displayText.length());
+        if (hasLastWord && spanEnd > prefixLen
+                && suggestion.regionMatches(true, 0, input, 0, input.length())) {
+            ss.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+                    prefixLen, spanEnd, android.text.SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        return ss;
+    }
+
+    /**
+     * Truncate {@code text} so it fits within {@code maxLines} lines of width
+     * {@code availWidth}. Returns the original text unchanged if it already fits.
+     * Otherwise keeps the start (when {@code middle} is false) and appends a
+     * single {@code '…'}, or keeps the start and end and replaces the dropped
+     * middle with a {@code '…'} (when {@code middle} is true, for paths).
+     */
+    @NonNull
+    private static String truncateToLines(@NonNull String text, int availWidth,
+            @NonNull android.text.TextPaint paint, int maxLines, boolean middle) {
+        if (text.length() == 0 || fitsLines(text, availWidth, paint, maxLines)) {
+            return text;
+        }
+        if (!middle) {
+            int lo = 0, hi = text.length();
+            while (lo < hi) {
+                int mid = (lo + hi + 1) / 2;
+                if (fitsLines(text.substring(0, mid) + "…", availWidth, paint, maxLines)) {
+                    lo = mid;
+                } else {
+                    hi = mid - 1;
+                }
+            }
+            return text.substring(0, lo) + "…";
+        }
+        int lo = 0, hi = text.length();
+        while (lo < hi) {
+            int mid = (lo + hi + 1) / 2;
+            String cand = middleCandidate(text, mid);
+            if (fitsLines(cand, availWidth, paint, maxLines)) {
+                lo = mid;
+            } else {
+                hi = mid - 1;
+            }
+        }
+        return middleCandidate(text, lo);
+    }
+
+    @NonNull
+    private static String middleCandidate(@NonNull String text, int keep) {
+        int head = keep / 2;
+        int tail = keep - head;
+        if (head > text.length()) head = text.length();
+        if (tail > text.length() - head) tail = text.length() - head;
+        if (tail < 0) tail = 0;
+        return text.substring(0, head) + "…" + text.substring(text.length() - tail);
+    }
+
+    /** True when {@code text} lays out to at most {@code maxLines} lines of {@code availWidth}. */
+    @SuppressWarnings("deprecation")
+    private static boolean fitsLines(@NonNull String text, int availWidth,
+            @NonNull android.text.TextPaint paint, int maxLines) {
+        android.text.StaticLayout layout;
+        if (android.os.Build.VERSION.SDK_INT >= 23) {
+            layout = android.text.StaticLayout.Builder.obtain(
+                    text, 0, text.length(), paint, availWidth)
+                    .setMaxLines(maxLines)
+                    .setEllipsize(null)
+                    .build();
+        } else {
+            layout = new android.text.StaticLayout(
+                    text, paint, availWidth,
+                    android.text.Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
+        }
+        return layout.getLineCount() <= maxLines;
+    }
+
+    /**
+ (Optimize auto-complete: three-path dispatch, additive filtering, history version guard)
      * Path B (optimized): update bold spans on the existing popup content when the
      * suggestion set is unchanged and only the typed prefix grew longer.
      * Mutates the Spannable buffer in-place via {@code tv.getText()} so no
@@ -2322,15 +2452,13 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             CharSequence currentText = tv.getText();
             if (!expectedDisplay.contentEquals(currentText)) {
                 // Word-boundary anchor shifted → rebuild text with setText (rare:
-                // crossing a space or / boundary). Path B additive-only guarantees
-                // display can only shrink, so no popup clipping.
-                android.text.SpannableString ss = new android.text.SpannableString(expectedDisplay);
-                if (hasLastWord && prefixLen + boldLen <= expectedDisplay.length()
-                        && suggestion.regionMatches(true, 0, newText, 0, inputLen)) {
-                    ss.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
-                            prefixLen, prefixLen + boldLen,
-                            android.text.SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
-                }
+
+                // crossing a space or / boundary). Re-measure and re-truncate too
+                // so the trailing '…' stays correct for long suggestions.
+                int availWidth = tv.getWidth() - tv.getPaddingLeft() - tv.getPaddingRight();
+                android.text.SpannableString ss = buildSuggestionSpannable(
+                        suggestion, newText, Math.max(0, availWidth), tv.getPaint());
+ (Optimize auto-complete: three-path dispatch, additive filtering, history version guard)
                 tv.setText(ss, TextView.BufferType.SPANNABLE);
             } else {
                 // Display buffer unchanged → only mutate bold spans in-place (fast path)
@@ -2449,24 +2577,26 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         int padV = dpToPx(10);
         TextView tv = new TextView(this);
 
-        // Word-based truncated display
-        int wordStart = Math.min(wordStartOffset(input), suggestion.length());
-        int boldLen = input.length() - wordStart;
-        boolean hasLastWord = boldLen > 0;
-        String prefix = (wordStart > 0) ? "... " : "";
-        int prefixLen = prefix.length();
-        String displayText = (prefixLen > 0) ? prefix + suggestion.substring(wordStart) : suggestion;
 
-        android.text.SpannableString ss = new android.text.SpannableString(displayText);
-        if (hasLastWord && prefixLen + boldLen <= displayText.length()
-                && suggestion.regionMatches(true, 0, input, 0, input.length())) {
-            ss.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
-                    prefixLen, prefixLen + boldLen,
-                    android.text.SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
-        }
+        tv.setTextColor(mHistoryTextColor);
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        tv.setPadding(padH, padV, padH, padV);
+
+        // Available text width = popup width minus horizontal padding. Mirrors the
+        // width the popup is sized to in showAutoCompletePopup (sumWidth).
+        final EditText inputField = (EditText) findViewById(R.id.terminal_toolbar_text_input);
+        int popupWidth = Math.max(dpToPx(200),
+                (inputField != null ? inputField.getWidth() : 0) - dpToPx(16));
+        int availWidth = Math.max(0, popupWidth - 2 * padH);
+
+        // Word-based leading truncation + manual trailing '…' (TextView's
+        // setEllipsize(END) is unreliable for maxLines>1 on API 21-28).
+        android.text.SpannableString ss = buildSuggestionSpannable(
+                suggestion, input, availWidth, tv.getPaint());
         tv.setText(ss, TextView.BufferType.SPANNABLE);
         tv.setMaxLines(2);
-        tv.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        tv.setEllipsize(android.text.TextUtils.TruncateAt.END); // backup; text already fits 2 lines
+ (Optimize auto-complete: three-path dispatch, additive filtering, history version guard)
         tv.setTextColor(mHistoryTextColor);
         tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         tv.setPadding(padH, padV, padH, padV);
@@ -2487,7 +2617,8 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         }
         tv.setClickable(true);
         final String finalSuggestion = suggestion;
-        final EditText inputField = findViewById(R.id.terminal_toolbar_text_input);
+
+ (Optimize auto-complete: three-path dispatch, additive filtering, history version guard)
         tv.setOnClickListener(v -> {
             mSuppressAutoComplete = true;
             try {
@@ -2644,12 +2775,23 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         scroll.addView(content, new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
-        // NOTE: do NOT set a ViewOutlineProvider / setClipToOutline() on the ScrollView.
-        // getOutline() would be called with the view's width/height, which can be 0 while
-        // a WRAP_CONTENT PopupWindow is being (re)sized by update(); an empty outline clips
-        // the entire content to nothing, making the popup vanish. The PopupWindow already
-        // clips its content to the rounded background drawable's outline, so this is both
-        // redundant and harmful.
+        // Clip children to the popup's rounded corners so highlights and
+        // separators near the edges don't spill outside the rounded shape.
+        // Guard against 0 dims during WRAP_CONTENT resize: if w or h is 0 the
+        // outline is left empty (no clipping) instead of clipping everything.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            scroll.setOutlineProvider(new android.view.ViewOutlineProvider() {
+                @Override
+                public void getOutline(View view, android.graphics.Outline outline) {
+                    int w = view.getWidth();
+                    int h = view.getHeight();
+                    if (w > 0 && h > 0) {
+                        outline.setRoundRect(0, 0, w, h, dpToPx(12));
+                    }
+                }
+            });
+            scroll.setClipToOutline(true);
+        }
         // 10% visual transparency on the content (not the background drawable, so the
         // elevation shadow outline stays valid).
         scroll.setAlpha(0.9f);
@@ -2845,9 +2987,6 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
-        // Popup colours are pre-cached by recomputeUIColors() (called from reloadActivityStyling()).
-        // Content itself is transparent; the popup background drawable provides the visual colour
-        // + 15% transparency + elevation shadow behind the rounded corners.
         content.setBackgroundColor(Color.TRANSPARENT);
 
         int padH = dpToPx(14);
@@ -2949,11 +3088,23 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
         mHistoryScroll = scroll;
-        // NOTE: do NOT set a ViewOutlineProvider / setClipToOutline() on the ScrollView.
-        // getOutline() would be called with the view's width/height, which can be 0 while a
-        // WRAP_CONTENT PopupWindow is being (re)sized by update(); an empty outline clips
-        // the entire content to nothing, making the popup vanish. The PopupWindow already
-        // clips its content to the rounded background drawable's outline.
+        // Clip children to the popup's rounded corners so highlights and
+        // separators near the edges don't spill outside the rounded shape.
+        // Guard against 0 dims during WRAP_CONTENT resize: if w or h is 0
+        // the outline is left empty (no clipping) instead of clipping to nothing.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            scroll.setOutlineProvider(new android.view.ViewOutlineProvider() {
+                @Override
+                public void getOutline(View view, android.graphics.Outline outline) {
+                    int w = view.getWidth();
+                    int h = view.getHeight();
+                    if (w > 0 && h > 0) {
+                        outline.setRoundRect(0, 0, w, h, dpToPx(12));
+                    }
+                }
+            });
+            scroll.setClipToOutline(true);
+        }
 
         mHistoryPopup = new PopupWindow(scroll, popupWidth,
                 ViewGroup.LayoutParams.WRAP_CONTENT, false);
@@ -3476,9 +3627,6 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
-        // Popup colours are pre-cached by recomputeUIColors() (called from reloadActivityStyling()).
-        // Content itself is transparent; the popup background drawable provides the visual colour
-        // + 15% transparency + elevation shadow behind the rounded corners.
         content.setBackgroundColor(Color.TRANSPARENT);
 
         int padH = dpToPx(14);
@@ -3535,11 +3683,23 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
         mHistoryScroll = scroll;
-        // NOTE: do NOT set a ViewOutlineProvider / setClipToOutline() on the ScrollView.
-        // getOutline() would be called with the view's width/height, which can be 0 while a
-        // WRAP_CONTENT PopupWindow is being (re)sized by update(); an empty outline clips
-        // the entire content to nothing, making the popup vanish. The PopupWindow already
-        // clips its content to the rounded background drawable's outline.
+        // Clip children to the popup's rounded corners so highlights and
+        // separators near the edges don't spill outside the rounded shape.
+        // Guard against 0 dims during WRAP_CONTENT resize: if w or h is 0
+        // the outline is left empty (no clipping) instead of clipping to nothing.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            scroll.setOutlineProvider(new android.view.ViewOutlineProvider() {
+                @Override
+                public void getOutline(View view, android.graphics.Outline outline) {
+                    int w = view.getWidth();
+                    int h = view.getHeight();
+                    if (w > 0 && h > 0) {
+                        outline.setRoundRect(0, 0, w, h, dpToPx(12));
+                    }
+                }
+            });
+            scroll.setClipToOutline(true);
+        }
 
         mHistoryPopup = new PopupWindow(scroll, popupWidth,
                 ViewGroup.LayoutParams.WRAP_CONTENT, false);
@@ -4096,7 +4256,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                     mTerminalPager.setCurrentItem(restoreIndex, false);
                 }
 
-                mTerminalPager.setUserInputEnabled(true);
+                // Re-enable swipe only when there are ≥2 sessions — with a single tab a
+                // horizontal drag should not show the stretch/bounce edge-effect animation.
+                updatePagerUserInputEnabled();
 
                 // Re-point the active page after adapter rebuild (same-index guard).
                 int activeIndex = mTerminalPager.getCurrentItem();
