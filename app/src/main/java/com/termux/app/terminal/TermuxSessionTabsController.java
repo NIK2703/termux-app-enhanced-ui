@@ -87,50 +87,29 @@ public class TermuxSessionTabsController {
     }
 
     /**
-     * Inflate a brand-new tab view and attach all click listeners.
-     * Used only for newly-added sessions that don't exist as a view yet.
+     * Inflate a brand-new tab view.  The caller is responsible for populating it
+     * (populateTabView is called at the end).
      */
     private View createTabView(TermuxSession termuxSession, int position, boolean isSelected) {
         LayoutInflater inflater = LayoutInflater.from(mActivity);
         View tabView = inflater.inflate(R.layout.item_session_tab, mTabsContainer, false);
 
-        final TerminalSession terminalSession = termuxSession.getTerminalSession();
-
-        if (terminalSession != null) {
-            // Click to switch session (without toast notification)
-            tabView.setOnClickListener(v -> {
-                if (terminalSession != null) {
-                    mActivity.getTermuxTerminalSessionClient().setCurrentSession(terminalSession, false);
-                }
-            });
-
-            // Long click to rename
-            tabView.setOnLongClickListener(v -> {
-                if (terminalSession != null) {
-                    mActivity.getTermuxTerminalSessionClient().renameSession(terminalSession);
-                }
-                return true;
-            });
-
-            // Close button — finish and remove session
-            ImageButton closeButton = tabView.findViewById(R.id.session_tab_close);
-            if (closeButton != null) {
-                closeButton.setOnClickListener(v -> {
-                    if (terminalSession != null) {
-                        closeSession(terminalSession);
-                    }
-                });
-            }
-        }
-
-        // Populate text, colors, selection state.
+        // Populate text, colors, selection state and (re)bind click listeners.
+        // populateTabView() always attaches click listeners to the view with the
+        // correct session reference, so we do NOT set them here — doing so would
+        // be immediately overwritten anyway.
         populateTabView(tabView, termuxSession, position, isSelected);
         return tabView;
     }
 
     /**
      * Populate or refresh an existing tab view's content (title, colours, selection state,
-     * close button visibility) without recreating the view or resetting click listeners.
+     * close button visibility) and rebind click listeners to the current session.
+     *
+     * <p>Click listeners are <b>always</b> re-attached here because updateTabs() reuses
+     * tab views by position: when a middle session is closed the views shift down, and
+     * without rebinding the old listener's closure would still reference the (dead)
+     * session that was at this position when the view was <em>created</em>.</p>
      */
     private void populateTabView(View tabView, TermuxSession termuxSession, int position, boolean isSelected) {
         TextView titleView = tabView.findViewById(R.id.session_tab_title);
@@ -138,6 +117,29 @@ public class TermuxSessionTabsController {
         if (titleView == null) return;
 
         TerminalSession terminalSession = termuxSession.getTerminalSession();
+
+        // Re-bind the click listener to the current (correct) session reference.
+        // updateTabs() reuses existing tab views by position — without this the
+        // closure would still point at the session that was at this position
+        // when the view was *created*, not the one that sits here NOW.  That is
+        // why closing a non-last tab made the tab strip show the right title
+        // but clicking it tried to switch to a dead session (stale listener).
+        tabView.setOnClickListener(v -> {
+            if (terminalSession != null)
+                mActivity.getTermuxTerminalSessionClient().setCurrentSession(terminalSession, false);
+        });
+        tabView.setOnLongClickListener(v -> {
+            if (terminalSession != null)
+                mActivity.getTermuxTerminalSessionClient().renameSession(terminalSession);
+            return true;
+        });
+        if (closeButton != null) {
+            closeButton.setOnClickListener(v -> {
+                if (terminalSession != null)
+                    closeSession(terminalSession);
+            });
+        }
+
         if (terminalSession != null) {
             String name = terminalSession.mSessionName;
             String title = terminalSession.getTitle();
