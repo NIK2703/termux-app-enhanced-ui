@@ -360,4 +360,7 @@
     <string name="locale_override_summary">Переопределить язык приложения (автоперевод, возможны неточности)</string>
     <string name="locale_override_entry_system">Системный язык</string>
     <string name="locale_override_entry_english">Английский</string>
+    <!-- Hide extra keys with keyboard -->
+    <string name="hide_extra_keys_with_keyboard_title">Прятать кнопки с клавиатурой</string>
+    <string name="hide_extra_keys_with_keyboard_summary">Автоматически скрывать доп. кнопки при закрытии клавиатуры, показывать при открытии</string>
 </resources>

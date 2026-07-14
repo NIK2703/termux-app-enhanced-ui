@@ -231,4 +231,7 @@
     <string name="locale_override_summary">App-Sprache überschreiben (automatische Übersetzung, mögliche Ungenauigkeiten)</string>
     <string name="locale_override_entry_system">Systemsprache</string>
     <string name="locale_override_entry_english">Englisch</string>
+    <!-- Hide extra keys with keyboard -->
+    <string name="hide_extra_keys_with_keyboard_title">Zusatztasten mit Tastatur ausblenden</string>
+    <string name="hide_extra_keys_with_keyboard_summary">Zusatztasten automatisch ausblenden wenn Tastatur geschlossen, anzeigen wenn geöffnet</string>
 </resources>

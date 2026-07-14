@@ -83,6 +83,16 @@ public class TermuxAppSharedPreferences extends AppSharedPreferences {
     }
 
 
+    /**
+     * Get whether extra keys should be hidden when the soft keyboard is hidden.
+     *
+     * @return Returns {@code true} if extra keys should be hidden with keyboard.
+     */
+    public boolean shouldHideExtraKeysWithKeyboard() {
+        return SharedPreferenceUtils.getBoolean(mSharedPreferences, TERMUX_APP.KEY_HIDE_EXTRA_KEYS_WITH_KEYBOARD, TERMUX_APP.DEFAULT_VALUE_HIDE_EXTRA_KEYS_WITH_KEYBOARD);
+    }
+
+
     public boolean shouldTextInputAppendEnter() {
         return SharedPreferenceUtils.getBoolean(mSharedPreferences, TERMUX_APP.KEY_TEXT_INPUT_APPEND_ENTER, TERMUX_APP.DEFAULT_VALUE_TEXT_INPUT_APPEND_ENTER);
     }

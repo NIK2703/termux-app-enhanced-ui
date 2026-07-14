@@ -241,4 +241,7 @@
     <string name="locale_override_summary">覆盖应用语言（自动翻译，可能不准确）</string>
     <string name="locale_override_entry_system">系统默认</string>
     <string name="locale_override_entry_english">英语</string>
+    <!-- Hide extra keys with keyboard -->
+    <string name="hide_extra_keys_with_keyboard_title">随键盘隐藏快捷键</string>
+    <string name="hide_extra_keys_with_keyboard_summary">键盘关闭时自动隐藏附加按钮，打开时显示</string>
 </resources>

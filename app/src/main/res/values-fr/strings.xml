@@ -228,4 +228,7 @@
     <string name="locale_override_summary">Surcharger la langue (traduction automatique, inexactitudes possibles)</string>
     <string name="locale_override_entry_system">Langue du système</string>
     <string name="locale_override_entry_english">Anglais</string>
+    <!-- Hide extra keys with keyboard -->
+    <string name="hide_extra_keys_with_keyboard_title">Masquer les touches supp. avec le clavier</string>
+    <string name="hide_extra_keys_with_keyboard_summary">Masquer automatiquement les touches supplémentaires quand le clavier est fermé</string>
 </resources>

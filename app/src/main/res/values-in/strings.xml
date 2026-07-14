@@ -293,4 +293,7 @@
     <string name="locale_override_summary">Timpa bahasa aplikasi (terjemahan otomatis, mungkin tidak akurat)</string>
     <string name="locale_override_entry_system">Bahasa sistem</string>
     <string name="locale_override_entry_english">Inggris</string>
+    <!-- Hide extra keys with keyboard -->
+    <string name="hide_extra_keys_with_keyboard_title">Sembunyikan tombol ekstra dengan keyboard</string>
+    <string name="hide_extra_keys_with_keyboard_summary">Sembunyikan tombol tambahan saat keyboard ditutup, tampilkan saat dibuka</string>
 </resources>

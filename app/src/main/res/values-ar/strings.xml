@@ -241,4 +241,7 @@
     <string name="locale_override_summary">تجاوز لغة التطبيق (ترجمة آلية، قد تكون غير دقيقة)</string>
     <string name="locale_override_entry_system">لغة النظام</string>
     <string name="locale_override_entry_english">الإنجليزية</string>
+    <!-- Hide extra keys with keyboard -->
+    <string name="hide_extra_keys_with_keyboard_title">إخفاء المفاتيح الإضافية مع لوحة المفاتيح</string>
+    <string name="hide_extra_keys_with_keyboard_summary">إخفاء الأزرار الإضافية تلقائيًا عند إغلاق لوحة المفاتيح</string>
 </resources>

@@ -604,7 +604,17 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 setTextInputVisible(false);
                 updateToggleTextInputButtonIcon();
             }
+            boolean imeWasVisible = mSoftKeyboardVisible;
             mSoftKeyboardVisible = imeVisible;
+
+            // If preference is on, show/hide extra keys with keyboard
+            if (imeVisible != imeWasVisible && mExtraKeysView != null
+                    && getTerminalToolbarContainer().getVisibility() == View.VISIBLE
+                    && !isTextInputVisible()
+                    && mPreferences.shouldHideExtraKeysWithKeyboard()) {
+                mExtraKeysView.setVisibility(imeVisible ? View.VISIBLE : View.GONE);
+                Logger.logDebug(LOG_TAG, "Auto-" + (imeVisible ? "showing" : "hiding") + " extra keys with keyboard");
+            }
 
             return insets;
         });
@@ -3410,7 +3420,13 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             textInputContainer.setVisibility(visible ? View.VISIBLE : View.GONE);
             final ExtraKeysView extraKeysView = getExtraKeysView();
             if (extraKeysView != null) {
-                extraKeysView.setVisibility(visible ? View.GONE : View.VISIBLE);
+                if (visible) {
+                    extraKeysView.setVisibility(View.GONE);
+                } else if (mPreferences.shouldHideExtraKeysWithKeyboard() && !mSoftKeyboardVisible) {
+                    extraKeysView.setVisibility(View.GONE);
+                } else {
+                    extraKeysView.setVisibility(View.VISIBLE);
+                }
             }
             // Save state to preferences
             getSharedPreferences("termux_prefs", MODE_PRIVATE).edit().putBoolean(PREF_TEXT_INPUT_VISIBLE, visible).apply();

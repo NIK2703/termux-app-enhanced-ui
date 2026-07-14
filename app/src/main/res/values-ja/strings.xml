@@ -227,4 +227,7 @@
     <string name="locale_override_summary">アプリの言語を上書き（自動翻訳、不正確な場合あり）</string>
     <string name="locale_override_entry_system">システム言語</string>
     <string name="locale_override_entry_english">英語</string>
+    <!-- Hide extra keys with keyboard -->
+    <string name="hide_extra_keys_with_keyboard_title">キーボードで拡張キーを隠す</string>
+    <string name="hide_extra_keys_with_keyboard_summary">キーボードが閉じられたときに追加ボタンを自動的に非表示にし、開かれたときに表示します</string>
 </resources>

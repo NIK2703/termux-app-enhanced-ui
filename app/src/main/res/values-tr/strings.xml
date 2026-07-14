@@ -245,4 +245,7 @@
     <string name="locale_override_summary">Uygulama dilini geçersiz kıl (otomatik çeviri, yanlışlıklar olabilir)</string>
     <string name="locale_override_entry_system">Sistem dili</string>
     <string name="locale_override_entry_english">İngilizce</string>
+    <!-- Hide extra keys with keyboard -->
+    <string name="hide_extra_keys_with_keyboard_title">Ekstra tuşları klavyeyle gizle</string>
+    <string name="hide_extra_keys_with_keyboard_summary">Klavye kapatıldığında ekstra düğmeleri otomatik gizle, açıldığında göster</string>
 </resources>

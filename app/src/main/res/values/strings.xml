@@ -356,4 +356,7 @@
     <string name="locale_override_entry_system">System default</string>
     <string name="locale_override_entry_english">English</string>
 
+    <!-- Hide extra keys with keyboard -->
+    <string name="hide_extra_keys_with_keyboard_title">Hide extra keys with keyboard</string>
+    <string name="hide_extra_keys_with_keyboard_summary">Automatically hide extra buttons when keyboard is closed, show when opened</string>
 </resources>

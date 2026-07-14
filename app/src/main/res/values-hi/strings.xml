@@ -226,4 +226,7 @@
     <string name="locale_override_summary">ऐप भाषा ओवरराइड करें (स्वचालित अनुवाद, अशुद्धियाँ हो सकती हैं)</string>
     <string name="locale_override_entry_system">सिस्टम भाषा</string>
     <string name="locale_override_entry_english">अंग्रेज़ी</string>
+    <!-- Hide extra keys with keyboard -->
+    <string name="hide_extra_keys_with_keyboard_title">कीबोर्ड से अतिरिक्त कुंजियाँ छिपाएँ</string>
+    <string name="hide_extra_keys_with_keyboard_summary">कीबोर्ड बंद होने पर अतिरिक्त बटन छिपाएँ, खुलने पर दिखाएँ</string>
 </resources>

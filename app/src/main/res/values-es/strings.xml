@@ -228,4 +228,7 @@
     <string name="locale_override_summary">Anular el idioma de la app (traducción automática, posible inexactitud)</string>
     <string name="locale_override_entry_system">Idioma del sistema</string>
     <string name="locale_override_entry_english">Inglés</string>
+    <!-- Hide extra keys with keyboard -->
+    <string name="hide_extra_keys_with_keyboard_title">Ocultar teclas extra con teclado</string>
+    <string name="hide_extra_keys_with_keyboard_summary">Ocultar automáticamente los botones adicionales al cerrar el teclado, mostrar al abrir</string>
 </resources>

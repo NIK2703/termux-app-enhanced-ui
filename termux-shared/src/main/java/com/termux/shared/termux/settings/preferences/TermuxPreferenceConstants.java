@@ -126,6 +126,14 @@ public final class TermuxPreferenceConstants {
 
 
         /**
+         * Defines the key for whether extra keys should be hidden when the soft keyboard is hidden
+         * and shown when the soft keyboard is opened.
+         */
+        public static final String KEY_HIDE_EXTRA_KEYS_WITH_KEYBOARD = "hide_extra_keys_with_keyboard";
+        public static final boolean DEFAULT_VALUE_HIDE_EXTRA_KEYS_WITH_KEYBOARD = false;
+
+
+        /**
          * Defines the key for whether to always keep screen on.
          */
         public static final String KEY_KEEP_SCREEN_ON = "screen_always_on";
