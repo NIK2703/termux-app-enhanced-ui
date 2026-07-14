@@ -14,9 +14,7 @@ import android.content.SharedPreferences;
 import android.content.ServiceConnection;
 import android.graphics.Color;
 import android.graphics.Outline;
-import android.net.Uri;
 import android.os.Build;
-import java.io.File;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -57,8 +55,6 @@ import com.termux.shared.activity.media.AppCompatActivityUtils;
 import com.termux.shared.data.IntentUtils;
 import com.termux.shared.android.PermissionUtils;
 import com.termux.shared.data.DataUtils;
-import com.termux.shared.errors.Error;
-import com.termux.shared.file.FileUtils;
 import com.termux.shared.termux.TermuxConstants;
 import com.termux.shared.termux.TermuxConstants.TERMUX_APP.TERMUX_ACTIVITY;
 import com.termux.app.activities.HelpActivity;
@@ -71,6 +67,7 @@ import com.termux.app.terminal.TermuxTerminalViewClient;
 import com.termux.app.terminal.io.FullScreenWorkAround;
 import com.termux.shared.termux.extrakeys.ExtraKeysView;
 import com.termux.shared.termux.extrakeys.ColorSchemeUtils;
+import com.termux.shared.termux.extrakeys.FontUtils;
 import com.termux.shared.termux.interact.TextInputDialogUtils;
 import com.termux.shared.logger.Logger;
 import com.termux.shared.termux.TermuxUtils;
@@ -2151,8 +2148,13 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         // Open at the END of the list: newest is at the bottom, so start scrolled
         // fully down so the newest messages (nearest the button) are visible.
-        final android.widget.ScrollView scrollRef = scroll;
-        scrollRef.post(() -> scrollRef.fullScroll(View.FOCUS_DOWN));
+        // jump straight to the bottom — fullScroll(FOCUS_DOWN) animates, which looks
+        // like the list is scrolling past entries as the popup appears.
+        final android.widget.ScrollView scrollRef1 = scroll;
+        scrollRef1.post(() -> {
+            View child = scrollRef1.getChildAt(0);
+            if (child != null) scrollRef1.scrollTo(0, child.getHeight());
+        });
     }
 
     /**
@@ -2721,8 +2723,13 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 popupWidth,
                 popupHeight);
 
-        final android.widget.ScrollView scrollRef = scroll;
-        scrollRef.post(() -> scrollRef.fullScroll(View.FOCUS_DOWN));
+        // jump straight to the bottom — fullScroll(FOCUS_DOWN) animates, which looks
+        // like the list is scrolling past entries as the popup appears.
+        final android.widget.ScrollView scrollRef3 = scroll;
+        scrollRef3.post(() -> {
+            View child = scrollRef3.getChildAt(0);
+            if (child != null) scrollRef3.scrollTo(0, child.getHeight());
+        });
     }
 
     /** A directory from the popup was chosen: open a new session there. */
@@ -3023,49 +3030,17 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             () -> updateTermuxActivityStyling(this, false));
     }
 
-    private static final int REQUEST_FONT_PICKER = 0x4650; // 'FP'
-
     /**
-     * Open the system document picker filtered to font files so the user can choose a .ttf/.otf
-     * to use as the terminal font. The chosen file is copied to {@code ~/.termux/font.ttf}, which
-     * {@link TermuxTerminalSessionActivityClient} already loads via {@code Typeface.createFromFile}
-     * on the next styling reload, applied live without an activity restart.
+     * Show the Termux:Style font picker dialog. Lists every font shipped by the installed
+     * Termux:Style plugin and applies the selected one live without an activity restart.
+     * If Termux:Style is not installed, shows a "not installed" message.
      */
     private void showFontPicker() {
-        final Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("font/ttf");
-        // Some file managers expose fonts as application/octet-stream or by .ttf extension.
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{
-            "font/ttf", "font/otf", "application/octet-stream"});
-        try {
-            startActivityForResult(intent, REQUEST_FONT_PICKER);
-        } catch (final Exception e) {
-            Toast.makeText(this, R.string.error_font_copy_failed, Toast.LENGTH_SHORT).show();
-            Logger.logStackTraceWithMessage(LOG_TAG, "Failed to launch font picker", e);
-        }
-    }
-
-    private void applyFontFromUri(final Uri uri) {
-        if (uri == null) return;
-        final File fontFile = TermuxConstants.TERMUX_FONT_FILE;
-        // Ensure the ~/.termux directory exists before copying.
-        final File fontDir = fontFile.getParentFile();
-        if (fontDir != null && !fontDir.exists()) {
-            //noinspection ResultOfMethodCallIgnored
-            fontDir.mkdirs();
-        }
-        // Copy the picked document into the terminal font path. FileUtils.copyFile handles
-        // content:// URIs by resolving them through the document provider.
-        final Error error = FileUtils.copyFile("font", uri.toString(), fontFile.getAbsolutePath(), false);
-        if (error != null && error.isStateFailed()) {
-            Toast.makeText(this, R.string.error_font_copy_failed, Toast.LENGTH_SHORT).show();
-            Logger.logWarn(LOG_TAG, "Font copy failed: " + error.getMessage());
-            return;
-        }
-        // Reload styling (no activity recreate) so the new typeface is applied live.
-        updateTermuxActivityStyling(this, false);
-        showToast(getResources().getString(R.string.msg_terminal_font_applied), true);
+        FontUtils.showFontDialog(this, getString(R.string.error_styling_not_installed),
+            () -> {
+                updateTermuxActivityStyling(this, false);
+                showToast(getResources().getString(R.string.msg_terminal_font_applied), true);
+            });
     }
     private void toggleKeepScreenOn() {
         TerminalView terminalView = getTerminalView();
@@ -3116,10 +3091,6 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         Logger.logVerbose(LOG_TAG, "onActivityResult: requestCode: " + requestCode + ", resultCode: "  + resultCode + ", data: "  + IntentUtils.getIntentString(data));
         if (requestCode == PermissionUtils.REQUEST_GRANT_STORAGE_PERMISSION) {
             requestStoragePermission(true);
-        } else if (requestCode == REQUEST_FONT_PICKER) {
-            if (resultCode == Activity.RESULT_OK && data != null) {
-                applyFontFromUri(data.getData());
-            }
         }
     }
 
