@@ -117,7 +117,7 @@ public class SettingsActivity extends AppCompatActivity {
                     new Thread() {
                         @Override
                         public void run() {
-                            String title = "About";
+                            String title = getString(com.termux.R.string.about_preference_title);
 
                             StringBuilder aboutString = new StringBuilder();
                             aboutString.append(TermuxUtils.getAppInfoMarkdownString(context, TermuxUtils.AppInfoMode.TERMUX_AND_PLUGIN_PACKAGES));

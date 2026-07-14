@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!DOCTYPE resources [
+    <!ENTITY TERMUX_PACKAGE_NAME "com.termux">
+    <!ENTITY TERMUX_APP_NAME "Termux">
+    <!ENTITY TERMUX_API_APP_NAME "Termux:API">
+    <!ENTITY TERMUX_BOOT_APP_NAME "Termux:Boot">
+    <!ENTITY TERMUX_FLOAT_APP_NAME "Termux:Float">
+    <!ENTITY TERMUX_STYLING_APP_NAME "Termux:Styling">
+    <!ENTITY TERMUX_TASKER_APP_NAME "Termux:Tasker">
+    <!ENTITY TERMUX_WIDGET_APP_NAME "Termux:Widget">
+    <!ENTITY TERMUX_PREFIX_DIR_PATH "/data/data/com.termux/files/usr">
+    ]>
+
+<resources>
+
+    <string name="msg_directory_absolute_path">%1$s абсолютный путь каталога: \"%2$s\"</string>
+
+    <!-- PackageUtils -->
+    <string name="error_app_not_installed_or_disabled_warning">Приложение %1$s (%2$s) не установлено или отключено.</string>
+    <string name="error_get_package_context_failed_title">Не удалось получить контекст пакета</string>
+    <string name="error_get_package_context_failed_message">Не удалось получить контекст пакета для «%1$s». Это может быть связано с тем, что пакет приложения не установлен или его подпись APK отличается от текущего приложения.</string>
+    <string name="error_get_package_context_failed_help_url_message">Проверьте %1$s для получения дополнительной информации.</string>
+    <string name="error_get_component_state_failed">Не удалось получить состояние компонента %1$s/%2$s</string>
+    <string name="error_enable_component_failed">Не удалось включить компонент %1$s/%2$s</string>
+    <string name="error_disable_component_failed">Не удалось отключить компонент %1$s/%2$s</string>
+
+    <!-- PermissionUtils -->
+    <string name="message_sudo_please_grant_permissions">Пожалуйста, предоставьте запрошенные разрешения</string>
+    <string name="error_failed_to_request_permissions">Не удалось запросить разрешения с кодом запроса %1$d: %2$s</string>
+    <string name="error_attempted_to_check_for_permissions_not_requested">Попытка проверить разрешения, не запрошенные в манифесте приложения: %1$s</string>
+    <string name="error_attempted_to_ask_for_permissions_not_requested">Попытка запросить разрешения, не указанные в манифесте приложения: %1$s</string>
+    <string name="error_has_not_requested_legacy_external_storage">Пакет «%1$s» нацелен на targetSdkVersion %2$d и работает на android sdk %3$d, но не установил requestLegacyExternalStorage в true в манифесте приложения</string>
+    <string name="msg_requires_dump_and_package_usage_stats_permissions">Требуется разрешение `DUMP` и `PACKAGE_USAGE_STATS`</string>
+    <string name="error_display_over_other_apps_permission_not_granted">%1$s требуется разрешение
+        «Поверх других приложений» для запуска действий и служб из фона на Android >= 10.
+        Предоставьте его в Настройки Android → Приложения → %1$s → Дополнительно → Поверх других приложений.
+        Название разрешения может отличаться на разных устройствах, например, на Xiaomi оно называется
+        «Отображать всплывающие окна при работе в фоне». Проверьте https://dontkillmyapp.com
+        для решения проблем, связанных с конкретным устройством.</string>
+
+    <!-- TermuxPluginUtils -->
+    <string name="error_allow_external_apps_ungranted">%1$s требует установки свойства
+        `allow-external-apps` в `true` в файле `%2$s`.</string>
+
+    <!-- ReportActivity -->
+    <string name="title_report_text">Текст отчёта</string>
+    <string name="msg_report_truncated">**Отчёт обрезан**\n\nОтчёт слишком велик для просмотра здесь.
+        Используйте опцию «Сохранить в файл» в меню (три точки в правом верхнем углу) и просмотрите его во внешнем редакторе текста.\n\n##\n\n</string>
+
+    <!-- ShareUtils -->
+    <string name="title_share_with">Поделиться с</string>
+    <string name="title_open_url_with">Открыть URL через</string>
+    <string name="msg_storage_permission_not_granted">Разрешение на доступ к хранилищу не предоставлено.</string>
+    <string name="msg_file_saved_successfully">Файл %1$s успешно сохранён по пути \"%2$s\"</string>
+
+    <!-- Shell -->
+    <string name="error_sending_sigkill_to_process">Отправка SIGKILL процессу по запросу пользователя или из-за завершения службы выполнения системой Android</string>
+    <string name="error_executable_unset">Исполняемый файл не установлен «%1$s» для команды оболочки</string>
+    <string name="error_execution_cancelled">Выполнение отменено, так как служба выполнения завершается</string>
+    <string name="error_failed_to_execute_termux_session_command">Не удалось выполнить команду сеанса termux «%1$s»</string>
+    <string name="error_failed_to_execute_app_shell_command">Не удалось выполнить команду оболочки приложения «%1$s»</string>
+    <string name="error_exception_received_while_executing_termux_session_command">Получено исключение при выполнении команды сеанса termux «%1$s».\nИсключение: %2$s</string>
+    <string name="error_exception_received_while_executing_app_shell_command">Получено исключение при выполнении команды оболочки приложения «%1$s».\nИсключение: %2$s</string>
+
+    <!-- TermuxUtils -->
+    <string name="msg_report_issue">
+        Если вы хотите сообщить об этой проблеме, скопируйте её текст из меню (три точки в правом верхнем углу)
+        и опубликуйте проблему по одной из следующих ссылок.
+        \n\nЕсли вы отправляете отчёт о сбое приложения Termux, укажите, пожалуйста, подробности того,
+        что вы делали, что вызвало сбой и как его воспроизвести, если это возможно.
+        \n\nЕсли вы публикуете проблему на GitHub, опубликуйте её в репозитории, к которому относится отчёт.
+        Проблемы, открытые или отправленные по электронной почте с **(частичными) скриншотами** вместо скопированного
+        текста или файла этого отчёта, **скорее всего, будут автоматически закрыты/удалены**.
+        При желании вы можете удалить любую информацию об устройстве, которую считаете личной или не хотите
+        раскрывать или которая не относится к делу.
+        \n\nМы не предоставляем поддержку для любых инструментов/скриптов, связанных со взломом. Любые вопросы,
+        заданные о них по электронной почте, на GitHub или других официальных форумах сообщества Termux,
+        **скорее всего, будут автоматически закрыты/удалены** и могут даже привести к **временной или постоянной**
+        блокировке. Проверьте %1$s/wiki/Hacking для получения подробной информации.</string>
+
+    <string name="msg_termux_app_required_by_app">Приложение &TERMUX_APP_NAME; требуется приложению %1$s для выполнения команд termux.</string>
+    <string name="error_termux_app_package_context_not_accessible">Контекст пакета приложения &TERMUX_APP_NAME; недоступен.</string>
+    <string name="error_termux_prefix_dir_path_not_accessible">Каталог $PREFIX приложения &TERMUX_APP_NAME; недоступен для приложения %1$s.
+        Это может быть связано с тем, что вы не установили или не настроили приложение &TERMUX_APP_NAME;,
+        или подписи APK приложений &TERMUX_APP_NAME; и %1$s различаются, так как вы установили их из разных источников.
+        Это также может быть связано с тем, что каталог $PREFIX &TERMUX_APP_NAME; «&TERMUX_PREFIX_DIR_PATH;» не существует
+        или не имеет разрешений на чтение, запись и выполнение.</string>
+
+    <!-- Miscellaneous -->
+    <string name="action_yes">Да</string>
+    <string name="action_no">Нет</string>
+    <string name="action_copy">Копировать</string>
+    <string name="action_share">Поделиться</string>
+    <string name="action_cancel">Отмена</string>
+    <string name="action_save_to_file">Сохранить в файл</string>
+
+    <string name="msg_storage_permission_granted_on_request">Разрешение на доступ к хранилищу предоставлено пользователем по запросу</string>
+    <string name="msg_storage_permission_not_granted_on_request">Разрешение на доступ к хранилищу не предоставлено пользователем по запросу</string>
+
+    <!-- Launcher Icons -->
+    <string name="action_enable_launcher_icon">Включить значок на рабочем столе</string>
+    <string name="action_disable_launcher_icon">Отключить значок на рабочем столе</string>
+    <string name="msg_enabling_launcher_icon">Включение значка %1$s на рабочем столе</string>
+    <string name="msg_disabling_launcher_icon">Отключение значка %1$s на рабочем столе</string>
+    <string name="setting_launcher_icon_title">Значок на рабочем столе включён</string>
+    <string name="setting_launcher_icon_enabled_off">Значок на рабочем столе будет отключён.</string>
+    <string name="setting_launcher_icon_enabled_on">Значок на рабочем столе будет включён. (По умолчанию)</string>
+
+    <!-- Log Level -->
+    <string name="log_level_title">Уровень журнала</string>
+    <string name="log_level_off">Выкл</string>
+    <string name="log_level_normal">Обычный</string>
+    <string name="log_level_debug">Отладка</string>
+    <string name="log_level_verbose">Подробно</string>
+    <string name="log_level_unknown">*Неизвестно*</string>
+    <string name="log_level_value">Уровень журнала logcat установлен на «%1$s»</string>
+
+    <!-- Каналы уведомлений -->
+    <string name="notification_channel_app">Termux App</string>
+    <string name="notification_channel_run_command">Termux RunCommandService</string>
+    <string name="notification_channel_plugin_errors">Ошибки команд плагинов Termux</string>
+
+    <!-- Выбор шрифта -->
+    <string name="font_picker_title">Выберите шрифт (.ttf)</string>
+
+</resources>

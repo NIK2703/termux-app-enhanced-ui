@@ -19,9 +19,9 @@
         <SwitchPreferenceCompat
             app:key="text_input_enabled"
             app:defaultValue="true"
-            app:title="Show text input field"
-            app:summaryOn="Text input field is visible above extra keys"
-            app:summaryOff="Text input field is hidden" />
+            app:title="@string/text_input_show_title"
+            app:summaryOn="@string/text_input_show_summary_on"
+            app:summaryOff="@string/text_input_show_summary_off" />
 
         <SwitchPreferenceCompat
             app:key="settings_button_enabled"

@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!DOCTYPE resources [
+    <!ENTITY TERMUX_PACKAGE_NAME "com.termux">
+    <!ENTITY TERMUX_APP_NAME "Termux">
+    <!ENTITY TERMUX_API_APP_NAME "Termux:API">
+    <!ENTITY TERMUX_BOOT_APP_NAME "Termux:Boot">
+    <!ENTITY TERMUX_FLOAT_APP_NAME "Termux:Float">
+    <!ENTITY TERMUX_STYLING_APP_NAME "Termux:Styling">
+    <!ENTITY TERMUX_TASKER_APP_NAME "Termux:Tasker">
+    <!ENTITY TERMUX_WIDGET_APP_NAME "Termux:Widget">
+    ]>
+
+<resources>
+
+    <string name="application_name">Termux 增强版</string>
+    <string name="shared_user_label">&TERMUX_APP_NAME; 用户</string>
+    <string name="permission_run_command_label">在 &TERMUX_APP_NAME; 环境中运行命令</string>
+    <string name="permission_run_command_description">在 &TERMUX_APP_NAME; 环境中执行任意命令并访问文件</string>
+    <string name="bootstrap_installer_body">正在安装引导包…</string>
+    <string name="bootstrap_error_title">无法安装引导包</string>
+    <string name="bootstrap_error_body">&TERMUX_APP_NAME; 无法安装引导包。</string>
+    <string name="bootstrap_error_abort">中止</string>
+    <string name="bootstrap_error_try_again">重试</string>
+    <string name="bootstrap_error_not_primary_user_message">&TERMUX_APP_NAME; 只能以主要用户身份运行。
+        \n为 &TERMUX_APP_NAME; 编译的引导二进制文件已硬编码 $PREFIX 路径，只能安装到以下路径：\n%1$s。</string>
+    <string name="bootstrap_error_installed_on_portable_sd">&TERMUX_APP_NAME; 无法安装在设备的便携/外部/可移除 SD 卡上。
+        \n为 &TERMUX_APP_NAME; 编译的引导二进制文件已硬编码 $PREFIX 路径，只能安装到以下路径：\n%1$s。</string>
+    <string name="action_new_session">新建会话</string>
+    <string name="action_new_session_failsafe">安全模式</string>
+    <string name="title_max_terminals_reached">已达最大终端数</string>
+    <string name="msg_max_terminals_reached">请先关闭现有终端再创建新终端。</string>
+    <string name="title_rename_session">设置会话名称</string>
+    <string name="action_rename_session_confirm">确定</string>
+    <string name="title_create_named_session">新建命名会话</string>
+    <string name="action_create_named_session_confirm">创建</string>
+    <string name="action_toggle_soft_keyboard">键盘</string>
+    <string name="action_toggle_text_input">切换文本输入</string>
+    <string name="msg_enabling_terminal_toolbar">正在启用终端工具栏</string>
+    <string name="msg_disabling_terminal_toolbar">正在禁用终端工具栏</string>
+    <string name="action_select_url">选择链接</string>
+    <string name="title_select_url_dialog">点击复制链接，长按打开链接</string>
+    <string name="title_select_url_none_found">终端中未找到链接。</string>
+    <string name="msg_select_url_copied_to_clipboard">链接已复制到剪贴板</string>
+    <string name="action_share_transcript">分享终端记录</string>
+    <string name="title_share_transcript">终端记录</string>
+    <string name="title_share_transcript_with">发送记录到：</string>
+
+    <string name="action_share_selected_text">分享选中的文本</string>
+    <string name="title_share_selected_text">终端文本</string>
+    <string name="title_share_selected_text_with">发送选中文本到：</string>
+    <string name="action_autofill_username">自动填充用户名</string>
+    <string name="action_autofill_password">自动填充密码</string>
+    <string name="action_reset_terminal">重置</string>
+    <string name="msg_terminal_reset">终端已重置</string>
+    <string name="msg_terminal_font_applied">字体已应用</string>
+    <string name="action_kill_process">终止进程（%d）</string>
+    <string name="title_confirm_kill_process">确定要终止此会话？</string>
+    <string name="action_style_terminal">样式</string>
+    <string name="action_font_terminal">字体</string>
+    <string name="font_picker_title">选择字体（.ttf）</string>
+    <string name="error_font_copy_failed">应用字体失败</string>
+    <string name="action_toggle_keep_screen_on">保持屏幕常亮</string>
+    <string name="action_open_help">帮助</string>
+    <string name="action_open_settings">设置</string>
+    <string name="action_report_issue">报告问题</string>
+    <string name="msg_generating_report">正在生成报告</string>
+    <string name="msg_add_termux_debug_info">是否将 Termux 调试信息添加到报告？</string>
+    <string name="error_styling_not_installed">&TERMUX_STYLING_APP_NAME; 插件应用未安装。</string>
+    <string name="action_styling_install">安装</string>
+    <string name="notification_action_exit">退出</string>
+    <string name="notification_action_wake_lock">获取唤醒锁</string>
+    <string name="notification_action_wake_unlock">释放唤醒锁</string>
+    <string name="error_display_over_other_apps_permission_not_granted_to_start_terminal">&TERMUX_APP_NAME; 需要
+        \"在其他应用上层显示\" 权限才能在 Android >= 10 的后台启动终端会话。
+        请在设置 -> 应用 -> &TERMUX_APP_NAME; -> 高级 中授予。</string>
+    <string name="error_termux_service_invalid_execution_command_runner">TermuxService 的执行命令运行器无效：`%1$s`</string>
+    <string name="error_termux_service_unsupported_execution_command_runner">TermuxService 不支持的执行命令运行器：`%1$s`</string>
+    <string name="error_termux_service_unsupported_execution_command_shell_create_mode">TermuxService 不支持的执行命令 shell 创建模式：`%1$s`</string>
+    <string name="error_termux_service_execution_command_shell_name_unset">已传递 `%1$s` shell 创建模式，但未设置 shell 名称</string>
+
+    <string name="error_run_command_service_invalid_intent_action">RunCommandService 的 Intent 操作无效：`%1$s`</string>
+    <string name="error_run_command_service_invalid_execution_command_runner">RunCommandService 的执行命令运行器无效：`%1$s`</string>
+    <string name="error_run_command_service_mandatory_extra_missing">RunCommandService 缺少必需的额外参数：\"%1$s\"</string>
+    <string name="error_run_command_service_api_help">访问 %1$s 获取有关 RUN_COMMAND Intent 用法的更多信息。</string>
+    <string name="title_file_received">保存文件到 ~/downloads/</string>
+    <string name="action_file_received_edit">编辑</string>
+    <string name="action_file_received_open_directory">打开目录</string>
+    <string name="error_termux_service_start_failed_general">启动 TermuxService 失败。检查 logcat 中的异常消息。</string>
+    <string name="error_termux_service_start_failed_bg">由于 Android 后台限制，应用在后台时启动 TermuxService 失败。</string>
+    <string name="title_activity_termux_settings">&TERMUX_APP_NAME; 设置</string>
+    <string name="appearance_preferences_title">外观</string>
+    <string name="appearance_preferences_summary">应用外观和面板透明度偏好设置</string>
+    <string name="theme_title">主题</string>
+    <string name="panel_transparency_title">面板透明度</string>
+    <string name="termux_preferences_title">&TERMUX_APP_NAME;</string>
+    <string name="termux_preferences_summary">&TERMUX_APP_NAME; 应用偏好设置</string>
+    <string name="termux_debugging_preferences_title">调试</string>
+    <string name="termux_debugging_preferences_summary">调试偏好设置</string>
+    <string name="termux_logging_header">日志记录</string>
+    <string name="termux_log_level_title">日志级别</string>
+    <string name="termux_terminal_view_key_logging_enabled_title">终端视图按键日志记录</string>
+    <string name="termux_terminal_view_key_logging_enabled_off">日志将不包含终端视图按键的记录。（默认）</string>
+    <string name="termux_terminal_view_key_logging_enabled_on">Logcat 日志将包含终端视图按键的记录。这些记录非常冗长，正常情况下应禁用，否则会导致性能问题。</string>
+    <string name="termux_plugin_error_notifications_enabled_title">插件错误通知</string>
+    <string name="termux_plugin_error_notifications_enabled_off">禁用插件错误的闪烁和通知。</string>
+    <string name="termux_plugin_error_notifications_enabled_on">显示插件错误的闪烁和通知。（默认）</string>
+    <string name="termux_crash_report_notifications_enabled_title">崩溃报告通知</string>
+    <string name="termux_crash_report_notifications_enabled_off">禁用崩溃报告的通知。</string>
+    <string name="termux_crash_report_notifications_enabled_on">显示崩溃报告的通知。（默认）</string>
+
+    <string name="termux_terminal_io_preferences_title">终端输入/输出</string>
+    <string name="termux_terminal_io_preferences_summary">终端输入/输出偏好设置</string>
+    <string name="termux_keyboard_header">键盘</string>
+    <string name="termux_soft_keyboard_enabled_title">启用软键盘</string>
+    <string name="termux_soft_keyboard_enabled_off">软键盘将被禁用。</string>
+    <string name="termux_soft_keyboard_enabled_on">软键盘将启用。（默认）</string>
+    <string name="termux_settings_button_enabled_title">显示设置按钮</string>
+    <string name="termux_settings_button_enabled_on">设置按钮显示在标签面板中。（默认）</string>
+    <string name="termux_settings_button_enabled_off">设置按钮已隐藏。长按终端 &#8594; 更多… &#8594; 设置 打开设置。</string>
+    <string name="termux_soft_keyboard_enabled_only_if_no_hardware_title">仅无硬件键盘时启用软键盘</string>
+    <string name="termux_soft_keyboard_enabled_only_if_no_hardware_off">即使连接了硬件键盘，软键盘也将启用。（默认）</string>
+    <string name="termux_soft_keyboard_enabled_only_if_no_hardware_on">仅当未连接硬件键盘时，软键盘才启用。</string>
+    <string name="termux_terminal_view_preferences_title">终端视图</string>
+    <string name="termux_terminal_view_preferences_summary">终端视图偏好设置</string>
+    <string name="termux_terminal_view_view_header">视图</string>
+    <string name="termux_button_bg_inactive_alpha_title">非活动元素背景透明度</string>
+    <string name="termux_button_bg_active_alpha_title">活动元素背景透明度</string>
+    <string name="termux_terminal_view_terminal_margin_adjustment_title">终端边距调整</string>
+    <string name="termux_terminal_view_terminal_margin_adjustment_off">终端边距调整将被禁用。</string>
+    <string name="termux_terminal_view_terminal_margin_adjustment_on">终端边距调整将启用。
+        应启用此项以尝试修复软键盘遮挡部分扩展键/终端视图的问题。
+        如果在您的设备上导致屏幕闪烁，请禁用它。（默认）</string>
+    <string name="termux_api_preferences_title">&TERMUX_API_APP_NAME; 偏好设置</string>
+    <string name="termux_api_preferences_summary">&TERMUX_API_APP_NAME; 应用的偏好设置</string>
+    <string name="termux_float_preferences_title">&TERMUX_FLOAT_APP_NAME; 偏好设置</string>
+    <string name="termux_float_preferences_summary">&TERMUX_FLOAT_APP_NAME; 应用的偏好设置</string>
+    <string name="termux_tasker_preferences_title">&TERMUX_TASKER_APP_NAME; 偏好设置</string>
+    <string name="termux_tasker_preferences_summary">&TERMUX_TASKER_APP_NAME; 应用的偏好设置</string>
+    <string name="termux_widget_preferences_title">&TERMUX_WIDGET_APP_NAME; 偏好设置</string>
+    <string name="termux_widget_preferences_summary">&TERMUX_WIDGET_APP_NAME; 应用的偏好设置</string>
+    <string name="about_preference_title">关于</string>
+    <string name="theme_mode_title">应用主题</string>
+    <string name="theme_mode_summary">选择应用和终端主题</string>
+    <string name="color_scheme_dialog_title">终端配色方案</string>
+    <string name="color_scheme_light_title">终端配色方案（浅色主题）</string>
+    <string name="color_scheme_light_summary">应用主题为浅色时应用的配色方案</string>
+    <string name="color_scheme_dark_title">终端配色方案（深色主题）</string>
+    <string name="color_scheme_dark_summary">应用主题为深色时应用的配色方案</string>
+
+    <string name="message_history_title">消息历史</string>
+    <string name="message_history_max_title">历史消息最大数量</string>
+    <string name="per_directory_message_history_title">按目录的消息历史</string>
+    <string name="per_directory_message_history_summary">为每个工作目录保留单独的消息历史。关闭后，所有会话共享一个全局历史。</string>
+    <string name="text_input_title">文本输入</string>
+    <string name="text_input_append_enter_title">发送时附加换行</string>
+    <string name="text_input_append_enter_summary">从输入框发送文本时，同时发送回车信号</string>
+    <string name="directory_history_title">目录历史</string>
+    <string name="directory_history_max_title">目录历史最大数量</string>
+    <string name="restore_sessions_title">启动时恢复标签页</string>
+    <string name="restore_sessions_summary">应用启动时重新打开所有标签页及其目录</string>
+    <string name="screen_orientation_title">屏幕方向</string>
+    <string name="screen_orientation_summary">\"跟随传感器\"变体在两个方向之间旋转（例如 0°/180° 竖屏）。</string>
+    <string-array name="screen_orientation_entries">
+        <item>跟随传感器</item>
+        <item>竖屏（跟随传感器）</item>
+        <item>横屏（跟随传感器）</item>
+        <item>竖屏</item>
+        <item>横屏</item>
+    </string-array>
+    <string-array name="screen_orientation_values">
+        <item>sensor</item>
+        <item>portrait_follow_sensor</item>
+        <item>landscape_follow_sensor</item>
+        <item>portrait</item>
+        <item>landscape</item>
+    </string-array>
+    <string name="donate_preference_title">捐赠</string>
+    <string name="backup_preference_title">备份 Termux 数据</string>
+    <string name="backup_preference_summary">将 Termux 数据目录（已安装的软件包 + 主目录）保存为 tar.gz 文件</string>
+    <string name="restore_preference_title">恢复 Termux 数据</string>
+    <string name="restore_preference_summary">从 tar.gz 备份文件恢复 Termux 数据目录</string>
+    <string name="backup_restore_backup_filename">termux-data-backup.tar.gz</string>
+    <string name="backup_restore_dialog_title">Termux 数据备份 / 恢复</string>
+    <string name="backup_restore_warning_backup">这为您的 Termux 数据目录（已安装的软件包和环境以及您的主目录）创建压缩归档。\n\n选择目标文件以保存备份。</string>
+
+    <string name="backup_restore_warning_restore">恢复操作将用所选备份文件的内容覆盖当前的 Termux 数据目录（已安装的软件包及您的主目录）。现有数据将丢失。\n\n⚠ 如果恢复失败——由于备份文件损坏、不完整或过程中连接中断——您的 Termux 环境将变为空。将无法恢复原始数据。\n\n此操作不可撤销。强烈建议先备份，并验证备份文件有效。</string>
+    <string name="backup_restore_backup_started">正在创建备份…</string>
+    <string name="backup_restore_restore_started">正在恢复备份…</string>
+    <string name="backup_restore_backup_success">备份创建成功</string>
+    <string name="backup_restore_restore_success">数据恢复成功</string>
+    <string name="backup_restore_failed_title">操作失败</string>
+    <string name="backup_restore_need_termux">未找到 termux 二进制文件（tar）。请至少打开一次 Termux，以便容器完成设置。</string>
+    <string name="backup_restore_choose_backup">选择要恢复的 .tar.gz 备份文件</string>
+    <string name="backup_service_channel_name">Termux 备份 / 恢复</string>
+    <string name="backup_service_notification_title">Termux 数据备份</string>
+    <string name="backup_service_notification_restore_title">Termux 数据恢复</string>
+    <string name="backup_service_notification_progress">%1$d%%</string>
+    <string name="backup_service_notification_success">备份创建成功</string>
+    <string name="backup_service_notification_restore_success">数据恢复成功</string>
+    <string name="backup_service_notification_failed">备份失败</string>
+    <string name="backup_service_notification_restore_failed">恢复失败</string>
+    <string name="backup_dialog_background">后台</string>
+    <string name="backup_dialog_cancel">取消</string>
+    <string name="backup_service_notification_cancel">取消</string>
+    <string name="backup_restore_cancelled">已取消操作</string>
+    <string name="tab_close_description">关闭标签页</string>
+    <string name="session_default_title">终端</string>
+    <string name="text_input_show_title">显示文本输入框</string>
+    <string name="text_input_show_summary_on">文本输入框显示在额外按键上方</string>
+    <string name="text_input_show_summary_off">文本输入框已隐藏</string>
+    <string name="message_history_empty">无消息历史</string>
+    <string name="message_history_clear_all">清除历史…</string>
+    <string name="message_history_clear">清除</string>
+    <string name="message_history_clear_dialog_title">清除消息历史</string>
+    <string name="message_history_clear_question">清除消息历史？</string>
+    <string name="message_history_clear_confirm_current">清除当前目录的所有已记录消息？此操作不可撤销。</string>
+    <string name="message_history_clear_confirm_all">清除整个消息历史？此操作不可撤销。</string>
+    <string name="message_history_clear_ok">确定</string>
+    <string name="message_history_clear_all_btn">全部</string>
+    <string name="message_history_clear_current_only_question">仅清除当前目录的历史？</string>
+    <string name="message_history_clear_all_question">这将永久删除所有已记录的消息。</string>
+    <string name="message_history_cleared">消息历史已清除</string>
+    <string name="directory_history_clear_dialog_title">清除目录历史</string>
+    <string name="directory_history_clear_confirm">清除整个目录历史？此操作不可撤销。</string>
+    <string name="directory_history_cleared">目录历史已清除</string>
+    <string name="file_receiver_error_no_content">发送操作无内容 - 无内容可保存。</string>
+    <string name="file_receiver_error_no_data_uri">未传递数据 URI。</string>
+    <string name="file_receiver_error_invalid_path">数据 URI 中的文件路径为空或无效。</string>
+    <string name="file_receiver_error_cannot_open">无法打开文件：%s</string>
+    <string name="file_receiver_error_cannot_receive">无法接收任何文件或 URL。</string>
+    <string name="file_receiver_error_handle_shared">无法处理共享内容：\n\n%s</string>
+    <string name="file_receiver_error_no_editor">以下文件不存在：\n$HOME/bin/termux-file-editor\n\n请创建此文件（脚本或符号链接），它将以收到的文件作为唯一参数被调用。</string>
+    <string name="file_receiver_error_no_url_opener">以下文件不存在：\n$HOME/bin/termux-url-opener\n\n请创建此文件（脚本或符号链接），它将以共享的 URL 作为第一个参数被调用。</string>
+    <string name="file_receiver_error_empty_name">文件名不能为空</string>
+    <string name="file_receiver_error_cannot_create_dir">无法创建目录：%s</string>
+    <string name="file_receiver_error_saving_file">保存文件时出错：\n\n%s</string>
+    <plurals name="notification_sessions">
+        <item quantity="one">%d 个会话</item>
+        <item quantity="other">%d 个会话</item>
+    </plurals>
+    <plurals name="notification_tasks_separator">
+        <item quantity="one">，%d 个任务</item>
+        <item quantity="other">，%d 个任务</item>
+    </plurals>
+    <string name="notification_wake_lock_held">（保持唤醒锁）</string>
+    <string name="session_null_title">空会话</string>
+    <string name="msg_extra_keys_load_failed">无法从属性文件加载并设置 \"%s\" 属性：%s</string>
+    <string name="msg_extra_keys_create_failed">无法创建默认额外按键</string>
+
+</resources>

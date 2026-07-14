@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!DOCTYPE resources [
+    <!ENTITY TERMUX_PACKAGE_NAME "com.termux">
+    <!ENTITY TERMUX_APP_NAME "Termux">
+    <!ENTITY TERMUX_API_APP_NAME "Termux:API">
+    <!ENTITY TERMUX_BOOT_APP_NAME "Termux:Boot">
+    <!ENTITY TERMUX_FLOAT_APP_NAME "Termux:Float">
+    <!ENTITY TERMUX_STYLING_APP_NAME "Termux:Styling">
+    <!ENTITY TERMUX_TASKER_APP_NAME "Termux:Tasker">
+    <!ENTITY TERMUX_WIDGET_APP_NAME "Termux:Widget">
+    ]>
+
+<resources>
+    <string name="application_name">Termux EnhancedUI</string>
+    <string name="shared_user_label">&TERMUX_APP_NAME; usuario</string>
+    <string name="permission_run_command_label">Ejecutar comandos en el entorno de &TERMUX_APP_NAME;</string>
+    <string name="permission_run_command_description">ejecutar comandos arbitrarios en el entorno de &TERMUX_APP_NAME; y acceder a archivos</string>
+    <string name="bootstrap_installer_body">Instalando paquetes de arranque inicial…</string>
+    <string name="bootstrap_error_title">No se puede instalar el arranque inicial</string>
+    <string name="bootstrap_error_body">&TERMUX_APP_NAME; no pudo instalar los paquetes de arranque inicial.</string>
+    <string name="bootstrap_error_abort">Cancelar</string>
+    <string name="bootstrap_error_try_again">Reintentar</string>
+    <string name="bootstrap_error_not_primary_user_message">&TERMUX_APP_NAME; solo puede ejecutarse como usuario principal.\nLos binarios de arranque compilados para &TERMUX_APP_NAME; tienen la ruta $PREFIX hardcodeada y no pueden instalarse en otra ruta que no sea:\n%1$s.</string>
+    <string name="bootstrap_error_installed_on_portable_sd">&TERMUX_APP_NAME; no puede instalarse en una tarjeta SD portátil/externa/extraíble de su dispositivo.\nLos binarios de arranque compilados para &TERMUX_APP_NAME; tienen la ruta $PREFIX hardcodeada y no pueden instalarse en otra ruta que no sea:\n%1$s.</string>
+    <string name="action_new_session">Nueva sesión</string>
+    <string name="action_new_session_failsafe">Modo seguro</string>
+    <string name="title_max_terminals_reached">Máximo de terminales alcanzado</string>
+    <string name="msg_max_terminals_reached">Cierre las existentes antes de crear una nueva.</string>
+    <string name="title_rename_session">Establecer nombre de sesión</string>
+    <string name="action_rename_session_confirm">Establecer</string>
+    <string name="title_create_named_session">Nueva sesión con nombre</string>
+    <string name="action_create_named_session_confirm">Crear</string>
+    <string name="action_toggle_soft_keyboard">Teclado</string>
+    <string name="action_toggle_text_input">Alternar entrada de texto</string>
+    <string name="msg_enabling_terminal_toolbar">Habilitando barra de herramientas del terminal</string>
+    <string name="msg_disabling_terminal_toolbar">Deshabilitando barra de herramientas del terminal</string>
+    <string name="action_select_url">Seleccionar URL</string>
+    <string name="title_select_url_dialog">Pulse URL para copiar o mantenga presionado para abrir</string>
+    <string name="title_select_url_none_found">No se encontró ninguna URL en el terminal.</string>
+    <string name="msg_select_url_copied_to_clipboard">URL copiada al portapapeles</string>
+    <string name="action_share_transcript">Compartir transcripción</string>
+    <string name="title_share_transcript">Transcripción del terminal</string>
+    <string name="title_share_transcript_with">Enviar transcripción a:</string>
+    <string name="action_share_selected_text">Compartir texto seleccionado</string>
+    <string name="title_share_selected_text">Texto de terminal</string>
+    <string name="title_share_selected_text_with">Enviar texto seleccionado a:</string>
+    <string name="action_autofill_username">Autocompletar usuario</string>
+    <string name="action_autofill_password">Autocompletar contraseña</string>
+    <string name="action_reset_terminal">Reiniciar</string>
+    <string name="msg_terminal_reset">Terminal reiniciada</string>
+    <string name="msg_terminal_font_applied">Fuente aplicada</string>
+    <string name="action_kill_process">Matar proceso (%d)</string>
+    <string name="title_confirm_kill_process">¿Matar esta sesión?</string>
+    <string name="action_style_terminal">Estilo</string>
+    <string name="action_font_terminal">Fuente</string>
+    <string name="font_picker_title">Seleccionar una fuente (.ttf)</string>
+    <string name="error_font_copy_failed">Error al aplicar la fuente</string>
+    <string name="action_toggle_keep_screen_on">Mantener pantalla encendida</string>
+    <string name="action_open_help">Ayuda</string>
+    <string name="action_open_settings">Ajustes</string>
+    <string name="action_report_issue">Reportar problema</string>
+    <string name="msg_generating_report">Generando informe</string>
+    <string name="msg_add_termux_debug_info">¿Añadir información de depuración de termux al informe?</string>
+    <string name="error_styling_not_installed">La aplicación de plugin &TERMUX_STYLING_APP_NAME; no está instalada.</string>
+    <string name="action_styling_install">Instalar</string>
+    <string name="notification_action_exit">Salir</string>
+    <string name="notification_action_wake_lock">Adquirir bloqueo de activación</string>
+    <string name="notification_action_wake_unlock">Liberar bloqueo de activación</string>
+    <string name="error_display_over_other_apps_permission_not_granted_to_start_terminal">&TERMUX_APP_NAME; requiere permiso \"Mostrar sobre otras aplicaciones\" para iniciar sesiones de terminal desde segundo plano en Android >= 10. Concédelo desde Ajustes -> Aplicaciones -> &TERMUX_APP_NAME; -> Avanzado</string>
+    <string name="error_termux_service_invalid_execution_command_runner">Ejecutor de comando de ejecución no válido para TermuxService: `%1$s`</string>
+    <string name="error_termux_service_unsupported_execution_command_runner">Ejecutor de comando de ejecución no compatible para TermuxService: `%1$s`</string>
+    <string name="error_termux_service_unsupported_execution_command_shell_create_mode">Modo de creación de shell de comando de ejecución no compatible para TermuxService: `%1$s`</string>
+    <string name="error_termux_service_execution_command_shell_name_unset">Nombre de shell no establecido pero se pasó modo de creación de shell `%1$s`</string>
+    <string name="error_run_command_service_invalid_intent_action">Acción de intent no válida para RunCommandService: `%1$s`</string>
+    <string name="error_run_command_service_invalid_execution_command_runner">Ejecutor de comando de ejecución no válido para RunCommandService: `%1$s`</string>
+    <string name="error_run_command_service_mandatory_extra_missing">Extra obligatorio faltante para RunCommandService: \"%1$s\"</string>
+    <string name="error_run_command_service_api_help">Visita %1$s para más información sobre el uso del Intent RUN_COMMAND.</string>
+    <string name="title_file_received">Guardar archivo en ~/downloads/</string>
+    <string name="action_file_received_edit">Editar</string>
+    <string name="action_file_received_open_directory">Abrir directorio</string>
+    <string name="error_termux_service_start_failed_general">Error al iniciar TermuxService. Revisa logcat para ver el mensaje de excepción.</string>
+    <string name="error_termux_service_start_failed_bg">Error al iniciar TermuxService mientras la app está en segundo plano debido a restricciones de segundo plano de Android.</string>
+    <string name="title_activity_termux_settings">Ajustes de &TERMUX_APP_NAME;</string>
+    <string name="appearance_preferences_title">Apariencia</string>
+    <string name="appearance_preferences_summary">Preferencias de apariencia de la app y transparencia del panel</string>
+    <string name="theme_title">Tema</string>
+    <string name="panel_transparency_title">Transparencia del panel</string>
+    <string name="termux_preferences_title">&TERMUX_APP_NAME;</string>
+    <string name="termux_preferences_summary">Preferencias de la app &TERMUX_APP_NAME;</string>
+    <string name="termux_debugging_preferences_title">Depuración</string>
+    <string name="termux_debugging_preferences_summary">Preferencias de depuración</string>
+    <string name="termux_logging_header">Registro</string>
+    <string name="termux_log_level_title">Nivel de registro</string>
+    <string name="termux_terminal_view_key_logging_enabled_title">Registro de teclas de vista de terminal</string>
+    <string name="termux_terminal_view_key_logging_enabled_off">Los registros no tendrán entradas para teclas de vista de terminal. (Predeterminado)</string>
+    <string name="termux_terminal_view_key_logging_enabled_on">Los registros de Logcat tendrán entradas para teclas de vista de terminal. Son muy verbosos y deberían estar deshabilitados en circunstancias normales o causarán problemas de rendimiento.</string>
+    <string name="termux_plugin_error_notifications_enabled_title">Notificaciones de error de plugin</string>
+    <string name="termux_plugin_error_notifications_enabled_off">Deshabilitar destellos y notificaciones para errores de plugin.</string>
+    <string name="termux_plugin_error_notifications_enabled_on">Mostrar destellos y notificaciones para errores de plugin. (Predeterminado)</string>
+    <string name="termux_crash_report_notifications_enabled_title">Notificaciones de informe de fallo</string>
+    <string name="termux_crash_report_notifications_enabled_off">Deshabilitar notificaciones para informes de fallo.</string>
+    <string name="termux_crash_report_notifications_enabled_on">Mostrar notificaciones para informes de fallo. (Predeterminado)</string>
+    <string name="termux_terminal_io_preferences_title">Terminal E/S</string>
+    <string name="termux_terminal_io_preferences_summary">Preferencias para la terminal de E/S</string>
+    <string name="termux_keyboard_header">Teclado</string>
+    <string name="termux_soft_keyboard_enabled_title">Teclado virtual habilitado</string>
+    <string name="termux_soft_keyboard_enabled_off">El teclado virtual estará deshabilitado.</string>
+    <string name="termux_soft_keyboard_enabled_on">El teclado virtual estará habilitado. (Predeterminado)</string>
+    <string name="termux_settings_button_enabled_title">Mostrar botón de Ajustes</string>
+    <string name="termux_settings_button_enabled_on">El botón de Ajustes se muestra en el panel de pestañas. (Predeterminado)</string>
+    <string name="termux_settings_button_enabled_off">El botón de Ajustes está oculto. Abra Ajustes mediante una pulsación larga en la terminal &#8594; Más… &#8594; Ajustes.</string>
+    <string name="termux_soft_keyboard_enabled_only_if_no_hardware_title">Teclado virtual solo si no hay teclado físico</string>
+    <string name="termux_soft_keyboard_enabled_only_if_no_hardware_off">El teclado virtual estará habilitado incluso si hay un teclado físico conectado. (Predeterminado)</string>
+    <string name="termux_soft_keyboard_enabled_only_if_no_hardware_on">El teclado virtual se habilitará solo si no hay un teclado físico conectado.</string>
+    <string name="termux_terminal_view_preferences_title">Vista de terminal</string>
+    <string name="termux_terminal_view_preferences_summary">Preferencias para la vista de terminal</string>
+    <string name="termux_terminal_view_view_header">Vista</string>
+    <string name="termux_button_bg_inactive_alpha_title">Transparencia de fondo de elementos inactivos</string>
+    <string name="termux_button_bg_active_alpha_title">Transparencia de fondo de elementos activos</string>
+    <string name="termux_terminal_view_terminal_margin_adjustment_title">Ajuste de margen de terminal</string>
+    <string name="termux_terminal_view_terminal_margin_adjustment_off">El ajuste de margen de terminal estará deshabilitado.</string>
+    <string name="termux_terminal_view_terminal_margin_adjustment_on">El ajuste de margen de terminal estará habilitado. Debe estar habilitado para intentar solucionar el problema donde el teclado virtual cubre parte de las teclas adicionales/vista de terminal. Si causa parpadeo de pantalla en su dispositivo, desactívelo. (Predeterminado)</string>
+    <string name="termux_api_preferences_title">&TERMUX_API_APP_NAME;</string>
+    <string name="termux_api_preferences_summary">Preferencias para la aplicación &TERMUX_API_APP_NAME;</string>
+    <string name="termux_float_preferences_title">&TERMUX_FLOAT_APP_NAME;</string>
+    <string name="termux_float_preferences_summary">Preferencias para la aplicación &TERMUX_FLOAT_APP_NAME;</string>
+    <string name="termux_tasker_preferences_title">&TERMUX_TASKER_APP_NAME;</string>
+    <string name="termux_tasker_preferences_summary">Preferencias para la aplicación &TERMUX_TASKER_APP_NAME;</string>
+    <string name="termux_widget_preferences_title">&TERMUX_WIDGET_APP_NAME;</string>
+    <string name="termux_widget_preferences_summary">Preferencias para la aplicación &TERMUX_WIDGET_APP_NAME;</string>
+    <string name="about_preference_title">Acerca de</string>
+    <string name="theme_mode_title">Tema de la aplicación</string>
+    <string name="theme_mode_summary">Elija el tema de la aplicación y la terminal</string>
+    <string name="color_scheme_dialog_title">Esquema de color de terminal</string>
+    <string name="color_scheme_light_title">Esquema de color de terminal (Tema claro)</string>
+    <string name="color_scheme_light_summary">Esquema de color aplicado cuando el tema de la aplicación es claro</string>
+    <string name="color_scheme_dark_title">Esquema de color de terminal (Tema oscuro)</string>
+    <string name="color_scheme_dark_summary">Esquema de color aplicado cuando el tema de la aplicación es oscuro</string>
+    <string name="message_history_title">Historial de mensajes</string>
+    <string name="message_history_max_title">Máx. de mensajes guardados</string>
+    <string name="per_directory_message_history_title">Historial de mensajes por directorio</string>
+    <string name="per_directory_message_history_summary">Mantener un historial de mensajes separado para cada directorio de trabajo. Cuando está desactivado, todas las sesiones comparten un historial global.</string>
+    <string name="text_input_title">Entrada de texto</string>
+    <string name="text_input_append_enter_title">Añadir Enter al enviar</string>
+    <string name="text_input_append_enter_summary">Al enviar texto desde el campo de entrada, enviar también la señal Enter</string>
+    <string name="directory_history_title">Historial de directorios</string>
+    <string name="directory_history_max_title">Máx. de directorios guardados</string>
+    <string name="restore_sessions_title">Restaurar pestañas al inicio</string>
+    <string name="restore_sessions_summary">Reabrir todas las pestañas y sus directorios cuando se inicie la aplicación</string>
+    <string name="screen_orientation_title">Orientación de pantalla</string>
+    <string name="screen_orientation_summary">Las variantes \"Seguir sensor\" rotan entre las dos orientaciones (ej. retrato 0°/180°).</string>
+    <string-array name="screen_orientation_entries">
+    <item>Seguir sensor</item>
+    <item>Retrato (seguir sensor)</item>
+    <item>Paisaje (seguir sensor)</item>
+    <item>Retrato</item>
+    <item>Paisaje</item>
+    </string-array>
+    <string-array name="screen_orientation_values">
+    <item>sensor</item>
+    <item>portrait_follow_sensor</item>
+    <item>landscape_follow_sensor</item>
+    <item>portrait</item>
+    <item>landscape</item>
+    </string-array>
+    <string name="donate_preference_title">Donar</string>
+    <string name="backup_preference_title">Respaldar datos de Termux</string>
+    <string name="backup_preference_summary">Guardar el directorio de datos de Termux (paquetes instalados + home) en un archivo tar.gz de copia de seguridad</string>
+    <string name="restore_preference_title">Restaurar datos de Termux</string>
+    <string name="restore_preference_summary">Restaurar el directorio de datos de Termux desde un archivo de copia de seguridad tar.gz</string>
+    <string name="backup_restore_backup_filename">termux-data-backup.tar.gz</string>
+    <string name="backup_restore_dialog_title">Copia de seguridad / Restauración de datos de Termux</string>
+    <string name="backup_restore_warning_backup">Esto creará un archivo comprimido de su directorio de datos de Termux (paquetes instalados y entorno junto con su directorio home).\n\nElija un archivo de destino para guardar la copia de seguridad.</string>
+    <string name="backup_restore_warning_restore">La restauración SOBRESCRIBIRÁ el directorio de datos actual de Termux (paquetes instalados más su directorio personal) con el contenido del archivo de copia de seguridad seleccionado. Los datos existentes se PERDERÁN.\n\n⚠ Si la restauración falla — porque el archivo de copia de seguridad está dañado, incompleto o la conexión se interrumpe durante el proceso — su entorno Termux se quedará VACÍO. No habrá forma de recuperar los datos originales.\n\nEsto no se puede deshacer. Se recomienda encarecidamente hacer una copia de seguridad PRIMERO y verificar que el archivo de copia de seguridad sea válido.</string>
+    <string name="backup_restore_backup_started">Creando copia de seguridad…</string>
+    <string name="backup_restore_restore_started">Restaurando copia de seguridad…</string>
+    <string name="backup_restore_backup_success">Copia de seguridad creada correctamente</string>
+    <string name="backup_restore_restore_success">Datos restaurados correctamente</string>
+    <string name="backup_restore_failed_title">Operación fallida</string>
+    <string name="backup_restore_need_termux">No se encontró el binario de termux (tar). Abra Termux al menos una vez para que se configure el contenedor.</string>
+    <string name="backup_restore_choose_backup">Seleccione un archivo de copia de seguridad .tar.gz para restaurar</string>
+    <string name="backup_service_channel_name">Termux Copia de seguridad / Restaurar</string>
+    <string name="backup_service_notification_title">Copia de seguridad de datos de Termux</string>
+    <string name="backup_service_notification_restore_title">Restauración de datos de Termux</string>
+    <string name="backup_service_notification_progress">%1$d%%</string>
+    <string name="backup_service_notification_success">Copia de seguridad creada correctamente</string>
+    <string name="backup_service_notification_restore_success">Datos restaurados correctamente</string>
+    <string name="backup_service_notification_failed">Copia de seguridad fallida</string>
+    <string name="backup_service_notification_restore_failed">Restauración fallida</string>
+    <string name="backup_dialog_background">Segundo plano</string>
+    <string name="backup_dialog_cancel">Cancelar</string>
+    <string name="backup_service_notification_cancel">Cancelar</string>
+    <string name="backup_restore_cancelled">Operación cancelada</string>
+    <string name="tab_close_description">Cerrar pestaña</string>
+    <string name="session_default_title">Terminal</string>
+    <string name="text_input_show_title">Mostrar campo de entrada de texto</string>
+    <string name="text_input_show_summary_on">El campo de entrada de texto está visible sobre las teclas adicionales</string>
+    <string name="text_input_show_summary_off">El campo de entrada de texto está oculto</string>
+    <string name="message_history_empty">No hay historial de mensajes</string>
+    <string name="message_history_clear_all">BORRAR HISTORIAL…</string>
+    <string name="message_history_clear">Borrar</string>
+    <string name="message_history_clear_dialog_title">Borrar historial de mensajes</string>
+    <string name="message_history_clear_question">¿Borrar historial de mensajes?</string>
+    <string name="message_history_clear_confirm_current">¿Borrar todos los mensajes guardados del directorio actual? Esta acción no se puede deshacer.</string>
+    <string name="message_history_clear_confirm_all">¿Borrar todo el historial de mensajes? Esta acción no se puede deshacer.</string>
+    <string name="message_history_clear_ok">Aceptar</string>
+    <string name="message_history_clear_all_btn">Todo</string>
+    <string name="message_history_clear_current_only_question">¿Borrar historial solo del directorio actual?</string>
+    <string name="message_history_clear_all_question">Esto eliminará permanentemente todos los mensajes guardados.</string>
+    <string name="message_history_cleared">Historial de mensajes borrado</string>
+    <string name="directory_history_clear_dialog_title">Borrar historial de directorios</string>
+    <string name="directory_history_clear_confirm">¿Borrar todo el historial de directorios? Esta acción no se puede deshacer.</string>
+    <string name="directory_history_cleared">Historial de directorios borrado</string>
+    <string name="file_receiver_error_no_content">Acción de envío sin contenido — nada que guardar.</string>
+    <string name="file_receiver_error_no_data_uri">URI de datos no proporcionada.</string>
+    <string name="file_receiver_error_invalid_path">La ruta del archivo desde la URI de datos es nula, está vacía o no es válida.</string>
+    <string name="file_receiver_error_cannot_open">No se puede abrir el archivo: %s</string>
+    <string name="file_receiver_error_cannot_receive">No se puede recibir ningún archivo o URL.</string>
+    <string name="file_receiver_error_handle_shared">No se puede procesar el contenido compartido:\n\n%s</string>
+    <string name="file_receiver_error_no_editor">El siguiente archivo no existe:\n$HOME/bin/termux-file-editor\n\nCree este archivo como un script o un enlace simbólico — se llamará con el archivo recibido como único argumento.</string>
+    <string name="file_receiver_error_no_url_opener">El siguiente archivo no existe:\n$HOME/bin/termux-url-opener\n\nCree este archivo como un script o un enlace simbólico — se llamará con la URL compartida como primer argumento.</string>
+    <string name="file_receiver_error_empty_name">El nombre del archivo no puede ser nulo o vacío</string>
+    <string name="file_receiver_error_cannot_create_dir">No se puede crear el directorio: %s</string>
+    <string name="file_receiver_error_saving_file">Error al guardar el archivo:\n\n%s</string>
+    <plurals name="notification_sessions">
+    <item quantity="one">%d sesión</item>
+    <item quantity="other">%d sesiones</item>
+    </plurals>
+    <plurals name="notification_tasks_separator">
+    <item quantity="one">, %d tarea</item>
+    <item quantity="other">, %d tareas</item>
+    </plurals>
+    <string name="notification_wake_lock_held"> (bloqueo de activación activo)</string>
+    <string name="session_null_title">sesión nula</string>
+    <string name="msg_extra_keys_load_failed">No se pudo cargar y establecer la propiedad \"%s\" del archivo de propiedades: %s</string>
+    <string name="msg_extra_keys_create_failed">No se pueden crear las teclas adicionales predeterminadas</string>
+</resources>

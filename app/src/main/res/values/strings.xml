@@ -285,7 +285,7 @@
 
     <!-- Screen orientation preference -->
     <string name="screen_orientation_title">Screen orientation</string>
-    <string name="screen_orientation_summary">Locked portrait on phones, sensor on tablets by default. "Follow sensor" variants rotate between the two orientations (e.g. 0°/180° portrait).</string>
+    <string name="screen_orientation_summary">"Follow sensor" variants rotate between the two orientations (e.g. 0°/180° portrait).</string>
     <string-array name="screen_orientation_entries">
         <item>Follow sensor</item>
         <item>Portrait (follow sensor)</item>
@@ -332,5 +332,68 @@
     <string name="backup_dialog_cancel">Cancel</string>
     <string name="backup_service_notification_cancel">Cancel</string>
     <string name="backup_restore_cancelled">Operation cancelled</string>
+
+    <!-- NEW STRINGS (extracted from hardcoded text) -->
+
+    <!-- Session tabs -->
+    <string name="tab_close_description">Close tab</string>
+    <string name="session_default_title">Terminal</string>
+
+    <!-- Text input show preference -->
+    <string name="text_input_show_title">Show text input field</string>
+    <string name="text_input_show_summary_on">Text input field is visible above extra keys</string>
+    <string name="text_input_show_summary_off">Text input field is hidden</string>
+
+    <!-- Message history -->
+    <string name="message_history_empty">No message history</string>
+    <string name="message_history_clear_all">CLEAR HISTORY…</string>
+    <string name="message_history_clear">Clear</string>
+
+    <!-- Message history clear dialogs -->
+    <string name="message_history_clear_dialog_title">Clear message history</string>
+    <string name="message_history_clear_question">Clear message history?</string>
+    <string name="message_history_clear_confirm_current">Clear all remembered messages for the current directory? This cannot be undone.</string>
+    <string name="message_history_clear_confirm_all">Clear the entire message history? This cannot be undone.</string>
+    <string name="message_history_clear_ok">OK</string>
+    <string name="message_history_clear_all_btn">All</string>
+    <string name="message_history_clear_current_only_question">Clear history for the current directory only?</string>
+    <string name="message_history_clear_all_question">This will permanently remove all remembered messages.</string>
+    <string name="message_history_cleared">Message history cleared</string>
+
+    <!-- Directory history -->
+    <string name="directory_history_clear_dialog_title">Clear directory history</string>
+    <string name="directory_history_clear_confirm">Clear the entire directory history? This cannot be undone.</string>
+    <string name="directory_history_cleared">Directory history cleared</string>
+
+    <!-- FileReceiverActivity error messages -->
+    <string name="file_receiver_error_no_content">Send action without content - nothing to save.</string>
+    <string name="file_receiver_error_no_data_uri">Data uri not passed.</string>
+    <string name="file_receiver_error_invalid_path">File path from data uri is null, empty or invalid.</string>
+    <string name="file_receiver_error_cannot_open">Cannot open file: %s</string>
+    <string name="file_receiver_error_cannot_receive">Unable to receive any file or URL.</string>
+    <string name="file_receiver_error_handle_shared">Unable to handle shared content:\n\n%s</string>
+    <string name="file_receiver_error_no_editor">The following file does not exist:\n$HOME/bin/termux-file-editor\n\nCreate this file as a script or a symlink - it will be called with the received file as only argument.</string>
+    <string name="file_receiver_error_no_url_opener">The following file does not exist:\n$HOME/bin/termux-url-opener\n\nCreate this file as a script or a symlink - it will be called with the shared URL as the first argument.</string>
+    <string name="file_receiver_error_empty_name">File name cannot be null or empty</string>
+    <string name="file_receiver_error_cannot_create_dir">Cannot create directory: %s</string>
+    <string name="file_receiver_error_saving_file">Error saving file:\n\n%s</string>
+
+    <!-- Service notification strings -->
+    <plurals name="notification_sessions">
+        <item quantity="one">%d session</item>
+        <item quantity="other">%d sessions</item>
+    </plurals>
+    <plurals name="notification_tasks_separator">
+        <item quantity="one">, %d task</item>
+        <item quantity="other">, %d tasks</item>
+    </plurals>
+    <string name="notification_wake_lock_held"> (wake lock held)</string>
+
+    <!-- Session list -->
+    <string name="session_null_title">null session</string>
+
+    <!-- Extra keys -->
+    <string name="msg_extra_keys_load_failed">Could not load and set the \"%s\" property from the properties file: %s</string>
+    <string name="msg_extra_keys_create_failed">Can\'t create default extra keys</string>
 
 </resources>

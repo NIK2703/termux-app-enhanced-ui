@@ -27,7 +27,7 @@
         android:layout_marginStart="4dp"
         android:src="@drawable/ic_close"
         android:background="@null"
-        android:contentDescription="Close tab"
+        android:contentDescription="@string/tab_close_description"
         android:scaleType="centerInside"
         android:tint="@color/terminal_toolbar_icon_tint"
         android:alpha="0.7"

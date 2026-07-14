@@ -2036,7 +2036,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             // re-triggering on every ACTION_MOVE pixel while the finger drags.
             if (!mHistoryEmptyHintShown) {
                 mHistoryEmptyHintShown = true;
-                Toast bottomToast = Toast.makeText(this, "No message history", Toast.LENGTH_SHORT);
+                Toast bottomToast = Toast.makeText(this, getString(R.string.message_history_empty), Toast.LENGTH_SHORT);
                 bottomToast.setGravity(Gravity.BOTTOM, 0, dpToPx(48));
                 bottomToast.show();
             }
@@ -2059,7 +2059,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         // "Clear" row (clears the input), it is not a replacement for it.
         if (!mMessageHistory.isEmpty()) {
             TextView tv = new TextView(this);
-            tv.setText("CLEAR HISTORY…");
+            tv.setText(getString(R.string.message_history_clear_all));
             tv.setGravity(Gravity.CENTER);
             tv.setAllCaps(true);
             tv.setTextColor(mHistoryTextColor);
@@ -2110,7 +2110,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         final String inputText = inputField != null ? inputField.getText().toString() : "";
         if (!TextUtils.isEmpty(inputText)) {
             TextView tv = new TextView(this);
-            tv.setText("Clear");
+            tv.setText(getString(R.string.message_history_clear));
             tv.setGravity(Gravity.CENTER);
             tv.setAllCaps(true);
             tv.setTextColor(mHistoryTextColor);
@@ -2325,17 +2325,16 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
      * directories), Cancel. In global mode it stays as OK + Cancel.
      */
     private void confirmClearAllHistory() {
-        final String title = "Clear message history?";
         final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_TermuxActivity_Dialog)
-                .setTitle(title)
+                .setTitle(getString(R.string.message_history_clear_question))
                 .setNegativeButton(android.R.string.cancel, null);
 
         if (mPerDirectoryMessageHistory) {
-            builder.setMessage("Clear history for the current directory only?")
-                    .setPositiveButton("OK", (d, w) -> clearAllHistory())
-                    .setNeutralButton("All", (d, w) -> clearAllDirectoriesHistory());
+            builder.setMessage(getString(R.string.message_history_clear_current_only_question))
+                    .setPositiveButton(getString(R.string.message_history_clear_ok), (d, w) -> clearAllHistory())
+                    .setNeutralButton(getString(R.string.message_history_clear_all_btn), (d, w) -> clearAllDirectoriesHistory());
         } else {
-            builder.setMessage("This will permanently remove all remembered messages.")
+            builder.setMessage(getString(R.string.message_history_clear_all_question))
                     .setPositiveButton(android.R.string.ok, (d, w) -> clearAllHistory());
         }
 
@@ -2383,15 +2382,15 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     private void confirmClearHistory() {
         final MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_TermuxActivity_Dialog);
         b.setIcon(android.R.drawable.ic_dialog_alert);
-        b.setTitle("Clear message history");
+        b.setTitle(getString(R.string.message_history_clear_dialog_title));
         String msg = mPerDirectoryMessageHistory
-                ? "Clear all remembered messages for the current directory? This cannot be undone."
-                : "Clear the entire message history? This cannot be undone.";
+                ? getString(R.string.message_history_clear_confirm_current)
+                : getString(R.string.message_history_clear_confirm_all);
         b.setMessage(msg);
         b.setPositiveButton(android.R.string.yes, (dialog, id) -> {
             dialog.dismiss();
             clearAllHistory();
-            showToast("Message history cleared", true);
+            showToast(getString(R.string.message_history_cleared), true);
         });
         b.setNegativeButton(android.R.string.no, null);
         b.show();
@@ -2685,7 +2684,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         // Synthetic "CLEAR HISTORY…" row pinned at the TOP of the popup.
         if (!mDirectoryHistory.isEmpty()) {
             TextView tv = new TextView(this);
-            tv.setText("CLEAR HISTORY…");
+            tv.setText(getString(R.string.message_history_clear_all));
             tv.setGravity(Gravity.CENTER);
             tv.setAllCaps(true);
             tv.setTextColor(mHistoryTextColor);
@@ -2815,13 +2814,13 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     /** "CLEAR HISTORY…" item: confirm, then wipe the whole directory history. */
     private void confirmClearDirectoryHistory() {
         final MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_TermuxActivity_Dialog);
-        b.setTitle("Clear directory history");
-        b.setMessage("Clear the entire directory history? This cannot be undone.");
+        b.setTitle(getString(R.string.directory_history_clear_dialog_title));
+        b.setMessage(getString(R.string.directory_history_clear_confirm));
         b.setPositiveButton(android.R.string.yes, (dialog, id) -> {
             dialog.dismiss();
             mDirectoryHistory.clear();
             saveDirectoryHistory();
-            showToast("Directory history cleared", true);
+            showToast(getString(R.string.directory_history_cleared), true);
         });
         b.setNegativeButton(android.R.string.no, null);
         b.show();

@@ -90,13 +90,13 @@ public class FileReceiverActivity extends AppCompatActivity {
                     promptNameAndSave(new ByteArrayInputStream(sharedText.getBytes(StandardCharsets.UTF_8)), subject);
                 }
             } else {
-                showErrorDialogAndQuit("Send action without content - nothing to save.");
+                showErrorDialogAndQuit(getString(R.string.file_receiver_error_no_content));
             }
         } else {
             Uri dataUri = intent.getData();
 
             if (dataUri == null) {
-                showErrorDialogAndQuit("Data uri not passed.");
+                showErrorDialogAndQuit(getString(R.string.file_receiver_error_no_data_uri));
                 return;
             }
 
@@ -108,7 +108,7 @@ public class FileReceiverActivity extends AppCompatActivity {
                 // Get full path including fragment (anything after last "#")
                 String path = UriUtils.getUriFilePathWithFragment(dataUri);
                 if (DataUtils.isNullOrEmpty(path)) {
-                    showErrorDialogAndQuit("File path from data uri is null, empty or invalid.");
+                    showErrorDialogAndQuit(getString(R.string.file_receiver_error_invalid_path));
                     return;
                 }
 
@@ -117,10 +117,10 @@ public class FileReceiverActivity extends AppCompatActivity {
                     FileInputStream in = new FileInputStream(file);
                     promptNameAndSave(in, file.getName());
                 } catch (FileNotFoundException e) {
-                    showErrorDialogAndQuit("Cannot open file: " + e.getMessage() + ".");
+                    showErrorDialogAndQuit(getString(R.string.file_receiver_error_cannot_open, e.getMessage()));
                 }
             } else {
-                showErrorDialogAndQuit("Unable to receive any file or URL.");
+                showErrorDialogAndQuit(getString(R.string.file_receiver_error_cannot_receive));
             }
         }
     }
@@ -154,7 +154,7 @@ public class FileReceiverActivity extends AppCompatActivity {
             InputStream in = getContentResolver().openInputStream(uri);
             promptNameAndSave(in, attachmentFileName);
         } catch (Exception e) {
-            showErrorDialogAndQuit("Unable to handle shared content:\n\n" + e.getMessage());
+            showErrorDialogAndQuit(getString(R.string.file_receiver_error_handle_shared, e.getMessage()));
             Logger.logStackTraceWithMessage(LOG_TAG, "handleContentUri(uri=" + uri + ") failed", e);
         }
     }
@@ -167,8 +167,7 @@ public class FileReceiverActivity extends AppCompatActivity {
 
                 final File editorProgramFile = new File(EDITOR_PROGRAM);
                 if (!editorProgramFile.isFile()) {
-                    showErrorDialogAndQuit("The following file does not exist:\n$HOME/bin/termux-file-editor\n\n"
-                        + "Create this file as a script or a symlink - it will be called with the received file as only argument.");
+                    showErrorDialogAndQuit(getString(R.string.file_receiver_error_no_editor));
                     return;
                 }
 
@@ -202,12 +201,12 @@ public class FileReceiverActivity extends AppCompatActivity {
         File receiveDir = new File(TERMUX_RECEIVEDIR);
 
         if (DataUtils.isNullOrEmpty(attachmentFileName)) {
-            showErrorDialogAndQuit("File name cannot be null or empty");
+            showErrorDialogAndQuit(getString(R.string.file_receiver_error_empty_name));
             return null;
         }
 
         if (!receiveDir.isDirectory() && !receiveDir.mkdirs()) {
-            showErrorDialogAndQuit("Cannot create directory: " + receiveDir.getAbsolutePath());
+            showErrorDialogAndQuit(getString(R.string.file_receiver_error_cannot_create_dir, receiveDir.getAbsolutePath()));
             return null;
         }
 
@@ -222,7 +221,7 @@ public class FileReceiverActivity extends AppCompatActivity {
             }
             return outFile;
         } catch (IOException e) {
-            showErrorDialogAndQuit("Error saving file:\n\n" + e);
+            showErrorDialogAndQuit(getString(R.string.file_receiver_error_saving_file, e));
             Logger.logStackTraceWithMessage(LOG_TAG, "Error saving file", e);
             return null;
         }
@@ -231,8 +230,7 @@ public class FileReceiverActivity extends AppCompatActivity {
     void handleUrlAndFinish(final String url) {
         final File urlOpenerProgramFile = new File(URL_OPENER_PROGRAM);
         if (!urlOpenerProgramFile.isFile()) {
-            showErrorDialogAndQuit("The following file does not exist:\n$HOME/bin/termux-url-opener\n\n"
-                + "Create this file as a script or a symlink - it will be called with the shared URL as the first argument.");
+            showErrorDialogAndQuit(getString(R.string.file_receiver_error_no_url_opener));
             return;
         }
 

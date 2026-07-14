@@ -806,13 +806,13 @@ public final class TermuxService extends Service implements AppShell.AppShellCli
         // Set notification text
         int sessionCount = getTermuxSessionsSize();
         int taskCount = mShellManager.mTermuxTasks.size();
-        String notificationText = sessionCount + " session" + (sessionCount == 1 ? "" : "s");
-        if (taskCount > 0) {
-            notificationText += ", " + taskCount + " task" + (taskCount == 1 ? "" : "s");
-        }
-
+        String notificationText = getResources().getQuantityString(
+            com.termux.R.plurals.notification_sessions, sessionCount, sessionCount);
+        if (taskCount > 0)
+            notificationText += getResources().getQuantityString(
+                com.termux.R.plurals.notification_tasks_separator, taskCount, taskCount);
         final boolean wakeLockHeld = mWakeLock != null;
-        if (wakeLockHeld) notificationText += " (wake lock held)";
+        if (wakeLockHeld) notificationText += getString(com.termux.R.string.notification_wake_lock_held);
 
 
         // Set notification priority

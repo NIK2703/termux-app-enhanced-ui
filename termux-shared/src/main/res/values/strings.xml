@@ -26,7 +26,7 @@
     <string name="error_get_package_context_failed_help_url_message">Check %1$s for more details.</string>
     <string name="error_get_component_state_failed">Failed to get %1$s/%2$s component state</string>
     <string name="error_enable_component_failed">Failed to enable %1$s/%2$s component</string>
-    <string name="error_disable_component_failed">Failed to enable %1$s/%2$s component</string>
+    <string name="error_disable_component_failed">Failed to disable %1$s/%2$s component</string>
 
 
 
@@ -134,5 +134,13 @@
     <string name="log_level_verbose">Verbose</string>
     <string name="log_level_unknown">*Unknown*</string>
     <string name="log_level_value">Logcat log level set to \"%1$s\"</string>
+
+    <!-- Notification channels -->
+    <string name="notification_channel_app">Termux App</string>
+    <string name="notification_channel_run_command">Termux RunCommandService</string>
+    <string name="notification_channel_plugin_errors">Termux Plugin Commands Errors</string>
+
+    <!-- Font picker -->
+    <string name="font_picker_title">Select a font (.ttf)</string>
 
 </resources>

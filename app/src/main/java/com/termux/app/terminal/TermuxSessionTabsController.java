@@ -145,7 +145,7 @@ public class TermuxSessionTabsController {
             String title = terminalSession.getTitle();
 
             String displayTitle = (name != null && !name.isEmpty()) ? name :
-                                  (title != null && !title.isEmpty()) ? title : "Terminal";
+                                  (title != null && !title.isEmpty()) ? title : mActivity.getString(R.string.session_default_title);
 
             titleView.setText(displayTitle);
 
