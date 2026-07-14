@@ -28,4 +28,13 @@
         <item>landscape</item>
     </string-array>
 
+    <string-array name="locale_override_entries">
+        <item>@string/locale_override_entry_system</item>
+        <item>@string/locale_override_entry_english</item>
+    </string-array>
+    <string-array name="locale_override_values">
+        <item>system</item>
+        <item>en</item>
+    </string-array>
+
 </resources>

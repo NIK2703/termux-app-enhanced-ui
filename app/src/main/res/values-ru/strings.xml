@@ -354,4 +354,10 @@
     <string name="msg_extra_keys_load_failed">Не удалось загрузить и установить свойство «%1$s» из файла свойств: %2$s</string>
     <string name="msg_extra_keys_create_failed">Не удаётся создать дополнительные клавиши по умолчанию</string>
 
+
+    <!-- App language override -->
+    <string name="locale_override_title">Язык приложения</string>
+    <string name="locale_override_summary">Переопределить язык приложения (автоперевод, возможны неточности)</string>
+    <string name="locale_override_entry_system">Системный язык</string>
+    <string name="locale_override_entry_english">Английский</string>
 </resources>

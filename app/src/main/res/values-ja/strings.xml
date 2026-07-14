@@ -221,4 +221,10 @@
     <string name="theme_mode_summary">アプリとターミナルのテーマを選択</string>
     <string name="color_scheme_dialog_title">ターミナルのカラースキーム</string>
     <string name="termux_keyboard_header">キーボード</string>
+
+    <!-- App language override -->
+    <string name="locale_override_title">アプリの言語</string>
+    <string name="locale_override_summary">アプリの言語を上書き（自動翻訳、不正確な場合あり）</string>
+    <string name="locale_override_entry_system">システム言語</string>
+    <string name="locale_override_entry_english">英語</string>
 </resources>

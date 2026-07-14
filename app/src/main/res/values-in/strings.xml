@@ -287,4 +287,10 @@
     <plurals name="notification_tasks_separator">
 <item quantity="other">, %d tugas</item>
     </plurals>
+
+    <!-- App language override -->
+    <string name="locale_override_title">Bahasa aplikasi</string>
+    <string name="locale_override_summary">Timpa bahasa aplikasi (terjemahan otomatis, mungkin tidak akurat)</string>
+    <string name="locale_override_entry_system">Bahasa sistem</string>
+    <string name="locale_override_entry_english">Inggris</string>
 </resources>

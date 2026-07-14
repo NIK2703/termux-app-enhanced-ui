@@ -12,6 +12,7 @@ import androidx.preference.SeekBarPreference;
 
 import com.termux.R;
 import com.termux.app.TermuxActivity;
+import com.termux.app.TermuxLocaleUtils;
 import com.termux.shared.logger.Logger;
 import com.termux.shared.termux.TermuxConstants;
 import com.termux.shared.termux.extrakeys.ColorSchemeUtils;
@@ -69,6 +70,29 @@ public class AppearancePreferencesFragment extends PreferenceFragmentCompat {
                 if (activity != null) {
                     activity.recreate();
                 }
+                return true;
+            });
+        }
+
+        // --- App language ---
+        final ListPreference localePref = findPreference("locale_override");
+        if (localePref != null) {
+            String currentLocale = TermuxLocaleUtils.getLocaleOverride(context);
+            if (currentLocale != null)
+                localePref.setValue(currentLocale);
+            else
+                localePref.setValue("system");
+
+            localePref.setOnPreferenceChangeListener((preference, newValue) -> {
+                String val = (String) newValue;
+                TermuxLocaleUtils.setLocaleOverride(context, val);
+                // Recreate Settings activity so strings update immediately.
+                AppCompatActivity activity = (AppCompatActivity) getActivity();
+                if (activity != null) {
+                    activity.recreate();
+                }
+                // Notify main terminal activity if running.
+                TermuxActivity.updateTermuxActivityStyling(context, true);
                 return true;
             });
         }

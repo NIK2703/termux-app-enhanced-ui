@@ -235,4 +235,10 @@
     <string name="title_share_selected_text_with">إرسال النص المحدد إلى:</string>
     <string name="title_share_transcript">سجل الطرفية</string>
     <string name="title_share_transcript_with">إرسال السجل إلى:</string>
+
+    <!-- App language override -->
+    <string name="locale_override_title">لغة التطبيق</string>
+    <string name="locale_override_summary">تجاوز لغة التطبيق (ترجمة آلية، قد تكون غير دقيقة)</string>
+    <string name="locale_override_entry_system">لغة النظام</string>
+    <string name="locale_override_entry_english">الإنجليزية</string>
 </resources>

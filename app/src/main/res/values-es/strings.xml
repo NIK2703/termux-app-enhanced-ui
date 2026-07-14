@@ -222,4 +222,10 @@
     <string name="session_null_title">sesión nula</string>
     <string name="msg_extra_keys_load_failed">No se pudo cargar y establecer la propiedad \"%1$s\" del archivo de propiedades: %2$s</string>
     <string name="msg_extra_keys_create_failed">No se pueden crear las teclas adicionales predeterminadas</string>
+
+    <!-- App language override -->
+    <string name="locale_override_title">Idioma de la app</string>
+    <string name="locale_override_summary">Anular el idioma de la app (traducción automática, posible inexactitud)</string>
+    <string name="locale_override_entry_system">Idioma del sistema</string>
+    <string name="locale_override_entry_english">Inglés</string>
 </resources>

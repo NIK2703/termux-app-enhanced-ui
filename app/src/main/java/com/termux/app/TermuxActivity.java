@@ -113,6 +113,11 @@ import org.json.JSONObject;
  */
 public final class TermuxActivity extends AppCompatActivity implements ServiceConnection {
 
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(TermuxLocaleUtils.wrapContext(newBase));
+    }
+
     /**
      * The connection to the {@link TermuxService}. Requested in {@link #onCreate(Bundle)} with a call to
      * {@link #bindService(Intent, ServiceConnection, int)}, and obtained and stored in

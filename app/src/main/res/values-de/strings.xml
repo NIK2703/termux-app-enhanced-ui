@@ -225,4 +225,10 @@
     <string name="theme_mode_summary">App- und Terminal-Design auswählen</string>
     <string name="theme_mode_title">App-Design</string>
 
+
+    <!-- App language override -->
+    <string name="locale_override_title">App-Sprache</string>
+    <string name="locale_override_summary">App-Sprache überschreiben (automatische Übersetzung, mögliche Ungenauigkeiten)</string>
+    <string name="locale_override_entry_system">Systemsprache</string>
+    <string name="locale_override_entry_english">Englisch</string>
 </resources>

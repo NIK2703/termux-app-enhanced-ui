@@ -13,6 +13,15 @@
             app:defaultValue="system"
             app:iconSpaceReserved="false" />
 
+        <ListPreference
+            app:key="locale_override"
+            app:title="@string/locale_override_title"
+            app:summary="@string/locale_override_summary"
+            app:entries="@array/locale_override_entries"
+            app:entryValues="@array/locale_override_values"
+            app:defaultValue="system"
+            app:iconSpaceReserved="false" />
+
         <Preference
             app:key="color_scheme_light"
             app:title="@string/color_scheme_light_title"

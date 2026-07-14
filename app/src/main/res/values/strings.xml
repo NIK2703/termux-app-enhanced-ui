@@ -350,4 +350,10 @@
     <string name="msg_extra_keys_load_failed">Could not load and set the \"%1$s\" property from the properties file: %2$s</string>
     <string name="msg_extra_keys_create_failed">Can\'t create default extra keys</string>
 
+    <!-- App language override -->
+    <string name="locale_override_title">App language</string>
+    <string name="locale_override_summary">Override app language (auto-translate may be inaccurate)</string>
+    <string name="locale_override_entry_system">System default</string>
+    <string name="locale_override_entry_english">English</string>
+
 </resources>

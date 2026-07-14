@@ -222,4 +222,10 @@
     <item quantity="one">, %d tâche</item>
     <item quantity="other">, %d tâches</item>
     </plurals>
+
+    <!-- App language override -->
+    <string name="locale_override_title">Langue de l\'appli</string>
+    <string name="locale_override_summary">Surcharger la langue (traduction automatique, inexactitudes possibles)</string>
+    <string name="locale_override_entry_system">Langue du système</string>
+    <string name="locale_override_entry_english">Anglais</string>
 </resources>

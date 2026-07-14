@@ -231,4 +231,10 @@
 <item quantity="one">, %d tarefa</item>
     <item quantity="other">, %d tarefas</item>
     </plurals>
+
+    <!-- App language override -->
+    <string name="locale_override_title">Idioma do aplicativo</string>
+    <string name="locale_override_summary">Substituir idioma do app (tradução automática, possíveis imprecisões)</string>
+    <string name="locale_override_entry_system">Idioma do sistema</string>
+    <string name="locale_override_entry_english">Inglês</string>
 </resources>

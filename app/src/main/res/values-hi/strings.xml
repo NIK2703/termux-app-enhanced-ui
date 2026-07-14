@@ -220,4 +220,10 @@
         <item quantity="one">, %d कार्य</item>
         <item quantity="other">, %d कार्य</item>
     </plurals>
+
+    <!-- App language override -->
+    <string name="locale_override_title">ऐप भाषा</string>
+    <string name="locale_override_summary">ऐप भाषा ओवरराइड करें (स्वचालित अनुवाद, अशुद्धियाँ हो सकती हैं)</string>
+    <string name="locale_override_entry_system">सिस्टम भाषा</string>
+    <string name="locale_override_entry_english">अंग्रेज़ी</string>
 </resources>

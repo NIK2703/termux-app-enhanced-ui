@@ -30,6 +30,11 @@ import com.termux.shared.theme.NightMode;
 public class SettingsActivity extends AppCompatActivity {
 
     @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(com.termux.app.TermuxLocaleUtils.wrapContext(newBase));
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 

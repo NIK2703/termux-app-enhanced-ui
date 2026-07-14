@@ -239,4 +239,10 @@
         <item quantity="other">, %d görev</item>
     </plurals>
 
+
+    <!-- App language override -->
+    <string name="locale_override_title">Uygulama dili</string>
+    <string name="locale_override_summary">Uygulama dilini geçersiz kıl (otomatik çeviri, yanlışlıklar olabilir)</string>
+    <string name="locale_override_entry_system">Sistem dili</string>
+    <string name="locale_override_entry_english">İngilizce</string>
 </resources>
