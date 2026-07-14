@@ -3139,7 +3139,23 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     }
 
 
+    /**
+     * Sync the pager adapter and tab strip with the live session list.
+     * No-arg overload — delegates to the indexed version with -1.
+     */
     public void termuxSessionListNotifyUpdated() {
+        termuxSessionListNotifyUpdated(-1);
+    }
+
+    /**
+     * Sync the pager adapter and tab strip with the live session list.
+     *
+     * @param preferredIndex When a tab has just been removed, the position of the removed tab in
+     *                       the OLD list; the method selects the session that shifted into this
+     *                       slot (the RIGHT neighbor).  Pass -1 for non-removal updates, which
+     *                       falls back to restoring the current session's position.
+     */
+    public void termuxSessionListNotifyUpdated(int preferredIndex) {
         // Keep the horizontal pager in sync with the live session list. Re-point the adapter at the
         // current list and refresh. We preserve the selected page by re-selecting the index of the
         // pending/active session afterwards, so adding/removing a tab does not snap the user to
@@ -3173,6 +3189,13 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                     // its attach never lined up with the recovery guard — never re-pointed
                     // mTerminalView, making the new tab appear un-switchable.
                     restoreIndex = newSize - 1;
+                } else if (preferredIndex >= 0) {
+                    // A tab was just removed — select the session at the removed tab's old position.
+                    // Everything after it shifted left by 1, so this slot now holds the RIGHT
+                    // neighbour of the closed tab. For the last tab (no right neighbour), the
+                    // caller (removeFinishedSession) already clamped index to newSize - 1, so this
+                    // selects the new last tab (left neighbour, which is the only option).
+                    restoreIndex = preferredIndex;
                 } else {
                     TerminalSession current = getCurrentSession();
                     restoreIndex = (current != null) ? mTermuxService.getIndexOfSession(current) : mTerminalPager.getCurrentItem();

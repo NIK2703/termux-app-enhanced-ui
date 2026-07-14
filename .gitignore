@@ -1,5 +1,6 @@
 # Agent artifacts
 AGENT*.md
+.hermes/
 AGENT*.java
 AGENT*.txt
 agent*.patch

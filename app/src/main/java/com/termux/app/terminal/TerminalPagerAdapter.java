@@ -79,12 +79,48 @@ public final class TerminalPagerAdapter extends RecyclerView.Adapter<TerminalPag
             for (int i = 0; i < newSize; i++) {
                 if (mSessions.get(i) != serviceSessions.get(i)) {
                     mSessions = new java.util.ArrayList<>(serviceSessions);
-                    notifyItemRangeRemoved(i, removedCount);
+                    int removeStart = i;
+
+                    // Shift mAttachedViews keys for items that moved down.
+                    // notifyItemRangeRemoved causes RecyclerView to update its own position tracking,
+                    // but our mAttachedViews map — keyed by position — is NOT updated when an
+                    // existing ViewHolder shifts to a lower slot.  Without this shift,
+                    // getAttachedView() returns null for the slot that the shifted page now occupies,
+                    // which makes onTerminalPageSelected() exit via the "pageView == null" deferred
+                    // path — and that deferred path's fallback (post + getAttachedView) never
+                    // recovers, because the stale key is never fixed.  The result: mTerminalView is
+                    // never re-pointed after closing a non-last tab, and updateTabs() finds the
+                    // dead session (currentSessionIndex = -1), so no tab is highlighted.
+                    if (!mAttachedViews.isEmpty()) {
+                        java.util.Map<Integer, TerminalView> shifted = new java.util.HashMap<>();
+                        int threshold = removeStart + removedCount;
+                        for (java.util.Map.Entry<Integer, TerminalView> e : mAttachedViews.entrySet()) {
+                            int pos = e.getKey();
+                            if (pos >= threshold)
+                                shifted.put(pos - removedCount, e.getValue());
+                            else if (pos < removeStart)
+                                shifted.put(pos, e.getValue());
+                            // pos in [removeStart, threshold) was the removed item — dropped.
+                        }
+                        mAttachedViews.clear();
+                        mAttachedViews.putAll(shifted);
+                    }
+
+                    notifyItemRangeRemoved(removeStart, removedCount);
                     return;
                 }
             }
             // No mismatch found in the shared portion → last item(s) were removed.
             mSessions = new java.util.ArrayList<>(serviceSessions);
+            // Remove the old tail positions from mAttachedViews (they are gone).
+            if (!mAttachedViews.isEmpty()) {
+                java.util.Map.Entry<Integer, TerminalView>[] entries =
+                    mAttachedViews.entrySet().toArray(new java.util.Map.Entry[0]);
+                for (java.util.Map.Entry<Integer, TerminalView> e : entries) {
+                    if (e.getKey() >= newSize)
+                        mAttachedViews.remove(e.getKey());
+                }
+            }
             notifyItemRangeRemoved(oldSize - removedCount, removedCount);
         }
         // Same size — no structural change; tab titles etc. handled by updateTabs().

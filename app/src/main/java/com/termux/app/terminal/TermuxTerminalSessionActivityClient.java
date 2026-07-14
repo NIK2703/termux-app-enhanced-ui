@@ -604,12 +604,16 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
             //       getTermuxSession(1)=C → switches from A to C.
             // In both cases the pager sync already restored the correct session; the stale-index
             // lookup overrides it.
-            termuxSessionListNotifyUpdated();
+            termuxSessionListNotifyUpdated(index);
         }
     }
 
     public void termuxSessionListNotifyUpdated() {
-        mActivity.termuxSessionListNotifyUpdated();
+        mActivity.termuxSessionListNotifyUpdated(-1);
+    }
+
+    public void termuxSessionListNotifyUpdated(int removedIndex) {
+        mActivity.termuxSessionListNotifyUpdated(removedIndex);
     }
 
     public void checkAndScrollToSession(TerminalSession session) {
