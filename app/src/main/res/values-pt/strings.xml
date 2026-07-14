@@ -12,16 +12,15 @@
 
 <resources>
     <string name="about_preference_title">Sobre</string>
-    <string name="about_preferences_summary">Sobre o aplicativo &TERMUX_APP_NAME;</string>
     <string name="action_autofill_password">Preencher senha automaticamente</string>
     <string name="action_autofill_username">Preencher automaticamente o nome de usuário</string>
     <string name="action_create_named_session_confirm">Criar</string>
     <string name="action_file_received_edit">Editar</string>
     <string name="action_file_received_open_directory">Abrir diretório</string>
     <string name="action_font_terminal">Fonte</string>
-    <string name="action_kill_process">Matar processo (%d)</string>
+    <string name="action_kill_process">Finalizar processo (%d)</string>
     <string name="action_new_session">Nova sessão</string>
-    <string name="action_new_session_failsafe">Modo de segurança</string>
+    <string name="action_new_session_failsafe">Failsafe</string>
     <string name="action_open_help">Ajuda</string>
     <string name="action_open_settings">Configurações</string>
     <string name="action_rename_session_confirm">Definir</string>
@@ -74,9 +73,6 @@
     <string name="color_scheme_dark_title">Esquema de Cores do Terminal (Tema Escuro)</string>
     <string name="color_scheme_light_summary">Esquema de cores aplicado quando o tema do aplicativo é claro</string>
     <string name="color_scheme_light_title">Esquema de Cores do Terminal (Tema Claro)</string>
-    <string name="color_scheme_preferences_summary">Escolha um esquema de cores para o terminal</string>
-    <string name="color_scheme_preferences_title">Esquema de Cores do Terminal</string>
-    <string name="copy_text">Copiar</string>
     <string name="directory_history_clear_confirm">Limpar todo o histórico de diretórios? Esta ação não pode ser desfeita.</string>
     <string name="directory_history_clear_dialog_title">Limpar Histórico de Diretórios</string>
     <string name="directory_history_cleared">Histórico de diretórios limpo</string>
@@ -137,7 +133,6 @@
     <string name="notification_action_wake_unlock">Liberar wakelock</string>
     <string name="notification_wake_lock_held"> (wakelock ativo)</string>
     <string name="panel_transparency_title">Transparência do painel</string>
-    <string name="paste_text">Colar</string>
     <string name="per_directory_message_history_summary">Manter um histórico de mensagens separado para cada diretório de trabalho. Quando desativado, todas as sessões compartilham um histórico global.</string>
     <string name="per_directory_message_history_title">Histórico de Mensagens por Diretório</string>
     <string name="permission_run_command_description">executar comandos arbitrários no ambiente do &TERMUX_APP_NAME; e acessar arquivos</string>
@@ -154,8 +149,8 @@
     <string name="tab_close_description">Fechar aba</string>
     <string name="termux_api_preferences_summary">Preferências para o aplicativo &TERMUX_API_APP_NAME;</string>
     <string name="termux_api_preferences_title">&TERMUX_API_APP_NAME;</string>
-    <string name="termux_button_bg_active_alpha_title" formatted="false">Transparência de elemento ativo (10–20%)</string>
-    <string name="termux_button_bg_inactive_alpha_title" formatted="false">Transparência de elemento inativo (0–10%)</string>
+    <string name="termux_button_bg_active_alpha_title" formatted="false">Transparência de elemento ativo</string>
+    <string name="termux_button_bg_inactive_alpha_title" formatted="false">Transparência de elemento inativo</string>
     <string name="termux_crash_report_notifications_enabled_off">Desativar notificações para relatórios de falha.</string>
     <string name="termux_crash_report_notifications_enabled_on">Mostrar notificações para relatórios de falha. (Padrão)</string>
     <string name="termux_crash_report_notifications_enabled_title">Notificações de Relatório de Falha</string>
@@ -201,16 +196,11 @@
     <string name="text_input_show_summary_on">O campo de entrada de texto está visível acima das teclas extras</string>
     <string name="text_input_show_title">Mostrar campo de entrada de texto</string>
     <string name="text_input_title">Entrada de Texto</string>
-    <string name="text_selection_more">Mais…</string>
-    <string name="theme_dark">Escuro</string>
-    <string name="theme_light">Claro</string>
-    <string name="theme_summary">Tema do aplicativo para &TERMUX_APP_NAME;</string>
-    <string name="theme_system">Padrão do Sistema</string>
     <string name="theme_title">Tema do Aplicativo</string>
     <string name="theme_mode_title">Tema do Aplicativo</string>
     <string name="theme_mode_summary">Escolher tema do aplicativo e terminal</string>
     <string name="title_activity_termux_settings">Configurações do &TERMUX_APP_NAME;</string>
-    <string name="title_confirm_kill_process">Realmente matar esta sessão?</string>
+    <string name="title_confirm_kill_process">Realmente finalizar esta sessão?</string>
     <string name="title_create_named_session">Nova sessão nomeada</string>
     <string name="title_file_received">Salvar arquivo em ~/downloads/</string>
     <string name="title_max_terminals_reached">Máximo de terminais atingido</string>

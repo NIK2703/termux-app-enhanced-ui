@@ -139,7 +139,7 @@ public final class TermuxPreferenceConstants {
          */
         public static final String KEY_SUGGESTIONS_MAX_COUNT = "suggestions_max_count";
         public static final int DEFAULT_VALUE_SUGGESTIONS_MAX_COUNT = 4;
-        public static final int SUGGESTIONS_MAX_COUNT_MIN = 1;
+        public static final int SUGGESTIONS_MAX_COUNT_MIN = 0;
         public static final int SUGGESTIONS_MAX_COUNT_MAX = 10;
 
 

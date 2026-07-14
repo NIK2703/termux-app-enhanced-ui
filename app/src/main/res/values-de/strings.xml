@@ -19,7 +19,7 @@
     <string name="action_font_terminal">Schriftart</string>
     <string name="action_kill_process">Prozess beenden (%d)</string>
     <string name="action_new_session">Neue Sitzung</string>
-    <string name="action_new_session_failsafe">Abgesicherter Modus</string>
+    <string name="action_new_session_failsafe">Failsafe</string>
     <string name="action_open_help">Hilfe</string>
     <string name="action_open_settings">Einstellungen</string>
     <string name="action_rename_session_confirm">Festlegen</string>
@@ -149,8 +149,8 @@
     <string name="tab_close_description">Tab schließen</string>
     <string name="termux_api_preferences_summary">Einstellungen für die &TERMUX_API_APP_NAME;-App</string>
     <string name="termux_api_preferences_title">&TERMUX_API_APP_NAME;</string>
-    <string name="termux_button_bg_active_alpha_title" formatted="false">Hintergrundtransparenz des aktiven Elements (10–20%)</string>
-    <string name="termux_button_bg_inactive_alpha_title" formatted="false">Hintergrundtransparenz des inaktiven Elements (0–10%)</string>
+    <string name="termux_button_bg_active_alpha_title" formatted="false">Hintergrundtransparenz des aktiven Elements</string>
+    <string name="termux_button_bg_inactive_alpha_title" formatted="false">Hintergrundtransparenz des inaktiven Elements</string>
     <string name="termux_crash_report_notifications_enabled_off">Benachrichtigungen für Absturzberichte deaktivieren.</string>
     <string name="termux_crash_report_notifications_enabled_on">Benachrichtigungen für Absturzberichte anzeigen. (Standard)</string>
     <string name="termux_crash_report_notifications_enabled_title">Absturzbericht-Benachrichtigungen</string>

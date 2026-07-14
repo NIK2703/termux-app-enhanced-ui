@@ -45,9 +45,9 @@
 <string name="title_open_url_with">URL\'yi Şununla Aç</string>
 <string name="msg_storage_permission_not_granted">Depolama izni verilmemiş.</string>
 <string name="msg_file_saved_successfully">%1$s dosyası başarıyla \"%2$s\" konumuna kaydedildi</string>
-<string name="error_sending_sigkill_to_process">Kullanıcı isteğiyle veya android çalıştırma hizmetini öldürdüğü için işleme SIGKILL gönderiliyor</string>
+<string name="error_sending_sigkill_to_process">Kullanıcı isteğiyle veya android çalıştırma hizmetini sonlandırdığı için işleme SIGKILL gönderiliyor</string>
 <string name="error_executable_unset">Kabuk komutu için çalıştırılabilir dosya ayarlanmamış \"%1$s\"</string>
-<string name="error_execution_cancelled">Çalıştırma hizmeti öldürüldüğü için çalışma iptal edildi</string>
+<string name="error_execution_cancelled">Çalıştırma hizmeti sonlandırıldığı için çalışma iptal edildi</string>
 <string name="error_failed_to_execute_termux_session_command">\"%1$s\" termux oturum komutu çalıştırılamadı</string>
 <string name="error_failed_to_execute_app_shell_command">\"%1$s\" uygulama kabuk komutu çalıştırılamadı</string>
 <string name="error_exception_received_while_executing_termux_session_command">\"%1$s\" termux oturum komutu çalıştırılırken istisna alındı.\nİstisna: %2$s</string>

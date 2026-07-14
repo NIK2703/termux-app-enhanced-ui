@@ -61,13 +61,15 @@
     <string name="backup_service_notification_restore_title">استعادة بيانات Termux</string>
     <string name="backup_service_notification_success">تم إنشاء النسخة الاحتياطية بنجاح</string>
     <string name="backup_service_notification_title">نسخ احتياطي لبيانات Termux</string>
-    <string name="bootstrap_error_abort">إجهاض</string>
+    <string name="bootstrap_error_abort">إيقاف</string>
     <string name="bootstrap_error_body">&TERMUX_APP_NAME; غير قادر على تثبيت حزم التمهيد.</string>
     <string name="bootstrap_error_installed_on_portable_sd">&TERMUX_APP_NAME; لا يمكن تثبيته على
         بطاقة sd محمولة/خارجية/قابلة للإزالة على جهازك.
         \nالبرامج الثنائية للتمهيد المترجمة لـ &TERMUX_APP_NAME; لها مسار $PREFIX ثابت ولا يمكن تثبيتها
         تحت أي مسار غير:\n%1$s.</string>
-    <string name="bootstrap_error_not_primary_user_message">&TERMUX_APP_NAME; يمكن تشغيله فقط كمستخدم أساسي.\n        \nالبرامج الثنائية للتمهيد المترجمة لـ &TERMUX_APP_NAME; لها مسار $PREFIX ثابت ولا يمكن تثبيتها تحت أي مسار آخر غير:\n%1$s.</string>
+    <string name="bootstrap_error_not_primary_user_message">&TERMUX_APP_NAME; يمكن تشغيله فقط كمستخدم أساسي.
+        \nالبرامج الثنائية للتمهيد المترجمة لـ &TERMUX_APP_NAME; لها مسار $PREFIX ثابت ولا يمكن تثبيتها
+        تحت أي مسار آخر غير:\n%1$s.</string>
     <string name="bootstrap_error_title">تعذر تثبيت التمهيد</string>
     <string name="bootstrap_error_try_again">حاول مرة أخرى</string>
     <string name="bootstrap_installer_body">جاري تثبيت حزم التمهيد…</string>
@@ -87,15 +89,15 @@
         قم بمنحه من الإعدادات -> التطبيقات -> &TERMUX_APP_NAME; -> خيارات متقدمة</string>
     <string name="error_font_copy_failed">فشل تطبيق الخط</string>
     <string name="error_run_command_service_api_help">قم بزيارة %1$s لمزيد من المعلومات حول استخدام Intent RUN_COMMAND.</string>
-    <string name="error_run_command_service_invalid_execution_command_runner">مُشغّل أمر تنفيذ غير صالح لـ RunCommandService: `%1$s`</string>
+    <string name="error_run_command_service_invalid_execution_command_runner">رنر أمر تنفيذ غير صالح لـ RunCommandService: `%1$s`</string>
     <string name="error_run_command_service_invalid_intent_action">إجراء نية غير صالح لـ RunCommandService: `%1$s`</string>
     <string name="error_run_command_service_mandatory_extra_missing">حقل إضافي إلزامي مفقود لـ RunCommandService: \"%1$s\"</string>
     <string name="error_styling_not_installed">تطبيق الملحق &TERMUX_STYLING_APP_NAME; غير مثبت.</string>
     <string name="error_termux_service_execution_command_shell_name_unset">لم يتم تعيين اسم الصدفة ولكن تم تمرير وضع إنشاء الصدفة `%1$s`</string>
-    <string name="error_termux_service_invalid_execution_command_runner">مُشغّل أمر تنفيذ غير صالح لـ TermuxService: `%1$s`</string>
+    <string name="error_termux_service_invalid_execution_command_runner">رنر أمر تنفيذ غير صالح لـ TermuxService: `%1$s`</string>
     <string name="error_termux_service_start_failed_bg">فشل بدء TermuxService أثناء وجود التطبيق في الخلفية بسبب قيود الخلفية في أندرويد.</string>
     <string name="error_termux_service_start_failed_general">فشل بدء TermuxService. تحقق من سجل النظام (logcat) لرسالة الاستثناء.</string>
-    <string name="error_termux_service_unsupported_execution_command_runner">مُشغّل أمر تنفيذ غير مدعوم لـ TermuxService: `%1$s`</string>
+    <string name="error_termux_service_unsupported_execution_command_runner">رنر أمر تنفيذ غير مدعوم لـ TermuxService: `%1$s`</string>
     <string name="error_termux_service_unsupported_execution_command_shell_create_mode">وضع إنشاء صدفة أمر تنفيذ غير مدعوم لـ TermuxService: `%1$s`</string>
     <string name="file_receiver_error_cannot_create_dir">لا يمكن إنشاء المجلد: %s</string>
     <string name="file_receiver_error_cannot_open">لا يمكن فتح الملف: %s</string>
@@ -171,8 +173,8 @@
     <string name="tab_close_description">إغلاق علامة التبويب</string>
     <string name="termux_api_preferences_summary">تفضيلات تطبيق &TERMUX_API_APP_NAME;</string>
     <string name="termux_api_preferences_title">&TERMUX_API_APP_NAME;</string>
-    <string name="termux_button_bg_active_alpha_title" formatted="false">شفافية العنصر النشط (10–20%)</string>
-    <string name="termux_button_bg_inactive_alpha_title" formatted="false">شفافية العنصر غير النشط (0–10%)</string>
+    <string name="termux_button_bg_active_alpha_title" formatted="false">شفافية العنصر النشط</string>
+    <string name="termux_button_bg_inactive_alpha_title" formatted="false">شفافية العنصر غير النشط</string>
     <string name="termux_crash_report_notifications_enabled_off">تعطيل الإشعارات لتقارير الأعطال.</string>
     <string name="termux_crash_report_notifications_enabled_on">عرض الإشعارات لتقارير الأعطال. (افتراضي)</string>
     <string name="termux_crash_report_notifications_enabled_title">إشعارات تقارير الأعطال</string>

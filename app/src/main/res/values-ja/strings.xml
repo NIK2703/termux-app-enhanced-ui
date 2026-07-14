@@ -114,8 +114,8 @@
 <string name="termux_terminal_view_preferences_title">ターミナル表示</string>
 <string name="termux_terminal_view_preferences_summary">ターミナル表示の設定</string>
 <string name="termux_terminal_view_view_header">表示</string>
-<string name="termux_button_bg_inactive_alpha_title" formatted="false">非アクティブ項目の背景透明度（0–10%）</string>
-<string name="termux_button_bg_active_alpha_title" formatted="false">アクティブ項目の背景透明度（10–20%）</string>
+<string name="termux_button_bg_inactive_alpha_title" formatted="false">非アクティブ項目の背景透明度</string>
+<string name="termux_button_bg_active_alpha_title" formatted="false">アクティブ項目の背景透明度</string>
 <string name="termux_terminal_view_terminal_margin_adjustment_title">ターミナルマージン調整</string>
 <string name="termux_terminal_view_terminal_margin_adjustment_off">ターミナルのマージン調整を無効にします。</string>
 <string name="termux_terminal_view_terminal_margin_adjustment_on">ターミナルのマージン調整を有効にします。ソフトウェアキーボードが追加キーやターミナル表示の一部を覆う問題を修正するには有効にする必要があります。デバイスで画面のちらつきが発生する場合は無効にしてください。(デフォルト)</string>
@@ -137,7 +137,7 @@
 <string name="per_directory_message_history_summary">作業ディレクトリごとに個別のメッセージ履歴を保持します。無効にすると、すべてのセッションで1つのグローバル履歴を共有します。</string>
 <string name="text_input_title">テキスト入力</string>
 <string name="text_input_append_enter_title">送信時にEnterを追加</string>
-<string name="text_input_append_enter_summary">入力フィールドから送信する際に、Enter信号も送信します。無効にすると、末尾に改行のない生テキストが送信されます。</string>
+<string name="text_input_append_enter_summary">入力フィールドから送信する際に、Enter（改行）も送信します。無効にすると、末尾に改行のない生テキストが送信されます。</string>
 <string name="directory_history_title">ディレクトリ履歴</string>
 <string name="directory_history_max_title">最大記憶ディレクトリ数</string>
 <string name="restore_sessions_title">起動時にタブを復元</string>
@@ -216,7 +216,7 @@
 <string name="session_null_title">null セッション</string>
 <string name="msg_extra_keys_load_failed">プロパティファイルから\"%1$s\"プロパティを読み込んで設定できませんでした: %2$s</string>
 <string name="msg_extra_keys_create_failed">デフォルトの追加キーを作成できませんでした</string>
-    <string name="about_preference_title">バージョン情報</string>
+    <string name="about_preference_title">アプリについて</string>
     <string name="theme_mode_title">アプリのテーマ</string>
     <string name="theme_mode_summary">アプリとターミナルのテーマを選択</string>
     <string name="color_scheme_dialog_title">ターミナルのカラースキーム</string>

@@ -24,7 +24,7 @@
     <string name="bootstrap_error_not_primary_user_message">&TERMUX_APP_NAME; solo puede ejecutarse como usuario principal.\nLos binarios de arranque compilados para &TERMUX_APP_NAME; tienen la ruta $PREFIX hardcodeada y no pueden instalarse en otra ruta que no sea:\n%1$s.</string>
     <string name="bootstrap_error_installed_on_portable_sd">&TERMUX_APP_NAME; no puede instalarse en una tarjeta SD portátil/externa/extraíble de su dispositivo.\nLos binarios de arranque compilados para &TERMUX_APP_NAME; tienen la ruta $PREFIX hardcodeada y no pueden instalarse en otra ruta que no sea:\n%1$s.</string>
     <string name="action_new_session">Nueva sesión</string>
-    <string name="action_new_session_failsafe">Modo seguro</string>
+    <string name="action_new_session_failsafe">A prueba de fallos</string>
     <string name="title_max_terminals_reached">Máximo de terminales alcanzado</string>
     <string name="msg_max_terminals_reached">Cierre las existentes antes de crear una nueva.</string>
     <string name="title_rename_session">Establecer nombre de sesión</string>
@@ -36,7 +36,7 @@
     <string name="msg_enabling_terminal_toolbar">Habilitando barra de herramientas del terminal</string>
     <string name="msg_disabling_terminal_toolbar">Deshabilitando barra de herramientas del terminal</string>
     <string name="action_select_url">Seleccionar URL</string>
-    <string name="title_select_url_dialog">Pulse URL para copiar o mantenga presionado para abrir</string>
+    <string name="title_select_url_dialog">Pulse la URL para copiar o manténgala pulsada para abrir</string>
     <string name="title_select_url_none_found">No se encontró ninguna URL en el terminal.</string>
     <string name="msg_select_url_copied_to_clipboard">URL copiada al portapapeles</string>
     <string name="action_share_transcript">Compartir transcripción</string>
@@ -116,8 +116,8 @@
     <string name="termux_terminal_view_preferences_title">Vista de terminal</string>
     <string name="termux_terminal_view_preferences_summary">Preferencias para la vista de terminal</string>
     <string name="termux_terminal_view_view_header">Vista</string>
-    <string name="termux_button_bg_inactive_alpha_title">Transparencia de fondo de elementos inactivos</string>
-    <string name="termux_button_bg_active_alpha_title">Transparencia de fondo de elementos activos</string>
+    <string name="termux_button_bg_inactive_alpha_title" formatted="false">Transparencia de elemento inactivo</string>
+    <string name="termux_button_bg_active_alpha_title" formatted="false">Transparencia de elemento activo</string>
     <string name="termux_terminal_view_terminal_margin_adjustment_title">Ajuste de margen de terminal</string>
     <string name="termux_terminal_view_terminal_margin_adjustment_off">El ajuste de margen de terminal estará deshabilitado.</string>
     <string name="termux_terminal_view_terminal_margin_adjustment_on">El ajuste de margen de terminal estará habilitado. Debe estar habilitado para intentar solucionar el problema donde el teclado virtual cubre parte de las teclas adicionales/vista de terminal. Si causa parpadeo de pantalla en su dispositivo, desactívelo. (Predeterminado)</string>
@@ -234,5 +234,5 @@
 
     <!-- Text input auto-complete -->
     <string name="suggestions_max_count_title">Máx. sugerencias</string>
-    <string name="suggestions_max_count_summary">Autocompletar del historial de mensajes (1–10)</string>
+    <string name="suggestions_max_count_summary">Sugerencias de autocompletado a partir del historial de mensajes (1–10)</string>
 </resources>

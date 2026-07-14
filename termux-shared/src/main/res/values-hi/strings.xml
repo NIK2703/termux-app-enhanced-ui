@@ -28,11 +28,11 @@
     <string name="error_display_over_other_apps_permission_not_granted">Android >= 10 पर बैकग्राउंड से गतिविधियों और सेवाओं को शुरू करने के लिए %1$s को \"डिस्प्ले ओवर अदर ऐप्स\" अनुमति आवश्यक है। इसे Android सेटिंग्स -> ऐप्स -> %1$s -> उन्नत -> अन्य ऐप्स पर ड्रॉ करें से प्रदान करें। अनुमति का नाम विभिन्न उपकरणों पर अलग हो सकता है, जैसे Xiaomi पर इसे \"बैकग्राउंड में चलते समय पॉप-अप विंडो प्रदर्शित करें\" कहा जाता है, डिवाइस-विशिष्ट समस्याओं के लिए https://dontkillmyapp.com देखें।</string>
     <string name="error_enable_component_failed">%1$s/%2$s कंपोनेंट सक्षम करने में विफल</string>
     <string name="error_exception_received_while_executing_app_shell_command">\"%1$s\" ऐप शेल कमांड निष्पादित करते समय अपवाद प्राप्त हुआ।\nअपवाद: %2$s</string>
-    <string name="error_exception_received_while_executing_termux_session_command">\"%1$s\" टर्मेक्स सत्र कमांड निष्पादित करते समय अपवाद प्राप्त हुआ।\nअपवाद: %2$s</string>
+    <string name="error_exception_received_while_executing_termux_session_command">\"%1$s\" टर्मक्स सत्र कमांड निष्पादित करते समय अपवाद प्राप्त हुआ।\nअपवाद: %2$s</string>
     <string name="error_executable_unset">शेल कमांड के लिए एक्ज़ीक्यूटेबल \"%1$s\" सेट नहीं है</string>
     <string name="error_execution_cancelled">एक्ज़ीक्यूशन सर्विस को मारा जा रहा है इसलिए एक्ज़ीक्यूशन रद्द कर दिया गया है</string>
     <string name="error_failed_to_execute_app_shell_command">\"%1$s\" ऐप शेल कमांड निष्पादित करने में विफल</string>
-    <string name="error_failed_to_execute_termux_session_command">\"%1$s\" टर्मेक्स सत्र कमांड निष्पादित करने में विफल</string>
+    <string name="error_failed_to_execute_termux_session_command">\"%1$s\" टर्मक्स सत्र कमांड निष्पादित करने में विफल</string>
     <string name="error_failed_to_request_permissions">अनुरोध कोड %1$d के साथ अनुमतियाँ अनुरोध करने में विफल: %2$s</string>
     <string name="error_get_package_context_failed_help_url_message">अधिक जानकारी के लिए %1$s देखें।</string>
     <string name="error_get_package_context_failed_message">\"%1$s\" पैकेज के लिए पैकेज संदर्भ प्राप्त करने में विफल। यह इसलिए हो सकता है क्योंकि ऐप पैकेज इंस्टॉल नहीं है या इसका वर्तमान ऐप से APK हस्ताक्षर अलग है।</string>
@@ -58,10 +58,10 @@
     <string name="msg_storage_permission_granted_on_request">उपयोगकर्ता ने अनुरोध पर स्टोरेज अनुमति प्रदान की</string>
     <string name="msg_storage_permission_not_granted">स्टोरेज अनुमति प्रदान नहीं की गई।</string>
     <string name="msg_storage_permission_not_granted_on_request">उपयोगकर्ता ने अनुरोध पर स्टोरेज अनुमति प्रदान नहीं की</string>
-    <string name="msg_termux_app_required_by_app">&TERMUX_APP_NAME; ऐप द्वारा टर्मेक्स कमांड चलाने के लिए %1$s ऐप को इसकी आवश्यकता है।</string>
-    <string name="notification_channel_app">टर्मेक्स ऐप</string>
-    <string name="notification_channel_plugin_errors">टर्मेक्स प्लगइन कमांड त्रुटियाँ</string>
-    <string name="notification_channel_run_command">टर्मेक्स RunCommandService</string>
+    <string name="msg_termux_app_required_by_app">&TERMUX_APP_NAME; ऐप द्वारा टर्मक्स कमांड चलाने के लिए %1$s ऐप को इसकी आवश्यकता है।</string>
+    <string name="notification_channel_app">टर्मक्स ऐप</string>
+    <string name="notification_channel_plugin_errors">टर्मक्स प्लगइन कमांड त्रुटियाँ</string>
+    <string name="notification_channel_run_command">टर्मक्स RunCommandService</string>
     <string name="setting_launcher_icon_enabled_off">लॉन्चर आइकन अक्षम हो जाएगा।</string>
     <string name="setting_launcher_icon_enabled_on">लॉन्चर आइकन सक्षम हो जाएगा। (डिफ़ॉल्ट)</string>
     <string name="setting_launcher_icon_title">लॉन्चर आइकन सक्षम</string>
@@ -70,10 +70,11 @@
     <string name="title_share_with">इसके साथ साझा करें</string>
     <string name="msg_report_issue">यदि आप इस समस्या की रिपोर्ट करना चाहते हैं, तो विकल्प मेनू (ऊपर दाईं ओर 3 डॉट्स) से इसका टेक्स्ट कॉपी करें और निम्न लिंक में से किसी पर इसे पोस्ट करें।
 
-यदि आप टर्मेक्स ऐप क्रैश रिपोर्ट पोस्ट कर रहे हैं, तो कृपया बताएं कि आप क्या कर रहे थे जिससे क्रैश हुआ और यदि संभव हो तो इसे कैसे पुनरुत्पन्न करें।
+यदि आप टर्मक्स ऐप क्रैश रिपोर्ट पोस्ट कर रहे हैं, तो कृपया बताएं कि आप क्या कर रहे थे जिससे क्रैश हुआ और यदि संभव हो तो इसे कैसे पुनरुत्पन्न करें।
 
 यदि आप GitHub पर कोई समस्या पोस्ट कर रहे हैं, तो उस रिपोज़िटरी में पोस्ट करें जिससे रिपोर्ट संबंधित है। कॉपी किए गए टेक्स्ट या इस रिपोर्ट की फ़ाइल के बजाय **(आंशिक) स्क्रीनशॉट** के साथ खोली गई समस्याएँ या भेजे गए ईमेल **स्वचालित रूप से बंद/हटाए जाने की संभावना** हैं। आप वैकल्पिक रूप से कोई भी डिवाइस-विशिष्ट जानकारी हटा सकते हैं जो आप निजी मानते हैं या साझा नहीं करना चाहते या जो समस्या से प्रासंगिक नहीं है।
 
-हम किसी भी हैकिंग संबंधी टूल्स/स्क्रिप्ट्स के लिए सहायता प्रदान नहीं करते। उनके बारे में ईमेल, GitHub या अन्य आधिकारिक टर्मेक्स कम्युनिटी फोरम पर पूछे गए कोई भी प्रश्न **स्वचालित रूप से बंद/हटाए जाने की संभावना** हैं और **अस्थायी या स्थायी** प्रतिबंध भी हो सकता है। विवरण के लिए %1$s/wiki/Hacking देखें।</string>
+हम किसी भी हैकिंग संबंधी टूल्स/स्क्रिप्ट्स के लिए सहायता प्रदान नहीं करते। उनके बारे में ईमेल, GitHub या अन्य आधिकारिक टर्मक्स कम्युनिटी फोरम पर पूछे गए कोई भी प्रश्न **स्वचालित रूप से बंद/हटाए जाने की संभावना** हैं और **अस्थायी या स्थायी** प्रतिबंध भी हो सकता है। विवरण के लिए %1$s/wiki/Hacking देखें।</string>
     <string name="error_get_component_state_failed">%1$s/%2$s कंपोनेंट स्थिति प्राप्त करने में विफल</string>
+    <string name="font_picker_title">एक फ़ॉन्ट चुनें (.ttf)</string>
 </resources>

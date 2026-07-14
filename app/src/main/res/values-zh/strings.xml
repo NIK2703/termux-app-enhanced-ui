@@ -27,7 +27,7 @@
     <string name="bootstrap_error_installed_on_portable_sd">&TERMUX_APP_NAME; 无法安装在设备的便携/外部/可移除 SD 卡上。
         \n为 &TERMUX_APP_NAME; 编译的引导二进制文件已硬编码 $PREFIX 路径，只能安装到以下路径：\n%1$s。</string>
     <string name="action_new_session">新建会话</string>
-    <string name="action_new_session_failsafe">安全模式</string>
+    <string name="action_new_session_failsafe">故障保护</string>
     <string name="title_max_terminals_reached">已达最大终端数</string>
     <string name="msg_max_terminals_reached">请先关闭现有终端再创建新终端。</string>
     <string name="title_rename_session">设置会话名称</string>
@@ -124,8 +124,8 @@
     <string name="termux_terminal_view_preferences_title">终端视图</string>
     <string name="termux_terminal_view_preferences_summary">终端视图偏好设置</string>
     <string name="termux_terminal_view_view_header">视图</string>
-    <string name="termux_button_bg_inactive_alpha_title">非活动元素背景透明度</string>
-    <string name="termux_button_bg_active_alpha_title">活动元素背景透明度</string>
+    <string name="termux_button_bg_inactive_alpha_title" formatted="false">非活动元素透明度</string>
+    <string name="termux_button_bg_active_alpha_title" formatted="false">活动元素透明度</string>
     <string name="termux_terminal_view_terminal_margin_adjustment_title">终端边距调整</string>
     <string name="termux_terminal_view_terminal_margin_adjustment_off">终端边距调整将被禁用。</string>
     <string name="termux_terminal_view_terminal_margin_adjustment_on">终端边距调整将启用。
@@ -154,7 +154,7 @@
     <string name="per_directory_message_history_summary">为每个工作目录保留单独的消息历史。关闭后，所有会话共享一个全局历史。</string>
     <string name="text_input_title">文本输入</string>
     <string name="text_input_append_enter_title">发送时附加换行</string>
-    <string name="text_input_append_enter_summary">从输入框发送文本时，同时发送回车信号</string>
+    <string name="text_input_append_enter_summary">从输入框发送文本时同时提交该行（按下回车）。禁用则发送不含结尾换行的原始文本。</string>
     <string name="directory_history_title">目录历史</string>
     <string name="directory_history_max_title">目录历史最大数量</string>
     <string name="restore_sessions_title">启动时恢复标签页</string>
@@ -247,5 +247,5 @@
 
     <!-- Text input auto-complete -->
     <string name="suggestions_max_count_title">最大建议数</string>
-    <string name="suggestions_max_count_summary">从消息历史中自动补全（1-10）</string>
+    <string name="suggestions_max_count_summary">从消息历史中自动补全（1–10）</string>
 </resources>

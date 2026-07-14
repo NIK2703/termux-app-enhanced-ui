@@ -190,10 +190,10 @@
             <string name="termux_terminal_view_view_header">View</string>
 
                 <!-- Button Background Inactive Alpha -->
-                <string name="termux_button_bg_inactive_alpha_title" formatted="false">Inactive element transparency (0–10%)</string>
+                <string name="termux_button_bg_inactive_alpha_title" formatted="false">Inactive element transparency</string>
 
                 <!-- Button Background Active Alpha -->
-                <string name="termux_button_bg_active_alpha_title" formatted="false">Active element transparency (10–20%)</string>
+                <string name="termux_button_bg_active_alpha_title" formatted="false">Active element transparency</string>
 
                 <!-- Terminal View Margin Adjustment -->
                 <string name="termux_terminal_view_terminal_margin_adjustment_title">Terminal Margin Adjustment</string>

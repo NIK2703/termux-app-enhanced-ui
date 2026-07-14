@@ -317,9 +317,13 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     private PopupWindow mSuggestionsPopup;
     /** Current list of suggestion strings being displayed. */
     private final ArrayList<String> mCurrentSuggestions = new ArrayList<>();
-
+    /** Suppress auto-complete popup during programmatic text changes (tab switch, history tap, suggestion tap). */
+    private boolean mSuppressAutoComplete;
+    /** Global layout listener on the input field, used to reposition the auto-complete popup. */
+    @Nullable private android.view.ViewTreeObserver.OnGlobalLayoutListener mSuggestionsLayoutListener;
 
     /**
+
      * True for a short window right after onStart(), i.e. just after the app
      * returned from the background / was recreated. Used to suppress the
      * IME-hidden auto-close of the text input panel: on return the system may
@@ -608,6 +612,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             boolean imeVisible = WindowInsetsCompat.toWindowInsetsCompat(insets)
                     .isVisible(WindowInsetsCompat.Type.ime());
             if (!mIsPaused && !mJustResumed && mSoftKeyboardVisible && !imeVisible && isTextInputVisible()) {
+                dismissAutoCompleteSuggestions();
                 setTextInputVisible(false);
                 updateToggleTextInputButtonIcon();
             }
@@ -1464,6 +1469,16 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             }
         });
 
+        // Reposition the auto-complete popup when the caret moves without text changes
+        // (e.g. tapping a different position in the text). We use ACTION_UP on the EditText
+        // because setOnSelectionChangedListener is API 29+ and the project targets API 28.
+        editText.setOnTouchListener((v, event) -> {
+            if (event.getAction() == android.view.MotionEvent.ACTION_UP) {
+                v.post(() -> repositionAutoCompletePopup());
+            }
+            return false; // don't consume the event, let the EditText handle it
+        });
+
         editText.setOnEditorActionListener((v, actionId, event) -> {
             TerminalSession session = getCurrentSession();
             if (session != null) {
@@ -1584,7 +1599,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             return;
         }
         String text = mTextInputPerSession.get(session.mHandle);
+        mSuppressAutoComplete = true;
         textInputView.setText(text != null ? text : "");
+        mSuppressAutoComplete = false;
         // Restore the caret position saved for this session (clamped to text length).
         Integer caret = mTextInputCaretPerSession.get(session.mHandle);
         if (caret != null) {
@@ -2039,6 +2056,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
     private void updateAutoCompleteSuggestions() {
         if (mIsInvalidState) return;
+        if (mSuppressAutoComplete) return;
 
         final EditText inputField = findViewById(R.id.terminal_toolbar_text_input);
         if (inputField == null) return;
@@ -2049,11 +2067,16 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             return;
         }
 
-        // Read max suggestions from prefs (in case user changed it)
+        // Read max suggestions from prefs (in case user changed it).
+        // 0 = disabled, 1-10 = show that many suggestions.
         int maxCount = getSharedPreferences("termux_prefs", MODE_PRIVATE)
                 .getInt("suggestions_max_count", 4);
-        if (maxCount < 1) maxCount = 1;
+        if (maxCount < 0) maxCount = 0;
         if (maxCount > 10) maxCount = 10;
+        if (maxCount == 0) {
+            dismissAutoCompleteSuggestions();
+            return;
+        }
 
         // Search message history (newest first) for completions
         mCurrentSuggestions.clear();
@@ -2075,7 +2098,14 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     }
 
     private void showAutoCompletePopup(@NonNull EditText inputField) {
-        dismissAutoCompleteSuggestions();
+        // Dismiss any previously shown popup WITHOUT clearing mCurrentSuggestions:
+        // dismissAutoCompleteSuggestions() also clears that list, and we still need it
+        // below to build the suggestion views. Clearing it here would leave the popup
+        // empty (completely silent auto-complete).
+        if (mSuggestionsPopup != null) {
+            try { mSuggestionsPopup.dismiss(); } catch (Exception ignored) {}
+            mSuggestionsPopup = null;
+        }
 
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
@@ -2095,34 +2125,64 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                         0, input.length(), android.text.SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
             tv.setText(ss);
-            tv.setMaxLines(1);
-            tv.setEllipsize(TextUtils.TruncateAt.END);
+            tv.setMaxLines(2);
             tv.setTextColor(mHistoryTextColor);
             tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
             tv.setPadding(padH, padV, padH, padV);
+            // Simple solid highlight on press (no ripple/pulse), matching the history popup.
+            // The popup's GradientDrawable background clips the window to rounded corners,
+            // so the highlight is naturally clipped at the window boundary.
+            android.graphics.drawable.StateListDrawable sel = new android.graphics.drawable.StateListDrawable();
+            int highlightColor = android.graphics.Color.argb(26, 255, 255, 255); // ~10% white
+            sel.addState(new int[]{android.R.attr.state_pressed},
+                    new android.graphics.drawable.ColorDrawable(highlightColor));
+            sel.addState(new int[]{},
+                    new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+            sel.setEnterFadeDuration(0);
+            sel.setExitFadeDuration(0);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                tv.setBackground(sel);
+            } else {
+                tv.setBackgroundDrawable(sel);
+            }
             tv.setClickable(true);
             tv.setOnClickListener(v -> {
+                mSuppressAutoComplete = true;
                 inputField.setText(suggestion);
+                mSuppressAutoComplete = false;
                 inputField.setSelection(suggestion.length());
                 dismissAutoCompleteSuggestions();
                 dismissMessageHistoryPopup();
+                // With focusable=false the EditText never lost focus and the IME is
+                // still open, so no requestFocus()/showSoftInput() is needed here.
             });
             content.addView(tv, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT));
-
-            if (i < mCurrentSuggestions.size() - 1) {
-                View sep = new View(this);
-                sep.setBackgroundColor(mHistoryPopupSepColor);
-                content.addView(sep, new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
-            }
         }
 
+        // Wrap content in a ScrollView and size via WRAP_CONTENT + update() — this mirrors
+        // the WORKING mHistoryPopup and avoids the zero-height / degenerate-shadow bug that a
+        // non-focusable PopupWindow hits when given an explicit pixel height + setOutsideTouchable(true)
+        // + a plain (possibly transparent) ColorDrawable background. On a non-focusable window
+        // setOutsideTouchable() is a no-op, and a transparent ColorDrawable makes
+        // GradientDrawable.getOutline() bail, collapsing the window to a thin shadow line.
+        android.widget.ScrollView scroll = new android.widget.ScrollView(this);
+        scroll.setVerticalScrollBarEnabled(false);
+        scroll.addView(content, new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        // NOTE: do NOT set a ViewOutlineProvider / setClipToOutline() on the ScrollView.
+        // getOutline() would be called with the view's width/height, which can be 0 while
+        // a WRAP_CONTENT PopupWindow is being (re)sized by update(); an empty outline clips
+        // the entire content to nothing, making the popup vanish. The PopupWindow already
+        // clips its content to the rounded background drawable's outline, so this is both
+        // redundant and harmful.
+        // 10% visual transparency on the content (not the background drawable, so the
+        // elevation shadow outline stays valid).
+        scroll.setAlpha(0.9f);
+
         int sumWidth = Math.max(dpToPx(200), inputField.getWidth() - dpToPx(16));
-        int totalHeight = mCurrentSuggestions.size() * (dpToPx(36)) + dpToPx(4);
-        int maxHeight = dpToPx(200);
-        int popupHeight = Math.min(totalHeight, maxHeight);
 
         // Position the popup at the input cursor (caret) position
         int cursorPos = inputField.getSelectionStart();
@@ -2137,6 +2197,13 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         int[] loc = new int[2];
         inputField.getLocationInWindow(loc);
         int popupX = loc[0] + (int) cursorX + dpToPx(4);
+
+        // Measure the content to derive the real height before positioning.
+        content.measure(
+                View.MeasureSpec.makeMeasureSpec(sumWidth, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        int popupHeight = content.getMeasuredHeight();
+
         int popupY = loc[1] + (int) cursorY - popupHeight - dpToPx(4);
 
         // If not enough room above cursor, show below it
@@ -2151,18 +2218,87 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         }
         if (popupX < dpToPx(8)) popupX = dpToPx(8);
 
-        mSuggestionsPopup = new PopupWindow(content, sumWidth, popupHeight, true);
-        mSuggestionsPopup.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(
-                mHistoryPopupBg));
-        mSuggestionsPopup.setElevation(dpToPx(6));
-        mSuggestionsPopup.setOutsideTouchable(true);
+        // focusable=false is the key: a non-focusable PopupWindow receives
+        // FLAG_NOT_FOCUSABLE + (default) FLAG_ALT_FOCUSABLE_IM, so it stays
+        // touchable (user can tap a suggestion) WITHOUT stealing window focus
+        // from the EditText. The IME therefore stays up and the text panel
+        // stays open. This is the same pattern as mHistoryPopup, which works
+        // correctly; the only difference is touchable=true so items are tappable.
+        mSuggestionsPopup = new PopupWindow(scroll, sumWidth,
+                ViewGroup.LayoutParams.WRAP_CONTENT, false);
+        // Smooth elevation shadow — background drawable must be fully opaque for the
+        // WindowManager to derive a valid Outline (GradientDrawable.getOutline bails
+        // when alpha < 255). The 10% visual transparency is on the ScrollView above.
+        mSuggestionsPopup.setElevation(dpToPx(16));
+        GradientDrawable popupBgDrawable = new GradientDrawable() {
+            @Override
+            public void getOutline(@NonNull Outline outline) {
+                super.getOutline(outline);
+                if (!outline.isEmpty() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    // Keep elevation large, but make the shadow softer/transparent.
+                    outline.setAlpha(0.65f);
+                }
+            }
+        };
+        popupBgDrawable.setShape(GradientDrawable.RECTANGLE);
+        popupBgDrawable.setCornerRadius(dpToPx(12));
+        popupBgDrawable.setColor(mHistoryPopupBg); // must be opaque for getOutline
+        mSuggestionsPopup.setBackgroundDrawable(popupBgDrawable);
+        mSuggestionsPopup.setClippingEnabled(true);
+        // Touchable so the suggestion items remain clickable; focusable=false so the
+        // EditText keeps focus and the IME stays open. No setOutsideTouchable (it is a
+        // no-op on a non-focusable window and was the trigger for the zero-height collapse).
+        mSuggestionsPopup.setTouchable(true);
+        mSuggestionsPopup.setFocusable(false);
+
+        mSuggestionsPopup.setOnDismissListener(() -> mSuggestionsPopup = null);
 
         try {
             mSuggestionsPopup.showAtLocation(inputField, Gravity.NO_GRAVITY, popupX, popupY);
+            // Apply the measured height (WRAP_CONTENT in the ctor would let a long
+            // list grow past the screen; update() fixes the real height).
+            mSuggestionsPopup.update(popupX, popupY, sumWidth, popupHeight);
+            // Track layout changes (IME, scroll, resize) to keep the popup at the caret.
+            if (mSuggestionsLayoutListener == null) {
+                mSuggestionsLayoutListener = () -> repositionAutoCompletePopup();
+                inputField.getViewTreeObserver().addOnGlobalLayoutListener(mSuggestionsLayoutListener);
+            }
         } catch (Exception e) {
             Logger.logStackTraceWithMessage(LOG_TAG, "Failed to show auto-complete popup", e);
             mSuggestionsPopup = null;
         }
+    }
+
+    /** Reposition the auto-complete popup at the current caret position. */
+    private void repositionAutoCompletePopup() {
+        if (mSuggestionsPopup == null || !mSuggestionsPopup.isShowing()) return;
+        final EditText inputField = findViewById(R.id.terminal_toolbar_text_input);
+        if (inputField == null) return;
+
+        int sumWidth = Math.max(dpToPx(200), inputField.getWidth() - dpToPx(16));
+        int cursorPos = inputField.getSelectionStart();
+        android.text.Layout layout = inputField.getLayout();
+        float cursorX = 0;
+        float cursorY = 0;
+        if (layout != null && cursorPos >= 0) {
+            cursorX = layout.getPrimaryHorizontal(cursorPos);
+            cursorY = layout.getLineTop(layout.getLineForOffset(cursorPos));
+        }
+        int[] loc = new int[2];
+        inputField.getLocationInWindow(loc);
+        int popupX = loc[0] + (int) cursorX + dpToPx(4);
+        int popupHeight = mSuggestionsPopup.getHeight();
+        int popupY = loc[1] + (int) cursorY - popupHeight - dpToPx(4);
+        if (popupY < dpToPx(16)) {
+            popupY = loc[1] + (int) cursorY + dpToPx(8);
+        }
+        int displayWidth = getResources().getDisplayMetrics().widthPixels;
+        if (popupX + sumWidth > displayWidth - dpToPx(8)) {
+            popupX = displayWidth - sumWidth - dpToPx(8);
+        }
+        if (popupX < dpToPx(8)) popupX = dpToPx(8);
+
+        mSuggestionsPopup.update(popupX, popupY, -1, -1);
     }
 
     private void dismissAutoCompleteSuggestions() {
@@ -2171,6 +2307,13 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             mSuggestionsPopup = null;
         }
         mCurrentSuggestions.clear();
+        if (mSuggestionsLayoutListener != null) {
+            final EditText inputField = findViewById(R.id.terminal_toolbar_text_input);
+            if (inputField != null) {
+                inputField.getViewTreeObserver().removeOnGlobalLayoutListener(mSuggestionsLayoutListener);
+            }
+            mSuggestionsLayoutListener = null;
+        }
     }
 
 
@@ -2322,17 +2465,11 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
         mHistoryScroll = scroll;
-        // Clip child views to the popup's rounded corners so highlights and
-        // separators near the edges don't spill outside the rounded shape.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            scroll.setOutlineProvider(new ViewOutlineProvider() {
-                @Override
-                public void getOutline(View view, android.graphics.Outline outline) {
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dpToPx(12));
-                }
-            });
-            scroll.setClipToOutline(true);
-        }
+        // NOTE: do NOT set a ViewOutlineProvider / setClipToOutline() on the ScrollView.
+        // getOutline() would be called with the view's width/height, which can be 0 while a
+        // WRAP_CONTENT PopupWindow is being (re)sized by update(); an empty outline clips
+        // the entire content to nothing, making the popup vanish. The PopupWindow already
+        // clips its content to the rounded background drawable's outline.
 
         mHistoryPopup = new PopupWindow(scroll, popupWidth,
                 ViewGroup.LayoutParams.WRAP_CONTENT, false);
@@ -2905,17 +3042,11 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
         mHistoryScroll = scroll;
-        // Clip child views to the popup's rounded corners so highlights and
-        // separators near the edges don't spill outside the rounded shape.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            scroll.setOutlineProvider(new ViewOutlineProvider() {
-                @Override
-                public void getOutline(View view, android.graphics.Outline outline) {
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dpToPx(12));
-                }
-            });
-            scroll.setClipToOutline(true);
-        }
+        // NOTE: do NOT set a ViewOutlineProvider / setClipToOutline() on the ScrollView.
+        // getOutline() would be called with the view's width/height, which can be 0 while a
+        // WRAP_CONTENT PopupWindow is being (re)sized by update(); an empty outline clips
+        // the entire content to nothing, making the popup vanish. The PopupWindow already
+        // clips its content to the rounded background drawable's outline.
 
         mHistoryPopup = new PopupWindow(scroll, popupWidth,
                 ViewGroup.LayoutParams.WRAP_CONTENT, false);
@@ -3567,6 +3698,28 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
 
     /**
+     * Set the shared slot below the tabs: text input container vs extra keys.
+     * Showing the text input panel hides the extra keys and vice versa.
+     * When the text input panel is hidden, the extra keys visibility also
+     * respects the {@code hide_extra_keys_with_keyboard} preference.
+     */
+    private void setTextInputSlotVisible(boolean visible) {
+        View container = findViewById(R.id.terminal_toolbar_text_input_container);
+        if (container != null)
+            container.setVisibility(visible ? View.VISIBLE : View.GONE);
+        ExtraKeysView ekv = getExtraKeysView();
+        if (ekv == null) return;
+        if (visible) {
+            ekv.setVisibility(View.GONE);
+        } else if (mPreferences.shouldHideExtraKeysWithKeyboard()
+                   && !mSoftKeyboardVisible) {
+            ekv.setVisibility(View.GONE);
+        } else {
+            ekv.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /**
      * Set visibility of the text input panel.
      * @param visible true to show, false to hide
      */
@@ -3578,17 +3731,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         if (textInputContainer != null) {
             // The text input panel and the extra keys share one slot below the tabs:
             // showing one hides the other.
-            textInputContainer.setVisibility(visible ? View.VISIBLE : View.GONE);
-            final ExtraKeysView extraKeysView = getExtraKeysView();
-            if (extraKeysView != null) {
-                if (visible) {
-                    extraKeysView.setVisibility(View.GONE);
-                } else if (mPreferences.shouldHideExtraKeysWithKeyboard() && !mSoftKeyboardVisible) {
-                    extraKeysView.setVisibility(View.GONE);
-                } else {
-                    extraKeysView.setVisibility(View.VISIBLE);
-                }
-            }
+            setTextInputSlotVisible(visible);
             // Save state to preferences
             getSharedPreferences("termux_prefs", MODE_PRIVATE).edit().putBoolean(PREF_TEXT_INPUT_VISIBLE, visible).apply();
 
@@ -3658,11 +3801,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 ? mTextInputVisiblePerSession.get(session.mHandle)
                 : isTextInputVisible());
 
-        textInputContainer.setVisibility(visible ? View.VISIBLE : View.GONE);
-        final ExtraKeysView extraKeysView = getExtraKeysView();
-        if (extraKeysView != null) {
-            extraKeysView.setVisibility(visible ? View.GONE : View.VISIBLE);
-        }
+        setTextInputSlotVisible(visible);
 
         if (applyFocus) {
             // On switch, restore where focus was last for this session:

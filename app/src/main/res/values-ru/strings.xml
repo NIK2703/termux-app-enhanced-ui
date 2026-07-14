@@ -37,7 +37,7 @@
 
     <!-- Terminal Sidebar and Shortcuts -->
     <string name="action_new_session">Новый сеанс</string>
-    <string name="action_new_session_failsafe">Безопасный режим</string>
+    <string name="action_new_session_failsafe">Failsafe</string>
     <string name="title_max_terminals_reached">Максимум терминалов</string>
     <string name="msg_max_terminals_reached">Закройте существующие, прежде чем создавать новые.</string>
 
@@ -190,10 +190,10 @@
             <string name="termux_terminal_view_view_header">Вид</string>
 
                 <!-- Button Background Inactive Alpha -->
-                <string name="termux_button_bg_inactive_alpha_title">Прозрачность фона неактивных элементов </string>
+                <string name="termux_button_bg_inactive_alpha_title" formatted="false">Прозрачность фона неактивных элементов</string>
 
                 <!-- Button Background Active Alpha -->
-                <string name="termux_button_bg_active_alpha_title">Прозрачность фона активных элементов </string>
+                <string name="termux_button_bg_active_alpha_title" formatted="false">Прозрачность фона активных элементов</string>
 
                 <!-- Terminal View Margin Adjustment -->
                 <string name="termux_terminal_view_terminal_margin_adjustment_title">Корректировка отступов терминала</string>
@@ -241,7 +241,7 @@
     <!-- Text input preferences -->
     <string name="text_input_title">Ввод текста</string>
     <string name="text_input_append_enter_title">Добавлять Enter при отправке</string>
-    <string name="text_input_append_enter_summary">При отправке текста из поле ввода отправлять также сигнал Enter</string>
+    <string name="text_input_append_enter_summary">При отправке из поля ввода также отправлять перевод строки (Enter). Отключите, чтобы отправлять текст без завершающего переноса строки.</string>
 
     <!-- Directory history preferences -->
     <string name="directory_history_title">История папок</string>

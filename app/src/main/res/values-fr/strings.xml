@@ -23,7 +23,7 @@
     <string name="bootstrap_error_installed_on_portable_sd">&TERMUX_APP_NAME; ne peut pas être installé sur une carte sd portable/externe/amovible de votre appareil.
         \nLes binaires bootstrap compilés pour &TERMUX_APP_NAME; ont un chemin $PREFIX codé en dur et ne peuvent pas être installés sous un autre chemin que :\n%1$s.</string>
     <string name="action_new_session">Nouvelle session</string>
-    <string name="action_new_session_failsafe">Mode sans échec</string>
+    <string name="action_new_session_failsafe">Failsafe</string>
     <string name="title_max_terminals_reached">Nombre maximal de terminaux atteint</string>
     <string name="msg_max_terminals_reached">Fermez les terminaux existants avant d\'en créer de nouveaux.</string>
     <string name="title_rename_session">Définir le nom de la session</string>
@@ -49,8 +49,8 @@
     <string name="action_reset_terminal">Réinitialiser</string>
     <string name="msg_terminal_reset">Terminal réinitialisé</string>
     <string name="msg_terminal_font_applied">Police appliquée</string>
-    <string name="action_kill_process">Forcer l\'arrêt du processus (%d)</string>
-    <string name="title_confirm_kill_process">Voulez-vous vraiment forcer l\'arrêt de cette session ?</string>
+    <string name="action_kill_process">Terminer le processus (%d)</string>
+    <string name="title_confirm_kill_process">Voulez-vous vraiment terminer cette session ?</string>
     <string name="action_style_terminal">Style</string>
     <string name="action_font_terminal">Police</string>
     <string name="font_picker_title">Sélectionner une police (.ttf)</string>
@@ -69,12 +69,12 @@
     <string name="error_display_over_other_apps_permission_not_granted_to_start_terminal">&TERMUX_APP_NAME; nécessite
         l\'autorisation \"Affichage par-dessus les autres applications\" pour démarrer des sessions de terminal en arrière-plan sur Android >= 10.
         Accordez-la depuis Paramètres -> Applications -> &TERMUX_APP_NAME; -> Avancé</string>
-    <string name="error_termux_service_invalid_execution_command_runner">Exécuteur de commande invalide envoyé à TermuxService : \`%1$s\`</string>
-    <string name="error_termux_service_unsupported_execution_command_runner">Exécuteur de commande non pris en charge envoyé à TermuxService : \`%1$s\`</string>
+    <string name="error_termux_service_invalid_execution_command_runner">Runner de commande d\'exécution invalide envoyé à TermuxService : \`%1$s\`</string>
+    <string name="error_termux_service_unsupported_execution_command_runner">Runner de commande d\'exécution non pris en charge envoyé à TermuxService : \`%1$s\`</string>
     <string name="error_termux_service_unsupported_execution_command_shell_create_mode">Mode de création de shell de commande non pris en charge envoyé à TermuxService : \`%1$s\`</string>
     <string name="error_termux_service_execution_command_shell_name_unset">Nom du shell non défini mais le mode de création de shell \`%1$s\` a été transmis</string>
     <string name="error_run_command_service_invalid_intent_action">Action d\'intention invalide pour RunCommandService : `%1$s`</string>
-    <string name="error_run_command_service_invalid_execution_command_runner">Exécuteur de commande invalide pour RunCommandService : `%1$s`</string>
+    <string name="error_run_command_service_invalid_execution_command_runner">Runner de commande d\'exécution invalide pour RunCommandService : `%1$s`</string>
     <string name="error_run_command_service_mandatory_extra_missing">Extra obligatoire manquant pour RunCommandService : \"%1$s\"</string>
     <string name="error_run_command_service_api_help">Visitez %1$s pour plus d\'informations sur l\'utilisation de l\'intention RUN_COMMAND.</string>
     <string name="title_file_received">Enregistrer le fichier dans ~/downloads/</string>
@@ -95,7 +95,7 @@
     <string name="termux_log_level_title">Niveau de journal</string>
     <string name="termux_terminal_view_key_logging_enabled_title">Journalisation des touches de la vue terminal</string>
     <string name="termux_terminal_view_key_logging_enabled_off">Les journaux n\'auront pas d\'entrées pour les touches de la vue terminal. (Par défaut)</string>
-    <string name="termux_terminal_view_key_logging_enabled_on">Les journaux logcat auront des entrées pour les touches de la vue terminal.</string>
+    <string name="termux_terminal_view_key_logging_enabled_on">Les journaux logcat auront des entrées pour les touches de la vue terminal. Elles sont très verbeuses et devraient être désactivées en temps normal, sinon elles provoqueront des problèmes de performance.</string>
     <string name="termux_plugin_error_notifications_enabled_title">Notifications d\'erreur de plugin</string>
     <string name="termux_plugin_error_notifications_enabled_off">Désactiver les flashs et notifications pour les erreurs de plugin.</string>
     <string name="termux_plugin_error_notifications_enabled_on">Afficher les flashs et notifications pour les erreurs de plugin. (Par défaut)</string>
@@ -104,6 +104,11 @@
     <string name="termux_crash_report_notifications_enabled_on">Afficher les notifications pour les rapports d\'erreur. (Par défaut)</string>
     <string name="termux_terminal_io_preferences_title">E/S du terminal</string>
     <string name="termux_terminal_io_preferences_summary">Préférences pour les E/S du terminal</string>
+
+    <!-- Keyboard Category -->
+    <string name="termux_keyboard_header">Clavier</string>
+
+    <!-- Soft Keyboard -->
     <string name="termux_soft_keyboard_enabled_title">Clavier virtuel activé</string>
     <string name="termux_soft_keyboard_enabled_off">Le clavier virtuel sera désactivé.</string>
     <string name="termux_soft_keyboard_enabled_on">Le clavier virtuel sera activé. (Par défaut)</string>
@@ -116,8 +121,8 @@
     <string name="termux_terminal_view_preferences_title">Vue du terminal</string>
     <string name="termux_terminal_view_preferences_summary">Préférences pour la vue du terminal</string>
     <string name="termux_terminal_view_view_header">Vue</string>
-    <string name="termux_button_bg_inactive_alpha_title" formatted="false">Transparence des éléments inactifs (0–10 %)</string>
-    <string name="termux_button_bg_active_alpha_title" formatted="false">Transparence des éléments actifs (10–20 %)</string>
+    <string name="termux_button_bg_inactive_alpha_title" formatted="false">Transparence des éléments inactifs</string>
+    <string name="termux_button_bg_active_alpha_title" formatted="false">Transparence des éléments actifs</string>
     <string name="termux_terminal_view_terminal_margin_adjustment_title">Ajustement de la marge du terminal</string>
     <string name="termux_terminal_view_terminal_margin_adjustment_off">L\'ajustement de la marge du terminal sera désactivé.</string>
     <string name="termux_terminal_view_terminal_margin_adjustment_on">L\'ajustement de la marge du terminal sera activé. Il doit être activé pour tenter de corriger le problème où le clavier virtuel cache une partie des touches supplémentaires/de la vue du terminal. S\'il provoque un scintillement de l\'écran sur votre appareil, désactivez-le. (Par défaut)</string>
@@ -129,6 +134,7 @@
     <string name="termux_tasker_preferences_summary">Préférences pour l\'application &TERMUX_TASKER_APP_NAME;</string>
     <string name="termux_widget_preferences_title">&TERMUX_WIDGET_APP_NAME;</string>
     <string name="termux_widget_preferences_summary">Préférences pour l\'application &TERMUX_WIDGET_APP_NAME;</string>
+    <string name="color_scheme_dialog_title">Jeu de couleurs du terminal</string>
     <string name="color_scheme_light_title">Jeu de couleurs du terminal (Thème clair)</string>
     <string name="color_scheme_light_summary">Jeu de couleurs appliqué lorsque le thème de l\'application est clair</string>
     <string name="color_scheme_dark_title">Jeu de couleurs du terminal (Thème sombre)</string>
@@ -149,8 +155,7 @@
     <string name="donate_preference_title">Faire un don</string>
     <string name="about_preference_title">À propos</string>
     <string name="theme_mode_title">Thème de l\'application</string>
-    <string name="color_scheme_preferences_title">Jeu de couleurs du terminal</string>
-    <string name="color_scheme_preferences_summary">Choisissez un jeu de couleurs pour le terminal</string>
+    <string name="theme_mode_summary">Choisir le thème de l\'application et du terminal</string>
     <string name="backup_preference_title">Sauvegarder les données Termux</string>
     <string name="backup_preference_summary">Sauvegarder le répertoire de données Termux (paquets installés + home) dans un fichier tar.gz</string>
     <string name="restore_preference_title">Restaurer les données Termux</string>
@@ -230,9 +235,9 @@
     <string name="locale_override_entry_english">Anglais</string>
     <!-- Hide extra keys with keyboard -->
     <string name="hide_extra_keys_with_keyboard_title">Masquer les touches supp. avec le clavier</string>
-    <string name="hide_extra_keys_with_keyboard_summary">Masquer automatiquement les touches supplémentaires quand le clavier est fermé</string>
+    <string name="hide_extra_keys_with_keyboard_summary">Masquer automatiquement les touches supplémentaires quand le clavier est fermé, les afficher quand il est ouvert</string>
 
     <!-- Text input auto-complete -->
-    <string name="suggestions_max_count_title">Max suggestions</string>
+    <string name="suggestions_max_count_title">Suggestions max</string>
     <string name="suggestions_max_count_summary">Saisie semi-automatique depuis l\'historique (1–10)</string>
 </resources>

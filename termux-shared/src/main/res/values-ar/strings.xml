@@ -35,7 +35,7 @@
     <string name="error_enable_component_failed">فشل تمكين المكون %1$s/%2$s</string>
     <string name="error_exception_received_while_executing_app_shell_command">تم استلام استثناء أثناء تنفيذ أمر shell للتطبيق \"%1$s\".\nالاستثناء: %2$s</string>
     <string name="error_exception_received_while_executing_termux_session_command">تم استلام استثناء أثناء تنفيذ أمر جلسة termux \"%1$s\".\nالاستثناء: %2$s</string>
-    <string name="error_executable_unset">لم يتم تعيين المنفذ \"%1$s\" لأمر shell</string>
+    <string name="error_executable_unset">لم يتم تعيين الملف التنفيذي \"%1$s\" لأمر shell</string>
     <string name="error_execution_cancelled">تم إلغاء التنفيذ لأنه يتم إنهاء خدمة التنفيذ</string>
     <string name="error_failed_to_execute_app_shell_command">فشل تنفيذ أمر shell للتطبيق \"%1$s\"</string>
     <string name="error_failed_to_execute_termux_session_command">فشل تنفيذ أمر جلسة termux \"%1$s\"</string>

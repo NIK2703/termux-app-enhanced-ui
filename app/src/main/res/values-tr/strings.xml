@@ -33,7 +33,7 @@
         \n&TERMUX_APP_NAME; için derlenen başlangıç ikili dosyaları $PREFIX yolunu sabit kodlar ve yalnızca
         şu yola kurulabilir:\n%1$s.</string>
 <string name="action_new_session">Yeni oturum</string>
-<string name="action_new_session_failsafe">Güvenli oturum</string>
+<string name="action_new_session_failsafe">Failsafe</string>
 <string name="title_max_terminals_reached">Maksimum terminal sayısına ulaşıldı</string>
 <string name="msg_max_terminals_reached">Yeni oluşturmadan önce mevcut olanları kapatın.</string>
 <string name="title_rename_session">Oturum adını ayarla</string>
@@ -130,8 +130,8 @@
 <string name="termux_terminal_view_preferences_title">Terminal Görünümü</string>
 <string name="termux_terminal_view_preferences_summary">Terminal görünümü için tercihler</string>
 <string name="termux_terminal_view_view_header">Görünüm</string>
-<string name="termux_button_bg_inactive_alpha_title" formatted="false">Pasif eleman saydamlığı (0–10%)</string>
-<string name="termux_button_bg_active_alpha_title" formatted="false">Aktif eleman saydamlığı (10–20%)</string>
+<string name="termux_button_bg_inactive_alpha_title" formatted="false">Pasif eleman saydamlığı</string>
+<string name="termux_button_bg_active_alpha_title" formatted="false">Aktif eleman saydamlığı</string>
 <string name="termux_terminal_view_terminal_margin_adjustment_title">Terminal Kenar Boşluğu Ayarı</string>
 <string name="termux_terminal_view_terminal_margin_adjustment_off">Terminal kenar boşluğu ayarı devre dışı bırakılacak.</string>
 <string name="termux_terminal_view_terminal_margin_adjustment_on">Terminal kenar boşluğu ayarı etkinleştirilecek.
@@ -159,7 +159,7 @@
 <string name="per_directory_message_history_summary">Her çalışma dizini için ayrı bir mesaj geçmişi tutun. Kapalıyken tüm oturumlar ortak bir geçmiş kullanır.</string>
 <string name="text_input_title">Metin Girdisi</string>
 <string name="text_input_append_enter_title">Gönderirken Enter ekle</string>
-<string name="text_input_append_enter_summary">Girdi alanından gönderirken satırı da doğrulayın (Enter\'a basın). Sondaki yeni satır karakteri olmadan ham metin göndermek için devre dışı bırakın.</string>
+<string name="text_input_append_enter_summary">Girdi alanından gönderirken satırı da gönderin (Enter\'a basın). Sondaki yeni satır karakteri olmadan ham metin göndermek için devre dışı bırakın.</string>
 <string name="directory_history_title">Dizin Geçmişi</string>
 <string name="directory_history_max_title">Maks. hatırlanan dizin sayısı</string>
 <string name="restore_sessions_title">Başlatıldığında sekmeleri geri yükle</string>
