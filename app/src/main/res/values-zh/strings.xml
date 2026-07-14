@@ -242,8 +242,8 @@
     <string name="locale_override_entry_system">系统默认</string>
     <string name="locale_override_entry_english">英语</string>
     <!-- Hide extra keys with keyboard -->
-    <string name="hide_extra_keys_with_keyboard_title">随键盘隐藏快捷键</string>
-    <string name="hide_extra_keys_with_keyboard_summary">键盘关闭时自动隐藏附加按钮，打开时显示</string>
+    <string name="hide_extra_keys_with_keyboard_title">随键盘隐藏额外按键</string>
+    <string name="hide_extra_keys_with_keyboard_summary">键盘关闭时自动隐藏额外按键，打开时显示</string>
 
     <!-- Text input auto-complete -->
     <string name="suggestions_max_count_title">最大建议数</string>

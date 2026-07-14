@@ -50,7 +50,7 @@
 
     <!-- ShareUtils -->
     <string name="title_share_with">分享到</string>
-    <string name="title_open_url_with">打开 URL 使用</string>
+    <string name="title_open_url_with">选择应用打开 URL</string>
     <string name="msg_storage_permission_not_granted">存储权限未被授予。</string>
     <string name="msg_file_saved_successfully">%1$s 文件已成功保存到 \"%2$s\"</string>
 

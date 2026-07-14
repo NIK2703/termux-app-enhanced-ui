@@ -56,7 +56,7 @@
 
     <!-- Shell -->
     <string name="error_sending_sigkill_to_process">Отправка SIGKILL процессу по запросу пользователя или из-за завершения службы выполнения системой Android</string>
-    <string name="error_executable_unset">Исполняемый файл не установлен «%1$s» для команды оболочки</string>
+    <string name="error_executable_unset">Исполняемый файл не задан «%1$s» для команды оболочки</string>
     <string name="error_execution_cancelled">Выполнение отменено, так как служба выполнения завершается</string>
     <string name="error_failed_to_execute_termux_session_command">Не удалось выполнить команду сеанса termux «%1$s»</string>
     <string name="error_failed_to_execute_app_shell_command">Не удалось выполнить команду оболочки приложения «%1$s»</string>

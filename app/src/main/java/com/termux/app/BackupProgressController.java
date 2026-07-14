@@ -2,6 +2,7 @@ package com.termux.app;
 
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.widget.Toast;
@@ -119,6 +120,13 @@ public final class BackupProgressController {
         // Restore: starts indeterminate, switches to determinate once progress is calculated.
         progress.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
         progress.setIndeterminate(true);
+        // Backup: tar stream size is unknown — indeterminate throughout. Hide the
+        // meaningless "0% / 0 of 100" labels that appear on some Android versions
+        // even in indeterminate mode.
+        if (!mBackupIsRestore && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+            progress.setProgressNumberFormat(null);
+            progress.setProgressPercentFormat(null);
+        }
         progress.setCancelable(false);
         progress.setButton(DialogInterface.BUTTON_NEUTRAL,
             activity.getString(R.string.backup_dialog_background), (d, which) -> goBackground());
