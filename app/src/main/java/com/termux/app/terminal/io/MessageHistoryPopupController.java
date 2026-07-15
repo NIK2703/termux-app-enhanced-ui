@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
+import android.os.SystemClock;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.MotionEvent;
@@ -65,6 +66,7 @@ public final class MessageHistoryPopupController {
     @Nullable private ScrollView mHistoryScroll;
     private float mHistoryFingerY = 0f;
     private boolean mHistoryAutoScrolling = false;
+    private long mHistoryLastScrollTimeMs = 0;
     private int mHistoryHighlightIndex = -1;
     private boolean mHistoryEmptyHintShown = false;
 
@@ -423,26 +425,38 @@ public final class MessageHistoryPopupController {
         int top = loc[1];
         int bottom = loc[1] + mHistoryScroll.getHeight();
         int band = dpToPx(36);      // edge-sensitive zone
-        int maxStep = dpToPx(3);    // max px scrolled per tick (smooth, not too fast)
+        int maxStep = dpToPx(24);   // max px scrolled per 16ms reference interval
+
+        // Time-based step: scale by actual frame time so scroll speed is
+        // consistent across 60/90/120 Hz displays (Choreographer / postOnAnimation).
+        long now = SystemClock.uptimeMillis();
+        float frameRatio;
+        if (mHistoryLastScrollTimeMs == 0) {
+            frameRatio = 1f;
+        } else {
+            long dt = Math.min(now - mHistoryLastScrollTimeMs, 48L);
+            frameRatio = dt / 16f;
+        }
+        mHistoryLastScrollTimeMs = now;
 
         float rawY = mHistoryFingerY;
         int step;
         if (rawY < top + band) {
             float t = Math.min(1f, (top + band - rawY) / band);
-            step = -Math.round(maxStep * t);
+            step = -Math.round(maxStep * t * frameRatio);
         } else if (rawY > bottom - band) {
             float t = Math.min(1f, (rawY - (bottom - band)) / band);
-            step = Math.round(maxStep * t);
+            step = Math.round(maxStep * t * frameRatio);
         } else {
-            mHistoryAutoScrolling = false;   // left the band; stop the loop
+            mHistoryAutoScrolling = false;
             return;
         }
 
         mHistoryScroll.scrollBy(0, step);
 
-        // Keep the loop alive while the finger is still in the edge band.
+        // Keep the loop alive; reschedule on next vsync for smooth scrolling.
         mHistoryAutoScrolling = true;
-        mHistoryScroll.postDelayed(this::autoScrollNearEdge, 16);
+        mHistoryScroll.postOnAnimation(this::autoScrollNearEdge);
     }
 
     /**

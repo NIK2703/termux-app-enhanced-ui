@@ -34,6 +34,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.termux.R;
 import com.termux.app.TermuxActivityUtils;
 import com.termux.app.terminal.TermuxColorSchemeManager;
 import com.termux.shared.logger.Logger;
@@ -158,6 +159,11 @@ public final class AutoCompleteController {
     /** Reposition the popup (e.g. after a caret move with no text change). */
     public void onCaretMoved() {
         repositionAutoCompletePopup();
+    }
+
+    /** Triggered by the host when the input text changes (compatibility entry point). */
+    public void onTextChanged() {
+        updateAutoCompleteSuggestions();
     }
 
     /** Dismiss and clear the suggestions popup. */
@@ -969,9 +975,15 @@ public final class AutoCompleteController {
     }
 
     /** Reposition the auto-complete popup at the current caret position. */
-    private void repositionAutoCompletePopup() {
+    public void repositionAutoCompletePopup() {
         if (mSuggestionsPopup == null || !mSuggestionsPopup.isShowing()) return;
-        final EditText inputField = mInputField;
+        // Use a FRESH findViewById each call (matching the original TermuxActivity).
+        // mInputField is captured once in the constructor and can go stale if the
+        // input field view is detached/re-attached (e.g. on session switch), which
+        // would make getLocationInWindow() return (0,0) and pin the popup at origin.
+        final EditText inputField = mContext instanceof Activity
+                ? ((Activity) mContext).findViewById(R.id.terminal_toolbar_text_input)
+                : mInputField;
         if (inputField == null) return;
         Logger.logInfo(LOG_TAG, "[autocomplete] repositionAutoCompletePopup");
         applyPopupGeometry(inputField);

@@ -67,11 +67,15 @@ import com.termux.app.terminal.TermuxSessionsListViewController;
 import com.termux.app.terminal.TermuxSessionTabsController;
 import com.termux.app.terminal.TermuxTerminalViewClient;
 import com.termux.app.terminal.TermuxColorSchemeManager;
+import com.termux.app.terminal.TermuxActivityViewHelper;
+import com.termux.app.terminal.TermuxActivityBroadcastManager;
+import com.termux.app.terminal.TermuxDialogs;
+import com.termux.app.terminal.TermuxActivityPopupController;
+import com.termux.app.terminal.io.TextInputPanelController;
+import com.termux.app.terminal.io.AutoCompleteController;
 import com.termux.app.terminal.io.DirectoryHistoryController;
 import com.termux.app.terminal.io.DirectoryHistoryPopupController;
-import com.termux.app.terminal.io.MessageHistoryController;
 import com.termux.app.terminal.io.TextInputSessionStateManager;
-import com.termux.app.terminal.io.DirectoryHistoryController;
 import com.termux.app.terminal.io.MessageHistoryController;
 import com.termux.app.terminal.io.TextInputSessionStateManager;
 import com.termux.app.terminal.io.FullScreenWorkAround;
@@ -121,7 +125,7 @@ import org.json.JSONObject;
  * </ul>
  * about memory leaks.
  */
-public final class TermuxActivity extends AppCompatActivity {
+public final class TermuxActivity extends AppCompatActivity implements TextInputPanelController.Host, TermuxActivityPopupController.Host {
 
     @Override
     protected void attachBaseContext(Context newBase) {
@@ -233,7 +237,8 @@ public final class TermuxActivity extends AppCompatActivity {
     /**
      * The {@link TermuxActivity} broadcast receiver for various things like terminal style configuration changes.
      */
-    private final BroadcastReceiver mTermuxActivityBroadcastReceiver = new TermuxActivityBroadcastReceiver();
+    private TermuxActivityBroadcastManager mBroadcastManager = null;
+    private TermuxActivityViewHelper mViewHelper = null;
 
     /**
      * The last toast shown, used cancel current toast before showing new in {@link #showToast(String, boolean)}.
@@ -275,42 +280,11 @@ public final class TermuxActivity extends AppCompatActivity {
     // being hidden while the text input panel is open.
     private boolean mSoftKeyboardVisible = false;
 
-    // ── Auto-complete suggestions popup ────────────────
-    /** Popup window showing auto-complete suggestions from message history. */
-    private PopupWindow mSuggestionsPopup;
-    /** Current list of suggestion strings being displayed. */
-    private final ArrayList<String> mCurrentSuggestions = new ArrayList<>();
-    /** Suppress auto-complete popup during programmatic text changes (tab switch, history tap, suggestion tap). */
-    private boolean mSuppressAutoComplete;
-    /** Global layout listener on the input field, used to reposition the auto-complete popup. */
-    @Nullable private android.view.ViewTreeObserver.OnGlobalLayoutListener mSuggestionsLayoutListener;
-
-    // ── Incremental auto-complete optimization fields ──
-    /** Previous text tracked before a TextWatcher change, for additive-change detection. */
-    private String mAutoCompletePrevText = "";
-    /** Start index of the pending TextWatcher change (from beforeTextChanged). */
-    private int mAutoCompleteChangeStart;
-    /** Count of characters being replaced (from onTextChanged). */
-    private int mAutoCompleteChangeBefore;
-    /** Count of new characters being inserted (from onTextChanged). */
-    private int mAutoCompleteChangeCount;
-    /** Last text prefix used to build mCurrentSuggestions. */
-    private String mLastAppliedPrefix = "";
-    /** LinearLayout content inside the popup, for in-place view updates. */
-    @Nullable private LinearLayout mSuggestionsContent;
-    /** Cached version at the time the current popup was built (compared against the controller's history version). */
-    private int mLastBuiltHistoryVersion = -1;
-    /** Last explicit width passed to mSuggestionsPopup.update() (avoid -1 on API 21-22). */
-    private int mLastPopupWidth = 0;
-    /** Last explicit height passed to mSuggestionsPopup.update() (avoid -1 on API 21-22). */
-    private int mLastPopupHeight = 0;
-    /** Last X position passed to mSuggestionsPopup.update() (suppress redundant no-op calls). */
-    private int mLastPopupX = 0;
-    /** Last Y position passed to mSuggestionsPopup.update() (suppress redundant no-op calls). */
-    private int mLastPopupY = 0;
+    private TextInputPanelController mTextInputPanel;
+    private AutoCompleteController mAutoCompleteCtrl;
+    private TermuxActivityPopupController mPopupCtrl;
 
     /**
-
      * True for a short window right after onStart(), i.e. just after the app
      * returned from the background / was recreated. Used to suppress the
      * IME-hidden auto-close of the text input panel: on return the system may
@@ -351,36 +325,18 @@ public final class TermuxActivity extends AppCompatActivity {
     private MessageHistoryController mMessageHistoryCtrl = null;
     private boolean mPerDirectoryMessageHistory = false;
 
-    /** The popup showing the message history while the pencil button is held. */
-    @Nullable private PopupWindow mHistoryPopup;
 
-    /** Item views inside the history popup, index-aligned with the displayed order. */
-    private final ArrayList<TextView> mHistoryItemViews = new ArrayList<>();
-
-    /** The scrollable container inside the popup, used for edge auto-scroll. */
-    @Nullable private android.widget.ScrollView mHistoryScroll;
-
-    /** Last finger Y (screen) while the popup is open, for continuous edge scroll. */
-    private float mHistoryFingerY = 0f;
-
-    /** True while the edge auto-scroll loop is scheduled/running. */
-    private boolean mHistoryAutoScrolling = false;
 
     /** Cached color scheme manager — computes and vends all scheme-derived colours. */
     private final TermuxColorSchemeManager mColorSchemeManager = new TermuxColorSchemeManager();
 
-    /** Currently highlighted history item index while dragging, or -1 for none. */
-    private int mHistoryHighlightIndex = -1;
+
 
     /** Default max number of remembered messages (overridable in Settings). */
     private static final int MESSAGE_HISTORY_MAX_DEFAULT = 20;
 
 
-    /** Tag value marking the synthetic "Clear" row (clears the input field). */
-    private static final int MESSAGE_HISTORY_CLEAR_TAG = -2;
 
-    /** Tag value marking the top "Clear message history…" row (wipes all history). */
-    private static final int MESSAGE_HISTORY_CLEAR_ALL_TAG = -3;
 
     /** Max popup height in dp (bounded, never edge-to-edge); scrolls beyond this. */
     private static final int MESSAGE_HISTORY_POPUP_MAX_HEIGHT_DP = 520;
@@ -508,8 +464,16 @@ public final class TermuxActivity extends AppCompatActivity {
 
         setMargins();
 
+        mTextInputPanel = new TextInputPanelController(this, this, mTextInputState);
+        mPopupCtrl = new TermuxActivityPopupController(this, this);
+        mPopupCtrl.setMessageHistoryController(mMessageHistoryCtrl);
+        mPopupCtrl.setColorSchemeManager(mColorSchemeManager);
+
         mTermuxActivityRootView = findViewById(R.id.activity_termux_root_view);
         mTermuxActivityRootView.setActivity(this);
+        mTextInputPanel.setup(savedInstanceState, mTermuxActivityRootView);
+        mViewHelper = new TermuxActivityViewHelper(this, getLayoutInflater());
+        mViewHelper.setDirectoryHistoryPopupController(mDirectoryHistoryPopupCtrl);
         mTermuxActivityBottomSpaceView = findViewById(R.id.activity_termux_bottom_space_view);
         mTermuxActivityRootView.setOnApplyWindowInsetsListener(new TermuxActivityRootView.WindowInsetsListener());
 
@@ -534,10 +498,7 @@ public final class TermuxActivity extends AppCompatActivity {
 
             // Reposition the auto-complete popup when IME shows/hides, since
             // the input field's on-screen position may change.
-            if (imeVisible != imeWasVisible && mSuggestionsPopup != null
-                    && mSuggestionsPopup.isShowing()) {
-                repositionAutoCompletePopup();
-            }
+            // Auto-complete popup repositioning handled by AutoCompleteController
 
             // If preference is on, show/hide extra keys with keyboard
             if (imeVisible != imeWasVisible && mExtraKeysView != null
@@ -558,6 +519,10 @@ public final class TermuxActivity extends AppCompatActivity {
         setTermuxTerminalViewAndClients();
 
         setTerminalToolbarView(savedInstanceState);
+
+        mAutoCompleteCtrl = new AutoCompleteController(this,
+                findViewById(R.id.terminal_toolbar_text_input),
+                mMessageHistoryCtrl, mColorSchemeManager);
 
         setSettingsButtonView();
 
@@ -785,22 +750,8 @@ public final class TermuxActivity extends AppCompatActivity {
 
 
 
-    private void applyTermuxTheme() {
-        // Update NightMode.APP_NIGHT_MODE
-        TermuxThemeUtils.setAppNightMode(mProperties.getNightMode());
-
-        // Set activity night mode. If NightMode.SYSTEM is set, then android will automatically
-        // trigger recreation of activity when uiMode/dark mode configuration is changed so that
-        // day or night theme takes affect.
-        AppCompatActivityUtils.setNightMode(this, NightMode.getAppNightMode().getName(), true);
-
-        // NOTE: The terminal color scheme (checkForFontAndColors()) is intentionally NOT applied
-        // here. At this point (onCreate line ~218) setContentView() has not run yet, so
-        // mTerminalView is still null and mTermuxTerminalSessionActivityClient has not been
-        // constructed. Applying it here would be a silent no-op (getTerminalView() == null),
-        // which is why a hot theme swap (recreate / day-night switch) left the terminal
-        // unpainted while only the toolbar+status bar updated. The terminal repaint is done
-        // in setTermuxTerminalViewAndClients() once the view and client exist.
+    public void applyTermuxTheme() {
+        if (mViewHelper != null) mViewHelper.applyTheme();
     }
 
     /**
@@ -972,32 +923,7 @@ public final class TermuxActivity extends AppCompatActivity {
             if (!hasFocus) dismissAutoCompleteSuggestions();
         });
 
-        // Auto-complete from message history as the user types
-        editText.addTextChangedListener(new android.text.TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-                mAutoCompletePrevText = s.toString();
-                mAutoCompleteChangeStart = start;
-            }
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
-                mAutoCompleteChangeBefore = before;
-                mAutoCompleteChangeCount = count;
-            }
-            @Override
-            public void afterTextChanged(android.text.Editable s) {
-                updateAutoCompleteSuggestions();
-            }
-        });
-
-        // Reposition the auto-complete popup when the caret moves without text changes
-        // (e.g. tapping a different position in the text). We use ACTION_UP on the EditText
-        // because setOnSelectionChangedListener is API 29+ and the project targets API 28.
-        editText.setOnTouchListener((v, event) -> {
-            if (event.getAction() == android.view.MotionEvent.ACTION_UP) {
-                v.post(() -> repositionAutoCompletePopup());
-            }
-            return false; // don't consume the event, let the EditText handle it
-        });
-
+        // Auto-complete + caret-reposition handled by AutoCompleteController in constructor.
         editText.setOnEditorActionListener((v, actionId, event) -> {
             TerminalSession session = getCurrentSession();
             if (session != null) {
@@ -1052,7 +978,7 @@ public final class TermuxActivity extends AppCompatActivity {
         applyTextInputVisibilityForSession(getCurrentSession(), false);
     }
 
-    private void setTerminalToolbarHeight() {
+    public void setTerminalToolbarHeight() {
         final ExtraKeysView extraKeysView = getExtraKeysView();
         if (extraKeysView == null) return;
 
@@ -1114,9 +1040,9 @@ public final class TermuxActivity extends AppCompatActivity {
             return;
         }
         String text = mTextInputState.getInputText(session.mHandle);
-        mSuppressAutoComplete = true;
+        mAutoCompleteCtrl.setSuppressAutoComplete(true);
         textInputView.setText(text != null ? text : "");
-        mSuppressAutoComplete = false;
+        mAutoCompleteCtrl.setSuppressAutoComplete(false);
         // Restore the caret position saved for this session (clamped to text length).
         Integer caret = mTextInputState.hasCaret(session.mHandle) ? mTextInputState.getCaret(session.mHandle) : null;
         if (caret != null) {
@@ -1153,11 +1079,7 @@ public final class TermuxActivity extends AppCompatActivity {
 
 
     private void setSettingsButtonView() {
-        ImageButton settingsButton = findViewById(R.id.settings_button);
-        settingsButton.setOnClickListener(v -> {
-            ActivityUtils.startActivity(this, new Intent(this, SettingsActivity.class));
-        });
-        updateSettingsButtonVisibility();
+        if (mViewHelper != null) mViewHelper.setupSettingsButton(mTermuxActivityRootView);
     }
 
     /** Whether the tabs-panel settings button is enabled in settings (default: shown). */
@@ -1167,9 +1089,7 @@ public final class TermuxActivity extends AppCompatActivity {
 
     /** Show/hide the tabs-panel settings button based on the setting. */
     public void updateSettingsButtonVisibility() {
-        ImageButton settingsButton = findViewById(R.id.settings_button);
-        if (settingsButton != null)
-            settingsButton.setVisibility(isSettingsButtonEnabled() ? View.VISIBLE : View.GONE);
+        if (mViewHelper != null) mViewHelper.updateSettingsButtonVisibility(isSettingsButtonEnabled());
     }
 
     private void setNewSessionButtonView() {
@@ -1220,28 +1140,30 @@ public final class TermuxActivity extends AppCompatActivity {
                         float dx = event.getRawX() - downXY[0];
                         // Open the history popup once the finger has dragged up past
                         // the touch slop (and the drag is more vertical than sideways).
-                        if (!isHistoryPopupShowing()
-                                && dy < -touchSlop && Math.abs(dy) > Math.abs(dx)
-                                && shouldShowHistoryPopup()) {
+                        if (!mPopupCtrl.isHistoryPopupShowing()
+                                && dy < -touchSlop && Math.abs(dy) > Math.abs(dx)) {
                             v.setPressed(false);
-                            showMessageHistoryPopup(v);
+                            mPopupCtrl.showMessageHistoryPopup(v);
                         }
-                        if (isHistoryPopupShowing()) {
-                            updateHistoryHighlight(event.getRawX(), event.getRawY());
+                        if (mPopupCtrl.isHistoryPopupShowing()) {
+                            mPopupCtrl.updateHistoryHighlight(event.getRawX(), event.getRawY());
                         }
                         return true;
                     }
                     case MotionEvent.ACTION_UP:
                     case MotionEvent.ACTION_CANCEL: {
                         v.setPressed(false);
-                        boolean wasPopup = isHistoryPopupShowing();
+                        boolean wasPopup = mPopupCtrl.isHistoryPopupShowing();
                         if (wasPopup) {
-                            int selected = mHistoryHighlightIndex;
-                            dismissMessageHistoryPopup();
+                            int selected = mPopupCtrl.getHistoryHighlightIndex();
+                            boolean isClearAllSelected = (selected == -3
+                                    && mMessageHistoryCtrl != null
+                                    && !mMessageHistoryCtrl.getHistoryList().isEmpty());
+                            mPopupCtrl.dismissMessageHistoryPopup();
                             if (event.getActionMasked() == MotionEvent.ACTION_UP) {
-                                if (selected == MESSAGE_HISTORY_CLEAR_ALL_TAG) {
-                                    confirmClearAllHistory();
-                                } else if (selected == MESSAGE_HISTORY_CLEAR_TAG) {
+                                if (isClearAllSelected) {
+                                    mPopupCtrl.confirmClearAllHistory();
+                                } else if (selected == -2) {
                                     clearInputToHistory();
                                 } else if (selected >= 0 && selected < mMessageHistoryCtrl.getHistoryList().size()) {
                                     onHistoryMessagePicked(mMessageHistoryCtrl.getHistoryList().get(selected));
@@ -1314,7 +1236,7 @@ public final class TermuxActivity extends AppCompatActivity {
      * within the same tab) and cleanly separates histories so messages sent from
      * one directory never leak into another.
      */
-    private void addToMessageHistory(@NonNull String message) {
+    public void addToMessageHistory(@NonNull String message) {
         if (TextUtils.isEmpty(message)) return;
         String cwd = getCurrentCwdForHistory();
         mMessageHistoryCtrl.addToMessageHistory(message, cwd);
@@ -1325,7 +1247,8 @@ public final class TermuxActivity extends AppCompatActivity {
      * or a fallback if unavailable.
      */
     @NonNull
-    private String getCurrentCwdForHistory() {
+    @Override
+    public String getCurrentCwdForHistory() {
         TerminalSession session = getCurrentSession();
         if (session != null) {
             String cwd = session.getCwd();
@@ -1342,9 +1265,7 @@ public final class TermuxActivity extends AppCompatActivity {
         mMessageHistoryCtrl.save();
     }
 
-    private boolean isHistoryPopupShowing() {
-        return mHistoryPopup != null && mHistoryPopup.isShowing();
-    }
+
 
 
     // ── Auto-complete suggestions from message history ────────────────
@@ -1367,172 +1288,16 @@ public final class TermuxActivity extends AppCompatActivity {
      * {@link OnTouchListener} already call {@link #repositionAutoCompletePopup()}
      * separately.  The dispatcher here always receives a text-change event.
      */
-    private void updateAutoCompleteSuggestions() {
-        if (mIsInvalidState) return;
-        if (mSuppressAutoComplete) return;
-
-        final EditText inputField = findViewById(R.id.terminal_toolbar_text_input);
-        if (inputField == null) return;
-
-        final String text = inputField.getText().toString();
-        Logger.logInfo(LOG_TAG, "[autocomplete] text=\"" + text + "\"");
-
-        if (TextUtils.isEmpty(text)) {
-            dismissAutoCompleteSuggestions();
-            return;
-        }
-
-        int maxCount = getSharedPreferences("termux_prefs", MODE_PRIVATE)
-                .getInt("suggestions_max_count", 4);
-        if (maxCount < 0) maxCount = 0;
-        if (maxCount > 10) maxCount = 10;
-        if (maxCount == 0) {
-            dismissAutoCompleteSuggestions();
-            return;
-        }
-
-        // ── Early skip for IME re-compose of same text ──
-        // Gboard (and likely other IMEs) re-composes an unchanged composing span
-        // on certain interactions (e.g. after tapping a suggestion candidate in
-        // the IME's own bar). The text is identical to prevText, so the additive
-        // detection correctly says false (length didn't grow), but Path A would
-        // re-scan history and rebuild the popup unnecessarily. Skip the entire
-        // update when text is unchanged, the history version is current, and
-        // the popup is already showing valid suggestions.
-        String prevText = mAutoCompletePrevText;
-        if (text.equals(prevText) && mAutoCompleteChangeCount == mAutoCompleteChangeBefore) {
-            if (mMessageHistoryCtrl.getHistoryVersion() == mLastBuiltHistoryVersion
-                    && mSuggestionsPopup != null && mSuggestionsPopup.isShowing()
-                    && !mCurrentSuggestions.isEmpty()) {
-                Logger.logInfo(LOG_TAG, "[autocomplete] skip recompose (text==prevText, popup showing)");
-                return;
-            }
-        }
-
-        // ── Detect whether this is an additive (append-only) change ──
-        // Language/IME-agnostic: the new text must extend prevText by appending
-        // (prevText stays a prefix and text grew). We do NOT require before == 0,
-        // because IME composition (e.g. Gboard Cyrillic) replaces the composing span
-        // on every keystroke (before > 0), which made the old check take Path A on
-        // each Cyrillic char. The non-empty list guard forces Path A to bootstrap on
-        // the first keystroke (Path B on an empty list would wrongly dismiss).
-        boolean additive = false;
-        if (mAutoCompleteChangeCount > 0
-                && text.length() > prevText.length()
-                && text.startsWith(prevText)
-                && !mCurrentSuggestions.isEmpty()) {
-            additive = true;
-        }
-        Logger.logInfo(LOG_TAG, "[autocomplete] prev=\"" + prevText + "\" before="
-                + mAutoCompleteChangeBefore + " count=" + mAutoCompleteChangeCount
-                + " additive=" + additive + " hVer=" + mMessageHistoryCtrl.getHistoryVersion()
-                + "/" + mLastBuiltHistoryVersion);
-
-        // ── Path A (full rebuild): not additive OR history changed externally ──
-        if (!additive || mMessageHistoryCtrl.getHistoryVersion() != mLastBuiltHistoryVersion) {
-            Logger.logInfo(LOG_TAG, "[autocomplete] → PATH A (fullRescan) reason="
-                    + (!additive ? "non-additive" : "history=" + mMessageHistoryCtrl.getHistoryVersion() + "≠" + mLastBuiltHistoryVersion));
-            fullRescanSuggestions(text, maxCount);
-            return;
-        }
-
-        // ── Path B (additive filter): only appending characters ──
-        // Filter mCurrentSuggestions in-place
-        final int preFilterCount = mCurrentSuggestions.size();
-        for (int i = mCurrentSuggestions.size() - 1; i >= 0; i--) {
-            String s = mCurrentSuggestions.get(i);
-            if (s.length() <= text.length()
-                    || !s.regionMatches(true, 0, text, 0, text.length())
-                    || s.equals(text)) {
-                mCurrentSuggestions.remove(i);
-            }
-        }
-        int filteredRemoved = preFilterCount - mCurrentSuggestions.size();
-        Logger.logInfo(LOG_TAG, "[autocomplete] → PATH B filteredRemoved=" + filteredRemoved
-                + " remaining=" + mCurrentSuggestions.size());
-
-        if (mCurrentSuggestions.isEmpty()) {
-            // The additive filter emptied the list. This happens when there was
-            // nothing to filter to begin with (e.g. the very first keystroke after
-            // the field was cleared, so mCurrentSuggestions is still empty rather
-            // than a previously-shown popup being filtered down). A plain dismiss
-            // here would silently drop a legitimate character. Fall back to a full
-            // history rescan: it shows suggestions if any match, otherwise it still
-            // dismisses correctly.
-            Logger.logInfo(LOG_TAG, "[autocomplete] filter emptied list → full rescan");
-            fullRescanSuggestions(text, maxCount);
-            return;
-        }
-
-        // Top-up from history if filtered list is smaller than maxCount
-        if (mCurrentSuggestions.size() < maxCount) {
-            for (String msg : mMessageHistoryCtrl.getHistoryList()) {
-                if (mCurrentSuggestions.size() >= maxCount) break;
-                if (!mCurrentSuggestions.contains(msg)
-                        && msg.length() > text.length()
-                        && msg.regionMatches(true, 0, text, 0, text.length())
-                        && !msg.equals(text)) {
-                    mCurrentSuggestions.add(msg);
-                }
-            }
-        }
-
-        Logger.logInfo(LOG_TAG, "[autocomplete] after top-up suggestions=" + mCurrentSuggestions.size());
-
-        // If popup isn't showing yet, build it fresh
-        if (mSuggestionsPopup == null || !mSuggestionsPopup.isShowing()) {
-            Logger.logInfo(LOG_TAG, "[autocomplete] → showAutoCompletePopup (popup null or not showing)");
-            showAutoCompletePopup(inputField);
-            return;
-        }
-
-        // In-place update of the existing popup content
-        updatePopupContent(text, inputField);
+    public void updateAutoCompleteSuggestions() {
+        // Handled by AutoCompleteController's internal TextWatcher.
     }
 
-    /**
-     * Path A: full re-scan of mMessageHistoryCtrl.getHistoryList() and fresh popup creation.
-     * Same logic as the original updateAutoCompleteSuggestions().
-     */
-    private void fullRescanSuggestions(@NonNull String text, int maxCount) {
-        mCurrentSuggestions.clear();
-        for (String msg : mMessageHistoryCtrl.getHistoryList()) {
-            if (mCurrentSuggestions.size() >= maxCount) break;
-            if (msg.length() > text.length()
-                    && msg.regionMatches(true, 0, text, 0, text.length())
-                    && !msg.equals(text)) {
-                mCurrentSuggestions.add(msg);
-            }
-        }
+    /** Removed — handled by AutoCompleteController. */
+    private void fullRescanSuggestions(@NonNull String text, int maxCount) { }
 
-        Logger.logInfo(LOG_TAG, "[autocomplete] fullRescan text=\"" + text + "\" max=" + maxCount
-                + " matches=" + mCurrentSuggestions.size());
+    /** Removed — handled by AutoCompleteController. */
 
-        if (mCurrentSuggestions.isEmpty()) {
-            dismissAutoCompleteSuggestions();
-        } else {
-            showAutoCompletePopup(findViewById(R.id.terminal_toolbar_text_input));
-        }
-    }
-
-    /** Path separator set used by {@link #wordStartOffset} to find word boundaries. */
-    private static final String WORD_SEPARATORS = " /";  // space + slash
-
-    /**
-     * Returns the starting position of the last word (token) in {@code s},
-     * where words are delimited by any character in {@link #WORD_SEPARATORS}.
-     * Returns 0 if no separator is found (the whole string is the only word)
-     * or if {@code s} is empty.
-     */
-    private static int wordStartOffset(@NonNull String s) {
-        int i = s.length();
-        while (i > 0) {
-            char c = s.charAt(i - 1);
-            if (c == ' ' || c == '/') return i;
-            i--;
-        }
-        return 0;
-    }
+    /** Removed — handled by AutoCompleteController. */
 
     /**
 
@@ -1555,1012 +1320,40 @@ public final class TermuxActivity extends AppCompatActivity {
      * @param availWidth available text width in px (popup width minus padding);
      *                   pass {@code 0} to skip truncation (e.g. not yet laid out).
      */
-    @NonNull
-    private android.text.SpannableString buildSuggestionSpannable(@NonNull String suggestion,
-            @NonNull String input, int availWidth, @NonNull android.text.TextPaint paint) {
-        int wordStart = Math.min(wordStartOffset(input), suggestion.length());
-        int boldLen = input.length() - wordStart;
-        boolean hasLastWord = boldLen > 0;
-        String prefix = (wordStart > 0) ? "... " : "";
-        int prefixLen = prefix.length();
-        String displayText = (prefixLen > 0) ? prefix + suggestion.substring(wordStart) : suggestion;
-
-        if (availWidth > 0) {
-            displayText = truncateToLines(displayText, availWidth, paint, 2, false);
+    /** @return starting position of the last token in {@code s}, split on space or slash. */
+    private static int wordStartOffset(@NonNull String s) {
+        int i = s.length();
+        while (i > 0) {
+            char c = s.charAt(i - 1);
+            if (c == ' ' || c == '/') return i;
+            i--;
         }
-
-        android.text.SpannableString ss = new android.text.SpannableString(displayText);
-        int spanEnd = Math.min(prefixLen + boldLen, displayText.length());
-        if (hasLastWord && spanEnd > prefixLen
-                && suggestion.regionMatches(true, 0, input, 0, input.length())) {
-            ss.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
-                    prefixLen, spanEnd, android.text.SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
-        }
-        return ss;
+        return 0;
     }
 
-    /**
-     * Truncate {@code text} so it fits within {@code maxLines} lines of width
-     * {@code availWidth}. Returns the original text unchanged if it already fits.
-     * Otherwise keeps the start (when {@code middle} is false) and appends a
-     * single {@code '…'}, or keeps the start and end and replaces the dropped
-     * middle with a {@code '…'} (when {@code middle} is true, for paths).
-     */
-    @NonNull
-    private static String truncateToLines(@NonNull String text, int availWidth,
-            @NonNull android.text.TextPaint paint, int maxLines, boolean middle) {
-        if (text.length() == 0 || fitsLines(text, availWidth, paint, maxLines)) {
-            return text;
-        }
-        if (!middle) {
-            int lo = 0, hi = text.length();
-            while (lo < hi) {
-                int mid = (lo + hi + 1) / 2;
-                if (fitsLines(text.substring(0, mid) + "…", availWidth, paint, maxLines)) {
-                    lo = mid;
-                } else {
-                    hi = mid - 1;
-                }
-            }
-            return text.substring(0, lo) + "…";
-        }
-        int lo = 0, hi = text.length();
-        while (lo < hi) {
-            int mid = (lo + hi + 1) / 2;
-            String cand = middleCandidate(text, mid);
-            if (fitsLines(cand, availWidth, paint, maxLines)) {
-                lo = mid;
-            } else {
-                hi = mid - 1;
-            }
-        }
-        return middleCandidate(text, lo);
-    }
 
-    @NonNull
-    private static String middleCandidate(@NonNull String text, int keep) {
-        int head = keep / 2;
-        int tail = keep - head;
-        if (head > text.length()) head = text.length();
-        if (tail > text.length() - head) tail = text.length() - head;
-        if (tail < 0) tail = 0;
-        return text.substring(0, head) + "…" + text.substring(text.length() - tail);
-    }
-
-    /** True when {@code text} lays out to at most {@code maxLines} lines of {@code availWidth}. */
-    @SuppressWarnings("deprecation")
-    private static boolean fitsLines(@NonNull String text, int availWidth,
-            @NonNull android.text.TextPaint paint, int maxLines) {
-        android.text.StaticLayout layout;
-        if (android.os.Build.VERSION.SDK_INT >= 23) {
-            layout = android.text.StaticLayout.Builder.obtain(
-                    text, 0, text.length(), paint, availWidth)
-                    .setMaxLines(maxLines)
-                    .setEllipsize(null)
-                    .build();
-        } else {
-            layout = new android.text.StaticLayout(
-                    text, paint, availWidth,
-                    android.text.Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
-        }
-        return layout.getLineCount() <= maxLines;
-    }
-
-    /**
-     * (Optimize auto-complete: three-path dispatch, additive filtering, history version guard)
-     * Path B (optimized): update bold spans on the existing popup content when the
-     * suggestion set is unchanged and only the typed prefix grew longer.
-     * Mutates the Spannable buffer in-place via {@code tv.getText()} so no
-     * requestLayout / remeasure is triggered — only {@code invalidate()} for redraw.
-     * When the word-start anchor changes (e.g. user crosses a space/slash boundary)
-     * falls back to {@code setText()} to rebuild the truncated display.
-     */
-    private void updateBoldSpansOnly(@NonNull String newText) {
-        if (mSuggestionsPopup == null || !mSuggestionsPopup.isShowing()) return;
-        android.widget.ScrollView scroll = (android.widget.ScrollView) mSuggestionsPopup.getContentView();
-        if (scroll == null) return;
-        LinearLayout content = (LinearLayout) scroll.getChildAt(0);
-        if (content == null) return;
-
-        // Precompute word-boundary info (shared across all child views)
-        final int inputLen = newText.length();
-        final int wordStart = Math.min(wordStartOffset(newText), inputLen);
-        final int boldLen = inputLen - wordStart;
-        final boolean hasLastWord = boldLen > 0;
-        final String prefix = (wordStart > 0) ? "... " : "";
-        final int prefixLen = prefix.length();
-
-        Logger.logInfo(LOG_TAG, "[autocomplete] updateBoldSpansOnly wordStart=" + wordStart
-                + " boldLen=" + boldLen + " views=" + content.getChildCount());
-        for (int i = 0; i < content.getChildCount(); i++) {
-            View child = content.getChildAt(i);
-            if (!(child instanceof TextView)) continue;
-            TextView tv = (TextView) child;
-            String suggestion = (String) tv.getTag();
-            if (suggestion == null) continue;
-
-            // Compute the expected word-truncated display string
-            int ws = Math.min(wordStart, suggestion.length());
-            String expectedDisplay = (prefixLen > 0)
-                    ? prefix + suggestion.substring(ws)
-                    : suggestion;
-
-            CharSequence currentText = tv.getText();
-            if (!expectedDisplay.contentEquals(currentText)) {
-                // Word-boundary anchor shifted → rebuild text with setText (rare:
-
-                // crossing a space or / boundary). Re-measure and re-truncate too
-                // so the trailing '…' stays correct for long suggestions.
-                int availWidth = tv.getWidth() - tv.getPaddingLeft() - tv.getPaddingRight();
-                android.text.SpannableString ss = buildSuggestionSpannable(
-                        suggestion, newText, Math.max(0, availWidth), tv.getPaint());
-                // (Optimize auto-complete: three-path dispatch, additive filtering, history version guard)
-                tv.setText(ss, TextView.BufferType.SPANNABLE);
-            } else {
-                // Display buffer unchanged → only mutate bold spans in-place (fast path)
-                android.text.Spannable sp = (android.text.Spannable) currentText;
-                android.text.style.StyleSpan[] old = sp.getSpans(0, sp.length(),
-                        android.text.style.StyleSpan.class);
-                for (android.text.style.StyleSpan s : old) sp.removeSpan(s);
-                if (hasLastWord && prefixLen + boldLen <= sp.length()
-                        && suggestion.regionMatches(true, 0, newText, 0, inputLen)) {
-                    sp.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
-                            prefixLen, prefixLen + boldLen,
-                            android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                }
-                tv.invalidate();
-            }
-        }
-    }
-
-    /**
-     * Path B: update the existing popup in-place after an additive text change.
-     *
-     * Removes non-matching views from {@link #mSuggestionsContent},
-     * recalculates bold-spans for survivors, top-ups with new views if history
-     * had more matches, then measures and resizes the popup.
-     */
-    private void updatePopupContent(@NonNull String newText, @NonNull EditText inputField) {
-        if (mSuggestionsPopup == null || !mSuggestionsPopup.isShowing()) {
-            showAutoCompletePopup(inputField);
-            return;
-        }
-        android.widget.ScrollView scroll = (android.widget.ScrollView) mSuggestionsPopup.getContentView();
-        if (scroll == null) { showAutoCompletePopup(inputField); return; }
-        LinearLayout content = (LinearLayout) scroll.getChildAt(0);
-        if (content == null) { showAutoCompletePopup(inputField); return; }
-
-        // Remove non-matching views (iterate backward so indices stay valid)
-        final int inputLen = newText.length();
-        final int prevChildCount = content.getChildCount();
-        for (int i = prevChildCount - 1; i >= 0; i--) {
-            View child = content.getChildAt(i);
-            String suggestion = (String) child.getTag();
-            if (suggestion == null
-                    || suggestion.length() <= inputLen
-                    || !suggestion.regionMatches(true, 0, newText, 0, inputLen)
-                    || suggestion.equals(newText)) {
-                content.removeViewAt(i);
-            }
-        }
-        boolean contentChanged = (content.getChildCount() != prevChildCount);
-
-        // Rebuild mCurrentSuggestions list to match the current views
-        mCurrentSuggestions.clear();
-        for (int i = 0; i < content.getChildCount(); i++) {
-            View child = content.getChildAt(i);
-            String tag = (String) child.getTag();
-            if (tag != null) mCurrentSuggestions.add(tag);
-        }
-
-        // Top-up from history if needed
-        int maxCount = getSharedPreferences("termux_prefs", MODE_PRIVATE)
-                .getInt("suggestions_max_count", 4);
-        if (maxCount < 0) maxCount = 0;
-        if (maxCount > 10) maxCount = 10;
-        final int preTopUpCount = content.getChildCount();
-        if (mCurrentSuggestions.size() < maxCount) {
-            for (String msg : mMessageHistoryCtrl.getHistoryList()) {
-                if (mCurrentSuggestions.size() >= maxCount) break;
-                if (!mCurrentSuggestions.contains(msg)
-                        && msg.length() > newText.length()
-                        && msg.regionMatches(true, 0, newText, 0, newText.length())
-                        && !msg.equals(newText)) {
-                    mCurrentSuggestions.add(msg);
-                    // Create a new TextView for this top-up item
-                    TextView tv = buildSuggestionTextView(msg, newText);
-                    content.addView(tv, new LinearLayout.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.WRAP_CONTENT));
-                }
-            }
-        }
-        if (content.getChildCount() != preTopUpCount) contentChanged = true;
-
-        Logger.logInfo(LOG_TAG, "[autocomplete] updatePopupContent contentChanged=" + contentChanged
-                + " views=" + content.getChildCount() + " suggestions=" + mCurrentSuggestions.size());
-
-        // Fast path: no structural change — only update bold-spans in-place, skip measure/update
-        if (!contentChanged) {
-            Logger.logInfo(LOG_TAG, "[autocomplete] → FAST PATH (bold-spans only)");
-            updateBoldSpansOnly(newText);
-            mLastAppliedPrefix = newText;
-            applyPopupGeometry(inputField);
-            return;
-        }
-
-        // Structural change — update bold-spans, measure, resize
-        Logger.logInfo(LOG_TAG, "[autocomplete] → STRUCTURAL CHANGE (measure+update)");
-        updateBoldSpansOnly(newText);
-
-        // Reset scroll to top synchronously before measure (no post() needed,
-        // the ScrollView is already laid out and showing).
-        scroll.setScrollY(0);
-        content.measure(
-                View.MeasureSpec.makeMeasureSpec(mLastPopupWidth, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
-        int newHeight = content.getMeasuredHeight();
-
-        // Resize and reposition
-        mLastPopupHeight = newHeight;
-        mLastAppliedPrefix = newText;
-        applyPopupGeometry(inputField);
-    }
-
-    /** Build a single suggestion TextView (reusable helper). */
-    private TextView buildSuggestionTextView(@NonNull String suggestion, @NonNull String input) {
-        int padH = dpToPx(14);
-        int padV = dpToPx(10);
-        TextView tv = new TextView(this);
-
-
-        tv.setTextColor(mColorSchemeManager.getHistoryTextColor());
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        tv.setPadding(padH, padV, padH, padV);
-
-        // Available text width = popup width minus horizontal padding. Mirrors the
-        // width the popup is sized to in showAutoCompletePopup (sumWidth).
-        final EditText inputField = (EditText) findViewById(R.id.terminal_toolbar_text_input);
-        int popupWidth = Math.max(dpToPx(200),
-                (inputField != null ? inputField.getWidth() : 0) - dpToPx(16));
-        int availWidth = Math.max(0, popupWidth - 2 * padH);
-
-        // Word-based leading truncation + manual trailing '…' (TextView's
-        // setEllipsize(END) is unreliable for maxLines>1 on API 21-28).
-        android.text.SpannableString ss = buildSuggestionSpannable(
-                suggestion, input, availWidth, tv.getPaint());
-        tv.setText(ss, TextView.BufferType.SPANNABLE);
-        tv.setMaxLines(2);
-        tv.setEllipsize(android.text.TextUtils.TruncateAt.END); // backup; text already fits 2 lines
-         // (Optimize auto-complete: three-path dispatch, additive filtering, history version guard)
-        tv.setTextColor(mColorSchemeManager.getHistoryTextColor());
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        tv.setPadding(padH, padV, padH, padV);
-        tv.setTag(suggestion);
-        // Solid press highlight matching the message-history popup (per-theme)
-        android.graphics.drawable.StateListDrawable sel = new android.graphics.drawable.StateListDrawable();
-        int highlightColor = mColorSchemeManager.getHistoryHighlightFill();
-        sel.addState(new int[]{android.R.attr.state_pressed},
-                new android.graphics.drawable.ColorDrawable(highlightColor));
-        sel.addState(new int[]{},
-                new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
-        sel.setEnterFadeDuration(0);
-        sel.setExitFadeDuration(0);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            tv.setBackground(sel);
-        } else {
-            tv.setBackgroundDrawable(sel);
-        }
-        tv.setClickable(true);
-        final String finalSuggestion = suggestion;
-
-        // (Optimize auto-complete: three-path dispatch, additive filtering, history version guard)
-        tv.setOnClickListener(v -> {
-            mSuppressAutoComplete = true;
-            try {
-                if (inputField != null) {
-                    inputField.setText(finalSuggestion);
-                    inputField.setSelection(finalSuggestion.length());
-                }
-            } finally {
-                mSuppressAutoComplete = false;
-            }
-            dismissAutoCompleteSuggestions();
-            dismissMessageHistoryPopup();
-            if (mDirectoryHistoryPopupCtrl != null) mDirectoryHistoryPopupCtrl.dismiss();
-        });
-        return tv;
-    }
-
-    /**
-     * Calculate the X position for the popup at the input caret.
-     * Reusable helper shared by showAutoCompletePopup, updatePopupContent and reposition.
-     */
-    private int calcPopupX(@NonNull EditText inputField, int popupWidth) {
-        int cursorPos = inputField.getSelectionStart();
-        android.text.Layout layout = inputField.getLayout();
-        float cursorX = 0;
-        if (layout != null && cursorPos >= 0) {
-            cursorX = layout.getPrimaryHorizontal(cursorPos);
-        }
-        int[] loc = new int[2];
-        inputField.getLocationInWindow(loc);
-        int popupX = loc[0] + (int) cursorX + dpToPx(4);
-        int displayWidth = getResources().getDisplayMetrics().widthPixels;
-        if (popupX + popupWidth > displayWidth - dpToPx(8)) {
-            popupX = displayWidth - popupWidth - dpToPx(8);
-        }
-        if (popupX < dpToPx(8)) popupX = dpToPx(8);
-        return popupX;
-    }
-
-    /**
-     * Calculate the Y position for the popup (above the caret, fallback below).
-     */
-    private int calcPopupY(@NonNull EditText inputField, int popupHeight, int popupWidth) {
-        int cursorPos = inputField.getSelectionStart();
-        android.text.Layout layout = inputField.getLayout();
-        float cursorY = 0;
-        if (layout != null && cursorPos >= 0) {
-            cursorY = layout.getLineTop(layout.getLineForOffset(cursorPos));
-        }
-        int[] loc = new int[2];
-        inputField.getLocationInWindow(loc);
-        int popupY = loc[1] + (int) cursorY - popupHeight - dpToPx(4);
-        if (popupY < dpToPx(16)) {
-            popupY = loc[1] + (int) cursorY + dpToPx(8);
-        }
-        return popupY;
-    }
-
-    private void showAutoCompletePopup(@NonNull EditText inputField) {
-        Logger.logInfo(LOG_TAG, "[autocomplete] showAutoCompletePopup suggestions="
-                + mCurrentSuggestions.size() + " popupShown=" + (mSuggestionsPopup != null));
-
-        // ── Reuse the existing window to avoid dismiss→show flicker ──
-        if (mSuggestionsPopup != null && mSuggestionsPopup.isShowing()
-                && mSuggestionsContent != null && !mCurrentSuggestions.isEmpty()
-                && mSuggestionsContent.getParent() != null) {
-            final String input = inputField.getText().toString();
-
-            // Content-changed guard: skip the removeAllViews + addViews + measure cycle
-            // when the suggestion list is identical to what's already shown (e.g. an IME
-            // re-compose of the same text that re-triggers Path A). Mirrors the
-            // contentChanged check in updatePopupContent(), comparing the EXISTING
-            // mSuggestionsContent children against mCurrentSuggestions.
-            boolean contentChanged = mSuggestionsContent.getChildCount() != mCurrentSuggestions.size();
-            if (!contentChanged) {
-                for (int i = 0; i < mCurrentSuggestions.size(); i++) {
-                    String existing = ((TextView) mSuggestionsContent.getChildAt(i)).getText().toString();
-                    if (!existing.equals(mCurrentSuggestions.get(i))) {
-                        contentChanged = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!contentChanged) {
-                // Fast path: identical suggestions — refresh bold spans for the current
-                // prefix in-place (no relayout) and reposition. Height is unchanged, so
-                // no re-measure needed. Keep version tracking in sync with the rebuild path.
-                Logger.logInfo(LOG_TAG, "[autocomplete] popup reuse FAST PATH (bold-spans only)");
-                updateBoldSpansOnly(input);
-                mLastBuiltHistoryVersion = mMessageHistoryCtrl.getHistoryVersion();
-                mLastAppliedPrefix = input;
-                applyPopupGeometry(inputField);
-                return;
-            }
-
-            // Reset scroll to top before rebuilding content in-place, so the
-            // user isn't left staring at an empty scroll area after the remove.
-            if (mSuggestionsContent.getParent() instanceof android.widget.ScrollView) {
-                ((android.widget.ScrollView) mSuggestionsContent.getParent()).setScrollY(0);
-            }
-
-            mSuggestionsContent.removeAllViews();
-            for (int i = 0; i < mCurrentSuggestions.size(); i++) {
-                mSuggestionsContent.addView(
-                        buildSuggestionTextView(mCurrentSuggestions.get(i), input),
-                        new LinearLayout.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.WRAP_CONTENT));
-            }
-            mSuggestionsContent.measure(
-                    View.MeasureSpec.makeMeasureSpec(mLastPopupWidth, View.MeasureSpec.EXACTLY),
-                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
-            mLastPopupHeight = mSuggestionsContent.getMeasuredHeight();
-            mLastBuiltHistoryVersion = mMessageHistoryCtrl.getHistoryVersion();
-            mLastAppliedPrefix = input;
-            Logger.logInfo(LOG_TAG, "[autocomplete] popup content replaced in-place (no dismiss/show)");
-            applyPopupGeometry(inputField);
-            return;
-        }
-
-        // Dismiss any previously shown popup WITHOUT clearing mCurrentSuggestions:
-        // dismissAutoCompleteSuggestions() also clears that list, and we still need it
-        // below to build the suggestion views. Clearing it here would leave the popup
-        // empty (completely silent auto-complete).
-        if (mSuggestionsPopup != null) {
-            try { mSuggestionsPopup.dismiss(); } catch (Exception ignored) {}
-            mSuggestionsPopup = null;
-        }
-
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setBackgroundColor(Color.TRANSPARENT);
-
-        int padH = dpToPx(14);
-        int padV = dpToPx(10);
-        final String input = inputField.getText().toString();
-
-        for (int i = 0; i < mCurrentSuggestions.size(); i++) {
-            final String suggestion = mCurrentSuggestions.get(i);
-            TextView tv = buildSuggestionTextView(suggestion, input);
-            content.addView(tv, new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT));
-        }
-
-        // Wrap content in a ScrollView and size via WRAP_CONTENT + update() — this mirrors
-        // the WORKING mHistoryPopup and avoids the zero-height / degenerate-shadow bug that a
-        // non-focusable PopupWindow hits when given an explicit pixel height + setOutsideTouchable(true)
-        // + a plain (possibly transparent) ColorDrawable background. On a non-focusable window
-        // setOutsideTouchable() is a no-op, and a transparent ColorDrawable makes
-        // GradientDrawable.getOutline() bail, collapsing the window to a thin shadow line.
-        android.widget.ScrollView scroll = new android.widget.ScrollView(this);
-        scroll.setVerticalScrollBarEnabled(false);
-        scroll.addView(content, new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
-        // Clip children to the popup's rounded corners so highlights and
-        // separators near the edges don't spill outside the rounded shape.
-        // Guard against 0 dims during WRAP_CONTENT resize: if w or h is 0 the
-        // outline is left empty (no clipping) instead of clipping everything.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            scroll.setOutlineProvider(new android.view.ViewOutlineProvider() {
-                @Override
-                public void getOutline(View view, android.graphics.Outline outline) {
-                    int w = view.getWidth();
-                    int h = view.getHeight();
-                    if (w > 0 && h > 0) {
-                        outline.setRoundRect(0, 0, w, h, dpToPx(12));
-                    }
-                }
-            });
-            scroll.setClipToOutline(true);
-        }
-        // 10% visual transparency on the content (not the background drawable, so the
-        // elevation shadow outline stays valid).
-        scroll.setAlpha(0.9f);
-
-        // Position the popup at the input cursor (caret) position
-        int sumWidth = Math.max(dpToPx(200), inputField.getWidth() - dpToPx(16));
-        content.measure(
-                View.MeasureSpec.makeMeasureSpec(sumWidth, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
-        int popupHeight = content.getMeasuredHeight();
-        int popupX = calcPopupX(inputField, sumWidth);
-        int popupY = calcPopupY(inputField, popupHeight, sumWidth);
-
-        // focusable=false is the key: a non-focusable PopupWindow receives
-        // FLAG_NOT_FOCUSABLE + (default) FLAG_ALT_FOCUSABLE_IM, so it stays
-        // touchable (user can tap a suggestion) WITHOUT stealing window focus
-        // from the EditText. The IME therefore stays up and the text panel
-        // stays open. This is the same pattern as mHistoryPopup, which works
-        // correctly; the only difference is touchable=true so items are tappable.
-        mSuggestionsPopup = new PopupWindow(scroll, sumWidth,
-                ViewGroup.LayoutParams.WRAP_CONTENT, false);
-        // Smooth elevation shadow — background drawable must be fully opaque for the
-        // WindowManager to derive a valid Outline (GradientDrawable.getOutline bails
-        // when alpha < 255). The 10% visual transparency is on the ScrollView above.
-        mSuggestionsPopup.setElevation(dpToPx(16));
-        GradientDrawable popupBgDrawable = new GradientDrawable() {
-            @Override
-            public void getOutline(@NonNull Outline outline) {
-                super.getOutline(outline);
-                if (!outline.isEmpty() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    // Keep elevation large, but make the shadow softer/transparent.
-                    outline.setAlpha(0.65f);
-                }
-            }
-        };
-        popupBgDrawable.setShape(GradientDrawable.RECTANGLE);
-        popupBgDrawable.setCornerRadius(dpToPx(12));
-        popupBgDrawable.setColor(mColorSchemeManager.getHistoryPopupBg()); // must be opaque for getOutline
-        mSuggestionsPopup.setBackgroundDrawable(popupBgDrawable);
-        mSuggestionsPopup.setClippingEnabled(true);
-        // Touchable so the suggestion items remain clickable; focusable=false so the
-        // EditText keeps focus and the IME stays open. No setOutsideTouchable (it is a
-        // no-op on a non-focusable window and was the trigger for the zero-height collapse).
-        mSuggestionsPopup.setTouchable(true);
-        mSuggestionsPopup.setFocusable(false);
-
-        mSuggestionsPopup.setOnDismissListener(() -> mSuggestionsPopup = null);
-
-        try {
-            mSuggestionsPopup.showAtLocation(inputField, Gravity.NO_GRAVITY, popupX, popupY);
-            // Apply the measured height (WRAP_CONTENT in the ctor would let a long
-            // list grow past the screen; update() fixes the real height).
-            mSuggestionsPopup.update(popupX, popupY, sumWidth, popupHeight);
-            // Track layout changes (IME, scroll, resize) to keep the popup at the caret.
-            if (mSuggestionsLayoutListener == null) {
-                mSuggestionsLayoutListener = () -> repositionAutoCompletePopup();
-                getWindow().getDecorView().getViewTreeObserver().addOnGlobalLayoutListener(mSuggestionsLayoutListener);
-            }
-            // Save references for in-place updates
-            mSuggestionsContent = content;
-            mLastPopupWidth = sumWidth;
-            mLastPopupHeight = popupHeight;
-            mLastPopupX = popupX;
-            mLastPopupY = popupY;
-            mLastBuiltHistoryVersion = mMessageHistoryCtrl.getHistoryVersion();
-            mLastAppliedPrefix = input;
-            Logger.logInfo(LOG_TAG, "[autocomplete] popup shown at (" + popupX + "," + popupY
-                    + ") w=" + sumWidth + " h=" + popupHeight);
-        } catch (Exception e) {
-            Logger.logStackTraceWithMessage(LOG_TAG, "Failed to show auto-complete popup", e);
-            mSuggestionsPopup = null;
-        }
-    }
-
-    /** Reposition the auto-complete popup at the current caret position. */
-    private void repositionAutoCompletePopup() {
-        if (mSuggestionsPopup == null || !mSuggestionsPopup.isShowing()) return;
-        final EditText inputField = findViewById(R.id.terminal_toolbar_text_input);
-        if (inputField == null) return;
-        Logger.logInfo(LOG_TAG, "[autocomplete] repositionAutoCompletePopup");
-        applyPopupGeometry(inputField);
-    }
-
-    /**
-     * Unified popup positioning: calculates x/y from caret, calls
-     * {@code PopupWindow.update()} only when geometry actually changed.
-     * Use from both {@link #updatePopupContent} and {@link #repositionAutoCompletePopup}
-     * to avoid redundant IPC / shadow redraw.
-     */
-    private void applyPopupGeometry(@NonNull EditText inputField) {
-        if (mSuggestionsPopup == null || !mSuggestionsPopup.isShowing()) {
-            Logger.logInfo(LOG_TAG, "[autocomplete] applyPopupGeometry skip (popup not showing)");
-            return;
-        }
-        android.text.Layout layout = inputField.getLayout();
-        if (layout == null) {
-            Logger.logInfo(LOG_TAG, "[autocomplete] applyPopupGeometry skip (layout null) — retrying");
-            // Layout isn't ready yet (IME animation / initial frame). Retry
-            // once after the next layout pass — without this the popup stays
-            // pinned to (0,0) forever.
-            inputField.post(() -> applyPopupGeometry(inputField));
-            return;
-        }
-        int w = mLastPopupWidth > 0 ? mLastPopupWidth :
-                Math.max(dpToPx(200), inputField.getWidth() - dpToPx(16));
-        int h = mLastPopupHeight;
-        if (w <= 0 || h <= 0) {
-            Logger.logInfo(LOG_TAG, "[autocomplete] applyPopupGeometry skip (w=" + w + " h=" + h + ")");
-            return;
-        }
-        int x = calcPopupX(inputField, w);
-        int y = calcPopupY(inputField, h, w);
-        if (x != mLastPopupX || y != mLastPopupY || h != mLastPopupHeight) {
-            Logger.logInfo(LOG_TAG, "[autocomplete] applyPopupGeometry update(" + x + "," + y + " " + w + "x" + h
-                    + ") old=(" + mLastPopupX + "," + mLastPopupY + " h=" + mLastPopupHeight + ")");
-            mSuggestionsPopup.update(x, y, w, h);
-            mLastPopupX = x;
-            mLastPopupY = y;
-        } else {
-            Logger.logInfo(LOG_TAG, "[autocomplete] applyPopupGeometry skip (no change)");
-        }
-    }
-
-    private void dismissAutoCompleteSuggestions() {
-        // Guard against redundant calls (e.g. afterTextChanged firing repeatedly on
-        // a clear). When nothing is pending to clean up, skip the diagnostic log and
-        // the rest of the teardown so we don't emit repeated noise.
-        if (mSuggestionsPopup == null && mCurrentSuggestions.isEmpty()) {
-            return;
-        }
-        Logger.logInfo(LOG_TAG, "[autocomplete] dismiss (popup=" + (mSuggestionsPopup != null)
-                + " suggestions=" + mCurrentSuggestions.size() + ")");
-        if (mSuggestionsPopup != null) {
-            try { mSuggestionsPopup.dismiss(); } catch (Exception ignored) {}
-            mSuggestionsPopup = null;
-        }
-        mCurrentSuggestions.clear();
-        mSuggestionsContent = null;
-        mLastAppliedPrefix = "";
-        mLastPopupX = 0;
-        mLastPopupY = 0;
-        if (mSuggestionsLayoutListener != null) {
-            final android.view.View decor = getWindow().getDecorView();
-            if (decor != null) {
-                decor.getViewTreeObserver().removeOnGlobalLayoutListener(mSuggestionsLayoutListener);
-            }
-            mSuggestionsLayoutListener = null;
-        }
+    public void dismissAutoCompleteSuggestions() {
+        mAutoCompleteCtrl.dismiss();
     }
 
 
     /**
-     * Build and show the message-history popup anchored above the pencil button.
-     * Items are laid out newest-at-the-BOTTOM (nearest the button): the content is
-     * filled top-to-bottom oldest-first, so index 0 (newest) ends up at the bottom.
-     */
-    private void showMessageHistoryPopup(@NonNull View anchor) {
-        dismissMessageHistoryPopup();
-        mHistoryItemViews.clear();
-        mHistoryHighlightIndex = -1;
-
-        // Sync per-directory history if the current directory changed since
-        // the last swap (e.g. after `cd` or a tab switch where the client
-        // callback was missed). Without this, the popup would show the
-        // previous directory's history until the user sends a message.
-        if (mMessageHistoryCtrl.isPerDirectoryEnabled()) {
-            String cwd = getCurrentCwdForHistory();
-            if (!cwd.equals(mMessageHistoryCtrl.getHistoryCurrentDirectory())) {
-                onHistoryDirectoryChanged();
-            }
-        }
-
-        // Early-exit: no history and no typed text → show an empty-state hint.
-        boolean hasHistory = !mMessageHistoryCtrl.getHistoryList().isEmpty();
-        String currInputText = "";
-        EditText inputFieldRO = findViewById(R.id.terminal_toolbar_text_input);
-        if (inputFieldRO != null) {
-            CharSequence cs = inputFieldRO.getText();
-            if (cs != null) currInputText = cs.toString();
-        }
-        boolean hasInput = !TextUtils.isEmpty(currInputText);
-        if (!hasHistory && !hasInput) {
-            // Show a one-shot Toast for the empty state. A guard flag prevents
-            // re-triggering on every ACTION_MOVE pixel while the finger drags.
-            if (!mHistoryEmptyHintShown) {
-                mHistoryEmptyHintShown = true;
-                Toast bottomToast = Toast.makeText(this, getString(R.string.message_history_empty), Toast.LENGTH_SHORT);
-                bottomToast.setGravity(Gravity.BOTTOM, 0, dpToPx(48));
-                bottomToast.show();
-            }
-            return;
-        }
-
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setBackgroundColor(Color.TRANSPARENT);
-
-        int padH = dpToPx(14);
-        int padV = dpToPx(10);
-
-        // Synthetic "CLEAR HISTORY…" row pinned at the TOP of the popup.
-        // Selecting it opens a confirmation dialog; confirming wipes all history.
-        // Shown only when there is history to clear. Coexists with the bottom
-        // "Clear" row (clears the input), it is not a replacement for it.
-        if (!mMessageHistoryCtrl.getHistoryList().isEmpty()) {
-            TextView tv = new TextView(this);
-            tv.setText(getString(R.string.message_history_clear_all));
-            tv.setGravity(Gravity.CENTER);
-            tv.setAllCaps(true);
-            tv.setTextColor(mColorSchemeManager.getHistoryTextColor());
-            tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-            tv.setTypeface(tv.getTypeface(), android.graphics.Typeface.BOLD);
-            tv.setPadding(padH, padV, padH, padV);
-            tv.setClickable(true);
-            tv.setTag(MESSAGE_HISTORY_CLEAR_ALL_TAG);
-            content.addView(tv, new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT));
-            mHistoryItemViews.add(tv);
-
-            // Thin separator below the clear all row to visually group it.
-            View sep = new View(this);
-            sep.setBackgroundColor(mColorSchemeManager.getHistoryPopupSepColor());
-            content.addView(sep, new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
-        }
-        // Displayed order (ТЗ): newest at the BOTTOM (nearest the pencil button,
-        // first reached by a swipe-up), oldest at the top. A re-sent message moves
-        // to index 0 (front) of mMessageHistoryCtrl.getHistoryList(), so iterate in REVERSE (end -> 0)
-        // to fill the vertical layout top-to-bottom with the newest last (bottom).
-        for (int i = mMessageHistoryCtrl.getHistoryList().size() - 1; i >= 0; i--) {
-            final String message = mMessageHistoryCtrl.getHistoryList().get(i);
-            TextView tv = new TextView(this);
-            // Preview: collapse newlines to spaces, wrap to at most 2 lines and add
-            // an ellipsis when the message is longer than that.
-            tv.setText(message.replace("\n", " ").trim());
-            tv.setMaxLines(2);
-            tv.setEllipsize(TextUtils.TruncateAt.END);
-            tv.setTextColor(mColorSchemeManager.getHistoryTextColor());
-            tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-            tv.setPadding(padH, padV, padH, padV);
-            tv.setClickable(true);
-            // Tag with the real history index so highlight/selection maps back.
-            tv.setTag(i);
-            content.addView(tv, new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT));
-            mHistoryItemViews.add(tv);
-        }
-
-        // Synthetic "Clear" row pinned at the BOTTOM of the popup (nearest the
-        // pencil button): remembers the current input text in history, then empties
-        // the input field. Shown only when the input panel actually has text.
-        final EditText inputField = findViewById(R.id.terminal_toolbar_text_input);
-        final String inputText = inputField != null ? inputField.getText().toString() : "";
-        if (!TextUtils.isEmpty(inputText)) {
-            TextView tv = new TextView(this);
-            tv.setText(getString(R.string.message_history_clear));
-            tv.setGravity(Gravity.CENTER);
-            tv.setAllCaps(true);
-            tv.setTextColor(mColorSchemeManager.getHistoryTextColor());
-            tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-            tv.setTypeface(tv.getTypeface(), android.graphics.Typeface.BOLD);
-            tv.setPadding(padH, padV, padH, padV);
-            tv.setClickable(true);
-            tv.setTag(MESSAGE_HISTORY_CLEAR_TAG);
-            content.addView(tv, new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT));
-            mHistoryItemViews.add(tv);
-
-            // Thin separator above the bottom "Clear" row acts as a visual
-            // divider between the history list and the action.  Only meaningful
-            // when there IS a history list to separate it from.
-            if (!mMessageHistoryCtrl.getHistoryList().isEmpty()) {
-                View sepBottom = new View(this);
-                sepBottom.setBackgroundColor(mColorSchemeManager.getHistoryPopupSepColor());
-                content.addView(sepBottom, content.getChildCount() - 1,
-                        new LinearLayout.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
-            }
-        }
-
-        int popupWidth = Math.min(
-                getResources().getDisplayMetrics().widthPixels - dpToPx(24),
-                dpToPx(320));
-
-        // Wrap in a ScrollView: the popup is a bounded box (never edge-to-edge),
-        // and a taller history scrolls inside it. Kept for edge auto-scroll while
-        // the finger drags near the top/bottom of the box.
-        android.widget.ScrollView scroll = new android.widget.ScrollView(this);
-        scroll.setVerticalScrollBarEnabled(false);
-        scroll.addView(content, new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
-        mHistoryScroll = scroll;
-        // Clip children to the popup's rounded corners so highlights and
-        // separators near the edges don't spill outside the rounded shape.
-        // Guard against 0 dims during WRAP_CONTENT resize: if w or h is 0
-        // the outline is left empty (no clipping) instead of clipping to nothing.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            scroll.setOutlineProvider(new android.view.ViewOutlineProvider() {
-                @Override
-                public void getOutline(View view, android.graphics.Outline outline) {
-                    int w = view.getWidth();
-                    int h = view.getHeight();
-                    if (w > 0 && h > 0) {
-                        outline.setRoundRect(0, 0, w, h, dpToPx(12));
-                    }
-                }
-            });
-            scroll.setClipToOutline(true);
-        }
-
-        mHistoryPopup = new PopupWindow(scroll, popupWidth,
-                ViewGroup.LayoutParams.WRAP_CONTENT, false);
-        // Smooth elevation shadow — background drawable must be fully opaque for the
-        // WindowManager to derive a valid Outline (GradientDrawable.getOutline bails
-        // when alpha < 255).  The 10% visual transparency is applied to the ScrollView
-        // itself via setAlpha(), which does not affect the popup's background outline.
-        // Larger elevation (16dp) for a bigger shadow, but outline alpha is
-        // reduced so the shadow renders more transparent/softer.
-        mHistoryPopup.setElevation(dpToPx(16));
-        // Background: rounded rect, fully opaque scheme composite colour.
-        // getOutline() is overridden to call outline.setAlpha() — this controls
-        // the shadow opacity independently from the elevation size.
-        GradientDrawable popupBgDrawable = new GradientDrawable() {
-            @Override
-            public void getOutline(@NonNull Outline outline) {
-                super.getOutline(outline);
-                if (!outline.isEmpty()) {
-                    // Keep elevation large, but make the shadow softer/transparent.
-                    // setAlpha requires API 31+.
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        outline.setAlpha(0.65f);
-                    }
-                }
-            }
-        };
-        popupBgDrawable.setShape(GradientDrawable.RECTANGLE);
-        popupBgDrawable.setCornerRadius(dpToPx(12));
-        popupBgDrawable.setColor(mColorSchemeManager.getHistoryPopupBg()); // must be opaque for getOutline
-        mHistoryPopup.setBackgroundDrawable(popupBgDrawable);
-        // 10% visual transparency on the content (not the background drawable, so the
-        // elevation shadow outline stays valid).
-        scroll.setAlpha(0.9f);
-        mHistoryPopup.setClippingEnabled(true);
-        // Do NOT let the popup intercept touches: the pencil button keeps the
-        // gesture so we track the finger over items via raw coordinates.
-        mHistoryPopup.setTouchable(false);
-        mHistoryPopup.setFocusable(false);
-
-        // Anchor above the button, right-aligned to it.
-        mHistoryPopup.showAsDropDown(anchor, 0, 0, Gravity.START);
-        // Reposition to sit ABOVE the anchor instead of below: measure content
-        // then offset upward. showAsDropDown places below, so we shift up here.
-        content.measure(
-                View.MeasureSpec.makeMeasureSpec(popupWidth, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
-        int contentHeight = content.getMeasuredHeight();
-        // Bounded box: min(content, configured max, room above the button).
-        int[] anchorLoc = new int[2];
-        anchor.getLocationOnScreen(anchorLoc);
-        // Gap between the button's top and the popup's bottom edge.
-        int popupGap = dpToPx(MESSAGE_HISTORY_POPUP_GAP_DP);
-        int roomAbove = Math.max(dpToPx(48), anchorLoc[1] - dpToPx(8) - popupGap);
-        int maxHeight = Math.min(dpToPx(MESSAGE_HISTORY_POPUP_MAX_HEIGHT_DP), roomAbove);
-        int popupHeight = Math.min(contentHeight, maxHeight);
-        mHistoryPopup.update(anchor,
-                0,
-                -(anchor.getHeight() + popupHeight + popupGap),
-                popupWidth,
-                popupHeight);
-
-        // Open at the END of the list: newest is at the bottom, so start scrolled
-        // fully down so the newest messages (nearest the button) are visible.
-        // jump straight to the bottom — fullScroll(FOCUS_DOWN) animates, which looks
-        // like the list is scrolling past entries as the popup appears.
-        final android.widget.ScrollView scrollRef1 = scroll;
-        scrollRef1.post(() -> {
-            View child = scrollRef1.getChildAt(0);
-            if (child != null) scrollRef1.scrollTo(0, child.getHeight());
-        });
-    }
-
-    /**
-     * Whether the popup has anything worth showing: either there is saved
-     * history, or the input panel currently holds some (unsent) text.
-     */
-    private boolean shouldShowHistoryPopup() {
-        return true; // always show – either history, or the "empty" hint
-    }
-
-    /** Highlight the history item currently under the finger (raw screen coords). */
-    private void updateHistoryHighlight(float rawX, float rawY) {
-        // Remember the finger position so the continuous edge auto-scroll keeps
-        // running even when the finger rests (no ACTION_MOVE) on the edge band.
-        mHistoryFingerY = rawY;
-        autoScrollHistoryNearEdge();
-
-        int newIndex = -1;
-        int[] loc = new int[2];
-        for (TextView tv : mHistoryItemViews) {
-            tv.getLocationOnScreen(loc);
-            if (rawX >= loc[0] && rawX <= loc[0] + tv.getWidth()
-                    && rawY >= loc[1] && rawY <= loc[1] + tv.getHeight()) {
-                Object tag = tv.getTag();
-                if (tag instanceof Integer) newIndex = (Integer) tag;
-                break;
-            }
-        }
-        if (newIndex == mHistoryHighlightIndex) return;
-        mHistoryHighlightIndex = newIndex;
-
-        // Sharp (non-pulse) highlight: solid theme accent fill + contrast text on
-        // the item under the finger, plain text otherwise.
-        for (TextView tv : mHistoryItemViews) {
-            Object tag = tv.getTag();
-            boolean active = tag instanceof Integer && (Integer) tag == mHistoryHighlightIndex;
-            if (active) {
-                tv.setBackgroundColor(mColorSchemeManager.getHistoryHighlightFill());
-            } else {
-                tv.setBackgroundColor(Color.TRANSPARENT);
-            }
-            tv.setTextColor(mColorSchemeManager.getHistoryTextColor());   // default colour in both states
-        }
-    }
-
-    /**
-     * Continuously scroll the popup's ScrollView while the finger rests/drags
-     * within an edge band at the top or bottom (like the keyboard-accent popup:
-     * it keeps moving even without finger motion). Driven by a self-rescheduling
-     * postDelayed loop that keeps running as long as the finger stays in the band
-     * and the popup is open, so edge auto-scroll continues even when the finger
-     * stops moving.
-     *
-     * NOTE: the loop reschedules ITSELF on every tick (not just when first
-     * started) — otherwise it would stop after a single step because the
-     * mHistoryAutoScrolling flag is already true on the next tick.
-     */
-    private void autoScrollHistoryNearEdge() {
-        if (mHistoryScroll == null || !isHistoryPopupShowing()) {
-            mHistoryAutoScrolling = false;
-            return;
-        }
-        int[] loc = new int[2];
-        mHistoryScroll.getLocationOnScreen(loc);
-        int top = loc[1];
-        int bottom = loc[1] + mHistoryScroll.getHeight();
-        int band = dpToPx(36);      // edge-sensitive zone
-        int maxStep = dpToPx(3);    // max px scrolled per tick (smooth, not too fast)
-
-        float rawY = mHistoryFingerY;
-        int step;
-        if (rawY < top + band) {
-            float t = Math.min(1f, (top + band - rawY) / band);
-            step = -Math.round(maxStep * t);
-        } else if (rawY > bottom - band) {
-            float t = Math.min(1f, (rawY - (bottom - band)) / band);
-            step = Math.round(maxStep * t);
-        } else {
-            mHistoryAutoScrolling = false;   // left the band; stop the loop
-            return;
-        }
-
-        mHistoryScroll.scrollBy(0, step);
-
-        // Keep the loop alive while the finger is still in the edge band.
-        mHistoryAutoScrolling = true;
-        mHistoryScroll.postDelayed(this::autoScrollHistoryNearEdge, 16);
-    }
-
-    /**
-     * Ask the user to confirm wiping the message history. In per-directory mode
-     * the dialog has three buttons: OK (current directory only), All (all
-     * directories), Cancel. In global mode it stays as OK + Cancel.
-     */
-    private void confirmClearAllHistory() {
-        final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_TermuxActivity_Dialog)
-                .setTitle(getString(R.string.message_history_clear_question))
-                .setNegativeButton(android.R.string.cancel, null);
-
-        if (mMessageHistoryCtrl.isPerDirectoryEnabled()) {
-            builder.setMessage(getString(R.string.message_history_clear_current_only_question))
-                    .setPositiveButton(getString(R.string.message_history_clear_ok), (d, w) -> clearAllHistory())
-                    .setNeutralButton(getString(R.string.message_history_clear_all_btn), (d, w) -> clearAllDirectoriesHistory());
-        } else {
-            builder.setMessage(getString(R.string.message_history_clear_all_question))
-                    .setPositiveButton(android.R.string.ok, (d, w) -> clearAllHistory());
-        }
-
-        builder.show();
+    public void showMessageHistoryPopup(@NonNull View anchor) {
+        mPopupCtrl.showMessageHistoryPopup(anchor);
     }
 
     /** Wipe message history for ALL directories (per-directory mode only). */
-    private void clearAllDirectoriesHistory() {
+    public void clearAllDirectoriesHistory() {
         mMessageHistoryCtrl.clearAllPerDirectory();
     }
 
-    /** Wipe the message history for the current context (global or current directory). */
-    private void clearAllHistory() {
+    public void clearAllHistory() {
         mMessageHistoryCtrl.clearCurrent(getCurrentCwdForHistory());
     }
 
     /** Dismiss the history popup and reset highlight state. */
-    private void dismissMessageHistoryPopup() {
-        if (mHistoryPopup != null) {
-            try { mHistoryPopup.dismiss(); } catch (Exception ignored) {}
-            mHistoryPopup = null;
-        }
-        mHistoryItemViews.clear();
-        mHistoryScroll = null;
-        mHistoryAutoScrolling = false;   // stop any pending edge-scroll loop
-        mHistoryHighlightIndex = -1;
-    }
-
-    /** "Clear message history..." item: ask for confirmation, then wipe all history. */
-    private void confirmClearHistory() {
-        final MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_TermuxActivity_Dialog);
-        b.setIcon(android.R.drawable.ic_dialog_alert);
-        b.setTitle(getString(R.string.message_history_clear_dialog_title));
-        String msg = mMessageHistoryCtrl.isPerDirectoryEnabled()
-                ? getString(R.string.message_history_clear_confirm_current)
-                : getString(R.string.message_history_clear_confirm_all);
-        b.setMessage(msg);
-        b.setPositiveButton(android.R.string.yes, (dialog, id) -> {
-            dialog.dismiss();
-            clearAllHistory();
-            showToast(getString(R.string.message_history_cleared), true);
-        });
-        b.setNegativeButton(android.R.string.no, null);
-        b.show();
+    public void dismissMessageHistoryPopup() {
+        mPopupCtrl.dismissMessageHistoryPopup();
     }
 
     /** Bottom "Clear" item: remember the current input text in history, then empty the field. */
@@ -2615,7 +1408,7 @@ public final class TermuxActivity extends AppCompatActivity {
         // when the field was empty the TextWatcher sees an "appended" change
         // (before==0) and wrongly takes Path B, which dismisses the popup
         // instead of showing suggestions for the restored message.
-        mLastBuiltHistoryVersion = -1; // force mismatch → Path A on next update
+        mAutoCompleteCtrl.invalidateHistoryVersion(); // force mismatch → Path A on next update
         editText.setText(message);
         editText.setSelection(message.length());
         setFocusOnInputForCurrentSession(true);
@@ -2744,7 +1537,7 @@ public final class TermuxActivity extends AppCompatActivity {
     }
 
     private void setToggleKeyboardView() {
-        // Toggle keyboard button removed - functionality moved to extra keys
+        if (mViewHelper != null) mViewHelper.setupToggleKeyboardButton(mTermuxActivityRootView);
     }
 
 
@@ -2774,30 +1567,7 @@ public final class TermuxActivity extends AppCompatActivity {
 
     @Override
     public void onCreateContextMenu(ContextMenu menu, View v, ContextMenuInfo menuInfo) {
-        TerminalSession currentSession = getCurrentSession();
-        if (currentSession == null) return;
-
-        TerminalView terminalView = getTerminalView();
-        if (terminalView == null) return;
-
-        boolean autoFillEnabled = terminalView.isAutoFillEnabled();
-
-        menu.add(Menu.NONE, CONTEXT_MENU_SELECT_URL_ID, Menu.NONE, R.string.action_select_url);
-        menu.add(Menu.NONE, CONTEXT_MENU_SHARE_TRANSCRIPT_ID, Menu.NONE, R.string.action_share_transcript);
-        if (!DataUtils.isNullOrEmpty(terminalView.getStoredSelectedText()))
-            menu.add(Menu.NONE, CONTEXT_MENU_SHARE_SELECTED_TEXT, Menu.NONE, R.string.action_share_selected_text);
-        if (autoFillEnabled)
-            menu.add(Menu.NONE, CONTEXT_MENU_AUTOFILL_USERNAME, Menu.NONE, R.string.action_autofill_username);
-        if (autoFillEnabled)
-            menu.add(Menu.NONE, CONTEXT_MENU_AUTOFILL_PASSWORD, Menu.NONE, R.string.action_autofill_password);
-        menu.add(Menu.NONE, CONTEXT_MENU_RESET_TERMINAL_ID, Menu.NONE, R.string.action_reset_terminal);
-        menu.add(Menu.NONE, CONTEXT_MENU_KILL_PROCESS_ID, Menu.NONE, getResources().getString(R.string.action_kill_process, getCurrentSession().getPid())).setEnabled(currentSession.isRunning());
-        menu.add(Menu.NONE, CONTEXT_MENU_STYLING_ID, Menu.NONE, R.string.action_style_terminal);
-        menu.add(Menu.NONE, CONTEXT_MENU_FONT_ID, Menu.NONE, R.string.action_font_terminal);
-        menu.add(Menu.NONE, CONTEXT_MENU_TOGGLE_KEEP_SCREEN_ON, Menu.NONE, R.string.action_toggle_keep_screen_on).setCheckable(true).setChecked(mPreferences.shouldKeepScreenOn());
-        menu.add(Menu.NONE, CONTEXT_MENU_HELP_ID, Menu.NONE, R.string.action_open_help);
-        menu.add(Menu.NONE, CONTEXT_MENU_SETTINGS_ID, Menu.NONE, R.string.action_open_settings);
-        menu.add(Menu.NONE, CONTEXT_MENU_REPORT_ID, Menu.NONE, R.string.action_report_issue);
+        mPopupCtrl.onCreateContextMenu(menu, v, menuInfo);
     }
 
     /** Hook system menu to show context menu instead. */
@@ -2811,113 +1581,11 @@ public final class TermuxActivity extends AppCompatActivity {
 
     @Override
     public boolean onContextItemSelected(MenuItem item) {
-        TerminalSession session = getCurrentSession();
-        TerminalView terminalView = getTerminalView();
-
-        switch (item.getItemId()) {
-            case CONTEXT_MENU_SELECT_URL_ID:
-                mTermuxTerminalViewClient.showUrlSelection();
-                return true;
-            case CONTEXT_MENU_SHARE_TRANSCRIPT_ID:
-                mTermuxTerminalViewClient.shareSessionTranscript();
-                return true;
-            case CONTEXT_MENU_SHARE_SELECTED_TEXT:
-                mTermuxTerminalViewClient.shareSelectedText();
-                return true;
-            case CONTEXT_MENU_AUTOFILL_USERNAME:
-                if (terminalView != null) terminalView.requestAutoFillUsername();
-                return true;
-            case CONTEXT_MENU_AUTOFILL_PASSWORD:
-                if (terminalView != null) terminalView.requestAutoFillPassword();
-                return true;
-            case CONTEXT_MENU_RESET_TERMINAL_ID:
-                onResetTerminalSession(session);
-                return true;
-            case CONTEXT_MENU_KILL_PROCESS_ID:
-                showKillSessionDialog(session);
-                return true;
-            case CONTEXT_MENU_STYLING_ID:
-                showStylingDialog();
-                return true;
-            case CONTEXT_MENU_FONT_ID:
-                showFontPicker();
-                return true;
-            case CONTEXT_MENU_TOGGLE_KEEP_SCREEN_ON:
-                toggleKeepScreenOn();
-                return true;
-            case CONTEXT_MENU_HELP_ID:
-                ActivityUtils.startActivity(this, new Intent(this, HelpActivity.class));
-                return true;
-            case CONTEXT_MENU_SETTINGS_ID:
-                ActivityUtils.startActivity(this, new Intent(this, SettingsActivity.class));
-                return true;
-            case CONTEXT_MENU_REPORT_ID:
-                mTermuxTerminalViewClient.reportIssueFromTranscript();
-                return true;
-            default:
-                return super.onContextItemSelected(item);
-        }
+        return mPopupCtrl.onContextItemSelected(item);
     }
 
     @Override
-    public void onContextMenuClosed(Menu menu) {
-        super.onContextMenuClosed(menu);
-        // onContextMenuClosed() is triggered twice if back button is pressed to dismiss instead of tap for some reason
-        TerminalView terminalView = getTerminalView();
-        if (terminalView != null) terminalView.onContextMenuClosed(menu);
-    }
-
-    private void showKillSessionDialog(TerminalSession session) {
-        if (session == null) return;
-
-        final MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_TermuxActivity_Dialog);
-        b.setIcon(android.R.drawable.ic_dialog_alert);
-        b.setMessage(R.string.title_confirm_kill_process);
-        b.setPositiveButton(android.R.string.yes, (dialog, id) -> {
-            dialog.dismiss();
-            session.finishIfRunning();
-        });
-        b.setNegativeButton(android.R.string.no, null);
-        b.show();
-    }
-
-    private void onResetTerminalSession(TerminalSession session) {
-        if (session != null) {
-            session.reset();
-            showToast(getResources().getString(R.string.msg_terminal_reset), true);
-
-            if (mTermuxTerminalSessionActivityClient != null)
-                mTermuxTerminalSessionActivityClient.onResetTerminalSession();
-        }
-    }
-
-    private void showStylingDialog() {
-        // Show our own color-scheme picker (the same dialog used in Settings) for the currently
-        // active theme, applying the choice live to that theme. This assigns the scheme to the
-        // active light/dark theme instead of the shared colors.properties, so per-theme selection
-        // stays consistent whether chosen from here or from Settings.
-        final NightMode appNightMode = NightMode.getAppNightMode();
-        final boolean isNight = (appNightMode == NightMode.SYSTEM)
-            ? ThemeUtils.isSystemNightModeEnabled()
-            : (appNightMode == NightMode.TRUE);
-        ColorSchemeUtils.showColorSchemeDialog(this, isNight, getString(R.string.color_scheme_dialog_title),
-            getString(R.string.error_styling_not_installed),
-            () -> TermuxActivityUtils.updateTermuxActivityStyling(this, false));
-    }
-
-    /**
-     * Show the Termux:Style font picker dialog. Lists every font shipped by the installed
-     * Termux:Style plugin and applies the selected one live without an activity restart.
-     * If Termux:Style is not installed, shows a "not installed" message.
-     */
-    private void showFontPicker() {
-        FontUtils.showFontDialog(this, getString(R.string.error_styling_not_installed),
-            () -> {
-                TermuxActivityUtils.updateTermuxActivityStyling(this, false);
-                showToast(getResources().getString(R.string.msg_terminal_font_applied), true);
-            });
-    }
-    private void toggleKeepScreenOn() {
+    public void toggleKeepScreenOn() {
         TerminalView terminalView = getTerminalView();
         if (terminalView == null) return;
         if (terminalView.getKeepScreenOn()) {
@@ -2927,6 +1595,48 @@ public final class TermuxActivity extends AppCompatActivity {
             terminalView.setKeepScreenOn(true);
             mPreferences.setKeepScreenOn(true);
         }
+    }
+
+    @Override
+    public boolean isKeepScreenOn() {
+        TerminalView terminalView = getTerminalView();
+        return terminalView != null && terminalView.getKeepScreenOn();
+    }
+
+    @Override
+    public void setKeepScreenOn(boolean keepOn) {
+        TerminalView terminalView = getTerminalView();
+        if (terminalView != null) terminalView.setKeepScreenOn(keepOn);
+    }
+
+    @Override
+    public void showUrlSelection() {
+        if (mTermuxTerminalViewClient != null) mTermuxTerminalViewClient.showUrlSelection();
+    }
+
+    @Override
+    public void shareSessionTranscript() {
+        if (mTermuxTerminalViewClient != null) mTermuxTerminalViewClient.shareSessionTranscript();
+    }
+
+    @Override
+    public void shareSelectedText() {
+        if (mTermuxTerminalViewClient != null) mTermuxTerminalViewClient.shareSelectedText();
+    }
+
+    @Override
+    public void reportIssueFromTranscript() {
+        ActivityUtils.startActivity(this, new Intent(this, ReportActivity.class));
+    }
+
+    @Override
+    public void startHelpActivity() {
+        ActivityUtils.startActivity(this, new Intent(this, HelpActivity.class));
+    }
+
+    @Override
+    public void startSettingsActivity() {
+        ActivityUtils.startActivity(this, new Intent(this, SettingsActivity.class));
     }
 
 
@@ -3122,6 +1832,56 @@ public final class TermuxActivity extends AppCompatActivity {
         return mTermuxSessionTabsController;
     }
 
+    @Override
+    public void onToggleTextInput(boolean nowVisible) {
+        mTextInputPanel.updateToggleTextInputButtonIcon();
+    }
+
+    @Nullable public EditText getTerminalToolbarTextInput() {
+        return findViewById(R.id.terminal_toolbar_text_input);
+    }
+
+    public MessageHistoryController getMessageHistoryController() {
+        return mMessageHistoryCtrl;
+    }
+
+    public TermuxColorSchemeManager getColorSchemeManager() {
+        return mColorSchemeManager;
+    }
+
+    public TermuxTerminalViewClient getTerminalViewClient() {
+        return mTermuxTerminalViewClient;
+    }
+
+    public TermuxTerminalSessionActivityClient getTerminalSessionActivityClient() {
+        return mTermuxTerminalSessionActivityClient;
+    }
+
+    @Override
+    public void finishActivity() {
+        TermuxActivityUtils.finishActivityIfNotFinishing(this);
+    }
+
+    @Override
+    public void recreateActivity() {
+        this.recreate();
+    }
+
+    @Override
+    public void showKillSessionDialog(@NonNull TerminalSession session) {
+        if (session == null) return;
+        new TermuxDialogs(this).showKillSessionDialog(session, () -> {});
+    }
+
+    @Override
+    public void onResetTerminalSession(@NonNull TerminalSession session) {
+        if (session == null) return;
+        session.reset();
+        showToast(getResources().getString(R.string.msg_terminal_reset), true);
+        if (mTermuxTerminalSessionActivityClient != null)
+            mTermuxTerminalSessionActivityClient.onResetTerminalSession();
+    }
+
     @Nullable
     public TerminalSession getCurrentSession() {
         if (mTerminalView != null)
@@ -3306,102 +2066,27 @@ public final class TermuxActivity extends AppCompatActivity {
         TermuxActivityUtils.updateTermuxActivityStyling(context, recreateActivity);
     }
 
-    private static final String ACTION_TEXT_INPUT_VISIBILITY_CHANGED = "com.termux.TEXT_INPUT_VISIBILITY_CHANGED";
-    private static final String ACTION_TEXT_INPUT_ENABLED_CHANGED = "com.termux.TEXT_INPUT_ENABLED_CHANGED";
-    private static final String ACTION_SETTINGS_BUTTON_ENABLED_CHANGED = "com.termux.SETTINGS_BUTTON_ENABLED_CHANGED";
-
     private void registerTermuxActivityBroadcastReceiver() {
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(TERMUX_ACTIVITY.ACTION_NOTIFY_APP_CRASH);
-        intentFilter.addAction(TERMUX_ACTIVITY.ACTION_RELOAD_STYLE);
-        intentFilter.addAction(TERMUX_ACTIVITY.ACTION_REQUEST_PERMISSIONS);
-        intentFilter.addAction(ACTION_TEXT_INPUT_VISIBILITY_CHANGED);
-        intentFilter.addAction(ACTION_TEXT_INPUT_ENABLED_CHANGED);
-        intentFilter.addAction(ACTION_SETTINGS_BUTTON_ENABLED_CHANGED);
-
-        registerReceiver(mTermuxActivityBroadcastReceiver, intentFilter);
+        if (mBroadcastManager == null) {
+            mBroadcastManager = new TermuxActivityBroadcastManager(this);
+        }
+        mBroadcastManager.register();
     }
 
     private void unregisterTermuxActivityBroadcastReceiver() {
-        unregisterReceiver(mTermuxActivityBroadcastReceiver);
-    }
-
-    private void fixTermuxActivityBroadcastReceiverIntent(Intent intent) {
-        if (intent == null) return;
-
-        String extraReloadStyle = intent.getStringExtra(TERMUX_ACTIVITY.EXTRA_RELOAD_STYLE);
-        if ("storage".equals(extraReloadStyle)) {
-            intent.removeExtra(TERMUX_ACTIVITY.EXTRA_RELOAD_STYLE);
-            intent.setAction(TERMUX_ACTIVITY.ACTION_REQUEST_PERMISSIONS);
+        if (mBroadcastManager != null) {
+            mBroadcastManager.unregister();
         }
     }
 
-    class TermuxActivityBroadcastReceiver extends BroadcastReceiver {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (intent == null) return;
 
-            String action = intent.getAction();
 
-            // Handle text input visibility change even when activity is in background
-            if (ACTION_TEXT_INPUT_VISIBILITY_CHANGED.equals(action)) {
-                Logger.logDebug(LOG_TAG, "Received intent to change text input visibility");
-                boolean visible = intent.getBooleanExtra("visible", true);
-                setTextInputVisible(visible);
-                return;
-            }
-
-            // Handle text input enabled/disabled setting change
-            if (ACTION_TEXT_INPUT_ENABLED_CHANGED.equals(action)) {
-                Logger.logDebug(LOG_TAG, "Received intent to change text input enabled state");
-                updateToggleTextInputButtonVisibility();
-                return;
-            }
-
-            if (ACTION_SETTINGS_BUTTON_ENABLED_CHANGED.equals(action)) {
-                Logger.logDebug(LOG_TAG, "Received intent to change settings button enabled state");
-                updateSettingsButtonVisibility();
-                return;
-            }
-
-            // Reload styling must work even when the activity is in the background
-            // (e.g. when theme is changed from Settings while TermuxActivity is behind it),
-            // Rewrite the action first: termux-setup-storage sends `reload_style=storage` which
-            // must become ACTION_REQUEST_PERMISSIONS before any other action handling, regardless
-            // of activity visibility, so the storage permission dialog is never dropped.
-            fixTermuxActivityBroadcastReceiverIntent(intent);
-            action = intent.getAction();
-
-            // Storage-permission request (termux-setup-storage). Handle even when the activity
-            // is in the background or mid-recreate, otherwise the request is silently dropped and
-            // termux-setup-storage fails (no permission dialog is ever shown).
-            if (TERMUX_ACTIVITY.ACTION_REQUEST_PERMISSIONS.equals(action)) {
-                Logger.logDebug(LOG_TAG, "Received intent to request storage permissions");
-                requestStoragePermission(false);
-                return;
-            }
-
-            // Reload styling must work even when the activity is in the background
-            // (e.g. theme changed from Settings while TermuxActivity is behind it).
-            if (TERMUX_ACTIVITY.ACTION_RELOAD_STYLE.equals(action)) {
-                Logger.logWarn(LOG_TAG, "THEME-DEBUG: received ACTION_RELOAD_STYLE, recreateActivity=" + intent.getBooleanExtra(TERMUX_ACTIVITY.EXTRA_RECREATE_ACTIVITY, true));
-                reloadActivityStyling(intent.getBooleanExtra(TERMUX_ACTIVITY.EXTRA_RECREATE_ACTIVITY, true));
-                return;
-            }
-
-            if (mIsVisible) {
-                switch (action) {
-                    case TERMUX_ACTIVITY.ACTION_NOTIFY_APP_CRASH:
-                        Logger.logDebug(LOG_TAG, "Received intent to notify app crash");
-                        TermuxCrashUtils.notifyAppCrashFromCrashLogFile(context, LOG_TAG);
-                        return;
-                    default:
-                }
-            }
-        }
+    @Override
+    public void reloadActivityStyling() {
+        reloadActivityStyling(true);
     }
 
-    private void reloadActivityStyling(boolean recreateActivity) {
+    public void reloadActivityStyling(boolean recreateActivity) {
         if (mProperties != null) {
             reloadProperties();
 

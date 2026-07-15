@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
+import android.os.SystemClock;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -82,6 +83,8 @@ public final class DirectoryHistoryPopupController {
 
     /** True while the edge auto-scroll loop is scheduled/running. */
     private boolean mAutoScrolling = false;
+    /** Timestamp of the last auto-scroll tick, for frame-rate-independent velocity. */
+    private long mLastScrollTimeMs = 0;
 
     @Nullable private View mAnchor;
 
@@ -268,6 +271,7 @@ public final class DirectoryHistoryPopupController {
         mItemViews.clear();
         mScroll = null;
         mAutoScrolling = false;   // stop any pending edge-scroll loop
+        mLastScrollTimeMs = 0;
         mHighlightIndex = -1;
         mAnchor = null;
     }
@@ -339,26 +343,38 @@ public final class DirectoryHistoryPopupController {
         int top = loc[1];
         int bottom = loc[1] + mScroll.getHeight();
         int band = dpToPx(36);      // edge-sensitive zone
-        int maxStep = dpToPx(3);    // max px scrolled per tick (smooth, not too fast)
+        int maxStep = dpToPx(24);   // max px scrolled per 16ms reference interval
+
+        // Time-based step: scale by actual frame time so scroll speed is
+        // consistent across 60/90/120 Hz displays.
+        long now = SystemClock.uptimeMillis();
+        float frameRatio;
+        if (mLastScrollTimeMs == 0) {
+            frameRatio = 1f;
+        } else {
+            long dt = Math.min(now - mLastScrollTimeMs, 48L);
+            frameRatio = dt / 16f;
+        }
+        mLastScrollTimeMs = now;
 
         float rawY = mFingerY;
         int step;
         if (rawY < top + band) {
             float t = Math.min(1f, (top + band - rawY) / band);
-            step = -Math.round(maxStep * t);
+            step = -Math.round(maxStep * t * frameRatio);
         } else if (rawY > bottom - band) {
             float t = Math.min(1f, (rawY - (bottom - band)) / band);
-            step = Math.round(maxStep * t);
+            step = Math.round(maxStep * t * frameRatio);
         } else {
-            mAutoScrolling = false;   // left the band; stop the loop
+            mAutoScrolling = false;
             return;
         }
 
         mScroll.scrollBy(0, step);
 
-        // Keep the loop alive while the finger is still in the edge band.
+        // Keep the loop alive; reschedule on next vsync for smooth scrolling.
         mAutoScrolling = true;
-        mScroll.postDelayed(this::autoScrollNearEdge, 16);
+        mScroll.postOnAnimation(this::autoScrollNearEdge);
     }
 
     /** Dispatch a directory pick for the given highlight index (no-op if out of range). */
