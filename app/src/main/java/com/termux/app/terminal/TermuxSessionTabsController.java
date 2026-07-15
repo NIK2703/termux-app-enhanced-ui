@@ -132,6 +132,23 @@ public class TermuxSessionTabsController {
         if (currentSessionIndex >= 0) {
             scrollToTab(currentSessionIndex);
         }
+
+        // Hide the (+) add-tab button once the terminal session limit is reached,
+        // and restore it whenever a slot frees up (a tab is closed).
+        updateAddButtonVisibility(sessions.size());
+    }
+
+    /**
+     * Show or hide the trailing (+) add-tab button based on the number of open sessions.
+     * Once {@link TermuxTerminalSessionActivityClient#MAX_SESSIONS} is reached there is
+     * nothing left to add, so the button is hidden; it reappears as soon as a slot frees up.
+     */
+    public void updateAddButtonVisibility(int sessionCount) {
+        if (mTabsContainer == null) return;
+        View addBtn = mTabsContainer.findViewById(R.id.new_session_tab_button);
+        if (addBtn == null) return;
+        addBtn.setVisibility(sessionCount >= TermuxTerminalSessionActivityClient.MAX_SESSIONS
+                ? View.GONE : View.VISIBLE);
     }
 
     /**
