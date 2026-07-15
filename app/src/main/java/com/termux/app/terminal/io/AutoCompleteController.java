@@ -751,7 +751,9 @@ public final class AutoCompleteController {
         }
         int[] loc = new int[2];
         inputField.getLocationInWindow(loc);
-        int popupX = loc[0] + (int) cursorX + dpToPx(4);
+        // Subtract the horizontal scroll offset so the popup tracks the visible
+        // caret when the EditText content is scrolled horizontally.
+        int popupX = loc[0] + (int) cursorX - inputField.getScrollX() + dpToPx(4);
         int displayWidth = mContext.getResources().getDisplayMetrics().widthPixels;
         if (popupX + popupWidth > displayWidth - dpToPx(8)) {
             popupX = displayWidth - popupWidth - dpToPx(8);
@@ -772,9 +774,13 @@ public final class AutoCompleteController {
         }
         int[] loc = new int[2];
         inputField.getLocationInWindow(loc);
-        int popupY = loc[1] + (int) cursorY - popupHeight - dpToPx(4);
+        // Subtract the vertical scroll offset so the popup tracks the visible
+        // caret when the EditText content is scrolled vertically. Without this
+        // the popup stays pinned to the layout's top line and drifts away from
+        // the caret as the field is scrolled.
+        int popupY = loc[1] + (int) cursorY - inputField.getScrollY() - popupHeight - dpToPx(4);
         if (popupY < dpToPx(16)) {
-            popupY = loc[1] + (int) cursorY + dpToPx(8);
+            popupY = loc[1] + (int) cursorY - inputField.getScrollY() + dpToPx(8);
         }
         return popupY;
     }

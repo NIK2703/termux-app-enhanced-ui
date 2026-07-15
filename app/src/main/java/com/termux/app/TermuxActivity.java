@@ -1194,7 +1194,7 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         }
     }
 
-    private void updateToggleTextInputButtonIcon() {
+    public void updateToggleTextInputButtonIcon() {
         ImageButton toggleTextInputButton = findViewById(R.id.toggle_text_input_button);
         if (toggleTextInputButton != null) {
             boolean isVisible = isTextInputVisible();
