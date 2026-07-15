@@ -305,6 +305,10 @@
     <!-- Session tabs -->
     <string name="tab_close_description">Close tab</string>
     <string name="session_default_title">Terminal</string>
+    <string name="session_tabs_title">Session tabs</string>
+    <string name="swipe_rightmost_new_tab_title">Swipe rightmost tab for new session</string>
+    <string name="swipe_rightmost_new_tab_summary">On the last tab, swipe right to reveal and open a new terminal session</string>
+    <string name="new_tab_placeholder_hint">New tab</string>
 
     <!-- Text input show preference -->
     <string name="text_input_show_title">Show text input field</string>

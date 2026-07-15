@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.Typeface;
@@ -35,7 +36,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.termux.R;
-import com.termux.app.TermuxActivityUtils;
 import com.termux.app.terminal.TermuxColorSchemeManager;
 import com.termux.shared.logger.Logger;
 
@@ -104,6 +104,21 @@ public final class AutoCompleteController {
     /** Last Y position passed to mSuggestionsPopup.update() (suppress redundant no-op calls). */
     private int mLastPopupY = 0;
 
+    // ── Auto-complete popup dimensions (read once from resources) ──
+    private final int mPopupCornerRadiusPx;
+    private final int mPopupElevationPx;
+    private final int mPopupItemPadHPx;
+    private final int mPopupItemPadVPx;
+    private final int mPopupMinWidthPx;
+    private final int mPopupWidthMarginPx;
+    private final float mPopupWidthFraction;
+    private final int mPopupXOffsetPx;
+    private final int mPopupEdgeMarginPx;
+    private final int mPopupYOffsetPx;
+    private final int mPopupMinYPx;
+    private final float mPopupContentAlpha;
+    private final float mPopupShadowAlpha;
+
     /** Provider for the current working directory (per-directory history key). */
     public interface CwdProvider {
         @NonNull String getCwd();
@@ -123,6 +138,20 @@ public final class AutoCompleteController {
         mMessageHistoryCtrl = messageHistoryCtrl;
         mColorSchemeManager = colorSchemeManager;
         mPrefs = context.getSharedPreferences("termux_prefs", Context.MODE_PRIVATE);
+        Resources res = context.getResources();
+        mPopupCornerRadiusPx = res.getDimensionPixelSize(R.dimen.autocomplete_popup_corner_radius);
+        mPopupElevationPx = res.getDimensionPixelSize(R.dimen.autocomplete_popup_elevation);
+        mPopupItemPadHPx = res.getDimensionPixelSize(R.dimen.autocomplete_popup_item_padding_horizontal);
+        mPopupItemPadVPx = res.getDimensionPixelSize(R.dimen.autocomplete_popup_item_padding_vertical);
+        mPopupMinWidthPx = res.getDimensionPixelSize(R.dimen.autocomplete_popup_min_width);
+        mPopupWidthMarginPx = res.getDimensionPixelSize(R.dimen.autocomplete_popup_width_margin);
+        mPopupWidthFraction = res.getFraction(R.fraction.autocomplete_popup_width_fraction, 1, 1);
+        mPopupXOffsetPx = res.getDimensionPixelSize(R.dimen.autocomplete_popup_x_offset);
+        mPopupEdgeMarginPx = res.getDimensionPixelSize(R.dimen.autocomplete_popup_edge_margin);
+        mPopupYOffsetPx = res.getDimensionPixelSize(R.dimen.autocomplete_popup_y_offset);
+        mPopupMinYPx = res.getDimensionPixelSize(R.dimen.autocomplete_popup_min_y);
+        mPopupContentAlpha = res.getFraction(R.fraction.autocomplete_popup_content_alpha, 1, 1);
+        mPopupShadowAlpha = res.getFraction(R.fraction.autocomplete_popup_shadow_alpha, 1, 1);
         attachInputListeners();
     }
 
@@ -222,8 +251,14 @@ public final class AutoCompleteController {
         return null;
     }
 
-    private int dpToPx(int dp) {
-        return TermuxActivityUtils.dpToPx(mContext, dp);
+    /**
+     * Compute the popup width from the input field width: inset by the horizontal
+     * margin, then shrink by {@code autocomplete_popup_width_fraction} so the popup
+     * is shorter horizontally than the full field. Never below the minimum width.
+     */
+    private int computePopupWidth(int fieldWidth) {
+        int avail = fieldWidth - mPopupWidthMarginPx;
+        return Math.max(mPopupMinWidthPx, (int) (avail * mPopupWidthFraction));
     }
 
     /**
@@ -680,8 +715,8 @@ public final class AutoCompleteController {
 
     /** Build a single suggestion TextView (reusable helper). */
     private TextView buildSuggestionTextView(@NonNull String suggestion, @NonNull String input) {
-        int padH = dpToPx(14);
-        int padV = dpToPx(10);
+        int padH = mPopupItemPadHPx;
+        int padV = mPopupItemPadVPx;
         TextView tv = new TextView(mContext);
 
         tv.setTextColor(mColorSchemeManager.getHistoryTextColor());
@@ -690,8 +725,8 @@ public final class AutoCompleteController {
 
         // Available text width = popup width minus horizontal padding. Mirrors the
         // width the popup is sized to in showAutoCompletePopup (sumWidth).
-        int popupWidth = Math.max(dpToPx(200),
-                (mInputField != null ? mInputField.getWidth() : 0) - dpToPx(16));
+        int fieldWidth = mInputField != null ? mInputField.getWidth() : 0;
+        int popupWidth = computePopupWidth(fieldWidth);
         int availWidth = Math.max(0, popupWidth - 2 * padH);
 
         // Word-based leading truncation + manual trailing '…' (TextView's
@@ -753,12 +788,12 @@ public final class AutoCompleteController {
         inputField.getLocationInWindow(loc);
         // Subtract the horizontal scroll offset so the popup tracks the visible
         // caret when the EditText content is scrolled horizontally.
-        int popupX = loc[0] + (int) cursorX - inputField.getScrollX() + dpToPx(4);
+        int popupX = loc[0] + (int) cursorX - inputField.getScrollX() + mPopupXOffsetPx;
         int displayWidth = mContext.getResources().getDisplayMetrics().widthPixels;
-        if (popupX + popupWidth > displayWidth - dpToPx(8)) {
-            popupX = displayWidth - popupWidth - dpToPx(8);
+        if (popupX + popupWidth > displayWidth - mPopupEdgeMarginPx) {
+            popupX = displayWidth - popupWidth - mPopupEdgeMarginPx;
         }
-        if (popupX < dpToPx(8)) popupX = dpToPx(8);
+        if (popupX < mPopupEdgeMarginPx) popupX = mPopupEdgeMarginPx;
         return popupX;
     }
 
@@ -778,9 +813,9 @@ public final class AutoCompleteController {
         // caret when the EditText content is scrolled vertically. Without this
         // the popup stays pinned to the layout's top line and drifts away from
         // the caret as the field is scrolled.
-        int popupY = loc[1] + (int) cursorY - inputField.getScrollY() - popupHeight - dpToPx(4);
-        if (popupY < dpToPx(16)) {
-            popupY = loc[1] + (int) cursorY - inputField.getScrollY() + dpToPx(8);
+        int popupY = loc[1] + (int) cursorY - inputField.getScrollY() - popupHeight - mPopupYOffsetPx;
+        if (popupY < mPopupMinYPx) {
+            popupY = loc[1] + (int) cursorY - inputField.getScrollY() + mPopupEdgeMarginPx;
         }
         return popupY;
     }
@@ -861,8 +896,8 @@ public final class AutoCompleteController {
         content.setOrientation(LinearLayout.VERTICAL);
         content.setBackgroundColor(Color.TRANSPARENT);
 
-        int padH = dpToPx(14);
-        int padV = dpToPx(10);
+        int padH = mPopupItemPadHPx;
+        int padV = mPopupItemPadVPx;
         final String input = inputField.getText().toString();
 
         for (int i = 0; i < mCurrentSuggestions.size(); i++) {
@@ -895,7 +930,7 @@ public final class AutoCompleteController {
                     int w = view.getWidth();
                     int h = view.getHeight();
                     if (w > 0 && h > 0) {
-                        outline.setRoundRect(0, 0, w, h, dpToPx(12));
+                        outline.setRoundRect(0, 0, w, h, mPopupCornerRadiusPx);
                     }
                 }
             });
@@ -903,10 +938,10 @@ public final class AutoCompleteController {
         }
         // 10% visual transparency on the content (not the background drawable, so the
         // elevation shadow outline stays valid).
-        scroll.setAlpha(0.9f);
+        scroll.setAlpha(mPopupContentAlpha);
 
         // Position the popup at the input cursor (caret) position
-        int sumWidth = Math.max(dpToPx(200), inputField.getWidth() - dpToPx(16));
+        int sumWidth = computePopupWidth(inputField.getWidth());
         content.measure(
                 View.MeasureSpec.makeMeasureSpec(sumWidth, View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
@@ -925,19 +960,19 @@ public final class AutoCompleteController {
         // Smooth elevation shadow — background drawable must be fully opaque for the
         // WindowManager to derive a valid Outline (GradientDrawable.getOutline bails
         // when alpha < 255). The 10% visual transparency is on the ScrollView above.
-        mSuggestionsPopup.setElevation(dpToPx(16));
+        mSuggestionsPopup.setElevation(mPopupElevationPx);
         GradientDrawable popupBgDrawable = new GradientDrawable() {
             @Override
             public void getOutline(@NonNull Outline outline) {
                 super.getOutline(outline);
                 if (!outline.isEmpty() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     // Keep elevation large, but make the shadow softer/transparent.
-                    outline.setAlpha(0.65f);
+                    outline.setAlpha(mPopupShadowAlpha);
                 }
             }
         };
         popupBgDrawable.setShape(GradientDrawable.RECTANGLE);
-        popupBgDrawable.setCornerRadius(dpToPx(12));
+        popupBgDrawable.setCornerRadius(mPopupCornerRadiusPx);
         popupBgDrawable.setColor(mColorSchemeManager.getHistoryPopupBg()); // must be opaque for getOutline
         mSuggestionsPopup.setBackgroundDrawable(popupBgDrawable);
         mSuggestionsPopup.setClippingEnabled(true);
@@ -1015,8 +1050,7 @@ public final class AutoCompleteController {
             inputField.post(() -> applyPopupGeometry(inputField));
             return;
         }
-        int w = mLastPopupWidth > 0 ? mLastPopupWidth :
-                Math.max(dpToPx(200), inputField.getWidth() - dpToPx(16));
+        int w = mLastPopupWidth > 0 ? mLastPopupWidth : computePopupWidth(inputField.getWidth());
         int h = mLastPopupHeight;
         if (w <= 0 || h <= 0) {
             Logger.logInfo(LOG_TAG, "[autocomplete] applyPopupGeometry skip (w=" + w + " h=" + h + ")");

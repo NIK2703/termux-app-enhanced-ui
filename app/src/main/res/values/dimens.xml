@@ -22,4 +22,19 @@
     <!-- Text input panel (matches vertical scrollbar thumb) -->
     <dimen name="terminal_text_input_corner_radius">11dp</dimen>
     <dimen name="terminal_text_input_stroke">0.5dp</dimen>
+
+    <!-- Auto-complete suggestions popup (message-history) -->
+    <dimen name="autocomplete_popup_corner_radius">6dp</dimen>
+    <dimen name="autocomplete_popup_elevation">8dp</dimen>
+    <dimen name="autocomplete_popup_item_padding_horizontal">7dp</dimen>
+    <dimen name="autocomplete_popup_item_padding_vertical">5dp</dimen>
+    <dimen name="autocomplete_popup_min_width">200dp</dimen>
+    <dimen name="autocomplete_popup_width_margin">16dp</dimen>
+    <item name="autocomplete_popup_width_fraction" type="fraction">70%</item>
+    <dimen name="autocomplete_popup_x_offset">4dp</dimen>
+    <dimen name="autocomplete_popup_edge_margin">8dp</dimen>
+    <dimen name="autocomplete_popup_y_offset">4dp</dimen>
+    <dimen name="autocomplete_popup_min_y">16dp</dimen>
+    <item name="autocomplete_popup_content_alpha" type="fraction">90%</item>
+    <item name="autocomplete_popup_shadow_alpha" type="fraction">65%</item>
 </resources>

@@ -50,6 +50,27 @@ public class TermuxPreferencesFragment extends PreferenceFragmentCompat {
         configureDirectoryHistoryMaxPreference();
         configureRestoreSessionsPreference();
         configureScreenOrientationPreference();
+        configureSwipeRightmostNewTabPreference();
+    }
+
+    /**
+     * Wire up the "Swipe rightmost tab for new session" switch (default off).
+     * Mirrored into the "termux_prefs" file (key {@code swipe_rightmost_new_tab})
+     * where SessionPagerManager reads it at gesture time to decide whether a
+     * right-swipe on the last tab should reveal a new terminal session.
+     */
+    private void configureSwipeRightmostNewTabPreference() {
+        final SwitchPreferenceCompat pref = findPreference("swipe_rightmost_new_tab");
+        if (pref == null) return;
+
+        final SharedPreferences termuxPrefs =
+                requireContext().getSharedPreferences("termux_prefs", Context.MODE_PRIVATE);
+        pref.setChecked(termuxPrefs.getBoolean("swipe_rightmost_new_tab", false));
+
+        pref.setOnPreferenceChangeListener((preference, newValue) -> {
+            termuxPrefs.edit().putBoolean("swipe_rightmost_new_tab", (Boolean) newValue).apply();
+            return true;
+        });
     }
 
     // ---------------------------------------------------------------------------------------

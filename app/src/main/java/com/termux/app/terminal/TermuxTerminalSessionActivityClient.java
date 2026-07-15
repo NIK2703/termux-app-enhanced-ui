@@ -58,7 +58,7 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
 
     private final TermuxActivity mActivity;
 
-    private static final int MAX_SESSIONS = 8;
+    static final int MAX_SESSIONS = 8;
 
     private SoundPool mBellSoundPool;
 
@@ -540,6 +540,29 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
 
             setCurrentSession(newTerminalSession);
         }
+    }
+
+    /**
+     * Create a new terminal session to replace a placeholder "new tab" page, and return it.
+     * Unlike {@link #addNewSession}, this does NOT select the session or scroll the pager — the
+     * caller (the placeholder-commit path in SessionPagerManager) already has the pager parked on
+     * the placeholder slot and handles selection/bookkeeping itself so the transition reads as a
+     * normal tab-to-tab swipe with no jump.
+     *
+     * @return the created {@link TermuxSession}, or null if the service is missing or the session
+     *         limit was reached.
+     */
+    public TermuxSession createSessionForPlaceholder(boolean isFailSafe, String sessionName) {
+        TermuxService service = mActivity.getTermuxService();
+        if (service == null) return null;
+        if (service.getTermuxSessionsSize() >= MAX_SESSIONS) return null;
+
+        TerminalSession currentSession = mActivity.getCurrentSession();
+        String workingDirectory = (currentSession == null)
+                ? mActivity.getProperties().getDefaultWorkingDirectory()
+                : currentSession.getCwd();
+
+        return service.createTermuxSession(null, null, null, workingDirectory, isFailSafe, sessionName);
     }
 
     /**

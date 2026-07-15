@@ -98,6 +98,12 @@ public final class SessionPagerManager {
         // only created mid-drag and shows up empty, which reads as an abrupt snap.
         mTerminalPager.setOffscreenPageLimit(1);
 
+        // Disable the RecyclerView item animator so the trailing placeholder page (inserted/removed
+        // as the user lands on / leaves the last tab) appears and disappears instantly rather than
+        // sliding in with a default animation — it must read as a normal tab page, not a popup.
+        final RecyclerView pagerRv = (RecyclerView) mTerminalPager.getChildAt(0);
+        if (pagerRv != null) pagerRv.setItemAnimator(null);
+
         mTerminalPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageScrollStateChanged(int state) {
@@ -132,10 +138,33 @@ public final class SessionPagerManager {
                 }
                 // Update floating button margin for intermediate scroll state
                 updateFloatingButtonMarginForScroll(position, positionOffset);
+
+                // Keep the placeholder "New tab" hint centered in the slice of the placeholder page
+                // that is currently visible (between the last real tab's right edge and the screen
+                // edge) as the user drags toward it.
+                if (mTerminalPagerAdapter != null && mTerminalPagerAdapter.isPlaceholderActive()) {
+                    TermuxService service = mActivity.getTermuxService();
+                    int realLast = (service != null) ? service.getTermuxSessionsSize() - 1 : -1;
+                    if (position == realLast) {
+                        mTerminalPagerAdapter.setPlaceholderScrollOffset(positionOffset);
+                    } else if (position == realLast + 1) {
+                        mTerminalPagerAdapter.setPlaceholderScrollOffset(1f);
+                    }
+                }
             }
 
             @Override
             public void onPageSelected(int position) {
+                // If the gesture settled onto the trailing placeholder page, replace it with a real
+                // new session (and keep the pager parked there — no jump).
+                if (mTerminalPagerAdapter != null && mTerminalPagerAdapter.isPlaceholderActive()
+                        && position == mTerminalPagerAdapter.getPlaceholderIndex()) {
+                    commitPlaceholderToSession();
+                    return;
+                }
+                // Otherwise manage the placeholder: keep it while on the last real tab, drop it
+                // when leaving, so a right-swipe always has a real "next page" to scroll into.
+                managePlaceholderForPosition(position);
                 onTerminalPageSelected(position);
             }
         });
@@ -178,6 +207,9 @@ public final class SessionPagerManager {
             // stay uninitialised until the first manual swipe. Trigger the same
             // bookkeeping explicitly for the startup page.
             onTerminalPageSelected(index);
+            // Mirror the onPageSelected() behaviour: if we land on the last tab with the
+            // feature enabled, present the trailing placeholder page so a right-swipe works.
+            if (!mColdStartSessionPending) managePlaceholderForPosition(index);
         }
 
         // With fewer than two sessions there is nothing to swipe between, so disable
@@ -186,14 +218,111 @@ public final class SessionPagerManager {
     }
 
     /**
-     * Enable/disable horizontal pager swipe based on how many sessions are open.
-     * With zero or one sessions there is nothing to swipe between, so stretch/bounce
-     * edge effects must be suppressed.
+     * Enable/disable horizontal pager swipe based on how many pages are currently present.
+     * With a single real session (and no placeholder) there is nothing to swipe between, so
+     * stretch/bounce edge effects must be suppressed. The trailing placeholder page counts as a
+     * page, so when the setting is on a single real session still has a "next page" to reveal.
      */
     private void updatePagerUserInputEnabled() {
         if (mTerminalPager == null) return;
-        int count = (mActivity.getTermuxService() != null) ? mActivity.getTermuxService().getTermuxSessionsSize() : 0;
+        int count = (mTerminalPagerAdapter != null) ? mTerminalPagerAdapter.getItemCount() : 0;
         mTerminalPager.setUserInputEnabled(count >= 2);
+    }
+
+    /**
+     * @return true if the "swipe rightmost tab for new session" feature is enabled and the user is
+     *         not already at the {@link TermuxTerminalSessionActivityClient#MAX_SESSIONS} limit.
+     */
+    private boolean isPlaceholderEnabled() {
+        TermuxService service = mActivity.getTermuxService();
+        if (service == null) return false;
+        if (service.getTermuxSessionsSize() >= TermuxTerminalSessionActivityClient.MAX_SESSIONS) return false;
+        return mActivity.getSharedPreferences("termux_prefs", android.content.Context.MODE_PRIVATE)
+                .getBoolean("swipe_rightmost_new_tab", false);
+    }
+
+    /**
+     * Show or hide the trailing placeholder page based on which page the user settled on. The
+     * placeholder is appended only while the user is on the last real tab (so a right-swipe always
+     * has a real "next page" to scroll into, like a normal tab-to-tab transition) and removed as
+     * soon as they move to any other tab.
+     */
+    private void managePlaceholderForPosition(int position) {
+        if (mTerminalPagerAdapter == null) return;
+        TermuxService service = mActivity.getTermuxService();
+        if (service == null) return;
+
+        int realLast = service.getTermuxSessionsSize() - 1;
+        if (mTerminalPagerAdapter.isPlaceholderActive()) {
+            if (position < realLast) {
+                // Left the last tab — drop the placeholder page.
+                mTerminalPagerAdapter.setPlaceholderActive(false);
+                TermuxSessionTabsController tabs = mActivity.getTermuxSessionTabsController();
+                if (tabs != null) tabs.setPlaceholderActive(false);
+            }
+            // position == realLast → keep it.
+        } else if (position == realLast && isPlaceholderEnabled()) {
+            mTerminalPagerAdapter.setPlaceholderActive(true);
+            TermuxSessionTabsController tabs = mActivity.getTermuxSessionTabsController();
+            if (tabs != null) tabs.setPlaceholderActive(true);
+        }
+    }
+
+    /**
+     * The swipe settled onto the placeholder page: replace it with a real new session and keep the
+     * pager parked on that slot (no jump). Re-arms the placeholder afterwards if still eligible so
+     * the gesture is repeatable.
+     */
+    private void commitPlaceholderToSession() {
+        if (mTerminalPagerAdapter == null) { cancelPlaceholder(); return; }
+        TermuxTerminalSessionActivityClient client = mActivity.getTermuxTerminalSessionClient();
+        TermuxService service = mActivity.getTermuxService();
+        int placeholderIndex = mTerminalPagerAdapter.getPlaceholderIndex();
+
+        if (service == null || client == null) { cancelPlaceholder(); return; }
+        if (service.getTermuxSessionsSize() >= TermuxTerminalSessionActivityClient.MAX_SESSIONS) {
+            cancelPlaceholder();
+            return;
+        }
+
+        // Append a new session at placeholderIndex. createTermuxSession() fires
+        // termuxSessionListNotifyUpdated(), but because the adapter still reports
+        // getItemCount() == service size (the placeholder is counted), that sync is a no-op — we
+        // update the adapter ourselves below so the placeholder slot is rebound in place.
+        TermuxSession newSession = client.createSessionForPlaceholder(false, null);
+        if (newSession == null) { cancelPlaceholder(); return; }
+
+        mTerminalPagerAdapter.commitPlaceholder(service.getTermuxSessions(), placeholderIndex);
+        TermuxSessionTabsController tabs = mActivity.getTermuxSessionTabsController();
+        if (tabs != null) tabs.setPlaceholderActive(false);
+
+        // Re-arm the placeholder if we're still on the last tab and eligible, so another right-swipe
+        // can add yet another session. Done before the deferred bookkeeping so the page count is
+        // already correct; it only inserts a page to the right of the one we just committed.
+        if (isPlaceholderEnabled() && service.getTermuxSessionsSize() - 1 == placeholderIndex) {
+            mTerminalPagerAdapter.setPlaceholderActive(true);
+            if (tabs != null) tabs.setPlaceholderActive(true);
+        }
+
+        // commitPlaceholder() triggers an async in-place rebind (notifyItemChanged) of the same
+        // ViewHolder. Run the standard per-page bookkeeping on the next frame, once the new session
+        // is bound to the view — so the tab strip highlights the new tab and the activity's active
+        // TerminalView pointer is correct. This mirrors a normal swipe settling on an already-bound
+        // tab (no detached view, no missing highlight).
+        final int idx = placeholderIndex;
+        mTerminalPager.post(() -> onTerminalPageSelected(idx));
+    }
+
+    /** Drop the placeholder page without creating a session and restore a clean tab-strip state. */
+    private void cancelPlaceholder() {
+        if (mTerminalPagerAdapter != null && mTerminalPagerAdapter.isPlaceholderActive()) {
+            mTerminalPagerAdapter.setPlaceholderActive(false);
+        }
+        TermuxSessionTabsController tabs = mActivity.getTermuxSessionTabsController();
+        if (tabs != null) {
+            tabs.setPlaceholderActive(false);
+            tabs.resetPageSelection(mTerminalPager.getCurrentItem());
+        }
     }
 
     /**

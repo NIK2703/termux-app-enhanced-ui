@@ -1,12 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- A single terminal page inside the horizontal session pager (ViewPager2).
      Each page hosts its own TerminalView bound to one TerminalSession, so a
-     horizontal swipe reveals the neighbouring session mid-drag (smooth paging). -->
-<com.termux.view.TerminalView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/terminal_view_page"
+     horizontal swipe reveals the neighbouring session mid-drag (smooth paging).
+
+     The trailing "new tab" placeholder reuses this exact layout: when it is the
+     placeholder (no session bound yet) the terminal_view_page is left unbound and the
+     terminal_placeholder_hint_container overlay is shown; on commit the overlay is hidden
+     and the session is attached to the SAME TerminalView — an in-place rebind, so the
+     transition reads identically to a normal tab-to-tab swipe. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:defaultFocusHighlightEnabled="false"
-    android:focusableInTouchMode="true"
-    android:scrollbarThumbVertical="@drawable/terminal_scroll_shape"
-    android:scrollbars="vertical" />
+    android:background="@android:color/transparent">
+
+    <com.termux.view.TerminalView
+        android:id="@+id/terminal_view_page"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:defaultFocusHighlightEnabled="false"
+        android:focusableInTouchMode="true"
+        android:scrollbarThumbVertical="@drawable/terminal_scroll_shape"
+        android:scrollbars="vertical" />
+
+    <!-- "New tab" hint, only visible on the trailing placeholder page (hidden by default).
+         The outer container dims the whole page; the inner content group is translated
+         horizontally during a drag so the hint stays centered in the slice of the
+         placeholder page that is currently visible (between the right edge of the last
+         real tab and the screen's right edge). -->
+    <FrameLayout
+        android:id="@+id/terminal_placeholder_hint_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:id="@+id/terminal_placeholder_hint_content"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <ImageView
+                android:id="@+id/terminal_placeholder_hint_plus"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_add"
+                android:tint="@color/terminal_toolbar_icon_tint"
+                android:scaleType="centerInside" />
+
+            <TextView
+                android:id="@+id/terminal_placeholder_hint_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/new_tab_placeholder_hint"
+                android:textSize="14sp"
+                android:textColor="@color/terminal_toolbar_text_color" />
+        </LinearLayout>
+    </FrameLayout>
+
+</FrameLayout>

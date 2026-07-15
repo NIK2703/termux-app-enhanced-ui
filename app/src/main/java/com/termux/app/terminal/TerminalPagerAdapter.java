@@ -3,6 +3,8 @@ package com.termux.app.terminal;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -10,7 +12,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.termux.R;
 import com.termux.app.TermuxActivity;
 import com.termux.shared.termux.shell.command.runner.terminal.TermuxSession;
+import com.termux.terminal.TerminalColors;
 import com.termux.terminal.TerminalSession;
+import com.termux.terminal.TextStyle;
 import com.termux.view.TerminalView;
 
 import java.util.List;
@@ -25,6 +29,13 @@ import java.util.Map;
  * session live (the ViewPager2 keeps both pages attached during the drag), which is what gives
  * the smooth "intermediate" paging feel between adjacent terminals.
  *
+ * <p>Additionally, when the user is on the rightmost real tab and the opt-in "swipe rightmost tab
+ * for new session" setting is on, a trailing <b>placeholder</b> page is appended (see
+ * {@link #setPlaceholderActive}). It is a real, adjacent ViewPager2 page containing an (unbound)
+ * {@code TerminalView} plus a "New tab" hint, so a right-swipe from the last tab scrolls into it
+ * exactly like a normal tab-to-tab transition. Releasing on it commits a real session in its place
+ * (the placeholder slot is rebound to the new session — no jump).
+ *
  * <p>All pages share the single {@link TermuxTerminalViewClient} instance owned by the activity,
  * so input, IME, gestures and theming behave identically to the previous single-view setup. The
  * activity keeps its {@code mTerminalView} field pointed at the <em>currently selected</em> page's
@@ -33,9 +44,16 @@ import java.util.Map;
  */
 public final class TerminalPagerAdapter extends RecyclerView.Adapter<TerminalPagerAdapter.TerminalPageViewHolder> {
 
+    /** Stable id for the placeholder page — chosen in the high range so it can never collide with a
+     *  real session id (which are sign-extended 32-bit hashCode() values). */
+    private static final long PLACEHOLDER_ID = 0x4000000000000000L;
+
     private final TermuxActivity mActivity;
     private final TermuxTerminalViewClient mViewClient;
     private List<TermuxSession> mSessions;
+
+    /** Whether the trailing placeholder page is currently appended. */
+    private boolean mPlaceholderActive = false;
 
     /** Maps a page position to its currently-bound TerminalView.
      *  Kept in sync in onBindViewHolder / onViewRecycled so the activity can resolve the
@@ -45,9 +63,16 @@ public final class TerminalPagerAdapter extends RecyclerView.Adapter<TerminalPag
      *  a frame behind and routing input to the wrong session. */
     private final Map<Integer, TerminalView> mAttachedViews = new HashMap<>();
 
+    /** The movable "New tab" hint content inside the placeholder page, or null if the placeholder
+     *  is not currently bound. Translated horizontally during a drag so the hint stays centered in
+     *  the visible slice of the placeholder page. */
+    private View mPlaceholderHintContent = null;
+    /** The ViewHolder currently displaying the placeholder page (so we can clear state on recycle). */
+    private TerminalPageViewHolder mPlaceholderHolder = null;
+
     public TerminalPagerAdapter(@NonNull TermuxActivity activity,
-                                @NonNull TermuxTerminalViewClient viewClient,
-                                @NonNull List<TermuxSession> sessions) {
+                                 @NonNull TermuxTerminalViewClient viewClient,
+                                 @NonNull List<TermuxSession> sessions) {
         this.mActivity = activity;
         this.mViewClient = viewClient;
         this.mSessions = sessions;
@@ -65,6 +90,13 @@ public final class TerminalPagerAdapter extends RecyclerView.Adapter<TerminalPag
      * Incremental notifications properly update the state and GapWorker's cached tasks.
      */
     public void syncWithServiceList(@NonNull List<TermuxSession> serviceSessions) {
+        // If a placeholder page was present, drop it first so the diff below operates on a clean
+        // real-session list (getItemCount() must reflect only the real sessions during the diff).
+        if (mPlaceholderActive) {
+            mPlaceholderActive = false;
+            notifyItemRemoved(mSessions.size());
+        }
+
         int oldSize = mSessions.size();
         int newSize = serviceSessions.size();
 
@@ -128,10 +160,16 @@ public final class TerminalPagerAdapter extends RecyclerView.Adapter<TerminalPag
 
     @Override
     public long getItemId(int position) {
+        if (mPlaceholderActive && position == mSessions.size()) return PLACEHOLDER_ID;
         if (position < 0 || position >= mSessions.size()) return RecyclerView.NO_ID;
         TerminalSession session = mSessions.get(position).getTerminalSession();
         return session == null ? RecyclerView.NO_ID : (long) session.mHandle.hashCode();
     }
+
+    // NOTE: the placeholder page uses the SAME view type (and layout) as a normal terminal page.
+    // This is deliberate — committing the placeholder is an in-place rebind of the same ViewHolder
+    // (notifyItemChanged reuses it), so there is no ViewHolder recreation / flash and the activity's
+    // active TerminalView pointer stays valid, exactly like a normal tab-to-tab settle.
 
     @NonNull
     @Override
@@ -143,6 +181,43 @@ public final class TerminalPagerAdapter extends RecyclerView.Adapter<TerminalPag
 
     @Override
     public void onBindViewHolder(@NonNull TerminalPageViewHolder holder, int position) {
+        boolean isPlaceholder = mPlaceholderActive && position == mSessions.size();
+
+        // The placeholder layout carries a "New tab" hint overlay; show it only for the
+        // placeholder page and hide it once this slot is rebound to a real session (commit).
+        View hint = holder.itemView.findViewById(R.id.terminal_placeholder_hint_container);
+        if (hint != null) {
+            if (isPlaceholder) {
+                // Match the placeholder page to the live terminal look: paint the container with the
+                // current terminal background colour and tint the hint with the terminal foreground,
+                // so an unbound (blank) terminal page reads exactly like a real one.
+                int bg = getCurrentTerminalColor(TextStyle.COLOR_INDEX_BACKGROUND);
+                int fg = getCurrentTerminalColor(TextStyle.COLOR_INDEX_FOREGROUND);
+                hint.setBackgroundColor(bg);
+                ImageView plus = holder.itemView.findViewById(R.id.terminal_placeholder_hint_plus);
+                if (plus != null) plus.setColorFilter(fg);
+                TextView hintText = holder.itemView.findViewById(R.id.terminal_placeholder_hint_text);
+                if (hintText != null) hintText.setTextColor(fg);
+                hint.setVisibility(View.VISIBLE);
+            } else {
+                hint.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+                hint.setVisibility(View.GONE);
+            }
+        }
+
+        View hintContent = holder.itemView.findViewById(R.id.terminal_placeholder_hint_content);
+        if (isPlaceholder) {
+            mPlaceholderHintContent = hintContent;
+            mPlaceholderHolder = holder;
+            if (hintContent != null) hintContent.setTranslationX(0);
+            // Nothing to bind — the TerminalView is intentionally left unbound (no session) and the
+            // page blends with the themed window background. We still keep a valid TerminalView in
+            // the holder so a commit can rebind it to a real session in place (no ViewHolder churn).
+            return;
+        }
+        mPlaceholderHintContent = null;
+        mPlaceholderHolder = null;
+
         TermuxSession termuxSession = mSessions.get(position);
         TerminalSession session = termuxSession.getTerminalSession();
         if (session == null) return;
@@ -190,12 +265,18 @@ public final class TerminalPagerAdapter extends RecyclerView.Adapter<TerminalPag
     @Override
     public void onViewRecycled(@NonNull TerminalPageViewHolder holder) {
         super.onViewRecycled(holder);
+        if (holder == mPlaceholderHolder) {
+            mPlaceholderHintContent = null;
+            mPlaceholderHolder = null;
+        }
         // Detach the emulator but keep the session alive. The view may be reused for a different
         // position; re-attaching on the next bind restores the correct emulator from the session.
-        holder.mTerminalView.attachSession(null);
-        // Drop the per-page context menu registration so a recycled page leaves no dangling
-        // listener and only the active page serves the terminal menu.
-        mActivity.unregisterForContextMenu(holder.mTerminalView);
+        if (holder.mTerminalView != null) {
+            holder.mTerminalView.attachSession(null);
+            // Drop the per-page context menu registration so a recycled page leaves no dangling
+            // listener and only the active page serves the terminal menu.
+            mActivity.unregisterForContextMenu(holder.mTerminalView);
+        }
         // Drop any stale position->view entry so getAttachedView() never returns a
         // recycled (detached) view for a position that has moved on.
         Integer pos = null;
@@ -207,7 +288,74 @@ public final class TerminalPagerAdapter extends RecyclerView.Adapter<TerminalPag
 
     @Override
     public int getItemCount() {
+        return mSessions.size() + (mPlaceholderActive ? 1 : 0);
+    }
+
+    /** @return true if the trailing placeholder page is currently appended. */
+    public boolean isPlaceholderActive() {
+        return mPlaceholderActive;
+    }
+
+    /** @return the adapter position of the placeholder page (only valid while {@link #isPlaceholderActive()}). */
+    public int getPlaceholderIndex() {
         return mSessions.size();
+    }
+
+    /**
+     * Show or hide the trailing placeholder page. Inserting it makes a real "next page" exist to the
+     * right of the last real tab, so a ViewPager2 right-swipe scrolls into it live (normal
+     * tab-to-tab feel) rather than bouncing against a non-existent page.
+     */
+    public void setPlaceholderActive(boolean active) {
+        if (active == mPlaceholderActive) return;
+        mPlaceholderActive = active;
+        if (active) notifyItemInserted(mSessions.size());
+        else notifyItemRemoved(mSessions.size());
+    }
+
+    /**
+     * Replace the trailing placeholder page with the real session list: the slot at
+     * {@code placeholderIndex} is rebound to the newly-created session (which now sits there),
+     * keeping the pager parked on that page (no jump). Called when the swipe settles on the
+     * placeholder and a new session is committed.
+     */
+    public void commitPlaceholder(@NonNull List<TermuxSession> serviceSessions, int placeholderIndex) {
+        mSessions = new java.util.ArrayList<>(serviceSessions);
+        mPlaceholderActive = false;
+        notifyItemChanged(placeholderIndex);
+    }
+
+    /**
+     * Resolve a terminal indexed colour (e.g. {@link TextStyle#COLOR_INDEX_BACKGROUND}) from the
+     * currently displayed session when available, falling back to the active colour scheme. This is
+     * what makes the placeholder page match the live terminal (including OSC 4/11 dynamic colours).
+     */
+    private int getCurrentTerminalColor(int index) {
+        TerminalSession session = mActivity.getCurrentSession();
+        if (session != null && session.getEmulator() != null) {
+            return session.getEmulator().mColors.mCurrentColors[index];
+        }
+        return TerminalColors.COLOR_SCHEME.mDefaultColors[index];
+    }
+
+    /**
+     * Translate the placeholder hint horizontally while the user drags from the last real tab toward
+     * the placeholder page, so the hint stays centered in the <em>visible slice</em> of the
+     * placeholder page — i.e. between the right edge of the last real tab (the drag split point) and
+     * the screen's right edge — instead of being pinned to the centre of the (partly off-screen)
+     * placeholder page.
+     *
+     * @param pageOffset drag progress toward the placeholder, 0 = still on the last real tab,
+     *                   1 = fully settled on the placeholder page.
+     */
+    public void setPlaceholderScrollOffset(float pageOffset) {
+        if (mPlaceholderHintContent == null) return;
+        View parent = (View) mPlaceholderHintContent.getParent();
+        if (parent == null || parent.getWidth() <= 0) return;
+        // At offset 0 the hint sits at the screen's right edge (just peeking in); at offset 1 it is
+        // centred on screen. Linear interpolation between those two positions.
+        mPlaceholderHintContent.setTranslationX(parent.getWidth() * (pageOffset - 1f) / 2f);
+        mPlaceholderHintContent.setAlpha(Math.min(1f, pageOffset * 1.5f));
     }
 
     public static final class TerminalPageViewHolder extends RecyclerView.ViewHolder {

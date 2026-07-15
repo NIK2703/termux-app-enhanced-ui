@@ -33,6 +33,9 @@ public class TermuxSessionTabsController {
     private int mSchemeBgActive = 0x80000000;
     private boolean mSchemeApplied = false;
 
+    /** Whether the trailing placeholder page is currently present (for tab-strip blending). */
+    private boolean mPlaceholderActive = false;
+
     public TermuxSessionTabsController(TermuxActivity activity) {
         this.mActivity = activity;
         this.mTabsContainer = activity.findViewById(R.id.session_tabs);
@@ -329,10 +332,22 @@ public class TermuxSessionTabsController {
             tabView.setBackgroundTintList(ColorStateList.valueOf(
                     tabView.isSelected() ? bgActive : bg));
         }
+
+        // Give the (+) add button (last child, excluded from the loop above) the normal scheme
+        // background so it reads as a tab and blends correctly when the placeholder swipe reaches it.
+        if (mSchemeApplied) {
+            View addBtn = mTabsContainer.getChildAt(mTabsContainer.getChildCount() - 1);
+            if (addBtn != null) addBtn.setBackgroundTintList(ColorStateList.valueOf(bg));
+        }
     }
 
-    public void setCurrentSession(int index) {
-        if (mTabsContainer == null) return;
+    /** Tell the controller whether the trailing placeholder page is present, so an in-progress
+     *  right-swipe from the last tab blends that tab into the (+) add button. */
+    public void setPlaceholderActive(boolean active) {
+        mPlaceholderActive = active;
+    }
+
+    public void setCurrentSession(int index) {        if (mTabsContainer == null) return;
         if (index < 0 || index >= mTabsContainer.getChildCount() - 1) return;
 
         // Update selection state and close button visibility for all tabs
@@ -353,6 +368,13 @@ public class TermuxSessionTabsController {
             if (closeButton != null) {
                 closeButton.setVisibility(isSelected ? View.VISIBLE : View.INVISIBLE);
             }
+        }
+
+        // The (+) add button (last child) never becomes selected; keep it at the normal scheme bg,
+        // overriding any blend left over from the placeholder swipe.
+        if (mSchemeApplied) {
+            View addBtn = mTabsContainer.getChildAt(mTabsContainer.getChildCount() - 1);
+            if (addBtn != null) addBtn.setBackgroundTintList(ColorStateList.valueOf(mSchemeBg));
         }
 
         mCurrentSessionIndex = index;
@@ -383,7 +405,13 @@ public class TermuxSessionTabsController {
         // efficient, but allow offset up to 1.0 so the final frame of a
         // cancelled gesture is full-strength.
         if (positionOffset <= 0f) return;
-        if (leftIdx < 0 || rightIdx >= mTabsContainer.getChildCount() - 1) return;
+        if (leftIdx < 0) return;
+        // Normally the (+) add button (last child) is excluded from blending. While the trailing
+        // placeholder page is present, allow the last real tab (leftIdx == childCount-2) to blend
+        // into the (+) button (rightIdx == childCount-1) so the strip follows the swipe exactly like
+        // a normal tab-to-tab transition.
+        if (rightIdx >= mTabsContainer.getChildCount() - 1
+                && !(mPlaceholderActive && leftIdx == mTabsContainer.getChildCount() - 2)) return;
 
         View leftTab = mTabsContainer.getChildAt(leftIdx);
         View rightTab = mTabsContainer.getChildAt(rightIdx);
@@ -438,6 +466,12 @@ public class TermuxSessionTabsController {
             if (closeButton != null) {
                 closeButton.setVisibility(isSelected ? View.VISIBLE : View.INVISIBLE);
             }
+        }
+
+        // Reset the (+) add button (last child) to the normal scheme bg after a cancelled swipe.
+        if (mSchemeApplied) {
+            View addBtn = mTabsContainer.getChildAt(mTabsContainer.getChildCount() - 1);
+            if (addBtn != null) addBtn.setBackgroundTintList(ColorStateList.valueOf(mSchemeBg));
         }
         mCurrentSessionIndex = currentIndex;
     }

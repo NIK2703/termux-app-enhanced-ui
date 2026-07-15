@@ -63,6 +63,15 @@
             app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
+    <PreferenceCategory app:title="@string/session_tabs_title" app:iconSpaceReserved="false">
+        <SwitchPreferenceCompat
+            app:key="swipe_rightmost_new_tab"
+            app:title="@string/swipe_rightmost_new_tab_title"
+            app:summary="@string/swipe_rightmost_new_tab_summary"
+            app:defaultValue="false"
+            app:iconSpaceReserved="false" />
+    </PreferenceCategory>
+
     <PreferenceCategory app:title="@string/screen_orientation_title" app:iconSpaceReserved="false">
         <ListPreference
             app:key="screen_orientation"
