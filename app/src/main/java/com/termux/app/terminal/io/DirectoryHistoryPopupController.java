@@ -88,6 +88,13 @@ public final class DirectoryHistoryPopupController {
 
     @Nullable private View mAnchor;
 
+    /** When true, the popup is laid out inverted (newest at top, below the button). */
+    private boolean mInverted = false;
+
+    public void setInverted(boolean inverted) {
+        mInverted = inverted;
+    }
+
     public DirectoryHistoryPopupController(@NonNull Context context,
                                            @NonNull DirectoryHistoryController dirCtrl,
                                            @NonNull TermuxColorSchemeManager colorScheme,
@@ -131,45 +138,89 @@ public final class DirectoryHistoryPopupController {
         int padH = dpToPx(14);
         int padV = dpToPx(10);
 
-        // Synthetic "CLEAR HISTORY…" row pinned at the TOP of the popup.
-        if (!mDirCtrl.getHistoryList().isEmpty()) {
-            TextView tv = new TextView(mContext);
-            tv.setText(mContext.getString(R.string.message_history_clear_all));
-            tv.setGravity(Gravity.CENTER);
-            tv.setAllCaps(true);
-            tv.setTextColor(mColorScheme.getHistoryTextColor());
-            tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-            tv.setTypeface(tv.getTypeface(), android.graphics.Typeface.BOLD);
-            tv.setPadding(padH, padV, padH, padV);
-            tv.setClickable(true);
-            tv.setTag(CLEAR_ALL_TAG);
-            content.addView(tv, new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT));
-            mItemViews.add(tv);
+        if (mInverted) {
+            // Newest at the TOP: iterate FORWARD so index 0 (newest) ends first.
+            for (int i = 0; i < mDirCtrl.getHistoryList().size(); i++) {
+                final String directory = mDirCtrl.getHistoryList().get(i);
+                TextView tv = new TextView(mContext);
+                tv.setText(directory);
+                tv.setMaxLines(2);
+                tv.setEllipsize(TextUtils.TruncateAt.MIDDLE);
+                tv.setTextColor(mColorScheme.getHistoryTextColor());
+                tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+                tv.setPadding(padH, padV, padH, padV);
+                tv.setClickable(true);
+                tv.setTag(i);
+                content.addView(tv, new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT));
+                mItemViews.add(tv);
+            }
 
-            View sep = new View(mContext);
-            sep.setBackgroundColor(mColorScheme.getHistoryPopupSepColor());
-            content.addView(sep, new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
-        }
+            // Synthetic "CLEAR HISTORY…" row pinned at the BOTTOM of the popup,
+            // with a separator ABOVE it (between the last history item and clear row).
+            if (!mDirCtrl.getHistoryList().isEmpty()) {
+                View sep = new View(mContext);
+                sep.setBackgroundColor(mColorScheme.getHistoryPopupSepColor());
+                content.addView(sep, new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
 
-        // Newest at the BOTTOM: iterate REVERSE so index 0 (newest) ends last.
-        for (int i = mDirCtrl.getHistoryList().size() - 1; i >= 0; i--) {
-            final String directory = mDirCtrl.getHistoryList().get(i);
-            TextView tv = new TextView(mContext);
-            tv.setText(directory);
-            tv.setMaxLines(2);
-            tv.setEllipsize(TextUtils.TruncateAt.MIDDLE);
-            tv.setTextColor(mColorScheme.getHistoryTextColor());
-            tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-            tv.setPadding(padH, padV, padH, padV);
-            tv.setClickable(true);
-            tv.setTag(i);
-            content.addView(tv, new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT));
-            mItemViews.add(tv);
+                TextView tv = new TextView(mContext);
+                tv.setText(mContext.getString(R.string.message_history_clear_all));
+                tv.setGravity(Gravity.CENTER);
+                tv.setAllCaps(true);
+                tv.setTextColor(mColorScheme.getHistoryTextColor());
+                tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+                tv.setTypeface(tv.getTypeface(), android.graphics.Typeface.BOLD);
+                tv.setPadding(padH, padV, padH, padV);
+                tv.setClickable(true);
+                tv.setTag(CLEAR_ALL_TAG);
+                content.addView(tv, new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT));
+                mItemViews.add(tv);
+            }
+        } else {
+            // Synthetic "CLEAR HISTORY…" row pinned at the TOP of the popup.
+            if (!mDirCtrl.getHistoryList().isEmpty()) {
+                TextView tv = new TextView(mContext);
+                tv.setText(mContext.getString(R.string.message_history_clear_all));
+                tv.setGravity(Gravity.CENTER);
+                tv.setAllCaps(true);
+                tv.setTextColor(mColorScheme.getHistoryTextColor());
+                tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+                tv.setTypeface(tv.getTypeface(), android.graphics.Typeface.BOLD);
+                tv.setPadding(padH, padV, padH, padV);
+                tv.setClickable(true);
+                tv.setTag(CLEAR_ALL_TAG);
+                content.addView(tv, new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT));
+                mItemViews.add(tv);
+
+                View sep = new View(mContext);
+                sep.setBackgroundColor(mColorScheme.getHistoryPopupSepColor());
+                content.addView(sep, new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
+            }
+
+            // Newest at the BOTTOM: iterate REVERSE so index 0 (newest) ends last.
+            for (int i = mDirCtrl.getHistoryList().size() - 1; i >= 0; i--) {
+                final String directory = mDirCtrl.getHistoryList().get(i);
+                TextView tv = new TextView(mContext);
+                tv.setText(directory);
+                tv.setMaxLines(2);
+                tv.setEllipsize(TextUtils.TruncateAt.MIDDLE);
+                tv.setTextColor(mColorScheme.getHistoryTextColor());
+                tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+                tv.setPadding(padH, padV, padH, padV);
+                tv.setClickable(true);
+                tv.setTag(i);
+                content.addView(tv, new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT));
+                mItemViews.add(tv);
+            }
         }
 
         int popupWidth = Math.min(
@@ -244,22 +295,37 @@ public final class DirectoryHistoryPopupController {
         int[] anchorLoc = new int[2];
         anchor.getLocationOnScreen(anchorLoc);
         int popupGap = dpToPx(mPopupGapDp);
-        int roomAbove = Math.max(dpToPx(48), anchorLoc[1] - dpToPx(8) - popupGap);
-        int maxHeight = Math.min(dpToPx(mPopupMaxHeightDp), roomAbove);
-        int popupHeight = Math.min(contentHeight, maxHeight);
-        mPopup.update(anchor,
-                0,
-                -(anchor.getHeight() + popupHeight + popupGap),
-                popupWidth,
-                popupHeight);
+        int maxHeight;
+        if (mInverted) {
+            int screenHeight = mContext.getResources().getDisplayMetrics().heightPixels;
+            int roomBelow = screenHeight - (anchorLoc[1] + anchor.getHeight()) - popupGap;
+            maxHeight = Math.min(dpToPx(mPopupMaxHeightDp), roomBelow);
+            int popupHeight = Math.min(contentHeight, maxHeight);
+            // Position the popup BELOW the anchor, flush to it (no gap).
+            int offsetY = 0;
+            mPopup.update(anchor, 0, offsetY, popupWidth, popupHeight);
 
-        // jump straight to the bottom — fullScroll(FOCUS_DOWN) animates, which looks
-        // like the list is scrolling past entries as the popup appears.
-        final ScrollView scrollRef = scroll;
-        scrollRef.post(() -> {
-            View child = scrollRef.getChildAt(0);
-            if (child != null) scrollRef.scrollTo(0, child.getHeight());
-        });
+            // Start scrolled to the TOP — newest entries are at the top in inverted mode.
+            final ScrollView scrollRef = scroll;
+            scrollRef.post(() -> scrollRef.scrollTo(0, 0));
+        } else {
+            int roomAbove = Math.max(dpToPx(48), anchorLoc[1] - dpToPx(8) - popupGap);
+            maxHeight = Math.min(dpToPx(mPopupMaxHeightDp), roomAbove);
+            int popupHeight = Math.min(contentHeight, maxHeight);
+            mPopup.update(anchor,
+                    0,
+                    -(anchor.getHeight() + popupHeight + popupGap),
+                    popupWidth,
+                    popupHeight);
+
+            // jump straight to the bottom — fullScroll(FOCUS_DOWN) animates, which looks
+            // like the list is scrolling past entries as the popup appears.
+            final ScrollView scrollRef = scroll;
+            scrollRef.post(() -> {
+                View child = scrollRef.getChildAt(0);
+                if (child != null) scrollRef.scrollTo(0, child.getHeight());
+            });
+        }
     }
 
     /** Dismiss the popup and reset all highlight / auto-scroll state. */

@@ -20,6 +20,8 @@ public class TermuxActivityBroadcastManager {
     private static final String ACTION_TEXT_INPUT_VISIBILITY_CHANGED = "com.termux.TEXT_INPUT_VISIBILITY_CHANGED";
     private static final String ACTION_TEXT_INPUT_ENABLED_CHANGED = "com.termux.TEXT_INPUT_ENABLED_CHANGED";
     private static final String ACTION_SETTINGS_BUTTON_ENABLED_CHANGED = "com.termux.SETTINGS_BUTTON_ENABLED_CHANGED";
+    private static final String ACTION_TAB_PANEL_POSITION_CHANGED = "com.termux.TAB_PANEL_POSITION_CHANGED";
+    private static final String ACTION_TAB_HEIGHT_MODE_CHANGED = "com.termux.TAB_HEIGHT_MODE_CHANGED";
 
     private final Activity mActivity;
     private final BroadcastReceiver mReceiver;
@@ -45,6 +47,8 @@ public class TermuxActivityBroadcastManager {
         intentFilter.addAction(ACTION_TEXT_INPUT_VISIBILITY_CHANGED);
         intentFilter.addAction(ACTION_TEXT_INPUT_ENABLED_CHANGED);
         intentFilter.addAction(ACTION_SETTINGS_BUTTON_ENABLED_CHANGED);
+        intentFilter.addAction(ACTION_TAB_PANEL_POSITION_CHANGED);
+        intentFilter.addAction(ACTION_TAB_HEIGHT_MODE_CHANGED);
         return intentFilter;
     }
 
@@ -92,6 +96,18 @@ public class TermuxActivityBroadcastManager {
             if (ACTION_SETTINGS_BUTTON_ENABLED_CHANGED.equals(action)) {
                 Logger.logDebug(LOG_TAG, "Received intent to change settings button enabled state");
                 termuxActivity.updateSettingsButtonVisibility();
+                return;
+            }
+
+            if (ACTION_TAB_PANEL_POSITION_CHANGED.equals(action)) {
+                Logger.logDebug(LOG_TAG, "Received intent to change tab panel position");
+                termuxActivity.applyTabPanelPosition();
+                return;
+            }
+
+            if (ACTION_TAB_HEIGHT_MODE_CHANGED.equals(action)) {
+                Logger.logDebug(LOG_TAG, "Received intent to change tab height mode");
+                termuxActivity.applyTabHeightMode();
                 return;
             }
 

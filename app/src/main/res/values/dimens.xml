@@ -11,4 +11,15 @@
          band and is still applied immediately. Must stay well below a keyboard height (~hundreds
          of px) so genuine changes are never swallowed. -->
     <dimen name="root_view_layout_tolerance">24dp</dimen>
+
+    <!-- Tab dimensions -->
+    <dimen name="terminal_tab_height_double">36dp</dimen>
+    <dimen name="terminal_tab_height_single">24dp</dimen>
+    <dimen name="terminal_tab_corner_radius">18dp</dimen>
+    <dimen name="terminal_tab_padding_start_single">8dp</dimen>
+    <dimen name="terminal_tab_padding_start_double">12dp</dimen>
+
+    <!-- Text input panel (matches vertical scrollbar thumb) -->
+    <dimen name="terminal_text_input_corner_radius">11dp</dimen>
+    <dimen name="terminal_text_input_stroke">0.5dp</dimen>
 </resources>

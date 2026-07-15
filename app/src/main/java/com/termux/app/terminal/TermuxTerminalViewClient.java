@@ -210,6 +210,14 @@ public class TermuxTerminalViewClient extends TermuxTerminalViewClientBase {
         if (term == null) return;
         TerminalView terminalView = mActivity.getTerminalView();
 
+        // Hide text input panel instantly when tapping on the terminal area,
+        // instead of waiting for a keyboard focus change event.
+        if (mActivity.isTextInputVisible()) {
+            mActivity.setTextInputVisible(false);
+            mActivity.updateToggleTextInputButtonIcon();
+            return;
+        }
+
         if (mActivity.getProperties().shouldOpenTerminalTranscriptURLOnClick()) {
             if (terminalView == null) return;
             int[] columnAndRow = terminalView.getColumnAndRow(e, true);

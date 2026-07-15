@@ -30,6 +30,20 @@
             app:summaryOn="@string/termux_settings_button_enabled_on"
             app:summaryOff="@string/termux_settings_button_enabled_off" />
 
+        <ListPreference
+            app:key="tab_panel_position"
+            app:defaultValue="top"
+            app:title="@string/termux_tab_panel_position_title"
+            app:entries="@array/tab_panel_position_entries"
+            app:entryValues="@array/tab_panel_position_values" />
+
+        <ListPreference
+            app:key="tab_height_mode"
+            app:defaultValue="single"
+            app:title="@string/termux_tab_height_mode_title"
+            app:entries="@array/tab_height_mode_entries"
+            app:entryValues="@array/tab_height_mode_values" />
+
     </PreferenceCategory>
 
 </PreferenceScreen>

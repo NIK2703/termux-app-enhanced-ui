@@ -16,6 +16,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
+import android.view.WindowManager;
 import android.widget.Toast;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -52,6 +53,10 @@ public final class TermuxActivityPopupController {
         // History / directory sync
         void onHistoryDirectoryChanged();
 
+        // Message-history click actions (used by showMessageHistoryPopupClick)
+        void onMessagePicked(@NonNull String message);
+        void onClearInputRequested();
+
         // Keep-screen-on preference bridge
         boolean isKeepScreenOn();
         void setKeepScreenOn(boolean keepOn);
@@ -66,6 +71,9 @@ public final class TermuxActivityPopupController {
         void reportIssueFromTranscript();
         void startHelpActivity();
         void startSettingsActivity();
+
+        /** Callback fired when the click-mode history popup is dismissed (outside tap, back press, or explicit dismiss). */
+        void onHistoryPopupDismissed();
     }
 
     @NonNull private final Context mContext;
@@ -482,6 +490,7 @@ public final class TermuxActivityPopupController {
         // Reschedule on next vsync (Choreographer) for smooth frame-aligned scrolling.
         mHistoryScroll.postOnAnimation(this::autoScrollHistoryNearEdge);
     }
+
     public void dismissMessageHistoryPopup() {
         if (mHistoryPopup != null) {
             try { mHistoryPopup.dismiss(); } catch (Exception ignored) {}
@@ -493,6 +502,237 @@ public final class TermuxActivityPopupController {
         mHistoryFingerY = 0f;
         mHistoryLastScrollTimeMs = 0;
         mHistoryHighlightIndex = -1;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Click-mode variant (tap, not swipe)
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Show the message-history popup in click mode — a regular, touchable
+     * popup where the user taps items directly instead of drag-to-select.
+     * Used when the text-input panel is open and the user taps the pencil
+     * button (as opposed to swiping up on it).
+     */
+    public void showMessageHistoryPopupClick(@NonNull View anchor) {
+        dismissMessageHistoryPopup();
+        mHistoryItemViews.clear();
+        mHistoryHighlightIndex = -1;
+
+        // Sync per-directory history.
+        if (mMessageHistoryCtrl != null && mMessageHistoryCtrl.isPerDirectoryEnabled()) {
+            String cwd = mHost.getCurrentCwdForHistory();
+            if (!cwd.equals(mMessageHistoryCtrl.getHistoryCurrentDirectory())) {
+                mHost.onHistoryDirectoryChanged();
+            }
+        }
+
+        boolean hasHistory = mMessageHistoryCtrl != null && !mMessageHistoryCtrl.getHistoryList().isEmpty();
+        EditText inputFieldRO = ((Activity) mContext).findViewById(R.id.terminal_toolbar_text_input);
+        String currInputText = "";
+        if (inputFieldRO != null) {
+            CharSequence cs = inputFieldRO.getText();
+            if (cs != null) currInputText = cs.toString();
+        }
+        boolean hasInput = !TextUtils.isEmpty(currInputText);
+        if (!hasHistory && !hasInput) {
+            Toast bottomToast = Toast.makeText(mContext,
+                    mContext.getString(R.string.message_history_empty), Toast.LENGTH_SHORT);
+            bottomToast.setGravity(Gravity.BOTTOM, 0, dpToPx(48));
+            bottomToast.show();
+            return;
+        }
+
+        LinearLayout content = new LinearLayout(mContext);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setBackgroundColor(Color.TRANSPARENT);
+
+        int padH = dpToPx(14);
+        int padV = dpToPx(10);
+
+        // "CLEAR HISTORY…" at TOP
+        if (mMessageHistoryCtrl != null && !mMessageHistoryCtrl.getHistoryList().isEmpty()) {
+            TextView tv = new TextView(mContext);
+            tv.setText(mContext.getString(R.string.message_history_clear_all));
+            tv.setGravity(Gravity.CENTER);
+            tv.setAllCaps(true);
+            tv.setTextColor(mColorSchemeManager != null ? mColorSchemeManager.getHistoryTextColor() : Color.WHITE);
+            tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+            tv.setTypeface(tv.getTypeface(), android.graphics.Typeface.BOLD);
+            tv.setPadding(padH, padV, padH, padV);
+            tv.setClickable(true);
+            tv.setTag(MESSAGE_HISTORY_CLEAR_ALL_TAG);
+            tv.setOnClickListener(v -> {
+                dismissMessageHistoryPopup();
+                confirmClearAllHistory();
+            });
+            content.addView(tv, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+            mHistoryItemViews.add(tv);
+
+            View sep = new View(mContext);
+            sep.setBackgroundColor(mColorSchemeManager != null ? mColorSchemeManager.getHistoryPopupSepColor() : Color.DKGRAY);
+            content.addView(sep, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
+        }
+
+        // History items — newest at the BOTTOM (nearest the button), oldest at top.
+        if (mMessageHistoryCtrl != null) {
+            for (int i = mMessageHistoryCtrl.getHistoryList().size() - 1; i >= 0; i--) {
+                final int index = i;
+                final String message = mMessageHistoryCtrl.getHistoryList().get(i);
+                TextView tv = new TextView(mContext);
+                tv.setText(message.replace("\n", " ").trim());
+                tv.setMaxLines(2);
+                tv.setEllipsize(TextUtils.TruncateAt.END);
+                tv.setTextColor(mColorSchemeManager != null ? mColorSchemeManager.getHistoryTextColor() : Color.WHITE);
+                tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+                tv.setPadding(padH, padV, padH, padV);
+                tv.setClickable(true);
+                tv.setTag(i);
+                tv.setOnClickListener(v -> {
+                    dismissMessageHistoryPopup();
+                    mHost.onMessagePicked(message);
+                });
+                content.addView(tv, new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT));
+                mHistoryItemViews.add(tv);
+            }
+        }
+
+        // "Clear" row at BOTTOM (clears input).
+        final EditText inputField = ((Activity) mContext).findViewById(R.id.terminal_toolbar_text_input);
+        final String inputText = inputField != null ? inputField.getText().toString() : "";
+        if (!TextUtils.isEmpty(inputText)) {
+            if (mMessageHistoryCtrl != null && !mMessageHistoryCtrl.getHistoryList().isEmpty()) {
+                View sepBottom = new View(mContext);
+                sepBottom.setBackgroundColor(mColorSchemeManager != null ? mColorSchemeManager.getHistoryPopupSepColor() : Color.DKGRAY);
+                content.addView(sepBottom, new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
+            }
+            TextView tv = new TextView(mContext);
+            tv.setText(mContext.getString(R.string.message_history_clear));
+            tv.setGravity(Gravity.CENTER);
+            tv.setAllCaps(true);
+            tv.setTextColor(mColorSchemeManager != null ? mColorSchemeManager.getHistoryTextColor() : Color.WHITE);
+            tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+            tv.setTypeface(tv.getTypeface(), android.graphics.Typeface.BOLD);
+            tv.setPadding(padH, padV, padH, padV);
+            tv.setClickable(true);
+            tv.setTag(MESSAGE_HISTORY_CLEAR_TAG);
+            tv.setOnClickListener(v -> {
+                dismissMessageHistoryPopup();
+                mHost.onClearInputRequested();
+            });
+            content.addView(tv, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+            mHistoryItemViews.add(tv);
+        }
+
+        int popupWidth = Math.min(
+                mContext.getResources().getDisplayMetrics().widthPixels - dpToPx(24),
+                dpToPx(320));
+
+        ScrollView scroll = new ScrollView(mContext);
+        scroll.setVerticalScrollBarEnabled(false);
+        scroll.addView(content, new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        mHistoryScroll = scroll;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            scroll.setOutlineProvider(new ViewOutlineProvider() {
+                @Override
+                public void getOutline(View view, Outline outline) {
+                    int w = view.getWidth();
+                    int h = view.getHeight();
+                    if (w > 0 && h > 0) {
+                        outline.setRoundRect(0, 0, w, h, dpToPx(12));
+                    }
+                }
+            });
+            scroll.setClipToOutline(true);
+        }
+
+        mHistoryPopup = new PopupWindow(scroll, popupWidth,
+                ViewGroup.LayoutParams.WRAP_CONTENT, false);
+        mHistoryPopup.setElevation(dpToPx(16));
+        GradientDrawable popupBgDrawable = new GradientDrawable() {
+            @Override
+            public void getOutline(@NonNull Outline outline) {
+                super.getOutline(outline);
+                if (!outline.isEmpty()) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        outline.setAlpha(0.65f);
+                    }
+                }
+            }
+        };
+        popupBgDrawable.setShape(GradientDrawable.RECTANGLE);
+        popupBgDrawable.setCornerRadius(dpToPx(12));
+        popupBgDrawable.setColor(mColorSchemeManager != null ? mColorSchemeManager.getHistoryPopupBg() : Color.BLACK);
+        mHistoryPopup.setBackgroundDrawable(popupBgDrawable);
+        scroll.setAlpha(0.9f);
+        mHistoryPopup.setClippingEnabled(true);
+
+        // Click-mode: popup is touchable so items receive taps, but NOT focusable.
+        // A focusable PopupWindow steals window-focus from the toolbar EditText,
+        // which tears down its InputConnection (hiding the soft keyboard) and
+        // triggers a window-insets relayout. Outside taps still dismiss it.
+        mHistoryPopup.setTouchable(true);
+        mHistoryPopup.setFocusable(false);
+        mHistoryPopup.setOutsideTouchable(true);
+        mHistoryPopup.setInputMethodMode(PopupWindow.INPUT_METHOD_NEEDED);
+
+        // Self-cleanup when the popup is dismissed (outside tap, back press, etc.)
+        mHistoryPopup.setOnDismissListener(() -> {
+            mHistoryItemViews.clear();
+            mHistoryScroll = null;
+            mHistoryAutoScrolling = false;
+            mHistoryFingerY = 0f;
+            mHistoryLastScrollTimeMs = 0;
+            mHistoryHighlightIndex = -1;
+            mHistoryPopup = null;
+            mHost.onHistoryPopupDismissed();
+        });
+
+        // Measure BEFORE showing so the popup can be placed above the anchor in a
+        // single showAsDropDown() call. This removes the show-below-then-jump-up
+        // flicker and the update()-after-show race (an outside dismiss between
+        // show and update() would null out mHistoryPopup and NPE the update()).
+        content.measure(
+                View.MeasureSpec.makeMeasureSpec(popupWidth, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        int contentHeight = content.getMeasuredHeight();
+        int[] anchorLoc = new int[2];
+        anchor.getLocationOnScreen(anchorLoc);
+        int popupGap = dpToPx(MESSAGE_HISTORY_POPUP_GAP_DP);
+        int roomAbove = Math.max(dpToPx(48), anchorLoc[1] - dpToPx(8) - popupGap);
+        int maxHeight = Math.min(dpToPx(MESSAGE_HISTORY_POPUP_MAX_HEIGHT_DP), roomAbove);
+        int popupHeight = Math.min(contentHeight, maxHeight);
+        mHistoryPopup.setHeight(popupHeight);
+
+        try {
+            mHistoryPopup.showAsDropDown(anchor, 0,
+                    -(anchor.getHeight() + popupHeight + popupGap), Gravity.START);
+        } catch (WindowManager.BadTokenException | IllegalStateException e) {
+            // Anchor window token is invalid (activity finishing/detached). The
+            // OnDismissListener never fires for a popup that failed to show, so
+            // clean the state up manually to avoid a stale non-null mHistoryPopup.
+            mHistoryPopup = null;
+            mHistoryScroll = null;
+            mHistoryItemViews.clear();
+            return;
+        }
+
+        final ScrollView scrollRef = scroll;
+        scrollRef.post(() -> {
+            View child = scrollRef.getChildAt(0);
+            if (child != null) scrollRef.scrollTo(0, child.getHeight());
+        });
     }
 
     /**

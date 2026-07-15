@@ -16,13 +16,70 @@
         android:layout_marginVertical="0dp"
         android:orientation="vertical">
 
+        <!-- Session tabs container (default: top). The applyTabPanelPosition()
+             method moves this between ALIGN_PARENT_TOP and ABOVE the toolbar. -->
+        <LinearLayout
+            android:id="@+id/session_tabs_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@android:color/transparent"
+            android:paddingVertical="2dp"
+            android:layout_alignParentTop="true">
+
+            <HorizontalScrollView
+                android:id="@+id/session_tabs_scroll"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:id="@+id/session_tabs"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="4dp">
+
+                    <!-- Add tab button with + icon (scrolls with the tabs) -->
+                    <ImageButton
+                        android:id="@+id/new_session_tab_button"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:layout_marginEnd="4dp"
+                        android:src="@drawable/ic_add"
+                        android:background="@drawable/session_tab_background"
+                        android:contentDescription="@string/action_new_session"
+                        android:tint="@color/terminal_toolbar_icon_tint"
+                        android:scaleType="center" />
+
+                </LinearLayout>
+
+            </HorizontalScrollView>
+
+            <ImageButton
+                android:id="@+id/settings_button"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="4dp"
+                android:src="@drawable/ic_settings"
+                android:background="@drawable/session_tab_background"
+                android:contentDescription="@string/action_open_settings"
+                android:tint="@color/terminal_toolbar_icon_tint"
+                android:scaleType="center" />
+
+        </LinearLayout>
+
         <androidx.viewpager2.widget.ViewPager2
             android:id="@+id/terminal_view_pager"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:layout_below="@id/session_tabs_container"
             android:layout_above="@id/terminal_toolbar_container"
             android:orientation="horizontal" />
 
+        <!-- Terminal toolbar: text input + extra keys. Always at the bottom. -->
         <LinearLayout
             android:id="@+id/terminal_toolbar_container"
             android:visibility="gone"
@@ -31,59 +88,6 @@
             android:orientation="vertical"
             android:background="@android:color/transparent"
             android:layout_alignParentBottom="true">
-
-            <!-- Session tabs container -->
-            <LinearLayout
-                android:id="@+id/session_tabs_container"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:background="@android:color/transparent"
-                android:paddingVertical="2dp">
-
-                <HorizontalScrollView
-                    android:id="@+id/session_tabs_scroll"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:scrollbars="none">
-
-                    <LinearLayout
-                        android:id="@+id/session_tabs"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="4dp">
-
-                        <!-- Add tab button with + icon (scrolls with the tabs) -->
-                        <ImageButton
-                            android:id="@+id/new_session_tab_button"
-                            android:layout_width="36dp"
-                            android:layout_height="36dp"
-                            android:layout_marginEnd="4dp"
-                            android:src="@drawable/ic_add"
-                            android:background="@drawable/session_tab_background"
-                            android:contentDescription="@string/action_new_session"
-                            android:tint="@color/terminal_toolbar_icon_tint"
-                            android:scaleType="center" />
-
-                    </LinearLayout>
-
-                </HorizontalScrollView>
-
-                <ImageButton
-                    android:id="@+id/settings_button"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:layout_gravity="center_vertical"
-                    android:layout_marginStart="4dp"
-                    android:src="@drawable/ic_settings"
-                    android:background="@drawable/session_tab_background"
-                    android:contentDescription="@string/action_open_settings"
-                    android:tint="@color/terminal_toolbar_icon_tint"
-                    android:scaleType="center" />
-
-            </LinearLayout>
 
             <!-- Multi-line text input panel: occupies the slot below the tabs,
                  replacing the extra keys while active. Fixed height with vertical scroll. -->
@@ -130,11 +134,12 @@
 
         <!-- Floating toggle text input visibility button (pencil).
              Floats over the terminal, bottom-right, vertically centered with the
-             TerminalView scrollbar thumb when scrolled to the bottom. -->
+             TerminalView scrollbar thumb when scrolled to the bottom.
+             Always above the toolbar (which is always at the bottom). -->
         <ImageButton
             android:id="@+id/toggle_text_input_button"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
             android:layout_above="@id/terminal_toolbar_container"
             android:layout_alignParentEnd="true"
             android:layout_marginEnd="28dp"

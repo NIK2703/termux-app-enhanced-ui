@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
@@ -36,6 +37,47 @@ public class TermuxSessionTabsController {
         this.mActivity = activity;
         this.mTabsContainer = activity.findViewById(R.id.session_tabs);
         this.mTabsScroll = activity.findViewById(R.id.session_tabs_scroll);
+    }
+
+    /** Returns tab height in pixels based on the user's tab-height preference. */
+    private int getTabHeightPx() {
+        String mode = mActivity.getSharedPreferences("termux_prefs", android.content.Context.MODE_PRIVATE)
+                .getString("tab_height_mode", "single");
+        int dimenId = "double".equals(mode)
+                ? R.dimen.terminal_tab_height_double
+                : R.dimen.terminal_tab_height_single;
+        return Math.round(mActivity.getResources().getDimension(dimenId));
+    }
+
+    /** Whether the tab title should be limited to one line. */
+    private boolean isSingleLineMode() {
+        return !"double".equals(mActivity.getSharedPreferences("termux_prefs",
+                android.content.Context.MODE_PRIVATE).getString("tab_height_mode", "single"));
+    }
+
+    /** Re-apply height, max-lines and start padding to all existing tab views. */
+    public void applyTabHeightMode() {
+        if (mTabsContainer == null) return;
+        int heightPx = getTabHeightPx();
+        boolean singleLine = isSingleLineMode();
+        int padStartDimenId = singleLine
+                ? R.dimen.terminal_tab_padding_start_single
+                : R.dimen.terminal_tab_padding_start_double;
+        int padStartPx = Math.round(mActivity.getResources().getDimension(padStartDimenId));
+        for (int i = 0; i < mTabsContainer.getChildCount() - 1; i++) {
+            View tabView = mTabsContainer.getChildAt(i);
+            ViewGroup.LayoutParams lp = tabView.getLayoutParams();
+            lp.height = heightPx;
+            tabView.setLayoutParams(lp);
+            tabView.setPadding(padStartPx,
+                    tabView.getPaddingTop(),
+                    tabView.getPaddingRight(),
+                    tabView.getPaddingBottom());
+            TextView title = tabView.findViewById(R.id.session_tab_title);
+            if (title != null) {
+                title.setMaxLines(singleLine ? 1 : 2);
+            }
+        }
     }
 
     public void updateTabs(List<TermuxSession> sessions) {
@@ -97,6 +139,11 @@ public class TermuxSessionTabsController {
         LayoutInflater inflater = LayoutInflater.from(mActivity);
         View tabView = inflater.inflate(R.layout.item_session_tab, mTabsContainer, false);
 
+        // Apply the configured tab height (compact single-line vs tall two-line).
+        ViewGroup.LayoutParams lp = tabView.getLayoutParams();
+        lp.height = getTabHeightPx();
+        tabView.setLayoutParams(lp);
+
         // Populate text, colors, selection state and (re)bind click listeners.
         // populateTabView() always attaches click listeners to the view with the
         // correct session reference, so we do NOT set them here — doing so would
@@ -118,6 +165,23 @@ public class TermuxSessionTabsController {
         TextView titleView = tabView.findViewById(R.id.session_tab_title);
         ImageButton closeButton = tabView.findViewById(R.id.session_tab_close);
         if (titleView == null) return;
+
+        // Apply the configured max lines (single-line or two-line mode).
+        titleView.setMaxLines(isSingleLineMode() ? 1 : 2);
+
+        // Tighter start padding for single-line (compact) tabs; keep the XML default
+        // (12dp) for double-line tabs so the title has room for two lines.
+        if (isSingleLineMode()) {
+            int padStart = Math.round(mActivity.getResources()
+                    .getDimension(R.dimen.terminal_tab_padding_start_single));
+            tabView.setPadding(padStart, tabView.getPaddingTop(),
+                    tabView.getPaddingRight(), tabView.getPaddingBottom());
+        } else {
+            int padStart = Math.round(mActivity.getResources()
+                    .getDimension(R.dimen.terminal_tab_padding_start_double));
+            tabView.setPadding(padStart, tabView.getPaddingTop(),
+                    tabView.getPaddingRight(), tabView.getPaddingBottom());
+        }
 
         TerminalSession terminalSession = termuxSession.getTerminalSession();
 

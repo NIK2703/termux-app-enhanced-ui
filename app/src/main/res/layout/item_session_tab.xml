@@ -1,7 +1,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/session_tab_root"
     android:layout_width="wrap_content"
-    android:layout_height="36dp"
+    android:layout_height="@dimen/terminal_tab_height_double"
     android:layout_marginEnd="4dp"
     android:orientation="horizontal"
     android:gravity="center_vertical"

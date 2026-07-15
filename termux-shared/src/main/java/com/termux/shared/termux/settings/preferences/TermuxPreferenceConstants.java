@@ -109,6 +109,15 @@ public final class TermuxPreferenceConstants {
         public static final String KEY_TEXT_INPUT_APPEND_ENTER = "text_input_append_enter";
         public static final boolean DEFAULT_VALUE_TEXT_INPUT_APPEND_ENTER = true;
 
+        /**
+         * Defines the key for whether the text input panel should hide after sending
+         * a message from it. When {@code true} (default), the panel closes and focus
+         * moves to the terminal. When {@code false}, the panel stays open and focus
+         * remains in the input field for consecutive commands.
+         */
+        public static final String KEY_TEXT_INPUT_HIDE_ON_SEND = "text_input_hide_on_send";
+        public static final boolean DEFAULT_VALUE_TEXT_INPUT_HIDE_ON_SEND = true;
+
 
         /**
          * Defines the key for whether the soft keyboard will be enabled, for cases where users want

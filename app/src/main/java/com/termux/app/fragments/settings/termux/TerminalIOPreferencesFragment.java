@@ -50,6 +50,28 @@ public class TerminalIOPreferencesFragment extends PreferenceFragmentCompat {
                 return true;
             });
         }
+
+        // Apply tab panel position change immediately in the running activity.
+        androidx.preference.ListPreference tabPanelPositionPref = findPreference("tab_panel_position");
+        if (tabPanelPositionPref != null) {
+            tabPanelPositionPref.setOnPreferenceChangeListener((preference, newValue) -> {
+                android.content.Intent intent = new android.content.Intent("com.termux.TAB_PANEL_POSITION_CHANGED");
+                intent.setPackage(context.getPackageName());
+                context.sendBroadcast(intent);
+                return true;
+            });
+        }
+
+        // Apply tab height mode change immediately in the running activity.
+        androidx.preference.ListPreference tabHeightModePref = findPreference("tab_height_mode");
+        if (tabHeightModePref != null) {
+            tabHeightModePref.setOnPreferenceChangeListener((preference, newValue) -> {
+                android.content.Intent intent = new android.content.Intent("com.termux.TAB_HEIGHT_MODE_CHANGED");
+                intent.setPackage(context.getPackageName());
+                context.sendBroadcast(intent);
+                return true;
+            });
+        }
     }
 
 }
@@ -102,6 +124,25 @@ class TerminalIOPreferencesDataStore extends PreferenceDataStore {
     }
 
     @Override
+    public void putString(String key, String value) {
+        if (mPreferences == null) return;
+        if (key == null) return;
+
+        switch (key) {
+            case "tab_panel_position":
+                mContext.getSharedPreferences("termux_prefs", Context.MODE_PRIVATE)
+                    .edit().putString("tab_panel_position", value).apply();
+                break;
+            case "tab_height_mode":
+                mContext.getSharedPreferences("termux_prefs", Context.MODE_PRIVATE)
+                    .edit().putString("tab_height_mode", value).apply();
+                break;
+            default:
+                break;
+        }
+    }
+
+    @Override
     public boolean getBoolean(String key, boolean defValue) {
         if (mPreferences == null) return false;
 
@@ -118,6 +159,22 @@ class TerminalIOPreferencesDataStore extends PreferenceDataStore {
                     .getBoolean("settings_button_enabled", true);
             default:
                 return false;
+        }
+    }
+
+    @Override
+    public String getString(String key, String defValue) {
+        if (mPreferences == null) return defValue;
+
+        switch (key) {
+            case "tab_panel_position":
+                return mContext.getSharedPreferences("termux_prefs", Context.MODE_PRIVATE)
+                    .getString("tab_panel_position", "top");
+            case "tab_height_mode":
+                return mContext.getSharedPreferences("termux_prefs", Context.MODE_PRIVATE)
+                    .getString("tab_height_mode", "single");
+            default:
+                return defValue;
         }
     }
 

@@ -98,6 +98,11 @@ public class TermuxAppSharedPreferences extends AppSharedPreferences {
     }
 
 
+    public boolean shouldTextInputHideOnSend() {
+        return SharedPreferenceUtils.getBoolean(mSharedPreferences, TERMUX_APP.KEY_TEXT_INPUT_HIDE_ON_SEND, TERMUX_APP.DEFAULT_VALUE_TEXT_INPUT_HIDE_ON_SEND);
+    }
+
+
     /**
      * Get the maximum number of auto-complete suggestions to show in the text input popup.
      *

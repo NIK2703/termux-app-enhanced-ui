@@ -175,6 +175,16 @@
                 <string name="termux_settings_button_enabled_on">Settings button is shown in the tabs panel. (Default)</string>
                 <string name="termux_settings_button_enabled_off">Settings button is hidden. Open Settings via long-press on the terminal &#8594; More… &#8594; Settings.</string>
 
+                <!-- Tab panel position -->
+                <string name="termux_tab_panel_position_title">Tab panel position</string>
+                <string name="termux_tab_panel_position_top">Top (default)</string>
+                <string name="termux_tab_panel_position_bottom">Bottom</string>
+
+                <!-- Tab height mode -->
+                <string name="termux_tab_height_mode_title">Tab height</string>
+                <string name="termux_tab_height_mode_single">Single line (default)</string>
+                <string name="termux_tab_height_mode_double">Two lines</string>
+
                 <!-- Soft Keyboard Only If No Hardware-->
                 <string name="termux_soft_keyboard_enabled_only_if_no_hardware_title">Soft Keyboard Only If No Hardware</string>
                 <string name="termux_soft_keyboard_enabled_only_if_no_hardware_off">Soft keyboard will be enabled even if
@@ -242,6 +252,9 @@
     <string name="text_input_title">Text Input</string>
     <string name="text_input_append_enter_title">Append Enter on send</string>
     <string name="text_input_append_enter_summary">When sending from the input field, also submit the line (press Enter). Disable to send raw text without a trailing newline.</string>
+
+    <string name="text_input_hide_on_send_title">Hide input panel after send</string>
+    <string name="text_input_hide_on_send_summary">When enabled, the input panel closes and focus goes to the terminal after sending. Disable to keep the panel open for consecutive commands.</string>
 
     <!-- Directory history preferences -->
     <string name="directory_history_title">Directory History</string>

@@ -243,6 +243,9 @@
     <string name="text_input_append_enter_title">Добавлять Enter при отправке</string>
     <string name="text_input_append_enter_summary">При отправке из поля ввода также отправлять перевод строки (Enter). Отключите, чтобы отправлять текст без завершающего переноса строки.</string>
 
+    <string name="text_input_hide_on_send_title">Прятать панель ввода после отправки</string>
+    <string name="text_input_hide_on_send_summary">При включении панель ввода закрывается, а фокус переходит в терминал после отправки сообщения. Отключите, чтобы панель оставалась открытой для последовательных команд.</string>
+
     <!-- Directory history preferences -->
     <string name="directory_history_title">История папок</string>
     <string name="directory_history_max_title">Максимум сохранённых папок</string>

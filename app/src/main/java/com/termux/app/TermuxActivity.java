@@ -43,6 +43,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.termux.R;
 import com.termux.app.TermuxActivityUtils;
@@ -282,6 +283,14 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
     // being hidden while the text input panel is open.
     private boolean mSoftKeyboardVisible = false;
 
+    /** Non-null while the user's finger is on the toggle-text-input button. */
+    private boolean mButtonTouchInProgress = false;
+
+    /** Set by the click-mode popup's OnDismissListener when the system auto-dismisses
+     * it (outside tap). Checked at the next ACTION_DOWN on the toggle button to
+     * distinguish "dismiss the popup" from "show a new popup". */
+    private boolean mClickPopupJustDismissed = false;
+
     private TextInputPanelController mTextInputPanel;
     private AutoCompleteController mAutoCompleteCtrl;
     private TermuxActivityPopupController mPopupCtrl;
@@ -297,6 +306,15 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
      * keyboard dismissal still closes the panel as expected.
      */
     private boolean mJustResumed = false;
+
+    /**
+     * Flag set before {@link #showMessageHistoryPopupClick(View)} is called and cleared
+     * when the popup is dismissed. Guards the IME-hidden insets handler from auto-hiding
+     * the text input panel when the IME dismiss is triggered by the focusable popup
+     * appearing, regardless of timing (the popup's window focus change can race with
+     * the insets callback).
+     */
+    private boolean mSuppressAutoHidePanel;
 
     /**
      * True while a pager page switch is in progress (tab click -> setCurrentItem, or the smooth
@@ -490,7 +508,8 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
             // stays visible when the app returns to the foreground.
             boolean imeVisible = WindowInsetsCompat.toWindowInsetsCompat(insets)
                     .isVisible(WindowInsetsCompat.Type.ime());
-            if (!mIsPaused && !mJustResumed && mSoftKeyboardVisible && !imeVisible && isTextInputVisible()) {
+            if (!mIsPaused && !mJustResumed && mSoftKeyboardVisible && !imeVisible && isTextInputVisible()
+                    && !mPopupCtrl.isHistoryPopupShowing() && !mButtonTouchInProgress && !mSuppressAutoHidePanel) {
                 dismissAutoCompleteSuggestions();
                 setTextInputVisible(false);
                 updateToggleTextInputButtonIcon();
@@ -808,7 +827,7 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
     public void setTermuxSessionsListView() {
         // Initialize session tabs controller
         mTermuxSessionTabsController = new TermuxSessionTabsController(this);
-        
+
         // Set up new session tab button
         ImageButton newSessionTabButton = findViewById(R.id.new_session_tab_button);
         if (newSessionTabButton != null) {
@@ -848,7 +867,12 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
                         }
                         float dy = event.getRawY() - downXY[1];
                         float dx = event.getRawX() - downXY[0];
-                        if (dy < -touchSlop && Math.abs(dy) > Math.abs(dx)
+                        boolean swipeUp = dy < -touchSlop;
+                        boolean swipeDown = dy > touchSlop;
+                        // Re-read the preference every move so a settings change
+                        // takes effect without restarting the activity.
+                        boolean triggered = !isTabPanelAtBottom() ? swipeDown : swipeUp;
+                        if (triggered && Math.abs(dy) > Math.abs(dx)
                                 && mDirectoryHistoryPopupCtrl.shouldShow()) {
                             v.setPressed(false);
                             v.cancelLongPress();   // cancel pending long-press before it fires
@@ -958,20 +982,30 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
                         session.write("\r");
                     }
 
-                    // Clear the field and the per-session saved text/caret BEFORE
-                    // hiding the panel. Otherwise setTextInputVisible(false) ->
-                    // saveTextInputForCurrentSession() re-persists the just-sent
-                    // text (the field is still non-empty at that point) and it
-                    // reappears when the panel is opened again.
+                    // Clear the field — always happens regardless of the
+                    // "hide on send" preference.
                     editText.setText("");
-                    mTextInputState.clear(session.mHandle);
-                    mTextInputState.setCaret(session.mHandle, -1);
 
-                    // Always return to the extra keys panel after sending.
-                    // The "send" key replaces the newline key on the soft keyboard
-                    // (textMultiLine removed), so this fires on every committed send.
-                    setTextInputVisible(false);
-                    updateToggleTextInputButtonIcon();
+                    // Clear per-session saved text and caret so the already-sent
+                    // content doesn't reappear when switching tabs and back.
+                    mTextInputState.saveInput(session.mHandle, "");
+                    mTextInputState.setCaret(session.mHandle, 0);
+
+                    // Hide the input panel after sending (or keep it open) based
+                    // on the user's preference in Settings → Text Input.
+                    if (mPreferences.shouldTextInputHideOnSend()) {
+                        // The field is already empty, so clear() the per-session
+                        // state (including visibility) before hiding, so that
+                        // saveTextInputForCurrentSession() called inside
+                        // setTextInputVisible(false) doesn't re-persist anything.
+                        mTextInputState.clear(session.mHandle);
+                        setTextInputVisible(false);
+                        updateToggleTextInputButtonIcon();
+                    } else {
+                        // Keep the panel open and focus on the input field for
+                        // consecutive commands. The per-session visible state
+                        // stays true, so switching tabs retains visibility.
+                    }
                 } else {
                     mTermuxTerminalSessionActivityClient.removeFinishedSession(session);
                 }
@@ -986,6 +1020,12 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         // Pass applyFocus=false so we don't pop the keyboard at startup (respects
         // setSoftKeyboardState's startup-hidden preference).
         applyTextInputVisibilityForSession(getCurrentSession(), false);
+
+        // Apply the configured tab panel position (top/bottom).
+        applyTabPanelPosition();
+
+        // Apply the configured tab height mode (single-line / two-line).
+        applyTabHeightMode();
     }
 
     public void setTerminalToolbarHeight() {
@@ -1102,6 +1142,109 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         if (mViewHelper != null) mViewHelper.updateSettingsButtonVisibility(isSettingsButtonEnabled());
     }
 
+    /**
+     * Move the session tabs panel (session_tabs_container) to the top or bottom of the
+     * screen. The terminal toolbar (extra keys + text input) always stays at the bottom;
+     * only the tab strip moves. The ViewPager2 fills whatever space remains between them.
+     */
+    public void applyTabPanelPosition() {
+        String position = getSharedPreferences("termux_prefs", MODE_PRIVATE)
+                .getString("tab_panel_position", "top");
+        LinearLayout tabsContainer = findViewById(R.id.session_tabs_container);
+        ViewPager2 pager = findViewById(R.id.terminal_view_pager);
+        ImageButton pencil = findViewById(R.id.toggle_text_input_button);
+        if (tabsContainer == null || pager == null) return;
+
+        RelativeLayout.LayoutParams tabsLp = (RelativeLayout.LayoutParams) tabsContainer.getLayoutParams();
+        RelativeLayout.LayoutParams pagerLp = (RelativeLayout.LayoutParams) pager.getLayoutParams();
+
+        // Reset rules that change with position
+        tabsLp.removeRule(RelativeLayout.ALIGN_PARENT_TOP);
+        tabsLp.removeRule(RelativeLayout.ABOVE);
+        pagerLp.removeRule(RelativeLayout.ABOVE);
+        pagerLp.removeRule(RelativeLayout.BELOW);
+
+        if ("bottom".equals(position)) {
+            // Tabs right above the toolbar; ViewPager fills above the tabs
+            tabsLp.addRule(RelativeLayout.ABOVE, R.id.terminal_toolbar_container);
+            pagerLp.addRule(RelativeLayout.ABOVE, R.id.session_tabs_container);
+
+            // Pencil floats above the tabs panel (not above the toolbar) so it doesn't
+            // overlap the tabs. It keeps its natural margin from the main toolbar area.
+            if (pencil != null) {
+                RelativeLayout.LayoutParams penLp =
+                    (RelativeLayout.LayoutParams) pencil.getLayoutParams();
+                penLp.removeRule(RelativeLayout.ABOVE);
+                penLp.addRule(RelativeLayout.ABOVE, R.id.session_tabs_container);
+                pencil.setLayoutParams(penLp);
+            }
+        } else {
+            // Tabs at top; ViewPager fills between tabs and toolbar
+            tabsLp.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+            pagerLp.addRule(RelativeLayout.BELOW, R.id.session_tabs_container);
+            pagerLp.addRule(RelativeLayout.ABOVE, R.id.terminal_toolbar_container);
+
+            // Pencil floats above the toolbar (below the tabs).
+            if (pencil != null) {
+                RelativeLayout.LayoutParams penLp =
+                    (RelativeLayout.LayoutParams) pencil.getLayoutParams();
+                penLp.removeRule(RelativeLayout.ABOVE);
+                penLp.addRule(RelativeLayout.ABOVE, R.id.terminal_toolbar_container);
+                pencil.setLayoutParams(penLp);
+            }
+        }
+
+        tabsContainer.setLayoutParams(tabsLp);
+        pager.setLayoutParams(pagerLp);
+
+        // Keep the directory-history popup's inverted flag in sync with the
+        // (possibly changed) tab panel position, so a swipe on the new-tab
+        // button behaves correctly after the setting is toggled via broadcast.
+        if (mDirectoryHistoryPopupCtrl != null) {
+            mDirectoryHistoryPopupCtrl.setInverted(!"bottom".equals(position));
+        }
+    }
+
+    /** Whether the session tabs panel is configured to sit at the bottom of the screen. */
+    public boolean isTabPanelAtBottom() {
+        return "bottom".equals(getSharedPreferences("termux_prefs", MODE_PRIVATE)
+                .getString("tab_panel_position", "top"));
+    }
+
+    /**
+     * Re-apply the tab height mode (single-line or two-line) to all existing tab views
+     * and to the add-tab / settings buttons in the tabs panel. Called on startup and
+     * when the user changes the setting.
+     */
+    public void applyTabHeightMode() {
+        // Update all existing tab views via the tabs controller.
+        if (mTermuxSessionTabsController != null)
+            mTermuxSessionTabsController.applyTabHeightMode();
+
+        // Also update the add-tab button and settings button heights.
+        String mode = getSharedPreferences("termux_prefs", MODE_PRIVATE)
+                .getString("tab_height_mode", "single");
+        boolean doubleMode = "double".equals(mode);
+        int buttonSizeDp = doubleMode ? 36 : 24;
+        float density = getResources().getDisplayMetrics().density;
+        int buttonSizePx = Math.round(buttonSizeDp * density);
+
+        View addTabBtn = findViewById(R.id.new_session_tab_button);
+        if (addTabBtn != null) {
+            ViewGroup.LayoutParams lp = addTabBtn.getLayoutParams();
+            lp.width = buttonSizePx;
+            lp.height = buttonSizePx;
+            addTabBtn.setLayoutParams(lp);
+        }
+        View settingsBtn = findViewById(R.id.settings_button);
+        if (settingsBtn != null) {
+            ViewGroup.LayoutParams lp = settingsBtn.getLayoutParams();
+            lp.width = buttonSizePx;
+            lp.height = buttonSizePx;
+            settingsBtn.setLayoutParams(lp);
+        }
+    }
+
     private void setNewSessionButtonView() {
         // New session button is now in the tabs bar, handled in setTermuxSessionsListView
     }
@@ -1134,6 +1277,16 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
             final int touchSlop = ViewConfiguration.get(this).getScaledTouchSlop();
             final float[] downXY = new float[2];
             final boolean[] gestureActive = { false };
+            // Capture the panel state at gesture start: tapping the pencil drops the
+            // EditText focus, which hides the IME and (via WindowInsetsListener) may
+            // collapse the text-input panel before ACTION_UP. Using the live state at
+            // ACTION_UP would misclassify a "tap-to-show-history" as "toggle-panel".
+            final boolean[] panelOpenAtDown = { false };
+            // Capture popup state at gesture start: if the click-mode popup is showing,
+            // the system auto-dismisses it (focusable popup, outside tap) during ACTION_DOWN.
+            // By ACTION_UP, isHistoryPopupShowing() is already false, so we need this
+            // snapshot to distinguish \"dismiss the popup\" from \"show a new popup\".
+            final boolean[] popupWasShowingAtDown = { false };
 
             toggleTextInputButton.setOnTouchListener((v, event) -> {
                 switch (event.getActionMasked()) {
@@ -1141,7 +1294,16 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
                         mHistoryEmptyHintShown = false;
                         downXY[0] = event.getRawX();
                         downXY[1] = event.getRawY();
+                        panelOpenAtDown[0] = isTextInputVisible();
+                        // If the click-mode popup was auto-dismissed by the system
+                        // (outside tap on the button), the OnDismissListener set
+                        // mClickPopupJustDismissed before our ACTION_DOWN. Record
+                        // this so ACTION_UP skips re-showing the popup.
+                        boolean clickPopupDismissed = mClickPopupJustDismissed;
+                        mClickPopupJustDismissed = false;
+                        popupWasShowingAtDown[0] = clickPopupDismissed;
                         gestureActive[0] = true;
+                        mButtonTouchInProgress = true;
                         v.setPressed(true);
                         return true;
                     case MotionEvent.ACTION_MOVE: {
@@ -1181,12 +1343,27 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
                             }
                         } else if (gestureActive[0]
                                 && event.getActionMasked() == MotionEvent.ACTION_UP) {
-                            // No popup was opened: treat as a plain tap -> toggle panel.
-                            boolean currentlyVisible = isTextInputVisible();
-                            setTextInputVisible(!currentlyVisible);
-                            updateToggleTextInputButtonIcon();
+                            // No popup was opened: treat as a plain tap.
+                            // If the click-mode popup WAS showing at gesture start
+                            // but the system auto-dismissed it (focusable popup +
+                            // outside tap on the button), don't re-show it.
+                            boolean currentlyVisible = panelOpenAtDown[0];
+                            if (currentlyVisible && !popupWasShowingAtDown[0]) {
+                                // Panel is open and no popup was showing:
+                                // show message history in click mode.
+                                mPopupCtrl.showMessageHistoryPopupClick(v);
+                            } else if (currentlyVisible) {
+                                // Panel is open but popup WAS showing at gesture
+                                // start — the system auto-dismissed it (outside
+                                // tap on the button). Don't re-show, just return.
+                            } else {
+                                // Text input panel is closed: tap toggles it open.
+                                setTextInputVisible(true);
+                                updateToggleTextInputButtonIcon();
+                            }
                         }
                         gestureActive[0] = false;
+                        mButtonTouchInProgress = false;
                         return true;
                     }
                 }
@@ -1214,7 +1391,7 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         ImageButton toggleTextInputButton = findViewById(R.id.toggle_text_input_button);
         if (toggleTextInputButton != null) {
             boolean isVisible = isTextInputVisible();
-            toggleTextInputButton.setImageResource(isVisible ? R.drawable.ic_keyboard_hide : R.drawable.ic_keyboard_show);
+            toggleTextInputButton.setImageResource(isVisible ? R.drawable.ic_menu_more_vert : R.drawable.ic_keyboard_show);
             toggleTextInputButton.setContentDescription(getString(R.string.action_toggle_text_input));
         }
     }
@@ -1454,6 +1631,7 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
     /** Dismiss the history popup and reset highlight state. */
     public void dismissMessageHistoryPopup() {
         mPopupCtrl.dismissMessageHistoryPopup();
+        mSuppressAutoHidePanel = false;
     }
 
     /** Bottom "Clear" item: remember the current input text in history, then empty the field. */
@@ -1507,7 +1685,7 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         // (Path A) instead of the additive-keystroke heuristic. Without this,
         // when the field was empty the TextWatcher sees an "appended" change
         // (before==0) and wrongly takes Path B, which dismisses the popup
-        // instead of showing suggestions for the restored message.
+        // invalidateHistoryVersion: force mismatch → Path A on next update
         mAutoCompleteCtrl.invalidateHistoryVersion(); // force mismatch → Path A on next update
         editText.setText(message);
         editText.setSelection(message.length());
@@ -1523,6 +1701,24 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
                 imm.showSoftInput(editText, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
             }
         });
+    }
+
+    // ── TermuxActivityPopupController.Host implementations ──────────
+
+    @Override
+    public void onMessagePicked(@NonNull String message) {
+        onHistoryMessagePicked(message);
+    }
+
+    @Override
+    public void onClearInputRequested() {
+        clearInputToHistory();
+    }
+
+    @Override
+    public void onHistoryPopupDismissed() {
+        mSuppressAutoHidePanel = false;
+        mClickPopupJustDismissed = true;
     }
 
     // ============================================================================
@@ -1647,7 +1843,17 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
     @SuppressLint("RtlHardcoded")
     @Override
     public void onBackPressed() {
-        TermuxActivityUtils.finishActivityIfNotFinishing(this);
+        // If the click-mode message-history popup is showing, dismiss it and
+        // the text-input panel first — don't finish the activity.
+        if (mPopupCtrl.isHistoryPopupShowing()) {
+            mPopupCtrl.dismissMessageHistoryPopup();
+            if (isTextInputVisible()) {
+                setTextInputVisible(false);
+                updateToggleTextInputButtonIcon();
+            }
+        } else {
+            TermuxActivityUtils.finishActivityIfNotFinishing(this);
+        }
     }
 
     public void finishActivityIfNotFinishing() {

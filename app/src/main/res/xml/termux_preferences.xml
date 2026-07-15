@@ -38,6 +38,13 @@
             app:summary="@string/text_input_append_enter_summary"
             app:defaultValue="true"
             app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="text_input_hide_on_send"
+            app:title="@string/text_input_hide_on_send_title"
+            app:summary="@string/text_input_hide_on_send_summary"
+            app:defaultValue="true"
+            app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
     <PreferenceCategory app:title="@string/directory_history_title" app:iconSpaceReserved="false">

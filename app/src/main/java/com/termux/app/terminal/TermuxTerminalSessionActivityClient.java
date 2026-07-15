@@ -901,7 +901,7 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
             android.graphics.drawable.GradientDrawable d =
                 (android.graphics.drawable.GradientDrawable) textInputContainer.getBackground().mutate();
             d.setColor(buttonBg);
-            d.setStroke(Math.round(1.5f * mActivity.getResources().getDisplayMetrics().density), buttonActiveBg);
+            d.setStroke(Math.round(mActivity.getResources().getDimension(R.dimen.terminal_text_input_stroke)), buttonActiveBg);
         }
 
         // Push pre-computed scrollbar thumb colours to TerminalView (alpha baked in ONCE here).

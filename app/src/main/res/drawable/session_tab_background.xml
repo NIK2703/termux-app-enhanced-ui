@@ -3,13 +3,13 @@
     <item android:state_selected="true">
         <shape android:shape="rectangle">
             <solid android:color="?attr/extraKeysButtonActiveBackgroundColor" />
-            <corners android:radius="18dp" />
+            <corners android:radius="@dimen/terminal_tab_corner_radius" />
         </shape>
     </item>
     <item>
         <shape android:shape="rectangle">
             <solid android:color="?attr/extraKeysButtonBackgroundColor" />
-            <corners android:radius="18dp" />
+            <corners android:radius="@dimen/terminal_tab_corner_radius" />
         </shape>
     </item>
 </selector>
