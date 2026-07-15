@@ -13,6 +13,8 @@ import android.content.pm.ActivityInfo;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Outline;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.StateListDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -849,7 +851,15 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
                         if (dy < -touchSlop && Math.abs(dy) > Math.abs(dx)
                                 && mDirectoryHistoryPopupCtrl.shouldShow()) {
                             v.setPressed(false);
+                            v.cancelLongPress();   // cancel pending long-press before it fires
                             swipeConsumed[0] = true;
+                            // Prevent parent views (especially the HorizontalScrollView
+                            // that now contains the add button) from intercepting the
+                            // touch sequence. Without this, any slight horizontal movement
+                            // in the swipe-up gesture makes HorizontalScrollView send
+                            // ACTION_CANCEL to the button, which immediately dismisses the
+                            // directory-history popup.
+                            v.getParent().requestDisallowInterceptTouchEvent(true);
                             mDirectoryHistoryPopupCtrl.show(v);
                             return true;   // consume: cancels pending click/long-press
                         }
@@ -1191,6 +1201,12 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
             if (enabled) {
                 updateToggleTextInputButtonIcon();
             }
+
+            // Set initial margin based on scrollbar state
+            updateFloatingButtonMargin();
+
+            // Match the floating button stroke colour to the scrollbar thumb.
+            updateFloatingButtonStrokeColor();
         }
     }
 
@@ -1200,6 +1216,90 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
             boolean isVisible = isTextInputVisible();
             toggleTextInputButton.setImageResource(isVisible ? R.drawable.ic_keyboard_hide : R.drawable.ic_keyboard_show);
             toggleTextInputButton.setContentDescription(getString(R.string.action_toggle_text_input));
+        }
+    }
+
+    /**
+     * Update the floating toggle button's right margin based on the scrollbar visibility.
+     * When the TerminalView has scrollable content (active transcript rows > 0), the
+     * button gets marginEnd=28dp (gap from scrollbar). When content fits entirely in the
+     * viewport (no scrollbar), marginEnd=6dp (same as marginBottom).
+     */
+    private void updateFloatingButtonMargin() {
+        ImageButton toggleButton = findViewById(R.id.toggle_text_input_button);
+        if (toggleButton == null) return;
+
+        boolean scrollbarVisible = false;
+        if (mTerminalView != null && mTerminalView.mEmulator != null) {
+            scrollbarVisible = mTerminalView.mEmulator.getScreen().getActiveTranscriptRows() > 0;
+        }
+
+        RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams) toggleButton.getLayoutParams();
+        int targetMarginEnd;
+        if (scrollbarVisible) {
+            float density = getResources().getDisplayMetrics().density;
+            targetMarginEnd = Math.max((int)(30 * density + 0.5f) - 2, 0);
+        } else {
+            targetMarginEnd = (int) (6 * getResources().getDisplayMetrics().density + 0.5f);
+        }
+        if (params.rightMargin != targetMarginEnd) {
+            params.rightMargin = targetMarginEnd;
+            toggleButton.setLayoutParams(params);
+        }
+
+        // Keep the stroke colour in sync with the scrollbar thumb each time the
+        // margin (and thus the terminal scheme) is recomputed.
+        updateFloatingButtonStrokeColor();
+    }
+
+    private static final float BUTTON_STROKE_WIDTH_DP = 0.5f;
+
+    /**
+     * Update the floating button's stroke color to match the terminal scrollbar
+     * thumb stroke color. Uses the same colour as {@link TerminalView#setScrollbarColors}
+     * receives for the active colour — which is the actual colour the scrollbar
+     * stroke is drawn with — sourced from {@link #getButtonActiveBg()}.
+     * <p/>
+     * The stroke is drawn as a transparent foreground ring (GradientDrawable with
+     * transparent fill, just a stroke) overlaid on the XML-defined background, so
+     * the fill colors (normal/selected) come from the theme via XML inflation and
+     * we only control the stroke programmatically.
+     */
+    private void updateFloatingButtonStrokeColor() {
+        ImageButton toggleButton = findViewById(R.id.toggle_text_input_button);
+        if (toggleButton == null) return;
+
+        // Scrollbar thumb stroke uses mScrollbarActiveColor which is set by
+        // TermuxTerminalSessionActivityClient.applyPanelColors():
+        //     tv.setScrollbarColors(buttonBg, buttonActiveBg);
+        // The second param (activeColor) is used for the thumb stroke at rest.
+        // getButtonActiveBg() returns the same pre-computed value via
+        // TermuxColorSchemeManager.
+        int strokeColor = getButtonActiveBg();
+        int strokeWidthPx = (int) (BUTTON_STROKE_WIDTH_DP * getResources().getDisplayMetrics().density + 0.5f);
+
+        GradientDrawable ring = new GradientDrawable();
+        ring.setShape(GradientDrawable.OVAL);
+        ring.setColor(0); // transparent fill — let the XML background show through
+        ring.setStroke(strokeWidthPx, strokeColor);
+
+        toggleButton.setForeground(ring);
+    }
+
+    /**
+     * Directly set the floating button's right margin in pixels. Unlike
+     * {@link #updateFloatingButtonMargin()} which recomputes the margin from the
+     * current terminal view's scrollbar state, this pushes an explicit value so
+     * the scroll callback can drive intermediate (interpolated) margins while a
+     * ViewPager2 page swipe is in progress.
+     */
+    public void setFloatingButtonMarginEnd(int marginEndPx) {
+        ImageButton toggleButton = findViewById(R.id.toggle_text_input_button);
+        if (toggleButton == null) return;
+        RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams) toggleButton.getLayoutParams();
+        if (params.rightMargin != marginEndPx) {
+            params.rightMargin = marginEndPx;
+            toggleButton.setLayoutParams(params);
         }
     }
 
@@ -1798,7 +1898,26 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
     }
 
     public void setTerminalView(@Nullable TerminalView view) {
+        // Remove listener from old view to avoid leaks
+        if (mTerminalView != null) {
+            mTerminalView.setOnScreenUpdateListener(null);
+        }
         mTerminalView = view;
+        if (view != null) {
+            // During a ViewPager2 page switch, the leaving page's OnScreenUpdateListener
+            // must NOT override the interpolated margin set by
+            // SessionPagerManager.updateFloatingButtonMarginForScroll().  The guard
+            // skips margin updates from the listener mid-swipe; the direct call below
+            // (ran from onTerminalPageSelected -> setTerminalView) still applies the
+            // correct settled-state margin for the new page.
+            view.setOnScreenUpdateListener(() -> {
+                if (!isTerminalPageSwitchInProgress()) {
+                    updateFloatingButtonMargin();
+                }
+            });
+            // Also update margin immediately for the new page
+            updateFloatingButtonMargin();
+        }
     }
 
     /**

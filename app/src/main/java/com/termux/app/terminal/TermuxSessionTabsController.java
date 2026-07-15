@@ -51,26 +51,29 @@ public class TermuxSessionTabsController {
             }
         }
 
-        int oldCount = mTabsContainer.getChildCount();
+        // The add-tab button is the LAST child of mTabsContainer, so the real
+        // session count is always childCount - 1.
+        int sessionCount = mTabsContainer.getChildCount() - 1;
         int newCount = sessions.size();
 
-        if (newCount > oldCount) {
-            // Add new tab views at the end. Existing views stay in place, scrollX preserved.
-            for (int i = oldCount; i < newCount; i++) {
+        if (newCount > sessionCount) {
+            // Add new tab views immediately before the add button. Existing views
+            // (and the add button) stay in place, scrollX preserved.
+            for (int i = sessionCount; i < newCount; i++) {
                 TermuxSession termuxSession = sessions.get(i);
                 View tabView = createTabView(termuxSession, i, i == currentSessionIndex);
-                mTabsContainer.addView(tabView);
+                mTabsContainer.addView(tabView, mTabsContainer.getChildCount() - 1);
             }
-        } else if (newCount < oldCount) {
-            // Remove trailing views. No full wipe, scrollX preserved.
-            mTabsContainer.removeViews(newCount, oldCount - newCount);
+        } else if (newCount < sessionCount) {
+            // Remove trailing tab views (not the add button). No full wipe, scrollX preserved.
+            mTabsContainer.removeViews(newCount, sessionCount - newCount);
         }
 
         // Update titles, colors and selection state on ALL tabs in-place.
         // This covers the equal-count case (no structural change) and also syncs the
         // newly-added tabs above. No removeAllViews(), so the HorizontalScrollView keeps
-        // its current scrollX.
-        for (int i = 0; i < mTabsContainer.getChildCount() && i < newCount; i++) {
+        // its current scrollX. Skips the add button (last child).
+        for (int i = 0; i < mTabsContainer.getChildCount() - 1 && i < newCount; i++) {
             TermuxSession termuxSession = sessions.get(i);
             View tabView = mTabsContainer.getChildAt(i);
             populateTabView(tabView, termuxSession, i, i == currentSessionIndex);
@@ -207,7 +210,7 @@ public class TermuxSessionTabsController {
      */
     private void scrollToTab(int index) {
         if (mTabsContainer == null || mTabsScroll == null) return;
-        if (index < 0 || index >= mTabsContainer.getChildCount()) return;
+        if (index < 0 || index >= mTabsContainer.getChildCount() - 1) return;
 
         final View tabView = mTabsContainer.getChildAt(index);
         if (tabView == null) return;
@@ -221,7 +224,7 @@ public class TermuxSessionTabsController {
         @Override
         public void run() {
             final int idx = mPendingTabScrollIndex;
-            if (idx < 0 || idx >= mTabsContainer.getChildCount()) return;
+            if (idx < 0 || idx >= mTabsContainer.getChildCount() - 1) return;
             final View tabView = mTabsContainer.getChildAt(idx);
             if (tabView == null) return;
             int scrollX = tabView.getLeft() - mTabsScroll.getWidth() / 2 + tabView.getWidth() / 2;
@@ -248,7 +251,7 @@ public class TermuxSessionTabsController {
         if (mTabsContainer == null) return;
         int errorColor = androidx.core.content.ContextCompat.getColor(
                 mActivity, com.termux.shared.R.color.terminal_tab_text_error);
-        for (int i = 0; i < mTabsContainer.getChildCount(); i++) {
+        for (int i = 0; i < mTabsContainer.getChildCount() - 1; i++) {
             View tabView = mTabsContainer.getChildAt(i);
             TextView title = tabView.findViewById(R.id.session_tab_title);
             ImageButton close = tabView.findViewById(R.id.session_tab_close);
@@ -266,10 +269,10 @@ public class TermuxSessionTabsController {
 
     public void setCurrentSession(int index) {
         if (mTabsContainer == null) return;
-        if (index < 0 || index >= mTabsContainer.getChildCount()) return;
+        if (index < 0 || index >= mTabsContainer.getChildCount() - 1) return;
 
         // Update selection state and close button visibility for all tabs
-        for (int i = 0; i < mTabsContainer.getChildCount(); i++) {
+        for (int i = 0; i < mTabsContainer.getChildCount() - 1; i++) {
             View child = mTabsContainer.getChildAt(i);
             boolean isSelected = (i == index);
             child.setSelected(isSelected);
@@ -316,7 +319,7 @@ public class TermuxSessionTabsController {
         // efficient, but allow offset up to 1.0 so the final frame of a
         // cancelled gesture is full-strength.
         if (positionOffset <= 0f) return;
-        if (leftIdx < 0 || rightIdx >= mTabsContainer.getChildCount()) return;
+        if (leftIdx < 0 || rightIdx >= mTabsContainer.getChildCount() - 1) return;
 
         View leftTab = mTabsContainer.getChildAt(leftIdx);
         View rightTab = mTabsContainer.getChildAt(rightIdx);
@@ -359,7 +362,7 @@ public class TermuxSessionTabsController {
      */
     public void resetPageSelection(int currentIndex) {
         if (mTabsContainer == null) return;
-        for (int i = 0; i < mTabsContainer.getChildCount(); i++) {
+        for (int i = 0; i < mTabsContainer.getChildCount() - 1; i++) {
             View child = mTabsContainer.getChildAt(i);
             boolean isSelected = (i == currentIndex);
             child.setSelected(isSelected);

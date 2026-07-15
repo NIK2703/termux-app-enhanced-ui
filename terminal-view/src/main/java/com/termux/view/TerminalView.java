@@ -612,6 +612,8 @@ public final class TerminalView extends View {
 
         invalidate();
         if (mAccessibilityEnabled) setContentDescription(getText());
+
+        if (mOnScreenUpdateListener != null) mOnScreenUpdateListener.onScreenUpdated();
     }
 
     /** This must be called by the hosting activity in {@link Activity#onContextMenuClosed(Menu)}
@@ -1801,6 +1803,17 @@ public final class TerminalView extends View {
                     showFloatingToolbar();
             }
         }
+    }
+
+    /** Listener for screen update events. */
+    public interface OnScreenUpdateListener {
+        void onScreenUpdated();
+    }
+
+    private OnScreenUpdateListener mOnScreenUpdateListener;
+
+    public void setOnScreenUpdateListener(@Nullable OnScreenUpdateListener listener) {
+        mOnScreenUpdateListener = listener;
     }
 
 }

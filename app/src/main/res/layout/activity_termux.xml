@@ -53,34 +53,23 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="4dp" />
+                        android:paddingHorizontal="4dp">
+
+                        <!-- Add tab button with + icon (scrolls with the tabs) -->
+                        <ImageButton
+                            android:id="@+id/new_session_tab_button"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:layout_marginEnd="4dp"
+                            android:src="@drawable/ic_add"
+                            android:background="@drawable/session_tab_background"
+                            android:contentDescription="@string/action_new_session"
+                            android:tint="@color/terminal_toolbar_icon_tint"
+                            android:scaleType="center" />
+
+                    </LinearLayout>
 
                 </HorizontalScrollView>
-
-                <!-- Add tab button with + icon -->
-                <ImageButton
-                    android:id="@+id/new_session_tab_button"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:layout_gravity="center_vertical"
-                    android:src="@drawable/ic_add"
-                    android:background="@drawable/session_tab_background"
-                    android:contentDescription="@string/action_new_session"
-                    android:tint="@color/terminal_toolbar_icon_tint"
-                    android:scaleType="center" />
-
-                <!-- Toggle text input visibility button (pencil) -->
-                <ImageButton
-                    android:id="@+id/toggle_text_input_button"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:layout_gravity="center_vertical"
-                    android:layout_marginStart="4dp"
-                    android:src="@drawable/ic_keyboard_show"
-                    android:background="@drawable/session_tab_background"
-                    android:contentDescription="@string/action_toggle_text_input"
-                    android:tint="@color/terminal_toolbar_icon_tint"
-                    android:scaleType="center" />
 
                 <ImageButton
                     android:id="@+id/settings_button"
@@ -138,6 +127,25 @@
                 android:orientation="horizontal" />
 
         </LinearLayout>
+
+        <!-- Floating toggle text input visibility button (pencil).
+             Floats over the terminal, bottom-right, vertically centered with the
+             TerminalView scrollbar thumb when scrolled to the bottom. -->
+        <ImageButton
+            android:id="@+id/toggle_text_input_button"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:layout_above="@id/terminal_toolbar_container"
+            android:layout_alignParentEnd="true"
+            android:layout_marginEnd="28dp"
+            android:layout_marginBottom="6dp"
+            android:visibility="visible"
+            android:src="@drawable/ic_keyboard_show"
+            android:background="@drawable/floating_button_background"
+            android:contentDescription="@string/action_toggle_text_input"
+            android:tint="@color/terminal_toolbar_icon_tint"
+            android:scaleType="centerInside"
+            android:padding="12dp" />
 
     </RelativeLayout>
 

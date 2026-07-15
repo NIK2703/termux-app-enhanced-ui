@@ -130,6 +130,8 @@ public final class SessionPagerManager {
                 if (mActivity.getTermuxSessionTabsController() != null) {
                     mActivity.getTermuxSessionTabsController().onPageScrolled(position, positionOffset);
                 }
+                // Update floating button margin for intermediate scroll state
+                updateFloatingButtonMarginForScroll(position, positionOffset);
             }
 
             @Override
@@ -331,6 +333,61 @@ public final class SessionPagerManager {
         // is still true while the focus listener processes the switch, then drops. onPageScrollStateChanged(IDLE)
         // also posts a clear (harmless, idempotent) for the swipe path; the explicit/startup path relies on this one.
         mTerminalPager.post(() -> mActivity.setTerminalPageSwitchInProgress(false));
+    }
+
+    /**
+     * Interpolate the floating button's right margin during a ViewPager2 scroll
+     * between two adjacent pages. When scrolling from a page with scrollbar to
+     * one without (or vice versa), the button margin smoothly transitions between
+     * the two states so the visual position tracks the user's finger instead of
+     * snapping only after the page settles.
+     */
+    private void updateFloatingButtonMarginForScroll(int position, float positionOffset) {
+        if (mActivity == null) return;
+
+        // position is the page being left, position+1 is the page being entered (for a right-swipe).
+        // positionOffset goes from 0 (fully on position) to 1 (fully on position+1).
+        TerminalView leftView = getPagerPageView(position);
+        TerminalView rightView = getPagerPageView(position + 1);
+        if (leftView == null && rightView == null) return;
+
+        if (leftView == null) {
+            // Only right page available — use its margin directly
+            mActivity.setFloatingButtonMarginEnd(computeMarginEnd(rightView));
+            return;
+        }
+        if (rightView == null) {
+            // Only left page available — use its margin directly
+            mActivity.setFloatingButtonMarginEnd(computeMarginEnd(leftView));
+            return;
+        }
+
+        // Calculate margin for each page
+        int leftMargin = computeMarginEnd(leftView);
+        int rightMargin = computeMarginEnd(rightView);
+
+        // If both have the same margin, no interpolation needed
+        if (leftMargin == rightMargin) return;
+
+        // Interpolate between the two margins based on scroll progress
+        int interpolatedMargin = Math.round(leftMargin * (1f - positionOffset) + rightMargin * positionOffset);
+        mActivity.setFloatingButtonMarginEnd(interpolatedMargin);
+    }
+
+    /**
+     * Compute the button's right marginEnd in pixels based on scrollbar visibility.
+     * Matches the logic in {@link TermuxActivity#updateFloatingButtonMargin()}.
+     */
+    private int computeMarginEnd(@Nullable TerminalView view) {
+        if (mActivity == null) return 0;
+        boolean hasScrollbar = view != null && view.mEmulator != null
+            && view.mEmulator.getScreen().getActiveTranscriptRows() > 0;
+        float density = mActivity.getResources().getDisplayMetrics().density;
+        if (hasScrollbar) {
+            return Math.max((int)(30 * density + 0.5f) - 2, 0);
+        } else {
+            return (int)(6 * density + 0.5f);
+        }
     }
 
     /** Returns the {@link TerminalView} for the pager page at {@code position}, or null if not bound. */
