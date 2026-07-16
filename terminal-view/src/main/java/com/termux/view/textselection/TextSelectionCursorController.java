@@ -107,6 +107,12 @@ public class TextSelectionCursorController implements CursorController {
         }
     }
     
+    /** Tint both selection drag handles to the given colour to follow the active colour scheme. */
+    public void setHandleColor(int color) {
+        mStartHandle.setHandleColor(color);
+        mEndHandle.setHandleColor(color);
+    }
+
     public void setActionModeCallBacks() {
         final ActionMode.Callback callback = new ActionMode.Callback() {
             @Override

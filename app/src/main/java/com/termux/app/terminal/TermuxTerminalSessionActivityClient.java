@@ -931,6 +931,9 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         TerminalView tv = mActivity.getTerminalView();
         if (tv != null) {
             tv.setScrollbarColors(buttonBg, buttonActiveBg);
+            // Terminal text-selection drag handles follow the scheme foreground, just like the
+            // input-panel selection handles.
+            tv.setTextSelectionHandleColor(buttonText);
         }
 
         // Status bar follows the scheme lightness.

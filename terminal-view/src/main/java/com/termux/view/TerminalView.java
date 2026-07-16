@@ -1699,6 +1699,14 @@ public final class TerminalView extends View {
         }
     }
 
+    /**
+     * Tint the terminal text-selection drag handles to {@code color} so they match the active
+     * colour scheme, mirroring the input-panel selection handles.
+     */
+    public void setTextSelectionHandleColor(int color) {
+        getTextSelectionCursorController().setHandleColor(color);
+    }
+
     /** Get the currently selected text if selecting. */
     public String getSelectedText() {
         if (isSelectingText() && mTextSelectionCursorController != null)

@@ -23,8 +23,8 @@ public class TextSelectionHandleView extends View {
     private PopupWindow mHandle;
     private final CursorController mCursorController;
 
-    private final Drawable mHandleLeftDrawable;
-    private final Drawable mHandleRightDrawable;
+    private Drawable mHandleLeftDrawable;
+    private Drawable mHandleRightDrawable;
     private Drawable mHandleDrawable;
 
     private boolean mIsDragging;
@@ -83,6 +83,21 @@ public class TextSelectionHandleView extends View {
             PopupWindowCompatGingerbread.setWindowLayoutType(mHandle, WindowManager.LayoutParams.TYPE_APPLICATION_SUB_PANEL);
         }
         mHandle.setContentView(this);
+    }
+
+    /**
+     * Tint the left and right selection-handle drawables to {@code color} so they follow the
+     * active terminal colour scheme instead of the static drawable colour.
+     */
+    public void setHandleColor(int color) {
+        mHandleLeftDrawable = mHandleLeftDrawable.mutate();
+        mHandleRightDrawable = mHandleRightDrawable.mutate();
+        mHandleLeftDrawable.setTint(color);
+        mHandleRightDrawable.setTint(color);
+        if (mHandleDrawable != null) {
+            mHandleDrawable.setTint(color);
+            invalidate();
+        }
     }
 
     public void setOrientation(int orientation) {
