@@ -252,6 +252,17 @@
             android:name="com.sec.android.support.multiwindow"
             android:value="true" />
 
+        <!-- Lets AndroidX AppCompat persist the per-app language choice
+             (autoStoreLocales=true) instead of a hand-rolled SharedPreferences. -->
+        <service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="false"
+            android:exported="false">
+            <meta-data
+                android:name="autoStoreLocales"
+                android:value="true" />
+        </service>
+
     </application>
 
 </manifest>

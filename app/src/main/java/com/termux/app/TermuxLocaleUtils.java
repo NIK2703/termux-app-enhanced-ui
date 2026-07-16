@@ -1,71 +1,47 @@
 package com.termux.app;
 
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.content.res.Configuration;
-import android.os.Build;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-
-import java.util.Locale;
+import androidx.appcompat.app.AppCompatDelegate;
+import androidx.core.os.LocaleListCompat;
 
 /**
  * Utility for overriding the app display language.
- * Supports two options: system default or English.
+ *
+ * Uses {@link AppCompatDelegate#setApplicationLocales(LocaleListCompat)} (AndroidX AppCompat 1.6+),
+ * which is the supported per-app language mechanism: it applies the locale at the application level
+ * (so system-resolved strings like the activity {@code android:label} are also localized), persists
+ * the choice automatically, and recreates the affected activities itself. No manual
+ * {@link android.content.res.Configuration} manipulation or {@code ContextWrapper} is needed.
  */
 public final class TermuxLocaleUtils {
-
-    private static final String PREFERENCES_NAME = "com.termux_preferences";
-    private static final String KEY_LOCALE_OVERRIDE = "locale_override";
 
     private TermuxLocaleUtils() {}
 
     /**
-     * Read the current locale override preference.
-     * @return {@code null} or {@code "system"} = system default, {@code "en"} = force English.
+     * Apply the app display language.
+     *
+     * @param value {@code null}, {@code "system"} or empty = follow the system language;
+     *              any BCP-47 language tag (e.g. {@code "en"}) forces that language.
      */
-    @Nullable
-    public static String getLocaleOverride(@NonNull Context context) {
-        SharedPreferences prefs = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE);
-        return prefs.getString(KEY_LOCALE_OVERRIDE, null);
+    public static void applyLocale(@Nullable String value) {
+        LocaleListCompat locales;
+        if (value == null || value.isEmpty() || "system".equals(value)) {
+            locales = LocaleListCompat.getEmptyLocaleList();
+        } else {
+            locales = LocaleListCompat.forLanguageTags(value);
+        }
+        AppCompatDelegate.setApplicationLocales(locales);
     }
 
     /**
-     * Persist the locale override choice.
-     */
-    public static void setLocaleOverride(@NonNull Context context, @Nullable String value) {
-        context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putString(KEY_LOCALE_OVERRIDE, value)
-            .apply();
-    }
-
-    /**
-     * Wrap a {@link Context} so that its resources use the overridden locale.
-     * If the override is {@code null} or {@code "system"} the original context is returned unchanged.
+     * Read the currently selected locale override, or {@code "system"} if none is set.
      */
     @NonNull
-    public static Context wrapContext(@NonNull Context context) {
-        String override = getLocaleOverride(context);
-        if (override == null || "system".equals(override)) return context;
-
-        Locale locale;
-        if ("en".equals(override)) {
-            locale = Locale.ENGLISH;
-        } else {
-            return context;
-        }
-
-        Configuration config = new Configuration(context.getResources().getConfiguration());
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            config.setLocale(locale);
-            return context.createConfigurationContext(config);
-        } else {
-            config.locale = locale;
-            android.content.res.Resources res = context.getResources();
-            res.updateConfiguration(config, res.getDisplayMetrics());
-            return context;
-        }
+    public static String getLocaleOverride() {
+        LocaleListCompat locales = AppCompatDelegate.getApplicationLocales();
+        if (locales.isEmpty()) return "system";
+        String tag = locales.toLanguageTags();
+        return (tag == null || tag.isEmpty()) ? "system" : tag;
     }
 }

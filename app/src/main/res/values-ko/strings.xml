@@ -37,7 +37,7 @@
     <string name="action_toggle_text_input">텍스트 입력 전환</string>
     <string name="appearance_preferences_summary">앱 모양 및 패널 투명도 설정</string>
     <string name="appearance_preferences_title">모양</string>
-    <string name="application_name">Termux EnhancedUI</string>
+    <string name="application_name">TermuxEnhanced</string>
     <string name="backup_dialog_background">백그라운드에서 실행</string>
     <string name="backup_dialog_cancel">취소</string>
     <string name="backup_preference_summary">데이터와 설정을 tar.gz 파일로 백업합니다</string>
@@ -244,8 +244,8 @@ $HOME/bin/termux-url-opener
 
     <!-- App language override -->
     <string name="locale_override_title">앱 언어</string>
-    <string name="locale_override_summary">앱 언어 재정의 (자동 번역, 부정확할 수 있음)</string>
-    <string name="locale_override_entry_system">시스템 언어</string>
+    <string name="locale_override_summary">앱 언어 재정의</string>
+    <string name="locale_override_entry_system">시스템 언어 (자동 번역, 부정확할 수 있음)</string>
     <string name="locale_override_entry_english">영어</string>
     <!-- Hide extra keys with keyboard -->
     <string name="hide_extra_keys_with_keyboard_title">키보드와 함께 추가 키 숨기기</string>

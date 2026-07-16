@@ -696,7 +696,13 @@ public class TermuxTerminalViewClient extends TermuxTerminalViewClientBase {
                         // Skip during page switch to avoid flicker: the incoming
                         // page's own visibility state is applied by
                         // applyTextInputVisibilityForSession() after onPageSelected.
-                        if (!mActivity.isTerminalPageSwitchInProgress()) {
+                        // Also skip when "Hide input panel after send" is disabled:
+                        // the user wants the panel to stay open for consecutive
+                        // commands, so a focus hand-off must not close it (and must
+                        // not record a per-session "hidden" flag that would then be
+                        // replayed on every tab switch for this and other tabs).
+                        if (mActivity.getPreferences().shouldTextInputHideOnSend()
+                                && !mActivity.isTerminalPageSwitchInProgress()) {
                             View container = mActivity.findViewById(
                                     com.termux.R.id.terminal_toolbar_text_input_container);
                             if (container != null

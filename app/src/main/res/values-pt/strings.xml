@@ -36,7 +36,7 @@
     <string name="action_toggle_text_input">Alternar entrada de texto</string>
     <string name="appearance_preferences_summary">Preferências de aparência do aplicativo e transparência do painel</string>
     <string name="appearance_preferences_title">Aparência</string>
-    <string name="application_name">Termux EnhancedUI</string>
+    <string name="application_name">TermuxEnhanced</string>
     <string name="backup_dialog_background">Segundo plano</string>
     <string name="backup_dialog_cancel">Cancelar</string>
     <string name="backup_preference_summary">Salvar o diretório de dados do Termux (pacotes instalados + home) em um arquivo de backup tar.gz</string>
@@ -224,8 +224,8 @@
 
     <!-- App language override -->
     <string name="locale_override_title">Idioma do aplicativo</string>
-    <string name="locale_override_summary">Substituir idioma do app (tradução automática, possíveis imprecisões)</string>
-    <string name="locale_override_entry_system">Idioma do sistema</string>
+    <string name="locale_override_summary">Substituir idioma do app</string>
+    <string name="locale_override_entry_system">Idioma do sistema (tradução automática, possíveis imprecisões)</string>
     <string name="locale_override_entry_english">Inglês</string>
     <!-- Hide extra keys with keyboard -->
     <string name="hide_extra_keys_with_keyboard_title">Ocultar teclas extras com o teclado</string>

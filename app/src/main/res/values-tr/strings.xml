@@ -16,7 +16,7 @@
 
     <!-- Turkish translation -->
     <!-- Source language: en -->
-<string name="application_name">Termux EnhancedUI</string>
+<string name="application_name">TermuxEnhanced</string>
 <string name="shared_user_label">&TERMUX_APP_NAME; kullanıcısı</string>
 <string name="permission_run_command_label">&TERMUX_APP_NAME; ortamında komut çalıştır</string>
 <string name="permission_run_command_description">&TERMUX_APP_NAME;\n        ortamında istenen komutları çalıştır ve dosyalara eriş</string>
@@ -242,8 +242,8 @@
 
     <!-- App language override -->
     <string name="locale_override_title">Uygulama dili</string>
-    <string name="locale_override_summary">Uygulama dilini geçersiz kıl (otomatik çeviri, yanlışlıklar olabilir)</string>
-    <string name="locale_override_entry_system">Sistem dili</string>
+    <string name="locale_override_summary">Uygulama dilini geçersiz kıl</string>
+    <string name="locale_override_entry_system">Sistem dili (otomatik çeviri, yanlışlıklar olabilir)</string>
     <string name="locale_override_entry_english">İngilizce</string>
     <!-- Hide extra keys with keyboard -->
     <string name="hide_extra_keys_with_keyboard_title">Ekstra tuşları klavyeyle gizle</string>

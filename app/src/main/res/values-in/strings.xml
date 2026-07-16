@@ -37,7 +37,7 @@
 <string name="action_toggle_text_input">Alihkan Input Teks</string>
 <string name="appearance_preferences_summary">Preferensi untuk tampilan aplikasi dan transparansi panel</string>
 <string name="appearance_preferences_title">Tampilan</string>
-<string name="application_name">Termux EnhancedUI</string>
+<string name="application_name">TermuxEnhanced</string>
 <string name="backup_dialog_background">Latar Belakang</string>
 <string name="backup_dialog_cancel">Batalkan pencadangan</string>
 <string name="backup_preference_summary">Menyimpan direktori data Termux (paket terinstal + rumah) ke file .tar.gz</string>
@@ -222,8 +222,8 @@
         <item quantity="other">, %d tugas</item>
     </plurals>
 <string name="locale_override_title">Bahasa aplikasi</string>
-<string name="locale_override_summary">Timpa bahasa aplikasi (terjemahan otomatis, mungkin tidak akurat)</string>
-<string name="locale_override_entry_system">Bahasa sistem</string>
+    <string name="locale_override_summary">Timpa bahasa aplikasi</string>
+    <string name="locale_override_entry_system">Bahasa sistem (terjemahan otomatis, mungkin tidak akurat)</string>
 <string name="locale_override_entry_english">Inggris</string>
 <string name="hide_extra_keys_with_keyboard_title">Sembunyikan tombol ekstra dengan keyboard</string>
 <string name="hide_extra_keys_with_keyboard_summary">Sembunyikan tombol tambahan saat keyboard ditutup, tampilkan saat dibuka</string>

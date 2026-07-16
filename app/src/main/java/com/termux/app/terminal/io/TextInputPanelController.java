@@ -74,18 +74,15 @@ public final class TextInputPanelController {
         }
         String text = mTextInputState.getInputText(sessionHandle);
         mEditText.setText(text != null ? text : "");
-        Integer caret = mTextInputState.hasCaret(sessionHandle)
-                ? mTextInputState.getCaret(sessionHandle) : null;
-        if (caret != null) {
-            int pos = Math.min(caret, mEditText.length());
-            mEditText.setSelection(pos);
+        int caret = mTextInputState.getCaret(sessionHandle);
+        if (caret >= 0) {
+            mEditText.setSelection(Math.min(caret, mEditText.length()));
         }
     }
 
     /** Remove saved state for a closed session. */
     public void clearTextInputForSession(@NonNull String sessionHandle) {
         mTextInputState.clear(sessionHandle);
-        mTextInputState.setCaret(sessionHandle, -1);
     }
 
     /** Mark whether the text input panel has focus for the current session. */

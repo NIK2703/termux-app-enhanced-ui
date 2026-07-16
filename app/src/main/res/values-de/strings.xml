@@ -35,7 +35,7 @@
     <string name="action_toggle_text_input">Texteingabe umschalten</string>
     <string name="appearance_preferences_summary">App-Erscheinungsbild und Panel-Transparenzeinstellungen</string>
     <string name="appearance_preferences_title">Erscheinungsbild</string>
-    <string name="application_name">Termux EnhancedUI</string>
+    <string name="application_name">TermuxEnhanced</string>
     <string name="backup_dialog_background">Hintergrund</string>
     <string name="backup_dialog_cancel">Abbrechen</string>
     <string name="backup_preference_summary">Termux-Datenverzeichnis (installierte Pakete + Home) in eine tar.gz-Backupdatei speichern</string>
@@ -228,8 +228,8 @@
 
     <!-- App language override -->
     <string name="locale_override_title">App-Sprache</string>
-    <string name="locale_override_summary">App-Sprache überschreiben (automatische Übersetzung, mögliche Ungenauigkeiten)</string>
-    <string name="locale_override_entry_system">Systemsprache</string>
+    <string name="locale_override_summary">App-Sprache überschreiben</string>
+    <string name="locale_override_entry_system">Systemsprache (automatische Übersetzung, mögliche Ungenauigkeiten)</string>
     <string name="locale_override_entry_english">Englisch</string>
     <!-- Hide extra keys with keyboard -->
     <string name="hide_extra_keys_with_keyboard_title">Zusatztasten mit Tastatur ausblenden</string>

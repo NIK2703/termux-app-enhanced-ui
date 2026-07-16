@@ -35,7 +35,7 @@
     <string name="action_toggle_text_input">تبديل إدخال النص</string>
     <string name="appearance_preferences_summary">تفضيلات مظهر التطبيق وشفافية اللوحة</string>
     <string name="appearance_preferences_title">المظهر</string>
-    <string name="application_name">Termux EnhancedUI</string>
+    <string name="application_name">TermuxEnhanced</string>
     <string name="backup_dialog_background">الخلفية</string>
     <string name="backup_dialog_cancel">إلغاء</string>
     <string name="backup_preference_summary">حفظ مجلد بيانات Termux (الحزم المثبتة + المجلد الرئيسي) في ملف tar.gz</string>
@@ -240,8 +240,8 @@
 
     <!-- App language override -->
     <string name="locale_override_title">لغة التطبيق</string>
-    <string name="locale_override_summary">تجاوز لغة التطبيق (ترجمة آلية، قد تكون غير دقيقة)</string>
-    <string name="locale_override_entry_system">لغة النظام</string>
+    <string name="locale_override_summary">تجاوز لغة التطبيق</string>
+    <string name="locale_override_entry_system">لغة النظام (ترجمة آلية، قد تكون غير دقيقة)</string>
     <string name="locale_override_entry_english">الإنجليزية</string>
     <!-- Hide extra keys with keyboard -->
     <string name="hide_extra_keys_with_keyboard_title">إخفاء المفاتيح الإضافية مع لوحة المفاتيح</string>

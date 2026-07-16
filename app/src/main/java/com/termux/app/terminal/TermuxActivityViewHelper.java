@@ -79,16 +79,6 @@ public class TermuxActivityViewHelper {
     // View setup methods
     // ============================================================================
 
-    /** Wire the tabs-panel settings button. Mirrors {@code TermuxActivity#setSettingsButtonView()}. */
-    public void setupSettingsButton(@NonNull View rootView) {
-        ImageButton settingsButton = rootView.findViewById(R.id.settings_button);
-        if (settingsButton != null) {
-            settingsButton.setOnClickListener(v ->
-                ActivityUtils.startActivity(mActivity, new Intent(mActivity, SettingsActivity.class)));
-        }
-        updateSettingsButtonVisibility(mActivity.isSettingsButtonEnabled());
-    }
-
     /**
      * Wire the new-session button. The new-session button now lives in the tabs bar and is handled
      * in {@link #setupSessionsListView(View)}, so this is intentionally a no-op (kept for symmetry
@@ -184,13 +174,6 @@ public class TermuxActivityViewHelper {
             }
             return false;
         });
-    }
-
-    /** Show/hide the tabs-panel settings button. */
-    public void updateSettingsButtonVisibility(boolean visible) {
-        ImageButton settingsButton = mActivity.findViewById(R.id.settings_button);
-        if (settingsButton != null)
-            settingsButton.setVisibility(visible ? View.VISIBLE : View.GONE);
     }
 
     /**

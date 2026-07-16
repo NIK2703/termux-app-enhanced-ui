@@ -437,6 +437,14 @@ public final class AutoCompleteController {
      */
     private static int wordStartOffset(@NonNull String s) {
         int i = s.length();
+        // Skip trailing separators so a space at the end of the typed text
+        // (e.g. "hello ") is treated as "still finishing word 0", not as a
+        // boundary into an empty next word.
+        while (i > 0) {
+            char c = s.charAt(i - 1);
+            if (c != ' ' && c != '/') break;
+            i--;
+        }
         while (i > 0) {
             char c = s.charAt(i - 1);
             if (c == ' ' || c == '/') return i;

@@ -23,13 +23,6 @@
             app:summaryOn="@string/text_input_show_summary_on"
             app:summaryOff="@string/text_input_show_summary_off" />
 
-        <SwitchPreferenceCompat
-            app:key="settings_button_enabled"
-            app:defaultValue="true"
-            app:title="@string/termux_settings_button_enabled_title"
-            app:summaryOn="@string/termux_settings_button_enabled_on"
-            app:summaryOff="@string/termux_settings_button_enabled_off" />
-
         <ListPreference
             app:key="tab_panel_position"
             app:defaultValue="top"

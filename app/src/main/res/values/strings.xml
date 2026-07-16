@@ -13,7 +13,7 @@
 
 <resources>
 
-    <string name="application_name">Termux EnhancedUI</string>
+    <string name="application_name">TermuxEnhanced</string>
     <string name="shared_user_label">&TERMUX_APP_NAME; user</string>
 
     <!-- Termux RUN_COMMAND permission -->
@@ -170,11 +170,6 @@
                 <string name="termux_soft_keyboard_enabled_off">Soft keyboard will be disabled.</string>
                 <string name="termux_soft_keyboard_enabled_on">Soft keyboard will be enabled. (Default)</string>
 
-                <!-- Settings button in tabs panel -->
-                <string name="termux_settings_button_enabled_title">Show settings button</string>
-                <string name="termux_settings_button_enabled_on">Settings button is shown in the tabs panel. (Default)</string>
-                <string name="termux_settings_button_enabled_off">Settings button is hidden. Open Settings via long-press on the terminal &#8594; More… &#8594; Settings.</string>
-
                 <!-- Tab panel position -->
                 <string name="termux_tab_panel_position_title">Tab panel position</string>
                 <string name="termux_tab_panel_position_top">Top (default)</string>
@@ -308,7 +303,7 @@
     <string name="session_tabs_title">Session tabs</string>
     <string name="swipe_rightmost_new_tab_title">Swipe rightmost tab for new session</string>
     <string name="swipe_rightmost_new_tab_summary">On the last tab, swipe right to reveal and open a new terminal session</string>
-    <string name="new_tab_placeholder_hint">New tab</string>
+    <string name="new_tab_placeholder_hint">New session</string>
 
     <!-- Text input show preference -->
     <string name="text_input_show_title">Show text input field</string>
@@ -369,8 +364,8 @@
 
     <!-- App language override -->
     <string name="locale_override_title">App language</string>
-    <string name="locale_override_summary">Override app language (auto-translate may be inaccurate)</string>
-    <string name="locale_override_entry_system">System default</string>
+    <string name="locale_override_summary">Override app language</string>
+    <string name="locale_override_entry_system">System default (auto-translate may be inaccurate)</string>
     <string name="locale_override_entry_english">English</string>
 
     <!-- Hide extra keys with keyboard -->

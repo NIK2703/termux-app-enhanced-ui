@@ -891,9 +891,9 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
             extraKeys.setButtonColors(buttonText, buttonText, buttonBg, buttonActiveBg);
         }
 
-        // Session tabs panel buttons (new session / toggle text input / settings) reuse the same
+        // Session tabs panel buttons (new session / toggle text input) reuse the same
         // translucent background + scheme foreground so they match the extra-keys panel.
-        for (int id : new int[]{ R.id.new_session_tab_button, R.id.toggle_text_input_button, R.id.settings_button }) {
+        for (int id : new int[]{ R.id.new_session_tab_button, R.id.toggle_text_input_button }) {
             ImageButton btn = mActivity.findViewById(id);
             if (btn != null) {
                 btn.setBackgroundTintList(android.content.res.ColorStateList.valueOf(buttonBg));

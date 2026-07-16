@@ -40,17 +40,6 @@ public class TerminalIOPreferencesFragment extends PreferenceFragmentCompat {
             });
         }
 
-        // Apply settings-button visibility change immediately in the running activity.
-        SwitchPreferenceCompat settingsButtonPref = findPreference("settings_button_enabled");
-        if (settingsButtonPref != null) {
-            settingsButtonPref.setOnPreferenceChangeListener((preference, newValue) -> {
-                android.content.Intent intent = new android.content.Intent("com.termux.SETTINGS_BUTTON_ENABLED_CHANGED");
-                intent.setPackage(context.getPackageName());
-                context.sendBroadcast(intent);
-                return true;
-            });
-        }
-
         // Apply tab panel position change immediately in the running activity.
         androidx.preference.ListPreference tabPanelPositionPref = findPreference("tab_panel_position");
         if (tabPanelPositionPref != null) {
@@ -114,10 +103,6 @@ class TerminalIOPreferencesDataStore extends PreferenceDataStore {
                 mContext.getSharedPreferences("termux_prefs", Context.MODE_PRIVATE)
                     .edit().putBoolean("text_input_enabled", value).apply();
                 break;
-            case "settings_button_enabled":
-                mContext.getSharedPreferences("termux_prefs", Context.MODE_PRIVATE)
-                    .edit().putBoolean("settings_button_enabled", value).apply();
-                break;
             default:
                 break;
         }
@@ -154,9 +139,6 @@ class TerminalIOPreferencesDataStore extends PreferenceDataStore {
             case "text_input_enabled":
                 return mContext.getSharedPreferences("termux_prefs", Context.MODE_PRIVATE)
                     .getBoolean("text_input_enabled", true);
-            case "settings_button_enabled":
-                return mContext.getSharedPreferences("termux_prefs", Context.MODE_PRIVATE)
-                    .getBoolean("settings_button_enabled", true);
             default:
                 return false;
         }

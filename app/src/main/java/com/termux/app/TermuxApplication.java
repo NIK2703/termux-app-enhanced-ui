@@ -21,11 +21,6 @@ public class TermuxApplication extends Application {
 
     private static final String LOG_TAG = "TermuxApplication";
 
-    @Override
-    protected void attachBaseContext(Context base) {
-        super.attachBaseContext(TermuxLocaleUtils.wrapContext(base));
-    }
-
     public void onCreate() {
         super.onCreate();
 

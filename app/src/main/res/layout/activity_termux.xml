@@ -57,18 +57,6 @@
 
             </HorizontalScrollView>
 
-            <ImageButton
-                android:id="@+id/settings_button"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_gravity="center_vertical"
-                android:layout_marginStart="4dp"
-                android:src="@drawable/ic_settings"
-                android:background="@drawable/session_tab_background"
-                android:contentDescription="@string/action_open_settings"
-                android:tint="@color/terminal_toolbar_icon_tint"
-                android:scaleType="center" />
-
         </LinearLayout>
 
         <androidx.viewpager2.widget.ViewPager2

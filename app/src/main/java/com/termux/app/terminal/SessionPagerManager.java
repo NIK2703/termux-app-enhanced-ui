@@ -61,6 +61,17 @@ public final class SessionPagerManager {
         mColdStartSessionPending = pending;
     }
 
+    /**
+     * True while the pager is being dragged by the user (a real swipe gesture), as opposed to a
+     * programmatic {@code setCurrentItem()} triggered by the "+" button, a tab click or a keyboard
+     * shortcut. The trailing placeholder page is only meant to be committed into a real session when
+     * the user SWIPES onto it — never when a programmatic scroll happens to land on its index (which
+     * is exactly what {@code addNewSession} does after appending a session at the end, whose index
+     * coincides with the placeholder index). Guarded by this flag so a programmatic scroll onto the
+     * placeholder slot does not spawn a phantom duplicate session.
+     */
+    private boolean mUserScrollInProgress = false;
+
     public boolean isColdStartSessionPending() {
         return mColdStartSessionPending;
     }
@@ -107,6 +118,16 @@ public final class SessionPagerManager {
         mTerminalPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageScrollStateChanged(int state) {
+                // Track whether the user is physically dragging the pager (a real swipe gesture).
+                // A programmatic setCurrentItem() never passes through DRAGGING, so this flag lets
+                // onPageSelected() tell a user swipe onto the placeholder apart from a programmatic
+                // scroll that merely lands on the placeholder's index.
+                if (state == ViewPager2.SCROLL_STATE_DRAGGING) {
+                    mUserScrollInProgress = true;
+                } else if (state == ViewPager2.SCROLL_STATE_IDLE) {
+                    mUserScrollInProgress = false;
+                }
+
                 // Suppress IME hide/show churn for the ENTIRE swipe gesture, not just after
                 // onPageSelected() fires. onPageSelected() only runs at the end of the settle, by
                 // which point the old page has already lost focus and its focus listener (if the
@@ -156,10 +177,33 @@ public final class SessionPagerManager {
             @Override
             public void onPageSelected(int position) {
                 // If the gesture settled onto the trailing placeholder page, replace it with a real
-                // new session (and keep the pager parked there — no jump).
+                // new session (and keep the pager parked there — no jump). This must only happen for
+                // a genuine USER SWIPE (mUserScrollInProgress). A programmatic setCurrentItem() — e.g.
+                // addNewSession() appending a session whose index coincides with the placeholder
+                // index — also lands here, but must NOT commit a (duplicate) session.
                 if (mTerminalPagerAdapter != null && mTerminalPagerAdapter.isPlaceholderActive()
                         && position == mTerminalPagerAdapter.getPlaceholderIndex()) {
-                    commitPlaceholderToSession();
+                    if (mUserScrollInProgress) {
+                        commitPlaceholderToSession();
+                    } else {
+                        // Programmatic scroll onto the placeholder slot — e.g. addNewSession()
+                        // appended a session whose index coincides with the placeholder index.
+                        // Do NOT create a (duplicate) session, but DO resync the adapter with the
+                        // live session list first: while the placeholder was active, getItemCount()
+                        // already accounted for it, so the normal sync-on-size-change was a no-op and
+                        // the adapter's backing list never learned about the new real session. Without
+                        // this resync the new session would never get a ViewHolder bound to it (it
+                        // would stay an uninitialised "Terminal" page and the UI would hang).
+                        cancelPlaceholder();
+                        TermuxService service = mActivity.getTermuxService();
+                        if (service != null) {
+                            mTerminalPagerAdapter.syncWithServiceList(service.getTermuxSessions());
+                        }
+                        // Re-arm the placeholder if we landed on the last real tab and the feature
+                        // is enabled, so a subsequent right-swipe can still add a session.
+                        managePlaceholderForPosition(position);
+                        onTerminalPageSelected(position);
+                    }
                     return;
                 }
                 // Otherwise manage the placeholder: keep it while on the last real tab, drop it
@@ -625,6 +669,24 @@ public final class SessionPagerManager {
                 // Re-point the active page after adapter rebuild (same-index guard).
                 int activeIndex = mTerminalPager.getCurrentItem();
                 onTerminalPageSelected(activeIndex);
+
+                // syncWithServiceList() above drops the trailing placeholder page (it must, so the
+                // diff operates on a clean real-session list). On a foreground-from-background this
+                // path runs from onStart() WITHOUT a follow-up managePlaceholderForPosition() (the
+                // re-selected page is the same index, so onPageSelected never fires — that callback
+                // is what normally re-arms the placeholder). Without re-arming here, the rightmost
+                // tab's right-swipe stays dead (the last real tab just stretches) until the user
+                // switches tabs. Re-arm based on where we settled.
+                managePlaceholderForPosition(activeIndex);
+
+                // managePlaceholderForPosition() may have (re-)inserted the placeholder page, so the
+                // effective page count is now one higher than the real-session count used by the
+                // updatePagerUserInputEnabled() call above (which ran while the placeholder was still
+                // dropped). With a single real session this left setUserInputEnabled(false) even
+                // though the placeholder now provides a real "next page" to swipe into, killing the
+                // right-swipe entirely after resume. Re-evaluate input now that the placeholder is
+                // back in the count.
+                updatePagerUserInputEnabled();
             }
         }
     }

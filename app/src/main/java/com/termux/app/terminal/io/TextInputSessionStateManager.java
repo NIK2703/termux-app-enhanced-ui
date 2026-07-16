@@ -89,12 +89,24 @@ public final class TextInputSessionStateManager {
 
     // ── Caret ──
 
+    /**
+     * Store the caret (cursor) position for a session.
+     * Values below 0 (e.g. -1, the sentinel returned by {@code EditText.getSelectionStart()}
+     * when nothing is selected) are not valid positions and are ignored, so the stored
+     * map only ever contains real indices.
+     */
     public void setCaret(@NonNull String handle, int caret) {
+        if (caret < 0) return;
         mTextInputCaretPerSession.put(handle, caret);
     }
 
+    /**
+     * @return the stored caret position, or {@code -1} if none has been recorded
+     *         (distinct from position 0).
+     */
     public int getCaret(@NonNull String handle) {
-        return mTextInputCaretPerSession.getOrDefault(handle, 0);
+        Integer caret = mTextInputCaretPerSession.get(handle);
+        return caret != null ? caret : -1;
     }
 
     public boolean hasCaret(@NonNull String handle) {
@@ -102,6 +114,19 @@ public final class TextInputSessionStateManager {
     }
 
     // ── Cleanup ──
+
+    /**
+     * Clear only the input text, caret and focus for a session, leaving its
+     * recorded visibility state intact. Used after sending when the panel is
+     * configured to stay open, so the per-session visible flag (which
+     * {@link #isTextInputVisible(String)} / {@code onBackPressed} rely on) is
+     * not wiped.
+     */
+    public void clearInput(@NonNull String handle) {
+        mTextInputPerSession.remove(handle);
+        mFocusOnInputPerSession.remove(handle);
+        mTextInputCaretPerSession.remove(handle);
+    }
 
     public void clear(@NonNull String handle) {
         mTextInputPerSession.remove(handle);

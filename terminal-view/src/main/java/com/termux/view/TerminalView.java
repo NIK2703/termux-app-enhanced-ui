@@ -801,7 +801,19 @@ public final class TerminalView extends View {
     @Override
     @TargetApi(23)
     public boolean onTouchEvent(MotionEvent event) {
-        if (mEmulator == null) return true;
+        if (mEmulator == null) {
+            // The placeholder ("new session") page hosts an intentionally unbound TerminalView
+            // (no session yet). A bound view clears the parent ViewPager2's
+            // requestDisallowInterceptTouchEvent(true) flag on ACTION_DOWN (see onDown), which is
+            // what lets a horizontal session swipe be paged. The unbound view never reaches the
+            // recognizer, so after a background→resume the leftover disallow flag would stick and
+            // the right-swipe would just edge-overscroll instead of paging to the placeholder.
+            // Reset it here for ACTION_DOWN so the placeholder page stays swipeable.
+            if (event.getAction() == MotionEvent.ACTION_DOWN && getParent() != null) {
+                getParent().requestDisallowInterceptTouchEvent(false);
+            }
+            return true;
+        }
         final int action = event.getAction();
 
         // ── Scrollbar drag handling ──

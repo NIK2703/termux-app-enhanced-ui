@@ -13,7 +13,7 @@
 
 <resources>
 
-    <string name="application_name">Termux EnhancedUI</string>
+    <string name="application_name">TermuxEnhanced</string>
     <string name="shared_user_label">Пользователь &TERMUX_APP_NAME;</string>
 
     <!-- Termux RUN_COMMAND permission -->
@@ -169,11 +169,6 @@
                 <string name="termux_soft_keyboard_enabled_title">Экранная клавиатура включена</string>
                 <string name="termux_soft_keyboard_enabled_off">Экранная клавиатура будет отключена.</string>
                 <string name="termux_soft_keyboard_enabled_on">Экранная клавиатура будет включена. (По умолчанию)</string>
-
-                <!-- Settings button in tabs panel -->
-                <string name="termux_settings_button_enabled_title">Показывать кнопку настроек</string>
-                <string name="termux_settings_button_enabled_on">Кнопка настроек отображается на панели вкладок. (По умолчанию)</string>
-                <string name="termux_settings_button_enabled_off">Кнопка настроек скрыта. Откройте Настройки через долгое нажатие на терминал → Ещё… → Настройки.</string>
 
                 <!-- Soft Keyboard Only If No Hardware -->
                 <string name="termux_soft_keyboard_enabled_only_if_no_hardware_title">Экранная клавиатура только без аппаратной</string>
@@ -360,8 +355,8 @@
 
     <!-- App language override -->
     <string name="locale_override_title">Язык приложения</string>
-    <string name="locale_override_summary">Переопределить язык приложения (автоперевод, возможны неточности)</string>
-    <string name="locale_override_entry_system">Системный язык</string>
+    <string name="locale_override_summary">Переопределить язык приложения</string>
+    <string name="locale_override_entry_system">Системный язык (автоперевод, возможны неточности)</string>
     <string name="locale_override_entry_english">Английский</string>
     <!-- Hide extra keys with keyboard -->
     <string name="hide_extra_keys_with_keyboard_title">Прятать кнопки с клавиатурой</string>

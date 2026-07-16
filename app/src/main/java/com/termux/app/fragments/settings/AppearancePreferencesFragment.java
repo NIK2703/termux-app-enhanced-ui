@@ -77,22 +77,14 @@ public class AppearancePreferencesFragment extends PreferenceFragmentCompat {
         // --- App language ---
         final ListPreference localePref = findPreference("locale_override");
         if (localePref != null) {
-            String currentLocale = TermuxLocaleUtils.getLocaleOverride(context);
-            if (currentLocale != null)
-                localePref.setValue(currentLocale);
-            else
-                localePref.setValue("system");
+            localePref.setValue(TermuxLocaleUtils.getLocaleOverride());
 
             localePref.setOnPreferenceChangeListener((preference, newValue) -> {
                 String val = (String) newValue;
-                TermuxLocaleUtils.setLocaleOverride(context, val);
-                // Recreate Settings activity so strings update immediately.
-                AppCompatActivity activity = (AppCompatActivity) getActivity();
-                if (activity != null) {
-                    activity.recreate();
-                }
-                // Notify main terminal activity if running.
-                TermuxActivity.updateTermuxActivityStyling(context, true);
+                TermuxLocaleUtils.applyLocale(val);
+                // AppCompatDelegate.setApplicationLocales() recreates the affected activities
+                // itself (including the Settings activity and the running TermuxActivity), so
+                // strings and the activity label update automatically.
                 return true;
             });
         }

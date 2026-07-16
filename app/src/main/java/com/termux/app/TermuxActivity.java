@@ -129,11 +129,6 @@ import org.json.JSONObject;
  */
 public final class TermuxActivity extends AppCompatActivity implements TextInputPanelController.Host, TermuxActivityPopupController.Host {
 
-    @Override
-    protected void attachBaseContext(Context newBase) {
-        super.attachBaseContext(TermuxLocaleUtils.wrapContext(newBase));
-    }
-
     /**
      * Owns the {@link TermuxService} binding for this activity. Created in {@link #onCreate(Bundle)}
      * and used to start/bind/unbind the service and to access the bound {@link TermuxService}.
@@ -529,8 +524,6 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         mAutoCompleteCtrl = new AutoCompleteController(this,
                 findViewById(R.id.terminal_toolbar_text_input),
                 mMessageHistoryCtrl, mColorSchemeManager);
-
-        setSettingsButtonView();
 
         setNewSessionButtonView();
 
@@ -972,19 +965,27 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
                     // saveTextInputForCurrentSession() re-persists the just-sent
                     // text (the field is still non-empty at that point) and it
                     // reappears when the panel is opened again.
-                    editText.setText("");
-                    mTextInputState.clear(session.mHandle);
-                    mTextInputState.setCaret(session.mHandle, -1);
+                    // Use getText().clear() instead of setText("") so we mutate the
+                    // Editable in place and don't trigger InputMethodManager.restartInput
+                    // (which would drop the first key the user types afterwards).
+                    // clearInput() drops only the text/caret/focus, preserving the
+                    // per-session VISIBILITY flag so isTextInputVisible() and Back
+                    // keep working when the panel stays open.
+                    editText.getText().clear();
+                    mTextInputState.clearInput(session.mHandle);
 
-                    // Always return to the extra keys panel after sending.
-                    // The "send" key replaces the newline key on the soft keyboard
-                    // (textMultiLine removed), so this fires on every committed send.
-                    setTextInputVisible(false);
-                    updateToggleTextInputButtonIcon();
+                    // Return to the extra keys panel after sending only if the user
+                    // enabled "Hide input panel after send". The "send" key replaces
+                    // the newline key on the soft keyboard (textMultiLine removed), so
+                    // this fires on every committed send.
+                    if (mPreferences.shouldTextInputHideOnSend()) {
+                        setTextInputVisible(false);
+                        updateToggleTextInputButtonIcon();
+                    }
                 } else {
                     mTermuxTerminalSessionActivityClient.removeFinishedSession(session);
                 }
-                editText.setText("");
+                editText.getText().clear();
             }
             return true;
         });
@@ -1062,11 +1063,11 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         mAutoCompleteCtrl.setSuppressAutoComplete(true);
         textInputView.setText(text != null ? text : "");
         mAutoCompleteCtrl.setSuppressAutoComplete(false);
-        // Restore the caret position saved for this session (clamped to text length).
-        Integer caret = mTextInputState.hasCaret(session.mHandle) ? mTextInputState.getCaret(session.mHandle) : null;
-        if (caret != null) {
-            int pos = Math.min(caret, textInputView.length());
-            textInputView.setSelection(pos);
+        // Restore the caret position saved for this session, if any. getCaret() returns
+        // -1 when nothing was recorded, so only valid positions (>= 0) are applied.
+        int caret = mTextInputState.getCaret(session.mHandle);
+        if (caret >= 0) {
+            textInputView.setSelection(Math.min(caret, textInputView.length()));
         }
     }
 
@@ -1096,20 +1097,6 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
     }
 
 
-
-    private void setSettingsButtonView() {
-        if (mViewHelper != null) mViewHelper.setupSettingsButton(mTermuxActivityRootView);
-    }
-
-    /** Whether the tabs-panel settings button is enabled in settings (default: shown). */
-    public boolean isSettingsButtonEnabled() {
-        return getSharedPreferences("termux_prefs", MODE_PRIVATE).getBoolean("settings_button_enabled", true);
-    }
-
-    /** Show/hide the tabs-panel settings button based on the setting. */
-    public void updateSettingsButtonVisibility() {
-        if (mViewHelper != null) mViewHelper.updateSettingsButtonVisibility(isSettingsButtonEnabled());
-    }
 
     /**
      * Move the session tabs panel (session_tabs_container) to the top or bottom of the
@@ -1190,7 +1177,7 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         if (mTermuxSessionTabsController != null)
             mTermuxSessionTabsController.applyTabHeightMode();
 
-        // Also update the add-tab button and settings button heights.
+        // Also update the add-tab button height.
         String mode = getSharedPreferences("termux_prefs", MODE_PRIVATE)
                 .getString("tab_height_mode", "single");
         boolean doubleMode = "double".equals(mode);
@@ -1204,13 +1191,6 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
             lp.width = buttonSizePx;
             lp.height = buttonSizePx;
             addTabBtn.setLayoutParams(lp);
-        }
-        View settingsBtn = findViewById(R.id.settings_button);
-        if (settingsBtn != null) {
-            ViewGroup.LayoutParams lp = settingsBtn.getLayoutParams();
-            lp.width = buttonSizePx;
-            lp.height = buttonSizePx;
-            settingsBtn.setLayoutParams(lp);
         }
     }
 
@@ -1780,6 +1760,11 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
                 setTextInputVisible(false);
                 updateToggleTextInputButtonIcon();
             }
+        } else if (isTextInputVisible()) {
+            // Panel is open: "Back" closes the panel instead of exiting the app
+            // (regardless of the "hide panel after send" setting).
+            setTextInputVisible(false);
+            updateToggleTextInputButtonIcon();
         } else {
             TermuxActivityUtils.finishActivityIfNotFinishing(this);
         }
