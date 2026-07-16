@@ -13,6 +13,19 @@ public class SharedPreferenceUtils {
     private static final String LOG_TAG = "SharedPreferenceUtils";
 
     /**
+     * Check if a key is present in {@link SharedPreferences}.
+     *
+     * @param sharedPreferences The {@link SharedPreferences} to check the key in.
+     * @param key The key to check.
+     * @return Returns {@code true} if the key is present, otherwise {@code false}.
+     */
+    public static boolean isKeyPresent(SharedPreferences sharedPreferences, String key) {
+        if (sharedPreferences == null)
+            return false;
+        return sharedPreferences.contains(key);
+    }
+
+    /**
      * Get {@link SharedPreferences} instance of the preferences file 'name' with the operating mode
      * {@link Context#MODE_PRIVATE}. This file will be created in the app package's default
      * shared preferences directory.

@@ -27,7 +27,7 @@
             app:key="hide_extra_keys_with_keyboard"
             app:title="@string/hide_extra_keys_with_keyboard_title"
             app:summary="@string/hide_extra_keys_with_keyboard_summary"
-            app:defaultValue="false"
+            app:defaultValue="true"
             app:iconSpaceReserved="false" />
 
         <Preference

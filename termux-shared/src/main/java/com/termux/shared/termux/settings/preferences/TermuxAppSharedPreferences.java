@@ -89,7 +89,14 @@ public class TermuxAppSharedPreferences extends AppSharedPreferences {
      * @return Returns {@code true} if extra keys should be hidden with keyboard.
      */
     public boolean shouldHideExtraKeysWithKeyboard() {
+        if (!SharedPreferenceUtils.isKeyPresent(mSharedPreferences, TERMUX_APP.KEY_HIDE_EXTRA_KEYS_WITH_KEYBOARD)) {
+            setHideExtraKeysWithKeyboard(TERMUX_APP.DEFAULT_VALUE_HIDE_EXTRA_KEYS_WITH_KEYBOARD);
+        }
         return SharedPreferenceUtils.getBoolean(mSharedPreferences, TERMUX_APP.KEY_HIDE_EXTRA_KEYS_WITH_KEYBOARD, TERMUX_APP.DEFAULT_VALUE_HIDE_EXTRA_KEYS_WITH_KEYBOARD);
+    }
+
+    public void setHideExtraKeysWithKeyboard(boolean value) {
+        SharedPreferenceUtils.setBoolean(mSharedPreferences, TERMUX_APP.KEY_HIDE_EXTRA_KEYS_WITH_KEYBOARD, value, false);
     }
 
 
