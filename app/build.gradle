@@ -25,7 +25,7 @@ android {
     def appVersionName = System.getenv("TERMUX_APP_VERSION_NAME") ?: ""
     def apkVersionTag = System.getenv("TERMUX_APK_VERSION_TAG") ?: ""
     def splitAPKsForDebugBuilds = System.getenv("TERMUX_SPLIT_APKS_FOR_DEBUG_BUILDS") ?: "1"
-    def splitAPKsForReleaseBuilds = System.getenv("TERMUX_SPLIT_APKS_FOR_RELEASE_BUILDS") ?: "0" // F-Droid does not support split APKs #1904
+    def splitAPKsForReleaseBuilds = System.getenv("TERMUX_SPLIT_APKS_FOR_RELEASE_BUILDS") ?: "1" // per-ABI split APKs requested for this fork
 
     dependencies {
         implementation "androidx.annotation:annotation:1.9.0"
@@ -56,8 +56,11 @@ android {
         validateVersionName(versionName)
 
         // Restrict every native build (app + library modules) to the configured ABIs.
-        ndk {
-            abiFilters(*project.ext.abiList)
+        // When per-ABI split APKs are enabled, abiFilters must be left unset (splits own the ABIs).
+        if (!splitAPKsForReleaseBuilds.toBoolean()) {
+            ndk {
+                abiFilters(*project.ext.abiList)
+            }
         }
 
         buildConfigField "String", "TERMUX_PACKAGE_VARIANT", "\"" + project.ext.packageVariant + "\"" // Used by TermuxApplication class
@@ -79,11 +82,11 @@ android {
 
         splits {
             abi {
-                // Single-ABI build: keep every arch together in one universal APK, no split APKs.
-                enable false
+                // Per-ABI split APKs: one apk per architecture, no universal.
+                enable splitAPKsForReleaseBuilds.toBoolean()
                 reset ()
                 include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
-                universalApk true
+                universalApk false
             }
         }
     }

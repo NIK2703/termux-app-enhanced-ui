@@ -18,8 +18,11 @@ android {
         }
 
         ndk {
-            def termuxAbis = (System.getenv("TERMUX_ARCH") ?: project.properties.termuxBuildAbis ?: "arm64-v8a").split(',').collect { it.trim() }
-            abiFilters(*termuxAbis)
+            def splitForRelease = (System.getenv("TERMUX_SPLIT_APKS_FOR_RELEASE_BUILDS") ?: "1").toBoolean()
+            if (!splitForRelease) {
+                def termuxAbis = (System.getenv("TERMUX_ARCH") ?: project.properties.termuxBuildAbis ?: "arm64-v8a").split(',').collect { it.trim() }
+                abiFilters(*termuxAbis)
+            }
         }
     }
 

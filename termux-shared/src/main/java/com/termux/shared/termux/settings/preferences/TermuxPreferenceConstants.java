@@ -139,7 +139,7 @@ public final class TermuxPreferenceConstants {
          * and shown when the soft keyboard is opened.
          */
         public static final String KEY_HIDE_EXTRA_KEYS_WITH_KEYBOARD = "hide_extra_keys_with_keyboard";
-        public static final boolean DEFAULT_VALUE_HIDE_EXTRA_KEYS_WITH_KEYBOARD = false;
+        public static final boolean DEFAULT_VALUE_HIDE_EXTRA_KEYS_WITH_KEYBOARD = true;
 
 
         /**

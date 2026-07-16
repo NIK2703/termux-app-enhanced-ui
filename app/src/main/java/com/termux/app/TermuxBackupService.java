@@ -357,9 +357,30 @@ public final class TermuxBackupService extends Service {
                 out.set(new Error("Failed to open output file"));
                 return;
             }
+            // Run du -sb in a SEPARATE thread so it does not delay the start of the
+            // tar process. Until du returns, the estimate stays 0 and the UI shows an
+            // indeterminate spinner; once it lands, the progress bar switches to
+            // determinate (copied vs the du-based total) without restarting tar.
+            final AtomicReference<Long> estimateRef = new AtomicReference<>(0L);
+            final Thread duThread = new Thread(() -> {
+                long e = TermuxBackupUtils.getEstimatedBackupSize(this);
+                long est = e > 0 ? e : estimatedSize;
+                estimateRef.set(est);
+                // du just finished: if the operation is already in foreground (notification)
+                // mode, push an immediate update so the shade switches from the indeterminate
+                // spinner to the determinate bar right away — without waiting for the next
+                // 1MB progress tick from the data pump. Harmless if still in dialog mode.
+                if (est > 0 && mInForeground && !mFinished) {
+                    publishProgress(false, mProgressCopied, est);
+                }
+            }, "BackupDuEstimate");
+            duThread.start();
             final Error[] holder = new Error[1];
             TermuxBackupUtils.backup(this, os, error -> holder[0] = error,
-                (copied, total) -> publishProgress(false, copied, total > 0 ? total : estimatedSize),
+                (copied, total) -> {
+                    long est = estimateRef.get();
+                    publishProgress(false, copied, est > 0 ? est : 0);
+                },
                 mCancelled);
             if (holder[0] != null) {
                 // A cancelled or failed backup must not leave a partial destination file behind.
@@ -423,10 +444,12 @@ public final class TermuxBackupService extends Service {
         CharSequence title = getString(isRestore
             ? R.string.backup_service_notification_restore_title
             : R.string.backup_service_notification_title);
-        // Restore: show calculated percentage. Backup: tar stream, empty text (indeterminate only).
+        // Show the calculated percentage for both restore and backup. For backup the
+        // total comes from the parallel du estimate and may be 0 until du finishes —
+        // in that window we show an empty text (indeterminate spinner in the bar).
         CharSequence text;
-        if (isRestore) {
-            int pct = (total > 0) ? (int) Math.min(copied * 100 / total, 100) : 0;
+        if (total > 0) {
+            int pct = (int) Math.min(copied * 100 / total, 100);
             text = getString(R.string.backup_service_notification_progress, pct);
         } else {
             text = "";
@@ -446,16 +469,13 @@ public final class TermuxBackupService extends Service {
             .setOnlyAlertOnce(true)
             .addAction(android.R.drawable.ic_menu_close_clear_cancel,
                 getString(R.string.backup_service_notification_cancel), cancelIntent());
-        if (isRestore) {
-            // Restore: determinate bar with known progress.
-            if (total > 0) {
-                int pct = (int) Math.min(copied * 100 / total, 100);
-                builder.setProgress(100, pct, false);
-            } else {
-                builder.setProgress(0, 0, true);
-            }
+        if (total > 0) {
+            // Determinate bar with known progress (restore: archive size;
+            // backup: the parallel du estimate, once it has finished).
+            int pct = (int) Math.min(copied * 100 / total, 100);
+            builder.setProgress(100, pct, false);
         } else {
-            // Backup: indeterminate — tar stream, size unknown.
+            // Total still unknown (du estimate not ready) — indeterminate spinner.
             builder.setProgress(0, 0, true);
         }
         return builder.build();
@@ -510,15 +530,19 @@ public final class TermuxBackupService extends Service {
         NotificationManager nm = NotificationUtils.getNotificationManager(this);
         if (nm == null) return;
 
-        // Drop the live progress (text) notification IMMEDIATELY so it disappears from the shade
-        // the moment the operation ends. We then post the result as a *fresh* notification below.
+        // For a restore we intentionally do NOT pop a heads-up completion notification — the
+        // bottom Toast (posted below) is the only user-facing result. Just drop the live progress
+        // notification so it disappears from the shade the moment the operation ends.
         nm.cancel(TermuxConstants.TERMUX_BACKUP_NOTIFICATION_ID);
 
-        // Post the result as a fresh, high-priority heads-up notification. Posting it AFTER
-        // cancelling the progress one guarantees the system treats it as a NEW notification and
-        // actually pops the heads-up — updating an in-place notification often suppresses it.
-        nm.notify(TermuxConstants.TERMUX_BACKUP_NOTIFICATION_ID,
-            buildResultNotification(isRestore, error));
+        if (!isRestore) {
+            // Backup: post the result as a fresh, high-priority heads-up notification. Posting it
+            // AFTER cancelling the progress one guarantees the system treats it as a NEW
+            // notification and actually pops the heads-up — updating an in-place notification
+            // often suppresses it.
+            nm.notify(TermuxConstants.TERMUX_BACKUP_NOTIFICATION_ID,
+                buildResultNotification(isRestore, error));
+        }
 
         // Leave foreground only if we actually entered it (else stopForeground() would throw).
         if (mStartedForeground) {
@@ -544,6 +568,39 @@ public final class TermuxBackupService extends Service {
         };
         if (mMainHandler != null) {
             mMainHandler.postDelayed(mAutoDismissRunnable, 8000);
+        }
+
+        // Always surface the result as a bottom Toast too (in addition to the heads-up
+        // notification), so the user gets a popup at the bottom of the screen regardless
+        // of whether the app UI is currently visible. This runs on the service's main
+        // looper — independent of any activity — so it fires even when the app is
+        // backgrounded or the screen is merely unlocked with another app on top.
+        // (On API 26+ a background process Toast may be throttled, which is why the
+        // heads-up notification above remains the guaranteed fallback.)
+        final CharSequence toastText = buildResultToastText(isRestore, error);
+        if (toastText != null && mMainHandler != null) {
+            mMainHandler.post(() -> {
+                Toast t = Toast.makeText(getApplicationContext(), toastText, Toast.LENGTH_LONG);
+                t.setGravity(Gravity.BOTTOM, 0, 0);
+                t.show();
+            });
+        }
+    }
+
+    /** Build the bottom-Toast text for a finished operation, or null if there is nothing to say. */
+    @Nullable
+    private CharSequence buildResultToastText(boolean isRestore, @Nullable Error error) {
+        if (error == TermuxBackupUtils.CANCELLED_ERROR) {
+            return getString(R.string.backup_restore_cancelled);
+        } else if (error == null) {
+            return getString(isRestore
+                ? R.string.backup_service_notification_restore_success
+                : R.string.backup_service_notification_success);
+        } else {
+            return getString(isRestore
+                    ? R.string.backup_service_notification_restore_failed
+                    : R.string.backup_service_notification_failed)
+                + ": " + Error.getMinimalErrorString(error);
         }
     }
 

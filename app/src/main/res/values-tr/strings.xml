@@ -261,13 +261,6 @@
     <string name="hide_extra_keys_with_keyboard_title">Ekstra tuşları klavyeyle gizle</string>
     <string name="hide_extra_keys_with_keyboard_summary">Klavye kapatıldığında ekstra düğmeleri otomatik gizle, açıldığında göster</string>
 
-    <!-- Tab preferences -->
-    <string name="termux_tab_height_mode_title">Sekme yüksekliği</string>
-    <string name="termux_tab_height_mode_single">Tek satır (varsayılan)</string>
-    <string name="termux_tab_height_mode_double">İki satır</string>
-    <string name="termux_tab_panel_position_title">Sekme paneli konumu</string>
-    <string name="termux_tab_panel_position_top">Üst (varsayılan)</string>
-    <string name="termux_tab_panel_position_bottom">Alt</string>
 
     <!-- Text input auto-complete -->
     <string name="suggestions_max_count_title">Maks. öneri</string>

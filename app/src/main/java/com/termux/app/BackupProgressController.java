@@ -120,10 +120,11 @@ public final class BackupProgressController {
         // Restore: starts indeterminate, switches to determinate once progress is calculated.
         progress.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
         progress.setIndeterminate(true);
-        // Backup: tar stream size is unknown — indeterminate throughout. Hide the
-        // meaningless "0% / 0 of 100" labels that appear on some Android versions
-        // even in indeterminate mode.
-        if (!mBackupIsRestore && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+        // Start indeterminate (du estimate may still be computing). Once the service
+        // publishes a non-zero total, the poll loop below flips to a determinate bar
+        // for both backup and restore. Hide the percentage labels only while the
+        // estimate is unknown so we don't show a meaningless "0% / 0 of 100".
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
             progress.setProgressNumberFormat(null);
             progress.setProgressPercentFormat(null);
         }
@@ -149,15 +150,25 @@ public final class BackupProgressController {
                 finish();
                 return;
             }
-            // Restore: progress IS calculated (files extracted one by one).
-            // Backup: tar stream, size unknown — stay indeterminate throughout.
-            if (mBackupIsRestore && mBackupDialog != null && mBackupDialog.isShowing()) {
+            // Both backup and restore can show a determinate bar once a non-zero
+            // total is known (backup: du estimate; restore: archive size). Until then
+            // the dialog stays indeterminate.
+            if (mBackupDialog != null && mBackupDialog.isShowing()) {
                 long copied = svc.getProgressCopied();
                 long total = svc.getProgressTotal();
                 long effective = total > 0 ? total : mBackupEstimated;
                 if (effective > 0) {
                     if (mLastIndeterminate) {
                         mBackupDialog.setIndeterminate(false);
+                        // Show a plain percentage (e.g. "10%") once progress is meaningful.
+                        // On LOLLIPOP_MR1+ we clear the "current / max" number format so only
+                        // the built-in percent label remains; on older versions the dialog shows
+                        // the percent label by default.
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+                            mBackupDialog.setProgressNumberFormat(null);
+                            mBackupDialog.setProgressPercentFormat(
+                                java.text.NumberFormat.getPercentInstance());
+                        }
                         mLastIndeterminate = false;
                     }
                     int pct = (int) Math.min(copied * 100 / effective, 100);
@@ -165,6 +176,10 @@ public final class BackupProgressController {
                 } else {
                     if (!mLastIndeterminate) {
                         mBackupDialog.setIndeterminate(true);
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+                            mBackupDialog.setProgressNumberFormat(null);
+                            mBackupDialog.setProgressPercentFormat(null);
+                        }
                         mLastIndeterminate = true;
                     }
                 }

@@ -282,7 +282,7 @@ public final class SessionPagerManager {
         if (service == null) return false;
         if (service.getTermuxSessionsSize() >= TermuxTerminalSessionActivityClient.MAX_SESSIONS) return false;
         return mActivity.getSharedPreferences("termux_prefs", android.content.Context.MODE_PRIVATE)
-                .getBoolean("swipe_rightmost_new_tab", false);
+                .getBoolean("swipe_rightmost_new_tab", true);
     }
 
     /**

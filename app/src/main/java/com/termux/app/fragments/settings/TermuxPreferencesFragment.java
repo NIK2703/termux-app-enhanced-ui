@@ -65,7 +65,7 @@ public class TermuxPreferencesFragment extends PreferenceFragmentCompat {
 
         final SharedPreferences termuxPrefs =
                 requireContext().getSharedPreferences("termux_prefs", Context.MODE_PRIVATE);
-        pref.setChecked(termuxPrefs.getBoolean("swipe_rightmost_new_tab", false));
+        pref.setChecked(termuxPrefs.getBoolean("swipe_rightmost_new_tab", true));
 
         pref.setOnPreferenceChangeListener((preference, newValue) -> {
             termuxPrefs.edit().putBoolean("swipe_rightmost_new_tab", (Boolean) newValue).apply();
@@ -241,8 +241,17 @@ public class TermuxPreferencesFragment extends PreferenceFragmentCompat {
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("application/gzip");
-        intent.putExtra(Intent.EXTRA_TITLE, getString(R.string.backup_restore_backup_filename));
+        intent.putExtra(Intent.EXTRA_TITLE, getDefaultBackupFilename());
         startActivityForResult(intent, REQUEST_CODE_BACKUP);
+    }
+
+    private String getDefaultBackupFilename() {
+        java.text.SimpleDateFormat dateFmt =
+                new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US);
+        java.text.SimpleDateFormat timeFmt =
+                new java.text.SimpleDateFormat("HH-mm", java.util.Locale.US);
+        java.util.Date now = new java.util.Date();
+        return "termux-backup-" + dateFmt.format(now) + "_" + timeFmt.format(now) + ".tar.gz";
     }
 
     private void startRestoreFileChooser() {
