@@ -77,46 +77,60 @@
             android:background="@android:color/transparent"
             android:layout_alignParentBottom="true">
 
-            <!-- Multi-line text input panel: occupies the slot below the tabs,
-                 replacing the extra keys while active. Fixed height with vertical scroll. -->
+            <!-- Shared slot (FrameLayout) so the text input panel and the extra keys
+                 overlap and can cross-fade their alpha instead of one abruptly
+                 disappearing under the other. The extra keys is declared first (drawn
+                 underneath) and pinned to the bottom; the input panel is declared last
+                 (drawn on top, intercepting touches) so its text selection works while
+                 the extra keys fades out beneath it. -->
             <FrameLayout
-                android:id="@+id/terminal_toolbar_text_input_container"
+                android:id="@+id/terminal_toolbar_slot"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginHorizontal="4dp"
-                android:layout_marginTop="4dp"
-                android:layout_marginBottom="4dp"
-                android:background="@drawable/text_input_transparent">
+                android:layout_height="wrap_content">
 
-                <com.termux.app.SendActionEditText
-                    android:id="@+id/terminal_toolbar_text_input"
+                <com.termux.shared.termux.extrakeys.ExtraKeysView
+                    android:id="@+id/terminal_toolbar_extra_keys"
+                    style="?android:attr/buttonBarStyle"
                     android:layout_width="match_parent"
-                    android:layout_height="96dp"
-                    android:layout_marginHorizontal="8dp"
-                    android:layout_marginVertical="4dp"
-                    android:imeOptions="actionSend|flagNoFullscreen"
-                    android:inputType="textMultiLine"
-                    android:maxLines="6"
-                    android:scrollbars="vertical"
-                    android:scrollHorizontally="false"
-                    android:gravity="top|start"
-                    android:importantForAutofill="no"
-                    android:textSize="@dimen/text_input_text_size"
-                    android:textColor="@color/terminal_toolbar_text_color"
-                    android:textColorHighlight="@color/grey_400"
-                    android:textCursorDrawable="@null"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom"
                     android:background="@android:color/transparent"
-                    tools:ignore="LabelFor" />
+                    android:orientation="horizontal" />
+
+                <!-- Multi-line text input panel: occupies the slot below the tabs,
+                     replacing the extra keys while active. Fixed height with vertical scroll. -->
+                <FrameLayout
+                    android:id="@+id/terminal_toolbar_text_input_container"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="4dp"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="4dp"
+                    android:background="@drawable/text_input_transparent">
+
+                    <com.termux.app.SendActionEditText
+                        android:id="@+id/terminal_toolbar_text_input"
+                        android:layout_width="match_parent"
+                        android:layout_height="96dp"
+                        android:layout_marginHorizontal="8dp"
+                        android:layout_marginVertical="4dp"
+                        android:imeOptions="actionSend|flagNoFullscreen"
+                        android:inputType="textMultiLine"
+                        android:maxLines="6"
+                        android:scrollbars="vertical"
+                        android:scrollHorizontally="false"
+                        android:gravity="top|start"
+                        android:importantForAutofill="no"
+                        android:textSize="@dimen/text_input_text_size"
+                        android:textColor="@color/terminal_toolbar_text_color"
+                        android:textColorHighlight="@color/grey_400"
+                        android:textCursorDrawable="@null"
+                        android:background="@android:color/transparent"
+                        tools:ignore="LabelFor" />
+
+                </FrameLayout>
 
             </FrameLayout>
-
-            <com.termux.shared.termux.extrakeys.ExtraKeysView
-                android:id="@+id/terminal_toolbar_extra_keys"
-                style="?android:attr/buttonBarStyle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@android:color/transparent"
-                android:orientation="horizontal" />
 
         </LinearLayout>
 

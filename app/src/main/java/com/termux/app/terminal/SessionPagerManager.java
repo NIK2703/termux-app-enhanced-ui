@@ -340,13 +340,11 @@ public final class SessionPagerManager {
         TermuxSessionTabsController tabs = mActivity.getTermuxSessionTabsController();
         if (tabs != null) tabs.setPlaceholderActive(false);
 
-        // Re-arm the placeholder if we're still on the last tab and eligible, so another right-swipe
-        // can add yet another session. Done before the deferred bookkeeping so the page count is
-        // already correct; it only inserts a page to the right of the one we just committed.
-        if (isPlaceholderEnabled() && service.getTermuxSessionsSize() - 1 == placeholderIndex) {
-            mTerminalPagerAdapter.setPlaceholderActive(true);
-            if (tabs != null) tabs.setPlaceholderActive(true);
-        }
+        // NOTE: do NOT re-arm the placeholder synchronously here. Re-inserting the page during the
+        // commit (notifyItemInserted) makes ViewPager2's DataSetChangeObserver snapToPage() and
+        // rewind the pager (the old 6->0 cascade). The placeholder is instead re-appended on the
+        // next frame by managePlaceholderForPosition(idx) inside the post() block below — inserting
+        // the page to the RIGHT of the settled current page, which is safe.
 
         // commitPlaceholder() triggers an async in-place rebind (notifyItemChanged) of the same
         // ViewHolder. Run the standard per-page bookkeeping on the next frame, once the new session
@@ -356,6 +354,15 @@ public final class SessionPagerManager {
         final int idx = placeholderIndex;
         mTerminalPager.post(() -> {
             onTerminalPageSelected(idx);
+            // Re-arm the trailing placeholder page so a subsequent right-swipe can still create a
+            // session. This runs on the next frame after the committed page is bound, inserting the
+            // placeholder at idx+1 (to the right of the current page), which does NOT move the
+            // current page — so it cannot trigger the ViewPager2 snapToPage rewind the *synchronous*
+            // re-arm used to cause. The normal swipe path (onPageSelected -> managePlaceholderForPosition)
+            // does exactly this on every settle; the commit path must too, otherwise the placeholder
+            // stays dropped forever and the next right-swipe just edge-bounces.
+            managePlaceholderForPosition(idx);
+            updatePagerUserInputEnabled();
             // Force the tab strip to reveal the newly-committed tab. The synchronous
             // updateTabs() fired during session creation ran while getCurrentSession()
             // still pointed at the OLD last tab, scrolling the strip leftward (it read

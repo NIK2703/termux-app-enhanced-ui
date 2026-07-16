@@ -421,6 +421,9 @@ public final class TerminalView extends View {
 
     @Override
     public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
+        // Guard against a null client (e.g. an as-yet-unbound placeholder page that briefly gains
+        // IME focus). Returning null tells the IME there is no input target, which is safe.
+        if (mClient == null) return null;
         // Ensure that inputType is only set if TerminalView is selected view with the keyboard and
         // an alternate view is not selected, like an EditText. This is necessary if an activity is
         // initially started with the alternate view or if activity is returned to from another app

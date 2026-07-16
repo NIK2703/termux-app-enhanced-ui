@@ -2154,20 +2154,212 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
      * When the text input panel is hidden, the extra keys visibility also
      * respects the {@code hide_extra_keys_with_keyboard} preference.
      */
-    private void setTextInputSlotVisible(boolean visible) {
-        View container = findViewById(R.id.terminal_toolbar_text_input_container);
-        if (container != null)
-            container.setVisibility(visible ? View.VISIBLE : View.GONE);
-        ExtraKeysView ekv = getExtraKeysView();
-        if (ekv == null) return;
-        if (visible) {
-            ekv.setVisibility(View.GONE);
-        } else if (mPreferences.shouldHideExtraKeysWithKeyboard()
-                   && !mSoftKeyboardVisible) {
-            ekv.setVisibility(View.GONE);
-        } else {
-            ekv.setVisibility(View.VISIBLE);
+    /** Duration of the text input panel open/close animation, in milliseconds. */
+    private static final long TEXT_INPUT_PANEL_ANIM_DURATION = 150L;
+
+    /** TEMP: when false, the text-input panel + toggle-button open/close animations
+     *  are disabled (state applied instantly) for debugging. Set back to true to re-enable. */
+    private static final boolean TEXT_INPUT_ANIMATIONS_ENABLED = false;
+
+    /** TEMP: when false, only the toggle-button (pencil) position animation is
+     *  disabled while the panel animation stays on. */
+    private static final boolean TEXT_INPUT_PENCIL_ANIM_ENABLED = false;
+
+    /** Subtle upward slide distance (dp) for the text input panel open/close. */
+    private static final float TEXT_INPUT_PANEL_SLIDE_DP = 12f;
+
+    /** True if the extra keys panel should currently be shown (honours preference). */
+    private boolean shouldShowExtraKeys() {
+        return !(mPreferences.shouldHideExtraKeysWithKeyboard() && !mSoftKeyboardVisible);
+    }
+
+    /**
+     * Set the shared slot below the tabs: text input container vs extra keys.
+     * Both panels occupy the same overlapping slot (FrameLayout) and cross-fade
+     * their alpha, so neither one abruptly vanishes under the other.
+     * When the text input panel is hidden, the extra keys visibility also
+     * respects the {@code hide_extra_keys_with_keyboard} preference.
+     *
+     * @param visible true to show the text input panel, false to hide it
+     * @param animate true to play the alpha crossfade, false to apply the state
+     *                immediately (used at startup / tab restore)
+     */
+    private void setTextInputSlotVisible(boolean visible, boolean animate) {
+        final View container = findViewById(R.id.terminal_toolbar_text_input_container);
+        final ExtraKeysView ekv = getExtraKeysView();
+        final ImageButton pencil = findViewById(R.id.toggle_text_input_button);
+
+        // TEMP: disable the panel open/close animation (apply state instantly).
+        if (!TEXT_INPUT_ANIMATIONS_ENABLED) animate = false;
+
+        if (container == null) {
+            if (ekv != null) ekv.setVisibility(visible ? View.GONE
+                    : (shouldShowExtraKeys() ? View.VISIBLE : View.GONE));
+            return;
         }
+
+        // Cancel any in-flight animation so rapid toggles don't fight each other.
+        container.animate().cancel();
+        container.clearAnimation();
+        if (ekv != null) {
+            ekv.animate().cancel();
+            ekv.clearAnimation();
+        }
+        if (pencil != null) {
+            pencil.animate().cancel();
+            pencil.clearAnimation();
+        }
+
+        // Capture the pencil's live on-screen bottom before the layout change, so we
+        // can measure its real shift afterwards (the toolbar grows/shrinks by the
+        // difference between the input panel and the extra keys, which we don't
+        // hardcode). The glide is driven by that measured delta.
+        final int startPencilBottom = pencil != null ? pencil.getBottom() : 0;
+
+        if (visible) {
+            // Extra keys stays in the layout (no abrupt GONE) and fades out while the
+            // input panel fades in. If extra keys was already hidden by preference, it
+            // simply stays hidden and the input panel fades in over empty space.
+            if (ekv != null) {
+                ekv.setVisibility(shouldShowExtraKeys() ? View.VISIBLE : View.GONE);
+            }
+
+            if (!animate) {
+                container.setVisibility(View.VISIBLE);
+                container.setAlpha(1f);
+                if (ekv != null) ekv.setAlpha(0f);
+                return;
+            }
+
+            container.setVisibility(View.VISIBLE);
+            container.setAlpha(0f);
+            final float slidePx = TEXT_INPUT_PANEL_SLIDE_DP
+                    * getResources().getDisplayMetrics().density;
+            container.setTranslationY(slidePx);
+            container.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setDuration(TEXT_INPUT_PANEL_ANIM_DURATION)
+                    .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                    .setListener(null);
+
+            if (ekv != null) {
+                ekv.setAlpha(1f);
+                ekv.animate()
+                        .alpha(0f)
+                        .setDuration(TEXT_INPUT_PANEL_ANIM_DURATION)
+                        .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                        .setListener(new android.animation.AnimatorListenerAdapter() {
+                            @Override
+                            public void onAnimationEnd(android.animation.Animator animation) {
+                                // Only hide the extra keys once fully faded, so it never
+                                // pops away under the input panel.
+                                if (ekv.getAlpha() == 0f
+                                        && !shouldShowExtraKeys()) {
+                                    ekv.setVisibility(View.GONE);
+                                }
+                            }
+                        });
+            }
+
+            // The toolbar is about to grow taller; the pencil (anchored ABOVE it)
+            // would snap upward. In a pre-draw listener (fires before the frame is
+            // drawn) read the pencil's new bottom, offset it back to its old spot,
+            // and glide it up to the new position in sync with the panel.
+            if (pencil != null && startPencilBottom != 0
+                    && TEXT_INPUT_PENCIL_ANIM_ENABLED) {
+                final android.view.ViewTreeObserver observer =
+                        pencil.getViewTreeObserver();
+                observer.addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener() {
+                    @Override
+                    public boolean onPreDraw() {
+                        observer.removeOnPreDrawListener(this);
+                        final int delta = pencil.getBottom() - startPencilBottom;
+                        if (delta == 0) return true;
+                        // delta is the real shift of the pencil's layout position
+                        // (negative = moved up on open, positive = moved down on close).
+                        // Negate it to hold the pencil at its old spot, then glide to 0.
+                        pencil.setTranslationY(-delta);
+                        pencil.animate()
+                                .translationY(0f)
+                                .setDuration(TEXT_INPUT_PANEL_ANIM_DURATION)
+                                .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                                .setListener(null);
+                        return true;
+                    }
+                });
+            }
+        } else {
+            // Mirror: input panel fades out, extra keys fades back in (if it should show).
+            final boolean showEkv = shouldShowExtraKeys();
+
+            if (!animate) {
+                container.setVisibility(View.GONE);
+                container.setAlpha(1f);
+                if (ekv != null) {
+                    ekv.setVisibility(showEkv ? View.VISIBLE : View.GONE);
+                    ekv.setAlpha(1f);
+                }
+                return;
+            }
+
+            if (ekv != null) {
+                ekv.setVisibility(showEkv ? View.VISIBLE : View.GONE);
+                ekv.setAlpha(showEkv ? 0f : 1f);
+                if (showEkv) {
+                    ekv.animate()
+                            .alpha(1f)
+                            .setDuration(TEXT_INPUT_PANEL_ANIM_DURATION)
+                            .setInterpolator(new android.view.animation.AccelerateInterpolator())
+                            .setListener(null);
+                }
+            }
+
+            final float slidePx = TEXT_INPUT_PANEL_SLIDE_DP
+                    * getResources().getDisplayMetrics().density;
+            container.animate()
+                    .alpha(0f)
+                    .translationY(slidePx)
+                    .setDuration(TEXT_INPUT_PANEL_ANIM_DURATION)
+                    .setInterpolator(new android.view.animation.AccelerateInterpolator())
+                    .setListener(new android.animation.AnimatorListenerAdapter() {
+                        @Override
+                        public void onAnimationEnd(android.animation.Animator animation) {
+                            container.setVisibility(View.GONE);
+                            container.setAlpha(1f);
+                            container.setTranslationY(0f);
+                            // The toolbar is about to shrink; the pencil (anchored ABOVE
+                            // it) would snap downward. In a pre-draw listener read the
+                            // pencil's new bottom, offset it back to its old spot, and
+                            // glide it down to the new position.
+                            if (pencil != null && startPencilBottom != 0
+                                    && TEXT_INPUT_PENCIL_ANIM_ENABLED) {
+                                final android.view.ViewTreeObserver observer =
+                                        pencil.getViewTreeObserver();
+                                observer.addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener() {
+                                    @Override
+                                    public boolean onPreDraw() {
+                                        observer.removeOnPreDrawListener(this);
+                                        final int delta = pencil.getBottom() - startPencilBottom;
+                                        if (delta == 0) return true;
+                                        pencil.setTranslationY(-delta);
+                                        pencil.animate()
+                                                .translationY(0f)
+                                                .setDuration(TEXT_INPUT_PANEL_ANIM_DURATION)
+                                                .setInterpolator(new android.view.animation.AccelerateInterpolator())
+                                                .setListener(null);
+                                        return true;
+                                    }
+                                });
+                            }
+                        }
+                    });
+        }
+    }
+
+    /** Overload that animates, for interactive toggles. */
+    private void setTextInputSlotVisible(boolean visible) {
+        setTextInputSlotVisible(visible, true);
     }
 
     /**
@@ -2252,7 +2444,8 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
                 ? mTextInputState.isVisible(session.mHandle)
                 : isTextInputVisible());
 
-        setTextInputSlotVisible(visible);
+        // No animation here (startup / tab switch restore): just set the slot state.
+        setTextInputSlotVisible(visible, false);
 
         if (applyFocus) {
             // On switch, restore where focus was last for this session:

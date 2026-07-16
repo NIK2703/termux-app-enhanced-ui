@@ -176,7 +176,14 @@ public final class TerminalPagerAdapter extends RecyclerView.Adapter<TerminalPag
     public TerminalPageViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View page = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_terminal_page, parent, false);
-        return new TerminalPageViewHolder(page);
+        TerminalPageViewHolder holder = new TerminalPageViewHolder(page);
+        // Bind the shared client immediately on creation — including for the placeholder page, which
+        // returns early from onBindViewHolder() before the per-session client wiring. Without this,
+        // the placeholder TerminalView has mClient == null and any IME/gesture access (e.g.
+        // onCreateInputConnection) crashes with a NullPointerException. onCreateViewHolder runs once
+        // per ViewHolder, so this is cheap and keeps every page safe to display.
+        if (holder.mTerminalView != null) holder.mTerminalView.setTerminalViewClient(mViewClient);
+        return holder;
     }
 
     @Override
