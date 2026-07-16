@@ -147,6 +147,16 @@
     <string name="session_null_title">sessão nula</string>
     <string name="shared_user_label">Usuário do &TERMUX_APP_NAME;</string>
     <string name="tab_close_description">Fechar aba</string>
+    <string name="new_tab_placeholder_hint">Nova sessão</string>
+    <string name="session_tabs_title">Abas de sessão</string>
+    <string name="swipe_rightmost_new_tab_title">Deslizar a última aba para nova sessão</string>
+    <string name="swipe_rightmost_new_tab_summary">Na última aba, deslize para a direita para revelar e abrir uma nova sessão de terminal</string>
+    <string name="termux_tab_height_mode_title">Altura da aba</string>
+    <string name="termux_tab_height_mode_single">Linha única (padrão)</string>
+    <string name="termux_tab_height_mode_double">Duas linhas</string>
+    <string name="termux_tab_panel_position_title">Posição do painel de abas</string>
+    <string name="termux_tab_panel_position_top">Superior (padrão)</string>
+    <string name="termux_tab_panel_position_bottom">Inferior</string>
     <string name="termux_api_preferences_summary">Preferências para o aplicativo &TERMUX_API_APP_NAME;</string>
     <string name="termux_api_preferences_title">&TERMUX_API_APP_NAME;</string>
     <string name="termux_button_bg_active_alpha_title" formatted="false">Transparência de elemento ativo</string>
@@ -192,6 +202,8 @@
     <string name="termux_widget_preferences_title">&TERMUX_WIDGET_APP_NAME;</string>
     <string name="text_input_append_enter_summary">Ao enviar do campo de entrada, também submeter a linha (pressionar Enter). Desative para enviar texto sem uma nova linha no final.</string>
     <string name="text_input_append_enter_title">Adicionar Enter ao Enviar</string>
+    <string name="text_input_hide_on_send_summary">Quando ativado, o painel de entrada fecha e o foco vai para o terminal após o envio. Desative para manter o painel aberto para comandos consecutivos.</string>
+    <string name="text_input_hide_on_send_title">Ocultar painel de entrada após envio</string>
     <string name="text_input_show_summary_off">O campo de entrada de texto está oculto</string>
     <string name="text_input_show_summary_on">O campo de entrada de texto está visível acima das teclas extras</string>
     <string name="text_input_show_title">Mostrar campo de entrada de texto</string>

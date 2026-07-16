@@ -28,6 +28,10 @@
         \n为 &TERMUX_APP_NAME; 编译的引导二进制文件已硬编码 $PREFIX 路径，只能安装到以下路径：\n%1$s。</string>
     <string name="action_new_session">新建会话</string>
     <string name="action_new_session_failsafe">故障保护</string>
+    <string name="new_tab_placeholder_hint">新建会话</string>
+    <string name="session_tabs_title">会话标签页</string>
+    <string name="swipe_rightmost_new_tab_title">在最右侧标签向右滑动以新建会话</string>
+    <string name="swipe_rightmost_new_tab_summary">在最后一个标签上向右滑动以显示并打开新的终端会话</string>
     <string name="title_max_terminals_reached">已达最大终端数</string>
     <string name="msg_max_terminals_reached">请先关闭现有终端再创建新终端。</string>
     <string name="title_rename_session">设置会话名称</string>
@@ -196,6 +200,8 @@
     <string name="text_input_show_title">显示文本输入框</string>
     <string name="text_input_show_summary_on">文本输入框显示在额外按键上方</string>
     <string name="text_input_show_summary_off">文本输入框已隐藏</string>
+    <string name="text_input_hide_on_send_title">发送后隐藏输入面板</string>
+    <string name="text_input_hide_on_send_summary">启用后，发送后输入面板会关闭并将焦点移到终端。禁用可保持面板打开以便连续输入命令。</string>
     <string name="message_history_empty">无消息历史</string>
     <string name="message_history_clear_all">清除历史…</string>
     <string name="message_history_clear">清除</string>
@@ -244,6 +250,14 @@
     <!-- Hide extra keys with keyboard -->
     <string name="hide_extra_keys_with_keyboard_title">随键盘隐藏额外按键</string>
     <string name="hide_extra_keys_with_keyboard_summary">键盘关闭时自动隐藏额外按键，打开时显示</string>
+
+    <!-- Tab height mode -->
+    <string name="termux_tab_height_mode_title">标签高度</string>
+    <string name="termux_tab_height_mode_single">单行（默认）</string>
+    <string name="termux_tab_height_mode_double">两行</string>
+    <string name="termux_tab_panel_position_title">标签面板位置</string>
+    <string name="termux_tab_panel_position_top">顶部（默认）</string>
+    <string name="termux_tab_panel_position_bottom">底部</string>
 
     <!-- Text input auto-complete -->
     <string name="suggestions_max_count_title">最大建议数</string>

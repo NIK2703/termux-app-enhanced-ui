@@ -169,8 +169,18 @@
 
     <string name="session_default_title">طرفية</string>
     <string name="session_null_title">جلسة فارغة</string>
+    <string name="new_tab_placeholder_hint">جلسة جديدة</string>
+    <string name="session_tabs_title">علامات تبويب الجلسات</string>
+    <string name="swipe_rightmost_new_tab_title">اسحب علامة التبويب الأخيرة لجلسة جديدة</string>
+    <string name="swipe_rightmost_new_tab_summary">في علامة التبويب الأخيرة، اسحب لليمين لإظهار وفتح جلسة طرفية جديدة</string>
     <string name="shared_user_label">مستخدم &TERMUX_APP_NAME;</string>
     <string name="tab_close_description">إغلاق علامة التبويب</string>
+    <string name="termux_tab_height_mode_title">ارتفاع علامة التبويب</string>
+    <string name="termux_tab_height_mode_single">سطر واحد (افتراضي)</string>
+    <string name="termux_tab_height_mode_double">سطران</string>
+    <string name="termux_tab_panel_position_title">موضع لوحة علامات التبويب</string>
+    <string name="termux_tab_panel_position_top">أعلى (افتراضي)</string>
+    <string name="termux_tab_panel_position_bottom">أسفل</string>
     <string name="termux_api_preferences_summary">تفضيلات تطبيق &TERMUX_API_APP_NAME;</string>
     <string name="termux_api_preferences_title">&TERMUX_API_APP_NAME;</string>
     <string name="termux_button_bg_active_alpha_title" formatted="false">شفافية العنصر النشط</string>
@@ -222,6 +232,8 @@
     <string name="text_input_show_summary_on">حقل إدخال النص ظاهر فوق المفاتيح الإضافية</string>
     <string name="text_input_show_title">إظهار حقل إدخال النص</string>
     <string name="text_input_title">إدخال النص</string>
+    <string name="text_input_hide_on_send_title">إخفاء لوحة الإدخال بعد الإرسال</string>
+    <string name="text_input_hide_on_send_summary">عند التفعيل، تُغلق لوحة الإدخال وينتقل التركيز إلى الطرفية بعد الإرسال. عطّل ذلك لإبقاء اللوحة مفتوحة لإدخال أوامر متتابعة.</string>
     <string name="theme_mode_summary">اختر سمة التطبيق والطرفية</string>
     <string name="theme_mode_title">سمة التطبيق</string>
     <string name="theme_title">السمة</string>

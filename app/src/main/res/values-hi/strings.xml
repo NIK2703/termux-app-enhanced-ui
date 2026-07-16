@@ -146,6 +146,10 @@
     <string name="screen_orientation_title">स्क्रीन अभिमुखता</string>
     <string name="session_default_title">टर्मिनल</string>
     <string name="session_null_title">null सत्र</string>
+    <string name="new_tab_placeholder_hint">नया सत्र</string>
+    <string name="session_tabs_title">सत्र टैब</string>
+    <string name="swipe_rightmost_new_tab_title">नए सत्र के लिए अंतिम टैब पर स्वाइप करें</string>
+    <string name="swipe_rightmost_new_tab_summary">अंतिम टैब पर, दाएँ स्वाइप करके एक नया टर्मिनल सत्र प्रकट करें और खोलें</string>
     <string name="shared_user_label">&TERMUX_APP_NAME; उपयोगकर्ता</string>
     <string name="tab_close_description">टैब बंद करें</string>
     <string name="termux_api_preferences_summary">&TERMUX_API_APP_NAME; ऐप के लिए प्राथमिकताएँ</string>
@@ -189,6 +193,12 @@
     <string name="termux_terminal_view_terminal_margin_adjustment_on">टर्मिनल मार्जिन समायोजन सक्षम किया जाएगा। इसे उस समस्या को ठीक करने के लिए सक्षम किया जाना चाहिए जहाँ सॉफ्ट कीबोर्ड अतिरिक्त कीज़/टर्मिनल दृश्य का एक हिस्सा ढक देता है। यदि यह आपके डिवाइस पर स्क्रीन फ्लिकरिंग का कारण बनता है, तो इसे अक्षम करें। (डिफ़ॉल्ट)</string>
     <string name="termux_terminal_view_terminal_margin_adjustment_title">टर्मिनल मार्जिन समायोजन</string>
     <string name="termux_terminal_view_view_header">दृश्य</string>
+    <string name="termux_tab_height_mode_title">टैब ऊँचाई</string>
+    <string name="termux_tab_height_mode_single">एक लाइन (डिफ़ॉल्ट)</string>
+    <string name="termux_tab_height_mode_double">दो लाइनें</string>
+    <string name="termux_tab_panel_position_title">टैब पैनल स्थिति</string>
+    <string name="termux_tab_panel_position_top">शीर्ष (डिफ़ॉल्ट)</string>
+    <string name="termux_tab_panel_position_bottom">नीचे</string>
     <string name="termux_widget_preferences_summary">&TERMUX_WIDGET_APP_NAME; ऐप के लिए प्राथमिकताएँ</string>
     <string name="termux_widget_preferences_title">&TERMUX_WIDGET_APP_NAME;</string>
     <string name="text_input_append_enter_summary">इनपुट फ़ील्ड से भेजते समय, पंक्ति को भी सबमिट करें (Enter दबाएँ)। बिना ट्रेलिंग न्यूलाइन के कच्चा पाठ भेजने के लिए अक्षम करें।</string>
@@ -197,6 +207,8 @@
     <string name="text_input_show_summary_on">टेक्स्ट इनपुट फ़ील्ड एक्स्ट्रा कीज़ के ऊपर दिखाई दे रहा है</string>
     <string name="text_input_show_title">टेक्स्ट इनपुट फ़ील्ड दिखाएँ</string>
     <string name="text_input_title">पाठ इनपुट</string>
+    <string name="text_input_hide_on_send_title">भेजने के बाद इनपुट पैनल छिपाएँ</string>
+    <string name="text_input_hide_on_send_summary">सक्षम होने पर, भेजने के बाद इनपुट पैनल बंद हो जाता है और फ़ोकस टर्मिनल पर चला जाता है। लगातार कमांड के लिए पैनल खुला रखने हेतु इसे अक्षम करें।</string>
     <string name="theme_mode_title">ऐप थीम</string>
     <string name="theme_mode_summary">ऐप और टर्मिनल थीम चुनें</string>
     <string name="theme_title">थीम</string>

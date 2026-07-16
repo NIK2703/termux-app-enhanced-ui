@@ -195,10 +195,22 @@
 <string name="backup_service_notification_cancel">İptal</string>
 <string name="backup_restore_cancelled">İşlem iptal edildi</string>
 <string name="tab_close_description">Sekmeyi kapat</string>
-<string name="session_default_title">Terminal</string>
-<string name="text_input_show_title">Metin giriş alanını göster</string>
+    <string name="session_default_title">Terminal</string>
+    <string name="new_tab_placeholder_hint">Yeni oturum</string>
+    <string name="session_tabs_title">Oturum sekmeleri</string>
+    <string name="swipe_rightmost_new_tab_title">Yeni oturum için en sağdaki sekmeyi kaydırın</string>
+    <string name="swipe_rightmost_new_tab_summary">Son sekmede, yeni bir terminal oturumu açmak için sağa kaydırın</string>
+    <string name="termux_tab_height_mode_title">Sekme yüksekliği</string>
+    <string name="termux_tab_height_mode_single">Tek satır (varsayılan)</string>
+    <string name="termux_tab_height_mode_double">İki satır</string>
+    <string name="termux_tab_panel_position_title">Sekme paneli konumu</string>
+    <string name="termux_tab_panel_position_top">Üst (varsayılan)</string>
+    <string name="termux_tab_panel_position_bottom">Alt</string>
+    <string name="text_input_show_title">Metin giriş alanını göster</string>
 <string name="text_input_show_summary_on">Metin giriş alanı ek tuşlarının üzerinde görünür</string>
-<string name="text_input_show_summary_off">Metin giriş alanı gizli</string>
+    <string name="text_input_show_summary_off">Metin giriş alanı gizli</string>
+    <string name="text_input_hide_on_send_title">Gönderdikten sonra giriş panelini gizle</string>
+    <string name="text_input_hide_on_send_summary">Etkinleştirildiğinde, giriş paneli kapanır ve gönderdikten sonra odak terminale geçer. Ardışık komutlar için paneli açık tutmak üzere devre dışı bırakın.</string>
 <string name="message_history_empty">Mesaj geçmişi yok</string>
 <string name="message_history_clear_all">GEÇMİŞİ TEMİZLE…</string>
 <string name="message_history_clear">Temizle</string>
@@ -248,6 +260,14 @@
     <!-- Hide extra keys with keyboard -->
     <string name="hide_extra_keys_with_keyboard_title">Ekstra tuşları klavyeyle gizle</string>
     <string name="hide_extra_keys_with_keyboard_summary">Klavye kapatıldığında ekstra düğmeleri otomatik gizle, açıldığında göster</string>
+
+    <!-- Tab preferences -->
+    <string name="termux_tab_height_mode_title">Sekme yüksekliği</string>
+    <string name="termux_tab_height_mode_single">Tek satır (varsayılan)</string>
+    <string name="termux_tab_height_mode_double">İki satır</string>
+    <string name="termux_tab_panel_position_title">Sekme paneli konumu</string>
+    <string name="termux_tab_panel_position_top">Üst (varsayılan)</string>
+    <string name="termux_tab_panel_position_bottom">Alt</string>
 
     <!-- Text input auto-complete -->
     <string name="suggestions_max_count_title">Maks. öneri</string>

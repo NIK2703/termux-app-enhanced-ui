@@ -21,6 +21,10 @@
     <string name="action_font_terminal">터미널 폰트</string>
     <string name="action_kill_process">프로세스 강제 종료 (%d)</string>
     <string name="action_new_session">새 세션</string>
+    <string name="new_tab_placeholder_hint">새 세션</string>
+    <string name="session_tabs_title">세션 탭</string>
+    <string name="swipe_rightmost_new_tab_title">가장 오른쪽 탭을 오른쪽으로 스와이프하여 새 세션</string>
+    <string name="swipe_rightmost_new_tab_summary">마지막 탭에서 오른쪽으로 스와이프하면 새 터미널 세션이 나타나 열립니다</string>
     <string name="action_new_session_failsafe">Failsafe</string>
     <string name="action_open_help">도움말</string>
     <string name="action_open_settings">설정</string>
@@ -175,6 +179,12 @@ $HOME/bin/termux-url-opener
     <string name="session_null_title">null 세션</string>
     <string name="shared_user_label">&TERMUX_APP_NAME;의 공유 사용자</string>
     <string name="tab_close_description">탭 닫기</string>
+    <string name="termux_tab_height_mode_title">탭 높이</string>
+    <string name="termux_tab_height_mode_single">한 줄 (기본값)</string>
+    <string name="termux_tab_height_mode_double">두 줄</string>
+    <string name="termux_tab_panel_position_title">탭 패널 위치</string>
+    <string name="termux_tab_panel_position_top">위 (기본값)</string>
+    <string name="termux_tab_panel_position_bottom">아래</string>
     <string name="termux_api_preferences_summary">&TERMUX_API_APP_NAME; 앱 설정</string>
     <string name="termux_api_preferences_title">&TERMUX_API_APP_NAME;</string>
     <string name="termux_button_bg_active_alpha_title" formatted="false">활성 요소 투명도</string>
@@ -226,6 +236,8 @@ $HOME/bin/termux-url-opener
     <string name="text_input_show_summary_on">텍스트 입력 필드가 추가 키 위에 표시됩니다</string>
     <string name="text_input_show_title">텍스트 입력 표시</string>
     <string name="text_input_title">텍스트 입력</string>
+    <string name="text_input_hide_on_send_title">전송 후 입력 패널 숨기기</string>
+    <string name="text_input_hide_on_send_summary">활성화하면 전송 후 입력 패널이 닫히고 포커스가 터미널로 이동합니다. 연속된 명령을 위해 패널을 열어 두려면 비활성화하세요.</string>
     <string name="theme_mode_title">앱 테마</string>
     <string name="theme_mode_summary">앱 및 터미널 테마 선택</string>
     <string name="theme_title">테마</string>

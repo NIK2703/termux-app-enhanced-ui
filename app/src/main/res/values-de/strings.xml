@@ -145,6 +145,16 @@
     <string name="screen_orientation_title">Bildschirmausrichtung</string>
     <string name="session_default_title">Terminal</string>
     <string name="session_null_title">null-Sitzung</string>
+    <string name="new_tab_placeholder_hint">Neue Sitzung</string>
+    <string name="session_tabs_title">Sitzungs-Tabs</string>
+    <string name="swipe_rightmost_new_tab_title">Rechten Tab wischen für neue Sitzung</string>
+    <string name="swipe_rightmost_new_tab_summary">Bei dem letzten Tab nach rechts wischen, um eine neue Terminalsitzung aufzudecken und zu öffnen</string>
+    <string name="termux_tab_height_mode_title">Tab-Höhe</string>
+    <string name="termux_tab_height_mode_single">Eine Zeile (Standard)</string>
+    <string name="termux_tab_height_mode_double">Zwei Zeilen</string>
+    <string name="termux_tab_panel_position_title">Tab-Panel-Position</string>
+    <string name="termux_tab_panel_position_top">Oben (Standard)</string>
+    <string name="termux_tab_panel_position_bottom">Unten</string>
     <string name="shared_user_label">&TERMUX_APP_NAME;-Benutzer</string>
     <string name="tab_close_description">Tab schließen</string>
     <string name="termux_api_preferences_summary">Einstellungen für die &TERMUX_API_APP_NAME;-App</string>
@@ -195,6 +205,8 @@
     <string name="text_input_show_summary_on">Texteingabefeld ist über den Zusatztasten sichtbar</string>
     <string name="text_input_show_title">Texteingabefeld anzeigen</string>
     <string name="text_input_title">Texteingabe</string>
+    <string name="text_input_hide_on_send_title">Eingabepanel nach Senden ausblenden</string>
+    <string name="text_input_hide_on_send_summary">Wenn aktiviert, schließt sich das Eingabepanel und der Fokus wechselt nach dem Senden zum Terminal. Deaktivieren, um das Panel für aufeinanderfolgende Befehle geöffnet zu lassen.</string>
 <string name="theme_title">App-Design</string>
     <string name="title_activity_termux_settings">&TERMUX_APP_NAME;-Einstellungen</string>
     <string name="title_confirm_kill_process">Diese Sitzung wirklich beenden?</string>

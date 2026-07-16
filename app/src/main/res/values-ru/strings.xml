@@ -238,8 +238,8 @@
     <string name="text_input_append_enter_title">Добавлять Enter при отправке</string>
     <string name="text_input_append_enter_summary">При отправке из поля ввода также отправлять перевод строки (Enter). Отключите, чтобы отправлять текст без завершающего переноса строки.</string>
 
-    <string name="text_input_hide_on_send_title">Прятать панель ввода после отправки</string>
-    <string name="text_input_hide_on_send_summary">При включении панель ввода закрывается, а фокус переходит в терминал после отправки сообщения. Отключите, чтобы панель оставалась открытой для последовательных команд.</string>
+    <string name="text_input_hide_on_send_title">Скрывать панель ввода после отправки</string>
+    <string name="text_input_hide_on_send_summary">При включении панель ввода закрывается и фокус переходит в терминал после отправки. Отключите, чтобы панель оставалась открытой для последовательных команд.</string>
 
     <!-- Directory history preferences -->
     <string name="directory_history_title">История папок</string>
@@ -290,6 +290,16 @@
     <!-- Session tabs -->
     <string name="tab_close_description">Закрыть вкладку</string>
     <string name="session_default_title">Терминал</string>
+    <string name="new_tab_placeholder_hint">Новый сеанс</string>
+    <string name="session_tabs_title">Вкладки сеансов</string>
+    <string name="swipe_rightmost_new_tab_title">Смахните последнюю вкладку для нового сеанса</string>
+    <string name="swipe_rightmost_new_tab_summary">На последней вкладке смахните вправо, чтобы открыть новый сеанс терминала</string>
+    <string name="termux_tab_height_mode_title">Высота вкладки</string>
+    <string name="termux_tab_height_mode_single">Одна строка (по умолчанию)</string>
+    <string name="termux_tab_height_mode_double">Две строки</string>
+    <string name="termux_tab_panel_position_title">Положение панели вкладок</string>
+    <string name="termux_tab_panel_position_top">Сверху (по умолчанию)</string>
+    <string name="termux_tab_panel_position_bottom">Снизу</string>
 
     <!-- Text input show preference -->
     <string name="text_input_show_title">Показывать поле ввода текста</string>
