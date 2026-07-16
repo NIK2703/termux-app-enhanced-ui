@@ -354,7 +354,17 @@ public final class SessionPagerManager {
         // TerminalView pointer is correct. This mirrors a normal swipe settling on an already-bound
         // tab (no detached view, no missing highlight).
         final int idx = placeholderIndex;
-        mTerminalPager.post(() -> onTerminalPageSelected(idx));
+        mTerminalPager.post(() -> {
+            onTerminalPageSelected(idx);
+            // Force the tab strip to reveal the newly-committed tab. The synchronous
+            // updateTabs() fired during session creation ran while getCurrentSession()
+            // still pointed at the OLD last tab, scrolling the strip leftward (it read
+            // as snapping back to the start). And onTerminalPageSelected() above may take
+            // its deferred path if the new page is not bound yet, so it would not scroll.
+            // Scroll explicitly here so the strip always lands on the new tab.
+            TermuxSessionTabsController tabsCtrl = mActivity.getTermuxSessionTabsController();
+            if (tabsCtrl != null) tabsCtrl.scrollToTabIndex(idx);
+        });
     }
 
     /** Drop the placeholder page without creating a session and restore a clean tab-strip state. */

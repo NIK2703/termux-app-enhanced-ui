@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tag holding the TerminalSession bound to a tab view, used to locate the
+         view when animating a tab close. -->
+    <item name="session_tab_session_tag" type="id" />
+    <!-- Tag marking a tab view that is currently playing its close animation. -->
+    <item name="session_tab_closing_tag" type="id" />
+</resources>

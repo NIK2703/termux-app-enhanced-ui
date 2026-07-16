@@ -1,11 +1,16 @@
 package com.termux.app.terminal;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.LayoutTransition;
+import android.animation.ObjectAnimator;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
@@ -40,6 +45,24 @@ public class TermuxSessionTabsController {
         this.mActivity = activity;
         this.mTabsContainer = activity.findViewById(R.id.session_tabs);
         this.mTabsScroll = activity.findViewById(R.id.session_tabs_scroll);
+
+        // Enable layout animations so that when a tab is removed the tabs to its
+        // right glide smoothly into the freed space (instead of an instant jump).
+        // The DISAPPEARING animation is disabled below — we run our own closing
+        // animation on the removed tab, and a built-in DISAPPEARING fade would
+        // both delay the slide-in of the neighbours and fight our effect.
+        LayoutTransition transition = new LayoutTransition();
+        transition.enableTransitionType(LayoutTransition.CHANGING);
+        transition.enableTransitionType(LayoutTransition.APPEARING);
+        transition.enableTransitionType(LayoutTransition.CHANGE_APPEARING);
+        transition.disableTransitionType(LayoutTransition.DISAPPEARING);
+        transition.disableTransitionType(LayoutTransition.CHANGE_DISAPPEARING);
+        transition.setDuration(220);
+        transition.setInterpolator(LayoutTransition.CHANGING,
+                new AccelerateDecelerateInterpolator());
+        transition.setInterpolator(LayoutTransition.CHANGE_APPEARING,
+                new AccelerateDecelerateInterpolator());
+        mTabsContainer.setLayoutTransition(transition);
     }
 
     /** Returns tab height in pixels based on the user's tab-height preference. */
@@ -205,6 +228,11 @@ public class TermuxSessionTabsController {
 
         TerminalSession terminalSession = termuxSession.getTerminalSession();
 
+        // Bind the session reference onto the view so closeSession() can locate
+        // the exact tab to animate without relying on positional index (which
+        // shifts as other tabs open/close).
+        tabView.setTag(R.id.session_tab_session_tag, terminalSession);
+
         // Re-bind the click listener to the current (correct) session reference.
         // updateTabs() reuses existing tab views by position — without this the
         // closure would still point at the session that was at this position
@@ -273,12 +301,121 @@ public class TermuxSessionTabsController {
     }
 
     /**
-     * Close a terminal session - finish it if running and then remove
+     * Close a terminal session.  Runs a short "fly away & dissolve" animation on the
+     * tab being closed, then finishes the underlying session.  The neighbours to the
+     * right slide into the freed space via the container's LayoutTransition.
      */
     private void closeSession(TerminalSession session) {
         if (session == null) return;
-        
-        // Finish the session by sending SIGKILL - onSessionFinished callback will handle removal
+
+        // Find the tab view that maps to this session.
+        View tabView = null;
+        if (mTabsContainer != null) {
+            for (int i = 0; i < mTabsContainer.getChildCount() - 1; i++) {
+                View child = mTabsContainer.getChildAt(i);
+                if (child == null) continue;
+                Object tag = child.getTag(R.id.session_tab_session_tag);
+                if (tag == session) {
+                    tabView = child;
+                    break;
+                }
+            }
+        }
+
+        if (tabView == null) {
+            // No view found (e.g. race) — just finish the session, the normal
+            // updateTabs() removal will follow.
+            session.finishIfRunning();
+            return;
+        }
+
+        // Guard against double-closing the same tab.
+        if (Boolean.TRUE.equals(tabView.getTag(R.id.session_tab_closing_tag))) return;
+        tabView.setTag(R.id.session_tab_closing_tag, Boolean.TRUE);
+
+        animateTabClose(tabView, session);
+    }
+
+    /**
+     * Animate the closing tab as the exact inverse of the open animation.
+     *
+     * <p>When a tab opens, its view is added to the container and its width grows
+     * from 0 to full while the neighbours are pushed aside (the container's
+     * LayoutTransition APPEARING + CHANGING animators). Closing mirrors this: we
+     * collapse the closing view's width from its current value down to 0, which
+     * makes the LinearLayout re-measure every frame so the surrounding tabs glide
+     * inward to fill the freed space. A short alpha fade rides along so the shrinking
+     * tab dissolves rather than clipping its contents.</p>
+     *
+     * <p>The view is removed from the container manually at the end of the animation
+     * (before {@link TerminalSession#finishIfRunning()}), so the collapsed view never
+     * flashes back to its original size: by the time updateTabs() runs the child is
+     * already gone and the session/view counts already agree, so no trailing view is
+     * removed and no stale view is re-shown.</p>
+     */
+    private void animateTabClose(final View tabView, final TerminalSession session) {
+        // Disable the per-tab click while it animates out.
+        tabView.setClickable(false);
+        ImageButton closeBtn = tabView.findViewById(R.id.session_tab_close);
+        if (closeBtn != null) closeBtn.setClickable(false);
+
+        // Freeze the current pixel width and drive it down to 0. Using a fixed width
+        // (instead of WRAP_CONTENT) lets the LinearLayout re-measure smoothly.
+        final int startWidth = tabView.getWidth();
+        if (startWidth <= 0) {
+            // Not laid out yet — nothing to animate; remove immediately.
+            removeClosingTab(tabView, session);
+            return;
+        }
+
+        final ViewGroup.LayoutParams lp = tabView.getLayoutParams();
+
+        // Suppress the container's DISAPPEARING/CHANGE reflow while we drive the
+        // width ourselves, otherwise the two effects fight. CHANGING is already used
+        // for the *open* case; here our per-frame requestLayout does the reflow.
+        android.animation.ValueAnimator collapse =
+                android.animation.ValueAnimator.ofInt(startWidth, 0);
+        collapse.setDuration(150);
+        collapse.setInterpolator(new AccelerateDecelerateInterpolator());
+        collapse.addUpdateListener(animation -> {
+            lp.width = (int) animation.getAnimatedValue();
+            tabView.setLayoutParams(lp);
+        });
+
+        ObjectAnimator alpha = ObjectAnimator.ofFloat(tabView, View.ALPHA, 1f, 0f);
+
+        android.animation.AnimatorSet set = new android.animation.AnimatorSet();
+        set.playTogether(collapse, alpha);
+        set.setDuration(150);
+        set.setInterpolator(new AccelerateDecelerateInterpolator());
+        set.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                removeClosingTab(tabView, session);
+            }
+        });
+        set.start();
+    }
+
+    /**
+     * Remove a fully-collapsed closing tab view from the container and finish its
+     * session. Removing the view first keeps the container child count in sync with
+     * the session count before updateTabs() runs, so no view is re-shown or
+     * double-removed.
+     */
+    private void removeClosingTab(final View tabView, final TerminalSession session) {
+        if (mTabsContainer != null) {
+            mTabsContainer.removeView(tabView);
+        }
+        // Restore transient state on the (now detached) view in case it is ever
+        // recycled by the layout system.
+        tabView.setAlpha(1f);
+        ViewGroup.LayoutParams lp = tabView.getLayoutParams();
+        if (lp != null) {
+            lp.width = ViewGroup.LayoutParams.WRAP_CONTENT;
+            tabView.setLayoutParams(lp);
+        }
+        tabView.setTag(R.id.session_tab_closing_tag, null);
         session.finishIfRunning();
     }
 
@@ -302,6 +439,48 @@ public class TermuxSessionTabsController {
         mPendingTabScrollIndex = index;
         mTabsScroll.removeCallbacks(mTabScrollRunnable);
         mTabsScroll.post(mTabScrollRunnable);
+    }
+
+    /**
+     * Force the tab strip to reveal a specific tab, waiting until the strip layout
+     * has fully settled before measuring.
+     *
+     * <p>Used after committing the trailing "swipe-right for new tab" placeholder. The
+     * naive approach (a single {@code post} + centre-on-tab) mis-scrolled because the
+     * freshly-added tab enters via the container's {@link LayoutTransition} APPEARING
+     * animation: its width grows from 0 to full over 220ms while the neighbours slide,
+     * so a scroll computed one frame after {@code addView} reads unsettled
+     * {@code getLeft()}/{@code getWidth()} values and lands the strip somewhere in the
+     * middle. Here we defer the scroll until the APPEARING transition ends (via a
+     * one-shot {@link LayoutTransition.TransitionListener}); if no transition is
+     * running we scroll on the next layout pass.</p>
+     */
+    public void scrollToTabIndex(int index) {
+        if (mTabsContainer == null || mTabsScroll == null) return;
+
+        final LayoutTransition transition = mTabsContainer.getLayoutTransition();
+        if (transition != null && transition.isRunning()) {
+            transition.addTransitionListener(new LayoutTransition.TransitionListener() {
+                @Override
+                public void startTransition(LayoutTransition t, ViewGroup container,
+                                            View view, int transitionType) { }
+
+                @Override
+                public void endTransition(LayoutTransition t, ViewGroup container,
+                                          View view, int transitionType) {
+                    // Only act once the whole transition batch has finished so the
+                    // final geometry is stable. Remove the listener so it fires once.
+                    if (t.isRunning()) return;
+                    t.removeTransitionListener(this);
+                    scrollToTab(index);
+                }
+            });
+            return;
+        }
+
+        // No transition running — scroll after the next layout pass so a just-added
+        // tab that has not been measured yet gets its final position first.
+        mTabsScroll.post(() -> scrollToTab(index));
     }
 
     private final Runnable mTabScrollRunnable = new Runnable() {
