@@ -263,6 +263,22 @@ public final class TerminalPagerAdapter extends RecyclerView.Adapter<TerminalPag
         mAttachedViews.put(position, terminalView);
     }
 
+    /**
+     * Payload-aware overload. RecyclerView always calls this (never coalesces) when a payload is
+     * supplied, so a {@link #PAYLOAD_REBIND} notification reliably re-runs the full bind (and
+     * re-attaches the session to the reused ViewHolder). With no payload we still defer to the
+     * standard 2-arg bind.
+     */
+    @Override
+    public void onBindViewHolder(@NonNull TerminalPageViewHolder holder, int position,
+                                 @NonNull List<Object> payloads) {
+        if (!payloads.isEmpty()) {
+            onBindViewHolder(holder, position);
+        } else {
+            onBindViewHolder(holder, position);
+        }
+    }
+
     /** @return the TerminalView currently bound to {@code position}, or null if not bound. */
     @androidx.annotation.Nullable
     public TerminalView getAttachedView(int position) {
@@ -321,6 +337,14 @@ public final class TerminalPagerAdapter extends RecyclerView.Adapter<TerminalPag
     }
 
     /**
+     * Payload that forces {@link #onBindViewHolder(TerminalPageViewHolder, int, List)} to run even
+     * when RecyclerView would otherwise skip the rebind (same ViewHolder already bound to that
+     * position). Used by {@link #commitPlaceholder} so the freshly-created session is actually
+     * attached to the view occupying the placeholder slot.
+     */
+    public static final Object PAYLOAD_REBIND = new Object();
+
+    /**
      * Replace the trailing placeholder page with the real session list: the slot at
      * {@code placeholderIndex} is rebound to the newly-created session (which now sits there),
      * keeping the pager parked on that page (no jump). Called when the swipe settles on the
@@ -329,7 +353,11 @@ public final class TerminalPagerAdapter extends RecyclerView.Adapter<TerminalPag
     public void commitPlaceholder(@NonNull List<TermuxSession> serviceSessions, int placeholderIndex) {
         mSessions = new java.util.ArrayList<>(serviceSessions);
         mPlaceholderActive = false;
-        notifyItemChanged(placeholderIndex);
+        // Use a payload so onBindViewHolder() is GUARANTEED to run and re-attach the new session to
+        // the (reused) ViewHolder. A plain notifyItemChanged() can be skipped by RecyclerView when
+        // the ViewHolder is already bound to that position, which would leave the view without its
+        // session and the activity pointing at a blank page.
+        notifyItemChanged(placeholderIndex, PAYLOAD_REBIND);
     }
 
     /**

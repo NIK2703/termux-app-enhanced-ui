@@ -104,6 +104,40 @@ public final class AutoCompleteController {
     /** Last Y position passed to mSuggestionsPopup.update() (suppress redundant no-op calls). */
     private int mLastPopupY = 0;
 
+    // ── Swipe-to-select gesture on suggestion items ──
+    /**
+     * Horizontal swipe on a suggestion row progressively appends the next
+     * word(s) of that suggestion into a live text selection in the input field.
+     * Swipe right adds words, swipe left removes them; the selection is dropped
+     * (committed) when the finger is lifted. State is per-gesture and reset in
+     * {@link #resetSwipeState()}.
+     */
+    private int mSwipeTouchSlop = -1;
+    /** Raw X at ACTION_DOWN, used to compute horizontal displacement. */
+    private float mSwipeStartX;
+    /** Raw Y at ACTION_DOWN, used to require the gesture stays horizontal-dominant. */
+    private float mSwipeStartY;
+    /** True once horizontal movement exceeded the touch slop (swipe engaged). */
+    private boolean mSwipeEngaged;
+    /** Words remaining to be inserted from the swiped suggestion (in order). */
+    @Nullable private String[] mSwipeWords;
+    /** Text kept before any swipe-added words (the user's already-typed prefix / base). */
+    @Nullable private String mSwipeBaseText;
+    /** Whether a separator space is needed between the base text and the first added word. */
+    private boolean mSwipeNeedsLeadingSpace;
+    /** Selection anchor (start) — stays fixed while the selection end grows/shrinks. */
+    private int mSwipeAnchorStart;
+    /** Number of words currently appended to the selection. */
+    private int mSwipeWordsAdded;
+    /** Horizontal pixels of finger travel that add/remove one word. */
+    private int mSwipeUnitWidthPx;
+    /** Suggestion string the current gesture started on (matched by tag, not index). */
+    @Nullable private String mSwipeSuggestion;
+    /** Parent whose touch-interception we disabled while engaged, so we can restore it. */
+    @Nullable private android.view.ViewParent mSwipeDisallowParent;
+    /** Suggestion row held in the pressed state during the swipe, cleared on end. */
+    @Nullable private View mSwipePressedView;
+
     // ── Auto-complete popup dimensions (read once from resources) ──
     private final int mPopupCornerRadiusPx;
     private final int mPopupElevationPx;
@@ -778,7 +812,213 @@ public final class AutoCompleteController {
             dismissAutoCompleteSuggestions();
             mMessageHistoryDismissListener.run();
         });
+        tv.setOnTouchListener(this::onSuggestionSwipeTouch);
         return tv;
+    }
+
+    /**
+     * Touch handler implementing the swipe-to-select gesture on a suggestion row.
+     *
+     * <p>While the finger is down and moving horizontally past the touch slop,
+     * each {@link #mSwipeUnitWidthPx} of rightward travel appends the next word
+     * of the suggestion into a live selection in {@link #mInputField}; leftward
+     * travel removes previously-added words. The selection is highlighted while
+     * the finger is down and collapsed (committed) on release. A pure tap never
+     * engages the swipe and falls through to the item's {@code OnClickListener}
+     * (tap-to-insert), because we return {@code false} until the slop is crossed.
+     */
+    private boolean onSuggestionSwipeTouch(@NonNull View v, @NonNull MotionEvent event) {
+        if (mInputField == null) return false;
+
+        switch (event.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN: {
+                mSwipeStartX = event.getRawX();
+                mSwipeStartY = event.getRawY();
+                mSwipeEngaged = false;
+                mSwipeWordsAdded = 0;
+
+                if (mSwipeTouchSlop < 0) {
+                    mSwipeTouchSlop = android.view.ViewConfiguration.get(mContext).getScaledTouchSlop();
+                }
+                // ~24dp of travel per word — a light, responsive swipe.
+                float density = mContext.getResources().getDisplayMetrics().density;
+                mSwipeUnitWidthPx = Math.max(1, (int) (24 * density));
+
+                Object tag = v.getTag();
+                mSwipeSuggestion = (tag instanceof String) ? (String) tag : null;
+                if (mSwipeSuggestion == null) return false;
+
+                // The words to insert are the suggestion's remainder past the
+                // already-typed prefix, so we never re-append what's already there.
+                String base = mInputField.getText() != null ? mInputField.getText().toString() : "";
+                mSwipeBaseText = base;
+                String remainder = computeRemainder(mSwipeSuggestion, base);
+                mSwipeWords = splitShellWords(remainder);
+                // The first appended token needs a separating space ONLY when the
+                // base ends on a word character AND the remainder begins a new word.
+                // If the remainder continues the word the user was mid-typing (base
+                // "git com" + remainder "mit ..."), the tail glues on with no space.
+                // If the base already ends in whitespace (or is empty), no space is
+                // added either (it's already there / not needed).
+                boolean baseEndsWithWordChar = !base.isEmpty()
+                        && !Character.isWhitespace(base.charAt(base.length() - 1));
+                boolean remainderStartsNewWord = remainder.isEmpty()
+                        || Character.isWhitespace(remainder.charAt(0));
+                mSwipeNeedsLeadingSpace = baseEndsWithWordChar && remainderStartsNewWord;
+                mSwipeAnchorStart = base.length();
+                // Not consumed yet: allow a tap to become a click.
+                return false;
+            }
+
+            case MotionEvent.ACTION_MOVE: {
+                if (mSwipeWords == null || mSwipeWords.length == 0) {
+                    // Single-word (or empty-remainder) suggestion: nothing to add.
+                    return mSwipeEngaged;
+                }
+                float dx = event.getRawX() - mSwipeStartX;
+                float dy = event.getRawY() - mSwipeStartY;
+                if (!mSwipeEngaged) {
+                    if (Math.abs(dx) <= mSwipeTouchSlop) return false;
+                    // Ignore vertical-dominant drags so the popup can still scroll
+                    // (and diagonal scroll gestures aren't hijacked as word swipes).
+                    if (Math.abs(dy) > Math.abs(dx)) return false;
+                    // Engage swipe mode and stop the popup ScrollView from stealing
+                    // the gesture. Keep the row in the pressed state so it shows the
+                    // exact same highlight as a tap for the whole duration of the swipe.
+                    mSwipeEngaged = true;
+                    v.setPressed(true);
+                    v.cancelLongPress();
+                    mSwipePressedView = v;
+                    mSwipeDisallowParent = v.getParent();
+                    if (mSwipeDisallowParent != null) {
+                        mSwipeDisallowParent.requestDisallowInterceptTouchEvent(true);
+                    }
+                    mSuppressAutoComplete = true;
+                    // The selection highlight only renders while the field is focused.
+                    if (!mInputField.isFocused()) mInputField.requestFocus();
+                }
+                int target = (int) (dx / mSwipeUnitWidthPx);
+                if (target < 0) target = 0;
+                if (target > mSwipeWords.length) target = mSwipeWords.length;
+                if (target != mSwipeWordsAdded) {
+                    applyWordSelection(target);
+                    mSwipeWordsAdded = target;
+                }
+                return true;
+            }
+
+            case MotionEvent.ACTION_UP: {
+                boolean wasEngaged = mSwipeEngaged;
+                if (wasEngaged) {
+                    // Finger lifted intentionally: collapse the selection to its
+                    // end = commit the appended words.
+                    int end = mInputField.getSelectionEnd();
+                    if (end < 0) end = mInputField.length();
+                    mInputField.setSelection(end, end);
+                }
+                resetSwipeState();
+                if (wasEngaged) {
+                    // The field text changed during the swipe (which was suppressed):
+                    // refresh the auto-complete popup for the newly committed text.
+                    updateAutoCompleteSuggestions();
+                }
+                // If engaged we consumed the gesture (suppress the click); otherwise
+                // return false so a pure tap still triggers tap-to-insert.
+                return wasEngaged;
+            }
+
+            case MotionEvent.ACTION_CANCEL: {
+                boolean wasEngaged = mSwipeEngaged;
+                if (wasEngaged) {
+                    // Gesture cancelled (not a real lift): revert to the untouched
+                    // base text so no words are left committed.
+                    applyWordSelection(0);
+                    int end = mInputField.length();
+                    mInputField.setSelection(end, end);
+                }
+                resetSwipeState();
+                if (wasEngaged) {
+                    updateAutoCompleteSuggestions();
+                }
+                return wasEngaged;
+            }
+
+            default:
+                return mSwipeEngaged;
+        }
+    }
+
+    /**
+     * Returns the portion of {@code suggestion} that still needs to be inserted
+     * given the already-typed {@code base}. If the suggestion starts with the
+     * base (case-insensitively, matching the popup's own prefix logic), only the
+     * tail is returned; otherwise the whole suggestion is returned.
+     */
+    @NonNull
+    private static String computeRemainder(@NonNull String suggestion, @NonNull String base) {
+        if (!base.isEmpty()
+                && suggestion.length() >= base.length()
+                && suggestion.regionMatches(true, 0, base, 0, base.length())) {
+            return suggestion.substring(base.length());
+        }
+        return suggestion;
+    }
+
+    /** Split a shell-command remainder into non-empty whitespace-delimited words. */
+    @NonNull
+    private static String[] splitShellWords(@NonNull String s) {
+        String trimmed = s.trim();
+        if (trimmed.isEmpty()) return new String[0];
+        return trimmed.split("\\s+");
+    }
+
+    /**
+     * Rebuild the input field so that exactly {@code n} of {@link #mSwipeWords}
+     * are appended after {@link #mSwipeBaseText}, then select the appended range.
+     * Deterministic (recomputed from scratch each call) so rapid direction
+     * reversals stay correct.
+     */
+    private void applyWordSelection(int n) {
+        if (mInputField == null || mSwipeWords == null || mSwipeBaseText == null) return;
+        StringBuilder sb = new StringBuilder(mSwipeBaseText);
+        for (int i = 0; i < n; i++) {
+            if (i == 0) {
+                if (mSwipeNeedsLeadingSpace) sb.append(' ');
+            } else {
+                sb.append(' ');
+            }
+            sb.append(mSwipeWords[i]);
+        }
+        String newText = sb.toString();
+        mInputField.setText(newText);
+        int end = newText.length();
+        int start = Math.min(mSwipeAnchorStart, end);
+        mInputField.setSelection(start, end);
+    }
+
+    /**
+     * Clear all per-gesture swipe state. Always lifts the auto-complete
+     * suppression guard and the parent touch-interception block so neither can
+     * leak past the end of a gesture regardless of which exit path ran.
+     */
+    private void resetSwipeState() {
+        if (mSwipePressedView != null) {
+            mSwipePressedView.setPressed(false);
+            mSwipePressedView = null;
+        }
+        if (mSwipeDisallowParent != null) {
+            mSwipeDisallowParent.requestDisallowInterceptTouchEvent(false);
+            mSwipeDisallowParent = null;
+        }
+        if (mSwipeEngaged) {
+            mSuppressAutoComplete = false;
+        }
+        mSwipeEngaged = false;
+        mSwipeWords = null;
+        mSwipeBaseText = null;
+        mSwipeSuggestion = null;
+        mSwipeWordsAdded = 0;
+        mSwipeNeedsLeadingSpace = false;
     }
 
     /**
@@ -1083,6 +1323,12 @@ public final class AutoCompleteController {
         // the rest of the teardown so we don't emit repeated noise.
         if (mSuggestionsPopup == null && mCurrentSuggestions.isEmpty()) {
             return;
+        }
+        // Cancel any in-flight swipe-to-select gesture: its target row is going
+        // away. resetSwipeState() also drops the suppression guard and restores
+        // the parent touch-interception flag.
+        if (mSwipeEngaged) {
+            resetSwipeState();
         }
         Logger.logInfo(LOG_TAG, "[autocomplete] dismiss (popup=" + (mSuggestionsPopup != null)
                 + " suggestions=" + mCurrentSuggestions.size() + ")");

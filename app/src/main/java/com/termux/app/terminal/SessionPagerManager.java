@@ -346,29 +346,26 @@ public final class SessionPagerManager {
         // next frame by managePlaceholderForPosition(idx) inside the post() block below — inserting
         // the page to the RIGHT of the settled current page, which is safe.
 
-        // commitPlaceholder() triggers an async in-place rebind (notifyItemChanged) of the same
-        // ViewHolder. Run the standard per-page bookkeeping on the next frame, once the new session
-        // is bound to the view — so the tab strip highlights the new tab and the activity's active
-        // TerminalView pointer is correct. This mirrors a normal swipe settling on an already-bound
-        // tab (no detached view, no missing highlight).
+        // commitPlaceholder() triggers an in-place rebind of the (reused) ViewHolder carrying the
+        // new session — via a payloaded notifyItemChanged so RecyclerView does NOT skip the bind.
+        // Re-arm the placeholder immediately (next frame, safe — inserts to the right of the
+        // settled page) so a subsequent right-swipe can still create a session, then run the
+        // standard per-page bookkeeping on the next frame, once the ViewHolder is rebound: this
+        // re-points the activity's active TerminalView at the new page and highlights its tab.
         final int idx = placeholderIndex;
         mTerminalPager.post(() -> {
-            onTerminalPageSelected(idx);
-            // Re-arm the trailing placeholder page so a subsequent right-swipe can still create a
-            // session. This runs on the next frame after the committed page is bound, inserting the
-            // placeholder at idx+1 (to the right of the current page), which does NOT move the
-            // current page — so it cannot trigger the ViewPager2 snapToPage rewind the *synchronous*
-            // re-arm used to cause. The normal swipe path (onPageSelected -> managePlaceholderForPosition)
-            // does exactly this on every settle; the commit path must too, otherwise the placeholder
-            // stays dropped forever and the next right-swipe just edge-bounces.
+            // Re-arm the trailing placeholder page. Inserts at idx+1 (right of current) — does NOT
+            // move the current page, so it cannot trigger the ViewPager2 snapToPage rewind. The
+            // normal swipe path (onPageSelected -> managePlaceholderForPosition) does exactly this
+            // on every settle; the commit path must too, otherwise the placeholder stays dropped
+            // forever and the next right-swipe just edge-bounces.
             managePlaceholderForPosition(idx);
             updatePagerUserInputEnabled();
-            // Force the tab strip to reveal the newly-committed tab. The synchronous
-            // updateTabs() fired during session creation ran while getCurrentSession()
-            // still pointed at the OLD last tab, scrolling the strip leftward (it read
-            // as snapping back to the start). And onTerminalPageSelected() above may take
-            // its deferred path if the new page is not bound yet, so it would not scroll.
-            // Scroll explicitly here so the strip always lands on the new tab.
+            // Re-point the active view + tab highlight at the newly-committed page. By now the
+            // payloaded rebind has attached the new session to the page view, so getPagerPageView()
+            // resolves the correct TerminalView (not the previous tab). The tab strip scrolls to
+            // the right edge when updateTabs() adds the new tab (see TermuxSessionTabsController).
+            onTerminalPageSelected(idx);
             TermuxSessionTabsController tabsCtrl = mActivity.getTermuxSessionTabsController();
             if (tabsCtrl != null) tabsCtrl.scrollToTabIndex(idx);
         });

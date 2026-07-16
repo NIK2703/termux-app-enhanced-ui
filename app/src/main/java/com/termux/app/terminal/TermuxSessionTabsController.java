@@ -147,12 +147,17 @@ public class TermuxSessionTabsController {
             populateTabView(tabView, termuxSession, i, i == currentSessionIndex);
         }
 
-        // Always scroll to the active tab after the rebuild.  The post from
-        // scrollToTab() uses last-call-wins (removeCallbacks + Runnable field),
-        // so setCurrentSession() calling scrollToTab() first and updateTabs()
-        // calling it right after does NOT queue two competing scrolls.
+        // Scroll after the rebuild.  The post from scrollToTab()/scrollToTabIndexRightEdge()
+        // uses last-call-wins (removeCallbacks + Runnable field), so setCurrentSession() calling
+        // scrollToTab() first and updateTabs() calling it right after does NOT queue two competing
+        // scrolls.
         mCurrentSessionIndex = currentSessionIndex;
-        if (currentSessionIndex >= 0) {
+        if (newCount > sessionCount) {
+            // A new tab was just added: reveal the RIGHT edge of the strip (not centre) so the
+            // freshly created tab — its session already initialised and its label just populated
+            // above — is fully visible at the end of the list.
+            scrollToTabIndexRightEdge(newCount - 1);
+        } else if (currentSessionIndex >= 0) {
             scrollToTab(currentSessionIndex);
         }
 
@@ -481,6 +486,46 @@ public class TermuxSessionTabsController {
         // No transition running — scroll after the next layout pass so a just-added
         // tab that has not been measured yet gets its final position first.
         mTabsScroll.post(() -> scrollToTab(index));
+    }
+
+    /**
+     * Like {@link #scrollToTabIndex(int)} but always scrolls the strip so the very end of the tab
+     * list (newly-added tab + trailing (+) button) is fully revealed — used when a brand-new tab is
+     * committed. The actual scroll is deferred to the next layout pass (see {@link
+     * #scrollToTabRightEdge}) so it runs only after the new tab's width AND label have been laid
+     * out, never mid-animation.
+     */
+    public void scrollToTabIndexRightEdge(int index) {
+        if (mTabsContainer == null || mTabsScroll == null) return;
+        scrollToTabRightEdge(index);
+    }
+
+    private void scrollToTabRightEdge(int index) {
+        if (mTabsContainer == null || mTabsScroll == null) return;
+        if (index < 0 || index >= mTabsContainer.getChildCount() - 1) return;
+        // Defer to the next layout pass: by then the add-tab button (last child, incl. the (+)
+        // button) has its final right edge and the new tab's label is populated. Computing scrollX
+        // from the (+) button's right edge lands exactly at the strip's end — unlike aligning to the
+        // last tab's right edge, which stopped short and left the button off-screen.
+        final android.view.ViewTreeObserver vto = mTabsContainer.getViewTreeObserver();
+        if (vto == null || !vto.isAlive()) return;
+        vto.addOnGlobalLayoutListener(new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                vto.removeOnGlobalLayoutListener(this);
+                if (mTabsContainer == null || mTabsScroll == null) return;
+                final View addBtn = mTabsContainer.findViewById(R.id.new_session_tab_button);
+                final int targetRight = (addBtn != null) ? addBtn.getRight() : mTabsContainer.getRight();
+                // Post so this runs AFTER any pending centred scrollToTab() from setCurrentSession,
+                // letting the right-edge scroll win smoothly (no mid-flight fight between the two).
+                mTabsScroll.post(() -> {
+                    if (mTabsContainer == null || mTabsScroll == null) return;
+                    int scrollX = targetRight - mTabsScroll.getWidth();
+                    if (scrollX < 0) scrollX = 0;
+                    mTabsScroll.smoothScrollTo(scrollX, 0);
+                });
+            }
+        });
     }
 
     private final Runnable mTabScrollRunnable = new Runnable() {
