@@ -24,6 +24,7 @@ import java.util.Date;
 import java.util.Locale;
 
 import java.util.Collections;
+import java.util.regex.Pattern;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -64,7 +65,10 @@ public class ShellCompletionProvider {
     private static final AtomicInteger TRACE_SEQ = new AtomicInteger();
     private static volatile boolean sTraceFileOkay = true;
 
+    private static final boolean TRACE_ENABLED = false;
+
     private static void trace(@NonNull String tag, @NonNull String msg) {
+        if (!TRACE_ENABLED) return;
         Logger.logInfo(LOG_TAG, msg);
         if (!sTraceFileOkay) return;
         try {
@@ -211,6 +215,29 @@ public class ShellCompletionProvider {
     private static final char REQ_SEP = '\u0001';
     /** End-of-response marker line the dispatcher prints after each request. */
     private static final String END_MARKER = "__END__";
+
+    /**
+     * Pre-compiled regexes for the hot path (every keystroke runs
+     * {@link #classifyScenario} / {@link #runBash} / {@link #contextPrefix}).
+     * Compiling a Pattern once instead of via {@code String.matches(...)} avoids
+     * re-parsing the regex on every completion call.
+     */
+    private static final Pattern PATTERN_VAR_EXPR =
+            Pattern.compile("\\$\\{?[A-Za-z_][A-Za-z0-9_]*\\[.*");
+    private static final Pattern PATTERN_NAME_ASSIGN =
+            Pattern.compile("[A-Za-z_][A-Za-z0-9_]*=.*");
+    private static final Pattern PATTERN_REDIR_FD =
+            Pattern.compile("[0-9]+(&?>+|<+|>>)");
+    private static final Pattern PATTERN_ARRAY_INDEX =
+            Pattern.compile("\\$(?:\\{)?[A-Za-z_][A-Za-z0-9_]*\\[.*");
+    private static final Pattern PATTERN_UNARY_FILE_OP =
+            Pattern.compile("-(f|d|e|r|w|x|L|h|S|b|c|p|u|g|k|s)");
+    private static final Pattern PATTERN_LOOP_KW =
+            Pattern.compile("^(for|case|select)$");
+    private static final Pattern PATTERN_REMOTE_HOSTCOLON =
+            Pattern.compile("^[A-Za-z0-9._-]+:.*");
+    private static final Pattern PATTERN_REMOTE_USERHOST =
+            Pattern.compile("^[^/@\\s]+@[^/@\\s]+:.*");
 
     /** The single long-lived bash dispatcher process (lazy-started). */
     @Nullable private Process mPersistent;
@@ -465,21 +492,13 @@ public class ShellCompletionProvider {
         // between a command-context slot and an argument-context slot that share the
         // same Java word index. COMP_WORDBREAKS_KEY is a compile-time constant that
         // never changes, so it is intentionally omitted from the key.
-        String context = contextPrefix(words, cword);
-        String cmdWord = (cword > 0 && words.length > 0) ? words[0] : "";
-        String cwdPart = (cword == 0) ? "" : (cwd == null ? "" : cwd);
-        // Fold the scenario into the key so two inputs that share the same
-        // cword/context (e.g. cword==0 empty command word: COMMAND_NAME vs
-        // VARIABLE) never share a cached candidate set.
+        // Classify ONCE here and reuse the result for both the key and the script.
         Scenario scenario = classifyScenario(words, cword);
         if (scenario == Scenario.HISTORY_EXPANSION || scenario == Scenario.ARRAY_INDEX) {
             trace("COMP", "complete(\"" + commandLine + "\") -> EMPTY (scenario=" + scenario + ")");
             return CompletionResult.EMPTY;
         }
-        String scenarioPart = scenario.name();
-        String key = cword + "\u0000" + context + "\u0000" + cmdWord + "\u0000"
-                + cwdPart + "\u0000" + scenarioPart + "\u0000"
-                + mEnvVersion.get();
+        String key = buildCacheKey(scenario, words, cword, cwd, mEnvVersion.get());
 
         trace("COMP", "complete(\"" + commandLine + "\") cword=" + cword
                 + " lastWord=\"" + lastWord + "\" prevToken=\"" + prevToken
@@ -513,7 +532,7 @@ public class ShellCompletionProvider {
         int compPoint = utf8ByteLength(commandLine, cursor);
         String currentWord = (words.length > 0) ? words[cword] : "";
 
-        String script = buildCompletionScript(words, cword, compLine, compPoint);
+        String script = buildCompletionScript(scenario, words, cword, compLine, compPoint);
         if (script == null) {
             // Template failed to load (resource missing) — do not cache.
             return CompletionResult.EMPTY;
@@ -765,7 +784,7 @@ public class ShellCompletionProvider {
         if ((lastWord.startsWith("$")
                 && !lastWord.startsWith("$(") && !lastWord.startsWith("$(((")
                 && !lastWord.startsWith("$[")
-                && !lastWord.matches("\\$\\{?[A-Za-z_][A-Za-z0-9_]*\\[.*"))
+                && !PATTERN_VAR_EXPR.matcher(lastWord).matches())
                 || cmd.equals("export") || cmd.equals("unset")
                 || cmd.equals("readonly") || cmd.equals("declare") || cmd.equals("typeset")) {
             return Scenario.VARIABLE;
@@ -777,7 +796,7 @@ public class ShellCompletionProvider {
         // first-word assignment would be mis-classified as a command name and try
         // compgen -c on the whole "VAR=value" token (empty result).
         if (cword == 0 && lastWord.indexOf('=') > 0
-                && lastWord.matches("[A-Za-z_][A-Za-z0-9_]*=.*")) {
+                && PATTERN_NAME_ASSIGN.matcher(lastWord).matches()) {
             return Scenario.PATH;
         }
 
@@ -787,7 +806,7 @@ public class ShellCompletionProvider {
             case "&>": case "&>>":
                 return Scenario.REDIRECTION;
             default:
-                if (prev.matches("[0-9]+(&?>+|<+|>>)")) return Scenario.REDIRECTION;
+                if (PATTERN_REDIR_FD.matcher(prev).matches()) return Scenario.REDIRECTION;
         }
 
         // A first word that is already a filesystem path (absolute, ~/tilde,
@@ -796,8 +815,8 @@ public class ShellCompletionProvider {
         // command name (S8b/S10). Hoist the path-literal test above the
         // command-name return so these route to PATH. Compute the remote check
         // inline here to avoid moving the later 'looksRemote' declaration.
-        boolean firstWordLooksRemote = lastWord.matches("^[A-Za-z0-9._-]+:.*")
-                || lastWord.matches("^[^/@\\s]+@[^/@\\s]+:.*")
+        boolean firstWordLooksRemote = PATTERN_REMOTE_HOSTCOLON.matcher(lastWord).matches()
+                || PATTERN_REMOTE_USERHOST.matcher(lastWord).matches()
                 || lastWord.contains("://");
         if (!firstWordLooksRemote && (lastWord.startsWith("/") || lastWord.startsWith("~")
                 || lastWord.startsWith(".")
@@ -808,7 +827,7 @@ public class ShellCompletionProvider {
         }
         // Array subscript completion (e.g. ${ARR[ ) — not a bare variable name
         // (S14). Route to a no-op scenario; real index completion is out of scope.
-        if (lastWord.matches("\\$(?:\\{)?[A-Za-z_][A-Za-z0-9_]*\\[.*")) {
+        if (PATTERN_ARRAY_INDEX.matcher(lastWord).matches()) {
             return Scenario.ARRAY_INDEX;
         }
 
@@ -829,7 +848,7 @@ public class ShellCompletionProvider {
                 || prev.equals("then") || prev.equals("else") || prev.equals("elif")) {
             return Scenario.COMMAND_CONTEXT;
         }
-        if (prev.indexOf('=') > 0 && prev.matches("[A-Za-z_][A-Za-z0-9_]*=.*")) {
+        if (prev.indexOf('=') > 0 && PATTERN_NAME_ASSIGN.matcher(prev).matches()) {
             return Scenario.COMMAND_CONTEXT;
         }
 
@@ -850,7 +869,7 @@ public class ShellCompletionProvider {
 
         // The operand of a [ / test / [[ unary file operator is a path (S2b).
         // e.g. `while [ -f va` or `while [ -f` (empty) should complete as a path.
-        if (prev.matches("-(f|d|e|r|w|x|L|h|S|b|c|p|u|g|k|s)")) {
+        if (PATTERN_UNARY_FILE_OP.matcher(prev).matches()) {
             return Scenario.PATH;
         }
 
@@ -858,7 +877,7 @@ public class ShellCompletionProvider {
         if (lastWord.isEmpty()) {
             // An empty word directly after a [ / test file operator is a path
             // operand (S2b); otherwise it's a command name.
-            if (prev.matches("-(f|d|e|r|w|x|L|h|S|b|c|p|u|g|k|s)")) {
+            if (PATTERN_UNARY_FILE_OP.matcher(prev).matches()) {
                 return Scenario.PATH;
             }
             return Scenario.COMMAND_NAME;
@@ -867,7 +886,7 @@ public class ShellCompletionProvider {
         // A bare word in the word-list after `in` (for/case/select) is a path,
         // not a command (S1b). The slash-prefixed case is already caught by the
         // PATH-literal check below; this handles the bare (non-slash) word.
-        if (prev.equals("in") && cmd.matches("^(for|case|select)$")) {
+        if (prev.equals("in") && PATTERN_LOOP_KW.matcher(cmd).matches()) {
             return Scenario.PATH;
         }
 
@@ -889,8 +908,8 @@ public class ShellCompletionProvider {
         // + "hom" and a LOCAL path "host:/hom" resolves to nothing. Such tokens
         // belong to the command's real compspec (e.g. rsync) which understands
         // remote syntax (S14).
-        boolean looksRemote = lastWord.matches("^[A-Za-z0-9._-]+:.*")
-                || lastWord.matches("^[^/@\\s]+@[^/@\\s]+:.*")
+        boolean looksRemote = PATTERN_REMOTE_HOSTCOLON.matcher(lastWord).matches()
+                || PATTERN_REMOTE_USERHOST.matcher(lastWord).matches()
                 || lastWord.contains("://");
         if (!looksRemote && (lastWord.startsWith("/") || lastWord.startsWith("~")
                 || lastWord.startsWith(".") || lastWord.indexOf('/') >= 0
@@ -938,14 +957,38 @@ public class ShellCompletionProvider {
      * @param envVersion the current environment version (from {@code mEnvVersion}).
      */
     static String cacheKeyFor(@NonNull String[] words, int cword,
-                              @Nullable String cwd, int envVersion) {
+                               @Nullable String cwd, int envVersion) {
+        Scenario scenario = classifyScenario(words, cword);
+        return buildCacheKey(scenario, words, cword, cwd, envVersion);
+    }
+
+    /**
+     * Build the per-word-slot cache key. Single source of truth shared by
+     * {@link #complete(String, String, int)} and {@link #cacheKeyFor} so the two
+     * never drift. Layout:
+     * {@code cword \0 context \0 cmdWord \0 cwdPart \0 scenario \0 envVersion}.
+     * Uses a {@link StringBuilder} to avoid the intermediate String allocations of
+     * chained {@code + "\u0000" +} concatenations on the hot path.
+     *
+     * @param scenario the pre-classified scenario (already computed by the caller).
+     * @param words    the tokenized command line (as from {@link #splitCommandLine}).
+     * @param cword    index of the word being completed.
+     * @param cwd      the working directory (affects file/path completions).
+     * @param envVersion the current environment version (from {@code mEnvVersion}).
+     */
+    private static String buildCacheKey(@NonNull Scenario scenario, @NonNull String[] words,
+                                        int cword, @Nullable String cwd, int envVersion) {
         String context = contextPrefix(words, cword);
         String cmdWord = (cword > 0 && words.length > 0) ? words[0] : "";
         String cwdPart = (cword == 0) ? "" : (cwd == null ? "" : cwd);
-        Scenario scenario = classifyScenario(words, cword);
-        String scenarioPart = scenario.name();
-        return cword + "\u0000" + context + "\u0000" + cmdWord + "\u0000"
-                + cwdPart + "\u0000" + scenarioPart + "\u0000" + envVersion;
+        return new StringBuilder()
+                .append(cword).append('\u0000')
+                .append(context).append('\u0000')
+                .append(cmdWord).append('\u0000')
+                .append(cwdPart).append('\u0000')
+                .append(scenario.name()).append('\u0000')
+                .append(envVersion)
+                .toString();
     }
 
     /**
@@ -967,15 +1010,14 @@ public class ShellCompletionProvider {
      * it returns the one-word TYPE that tells the dispatcher which single compgen
      * / glob to run.
      *
-     * @return the wire TYPE ({@code CMD/PATH/FILE/REDIR/VAR/SIGNAL/COMPSPEC}), or
+     * @return the wire TYPE ({@code CMD/PATH/REDIR/VAR/SIGNAL/COMPSPEC}), or
      *         {@code null} for scenarios that are never completable
      *         (HISTORY_EXPANSION / ARRAY_INDEX) — the caller treats {@code null}
      *         as EMPTY (no request, no cache).
      */
     @Nullable
-    private String buildCompletionScript(@NonNull String[] words, int cword,
-                                         @NonNull String compLine, int compPoint) {
-        Scenario scenario = classifyScenario(words, cword);
+    private String buildCompletionScript(@NonNull Scenario scenario, @NonNull String[] words,
+                                         int cword, @NonNull String compLine, int compPoint) {
         switch (scenario) {
             case COMMAND_NAME:
             case COMMAND_CONTEXT:
@@ -1006,7 +1048,7 @@ public class ShellCompletionProvider {
      *
      * <p>The seam signature is retained (tests override it to count fetches).
      * Here {@code script} carries the wire TYPE token
-     * ({@code CMD/PATH/FILE/REDIR/VAR/SIGNAL/COMPSPEC}) produced by
+     * ({@code CMD/PATH/REDIR/VAR/SIGNAL/COMPSPEC}) produced by
      * {@link #buildCompletionScript}, and {@code currentWord} is the raw token
      * being completed. All TYPE-specific token shaping (VAR {@code $}/{@code ${}}
      * sigil strip + re-wrap, SIGNAL {@code -}/{@code SIG} mapping, PATH
@@ -1019,7 +1061,12 @@ public class ShellCompletionProvider {
         String type = script;
 
         // ── TYPE-specific request shaping (moved out of bash). ──
-        String word = currentWord;
+        // Strip surrounding quotes exactly ONCE for every type (bash's tokenizer
+        // strips a single quote layer before producing candidates), so the
+        // dispatcher receives the same unquoted token bash would glob against
+        // (S8/S13). The assignment/var/signal shaping below then operates on this
+        // already-stripped word.
+        String word = stripOuterQuotes(currentWord);
         String assignPrefix = null;     // PATH: re-prepended to every candidate
         String varSigil = null;         // VAR: '$' + optional '{'
         String varClose = "";           // VAR: '}' when ${...
@@ -1027,19 +1074,10 @@ public class ShellCompletionProvider {
 
         switch (type) {
             case "PATH":
-            case "REDIR":
-            case "FILE": {
-                // Bash's word tokenizer strips a single layer of surrounding
-                // quotes, so the old per-scenario path template resolved
-                // CURRENT_WORD from COMP_WORDS (unquoted) before globbing. The
-                // persistent dispatcher receives the RAW word (quote retained by
-                // splitCommandLine), so a `cd "$HOME/DI` would arrive as
-                // `"/…/home/DI`; the leading quote defeats `compgen -G`. Strip the
-                // outer quote here to restore the original candidate set (S8/S13).
-                word = stripOuterQuotes(word);
+            case "REDIR": {
                 // NAME=value assignment: complete the VALUE against the filesystem,
                 // re-prepend VAR= to each candidate so the UI inserts the full token.
-                if (word.matches("[A-Za-z_][A-Za-z0-9_]*=.*")) {
+                if (PATTERN_NAME_ASSIGN.matcher(word).matches()) {
                     int eq = word.indexOf('=');
                     assignPrefix = word.substring(0, eq + 1);
                     word = word.substring(eq + 1);
@@ -1117,36 +1155,6 @@ public class ShellCompletionProvider {
     }
 
     /**
-     * Resolve the real command whose compspec should run: skip known
-     * command-wrappers ({@code sudo xargs env time nohup nice exec stdbuf
-     * timeout ionice setsid}) and inline {@code NAME=value} assignments that
-     * precede it, so e.g. {@code sudo systemctl sta} completes {@code systemctl}.
-     * Returns the command name (words[0] when no wrapper), or {@code null} when
-     * the word array is empty.
-     */
-    @Nullable
-    private static String resolveCompspecCommand(@NonNull String[] words) {
-        if (words.length == 0) return null;
-        int i = 0;
-        String cmd = words[0];
-        while (cmd != null && WRAPPER_COMMANDS.contains(cmd) && i + 1 < words.length) {
-            i++;
-            cmd = words[i];
-            while (cmd != null && cmd.matches("[A-Za-z_][A-Za-z0-9_]*=.*") && i + 1 < words.length) {
-                i++;
-                cmd = words[i];
-            }
-        }
-        return (cmd == null || cmd.isEmpty()) ? null : cmd;
-    }
-
-    /** Command wrappers whose real target is the following argument (COMPSPEC). */
-    private static final Set<String> WRAPPER_COMMANDS = Collections.unmodifiableSet(
-            new HashSet<>(java.util.Arrays.asList(
-                    "sudo", "xargs", "env", "time", "nohup", "nice", "exec",
-                    "stdbuf", "timeout", "ionice", "setsid")));
-
-    /**
      * Send one request to the persistent dispatcher and read its response up to
      * the {@code __END__} marker. Returns the raw NUL-delimited response bytes,
      * or {@code null} on timeout/error. On timeout it first attempts a graceful
@@ -1160,40 +1168,62 @@ public class ShellCompletionProvider {
         synchronized (mProcLock) {
             if (!ensurePersistent()) return null;
 
-            // Sanitize the request fields: strip our field separator and newlines
-            // (they would corrupt the single-line wire format).
-            String req = sanitizeField(type) + REQ_SEP + sanitizeField(word) + REQ_SEP
-                    + sanitizeField(cwd == null ? "" : cwd) + REQ_SEP + sanitizeField(line);
             final java.io.BufferedWriter in = mPersistentIn;
-            final java.io.BufferedReader stdout = mPersistentOut;
-            if (in == null || stdout == null) return null;
+            final Process proc = mPersistent;
+            if (in == null || proc == null) return null;
+            final java.io.InputStream rawOut = proc.getInputStream();
 
+            // Write the request. COMP_LINE is sent ONLY for COMPSPEC (3 fields for
+            // everything else) — keeps the wire minimal since bash reads COMP_LINE
+            // solely on the COMPSPEC path.
             try {
-                in.write(req);
-                in.write('\n');
-                in.flush();
+                writeRequest(in, type, word, cwd, "COMPSPEC".equals(type) ? line : null);
             } catch (IOException e) {
                 trace("BASH", "persistent write failed; restarting");
                 stopPersistent();
                 return null;
             }
 
-            // Read the response on a bounded side thread so we can time it out
-            // without blocking on a wedged dispatcher.
+            // Read the response on a bounded side thread, byte-for-byte, so we
+            // avoid the readLine() -> String -> getBytes() round-trip and the
+            // giant intermediate String. We scan for the bare "__END__" marker
+            // (a full line of its own) and accumulate raw bytes until we see it.
             final java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
             final Object done = new Object();
             final boolean[] completed = {false};
             final boolean[] eof = {false};
             Thread reader = new Thread(() -> {
                 try {
-                    String l;
-                    while ((l = stdout.readLine()) != null) {
-                        if (END_MARKER.equals(l)) {
-                            synchronized (done) { completed[0] = true; done.notifyAll(); }
-                            return;
+                    byte[] buf = new byte[8192];
+                    int r;
+                    // Rolling buffer of the trailing bytes so we can detect an
+                    // entire "\n__END__\n" line without buffering whole response.
+                    java.io.ByteArrayOutputStream tail = new java.io.ByteArrayOutputStream();
+                    while ((r = rawOut.read(buf)) != -1) {
+                        for (int k = 0; k < r; k++) {
+                            byte b = buf[k];
+                            bos.write(b);
+                            tail.write(b);
+                            // Keep at most the length of "\n__END__\n" (8 bytes) in tail.
+                            byte[] t = tail.toByteArray();
+                            if (t.length > 8) {
+                                tail.reset();
+                                tail.write(t, t.length - 8, 8);
+                            }
+                            byte[] tt = tail.toByteArray();
+                            if (tt.length >= 8 && tt[0] == '\n'
+                                    && tt[1] == '_' && tt[2] == '_' && tt[3] == 'E'
+                                    && tt[4] == 'N' && tt[5] == 'D' && tt[6] == '_'
+                                    && tt[7] == '_') {
+                                // Drop the trailing "\n__END__\n" from the payload.
+                                byte[] full = bos.toByteArray();
+                                int drop = Math.min(full.length, 8);
+                                bos.reset();
+                                bos.write(full, 0, full.length - drop);
+                                synchronized (done) { completed[0] = true; done.notifyAll(); }
+                                return;
+                            }
                         }
-                        byte[] b = l.getBytes(StandardCharsets.UTF_8);
-                        if (bos.size() < 2_000_000) { bos.write(b, 0, b.length); bos.write('\n'); }
                     }
                     synchronized (done) { eof[0] = true; done.notifyAll(); }
                 } catch (IOException ignored) {
@@ -1216,10 +1246,8 @@ public class ShellCompletionProvider {
             }
 
             if (completed[0]) {
-                // Dispatcher output arrives newline-framed by readLine(); the caller
-                // parser splits on NUL. Rejoin: our records ARE NUL-terminated inside
-                // each line, so keep the raw bytes as-is (the trailing '\n' per line
-                // is harmless — parseNulRecords splits on '\0' only).
+                // Raw NUL-delimited bytes; parseNulRecords splits on '\0' and skips
+                // a stray trailing '\n' that may remain before the marker.
                 return bos.toByteArray();
             }
             if (eof[0]) {
@@ -1240,6 +1268,29 @@ public class ShellCompletionProvider {
         }
     }
 
+    /**
+     * Write one request line to the persistent dispatcher. For COMPSPEC the full
+     * {@code line} (COMP_LINE) is included as a 4th field; for all other TYPEs it
+     * is {@code null} and only 3 fields (TYPE \x01 WORD \x01 CWD) are written.
+     * Request fields are sanitized so our separator / newline cannot corrupt the
+     * single-line wire format.
+     */
+    private static void writeRequest(@NonNull java.io.BufferedWriter in,
+                                     @NonNull String type, @NonNull String word,
+                                     @Nullable String cwd, @Nullable String line)
+            throws IOException {
+        StringBuilder req = new StringBuilder();
+        req.append(sanitizeField(type)).append(REQ_SEP)
+           .append(sanitizeField(word)).append(REQ_SEP)
+           .append(sanitizeField(cwd == null ? "" : cwd));
+        if (line != null) {
+            req.append(REQ_SEP).append(sanitizeField(line));
+        }
+        req.append('\n');
+        in.write(req.toString());
+        in.flush();
+    }
+
     /** Replace wire-breaking characters (our separator, CR/LF) in a request field. */
     @NonNull
     private static String sanitizeField(@NonNull String s) {
@@ -1255,8 +1306,8 @@ public class ShellCompletionProvider {
             if (i == out.length || out[i] == 0) {
                 if (i > start) {
                     String rec = new String(out, start, i - start, StandardCharsets.UTF_8);
-                    // readLine() framing may leave a trailing '\n' on the last record
-                    // of a line; drop it so records compare cleanly.
+                    // A stray trailing '\n' may remain just before the __END__
+                    // marker; drop it so records compare cleanly.
                     if (rec.endsWith("\n")) rec = rec.substring(0, rec.length() - 1);
                     if (!rec.isEmpty()) {
                         if (rec.startsWith("__COMPOPTS:")) {
@@ -1354,6 +1405,8 @@ public class ShellCompletionProvider {
         mPersistentOut = null;
         mPersistentErrDrain = null;
         mPersistent = null;
+        if (mScriptFile != null && mScriptFile.exists()) mScriptFile.delete();
+        mScriptFile = null;
         if (p == null && in == null && out == null) return;
         Thread reaper = new Thread(() -> {
             closeQuietly(in);
@@ -1374,42 +1427,9 @@ public class ShellCompletionProvider {
     public void shutdown() {
         synchronized (mProcLock) {
             stopPersistent();
+            if (mScriptFile != null && mScriptFile.exists()) mScriptFile.delete();
+            mScriptFile = null;
         }
-    }
-
-    /** Parse a NUL-delimited bash output buffer into candidates + comp-options. */
-    @Nullable
-    private BashResult parseBashOutput(@NonNull byte[] out, @Nullable String cwd,
-                                       @NonNull List<String> raw,
-                                       @NonNull boolean[] flags) {
-        boolean isFilename = flags[0], noSpace = flags[1], noSort = flags[2], noQuote = flags[3];
-        int start = 0;
-        for (int i = 0; i <= out.length; i++) {
-            if (i == out.length || out[i] == 0) {
-                if (i > start) {
-                    String rec = new String(out, start, i - start, StandardCharsets.UTF_8);
-                    if (!rec.isEmpty()) {
-                        if (rec.startsWith("__COMPOPTS:")) {
-                            String opts = rec.substring("__COMPOPTS:".length());
-                            for (String o : opts.split(",")) {
-                                switch (o) {
-                                    case "filenames": isFilename = true; break;
-                                    case "nospace": noSpace = true; break;
-                                    case "nosort": noSort = true; break;
-                                    case "noquote": noQuote = true; break;
-                                    default: break;
-                                }
-                            }
-                        } else {
-                            raw.add(rec);
-                        }
-                    }
-                }
-                start = i + 1;
-            }
-        }
-        return new BashResult(normalizeCandidates(raw, cwd),
-                isFilename, noSpace, noSort, noQuote);
     }
 
     /**
@@ -1445,12 +1465,6 @@ public class ShellCompletionProvider {
     private static void closeQuietly(@Nullable java.io.Closeable c) {
         if (c == null) return;
         try { c.close(); } catch (IOException ignored) { }
-    }
-
-    /** Single-quote a string for safe embedding in a bash script. */
-    @NonNull
-    private static String quoteForBash(@NonNull String s) {
-        return "'" + s.replace("'", "'\\''") + "'";
     }
 
     /** UTF-8 byte length of the first {@code cursor} chars of {@code s}. */
@@ -1594,9 +1608,9 @@ public class ShellCompletionProvider {
             default:
                 // NAME= assignment begins a command context.
                 if (prev.indexOf('=') > 0
-                        && prev.matches("[A-Za-z_][A-Za-z0-9_]*=.*")) return "C";
+                        && PATTERN_NAME_ASSIGN.matcher(prev).matches()) return "C";
                 // Numeric-fd redirection (e.g. 2>, 1>>) also forces a filename context.
-                if (prev.matches("[0-9]+(&?>+|<+|>>)")) return "F";
+                if (PATTERN_REDIR_FD.matcher(prev).matches()) return "F";
                 return "A";
         }
     }
@@ -1664,13 +1678,17 @@ public class ShellCompletionProvider {
     }
 
     /**
-     * Test-only wrapper exposing {@link #parseBashOutput} so unit tests can verify
+     * Test-only wrapper exposing {@link #parseNulRecords} so unit tests can verify
      * the NUL-delimited byte-buffer parsing (including the {@code __COMPOPTS:}
      * side-channel that decodes {@code filenames/nospace/nosort/noquote}) without
      * spawning a subprocess.
      */
     @Nullable
     BashResult debugParseBashOutput(@NonNull byte[] out, @Nullable String cwd) {
-        return parseBashOutput(out, cwd, new ArrayList<>(), new boolean[4]);
+        List<String> raw = new ArrayList<>();
+        boolean[] flags = new boolean[4];
+        parseNulRecords(out, raw, flags);
+        return new BashResult(normalizeCandidates(raw, cwd),
+                flags[0], flags[1], flags[2], flags[3]);
     }
 }

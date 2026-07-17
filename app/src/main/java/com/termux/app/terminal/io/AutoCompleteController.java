@@ -345,8 +345,10 @@ public final class AutoCompleteController {
             }
         } else {
             // Drop the provider (and its per-word cache) when disabled.
-            if (mShellCompletionProvider != null) mShellCompletionProvider.bumpEnvironmentVersion();
-            mShellCompletionProvider = null;
+            if (mShellCompletionProvider != null) {
+                mShellCompletionProvider.shutdown();
+                mShellCompletionProvider = null;
+            }
             // Cancel any in-flight async fetch so it can't re-enable the group.
             mShellGen.incrementAndGet();
             trace("CFG", "provider set to NULL (shell completion OFF)");
@@ -433,6 +435,10 @@ public final class AutoCompleteController {
         mShellGen.incrementAndGet();
         mShellFetchInFlight.set(false);
         mShellExec.shutdownNow();
+        if (mShellCompletionProvider != null) {
+            mShellCompletionProvider.shutdown();
+            mShellCompletionProvider = null;
+        }
     }
 
     public void setSuppressAutoComplete(boolean suppress) {
@@ -737,6 +743,9 @@ public final class AutoCompleteController {
     boolean historyCoversPrefix(@NonNull String text) {
         if (text.isEmpty()) return false;
         if (text.indexOf('/') >= 0) return false; // likely a path — bash needed
+        // NOTE: the authoritative path/flag classification lives in
+        // ShellCompletionProvider.classifyScenario(); the heuristics below are a
+        // cheap pre-check to avoid starving bash, not a re-implementation of it.
         if (mShellFetchInFlight.get()) return false; // don't starve a pending fetch
         // Don't starve the shell when the word being completed is a subcommand or
         // a flag: "git st" should still surface "git stash" even if history holds
@@ -746,6 +755,7 @@ public final class AutoCompleteController {
         String lw = lastWordOf(text);
         if (lw.indexOf(' ') >= 0) return false;   // multi-token arg -> bash needed
         if (lw.startsWith("-")) return false;     // flag completion -> bash needed
+        // (mirrors ShellCompletionProvider.classifyScenario's OPTION/SIGNAL handling)
         // Only skip bash when the typed word IS a whole command already present
         // in history (re-run-last-command case). A bare PREFIX must still reach
         // bash so e.g. `git` surfaces `git`/`gitk` and `git st` surfaces

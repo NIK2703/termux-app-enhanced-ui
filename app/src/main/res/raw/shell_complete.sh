@@ -9,12 +9,14 @@
 #
 # WIRE PROTOCOL
 #   Request  (one line, \n-terminated, fields split by \x01):
-#       TYPE \x01 WORD \x01 CWD \x01 COMP_LINE
-#     TYPE is one of: CMD PATH FILE REDIR VAR SIGNAL COMPSPEC
+#       TYPE \x01 WORD \x01 CWD[\x01 COMP_LINE]
+#     TYPE is one of: CMD PATH REDIR VAR SIGNAL COMPSPEC
 #     WORD is the exact completable token (already sigil/prefix-shaped by Java;
 #          e.g. VAR arrives WITHOUT the leading '$', SIGNAL arrives as SIGxxx).
 #     CWD  is the working directory for file/path resolution (may be empty).
-#     COMP_LINE is the full command line (used only by COMPSPEC).
+#     COMP_LINE is the OPTIONAL full command line, present ONLY for COMPSPEC.
+#       The Java side omits it for CMD/PATH/REDIR/VAR/SIGNAL to keep the wire
+#       minimal; the dispatcher accepts either 3 or 4 fields.
 #   Response (to stdout):
 #       zero or more NUL-terminated candidates
 #       at most one  "__COMPOPTS:opt,opt,...\0"  side-channel record
@@ -32,6 +34,7 @@
 export LC_ALL=${LC_ALL:-C.UTF-8}
 export LANG=${LANG:-C.UTF-8}
 
+set -m 2>/dev/null                      # become process-group leader so Java killpg(-pid) hits only us
 set +H 2>/dev/null                      # disable histexpand ('!' -> history)
 shopt -s extglob 2>/dev/null
 shopt -s nullglob dotglob 2>/dev/null
@@ -104,6 +107,18 @@ __emit_opts() {
 # ---- File/dir fallback (tilde/hidden aware). $1 = word token, $2 = cwd.
 # Ported verbatim (behaviourally) from the old shell_complete_common.sh so the
 # candidate set + trailing-slash directory marking stays identical.
+# Cache ~user -> home dir (getent is an expensive fork per lookup).
+# Keyed by bare user name; value is the home dir (or empty if unknown, in which
+# case we fall back to $HOME at the call site).
+declare -A __HOME_CACHE=()
+__home_of() {
+  local __u=$1 __h
+  [[ -n ${__HOME_CACHE[$__u]+x} ]] && { printf '%s' "${__HOME_CACHE[$__u]}"; return; }
+  __h=$(getent passwd "$__u" 2>/dev/null | cut -d: -f6)
+  __HOME_CACHE[$__u]=${__h:-}
+  printf '%s' "${__HOME_CACHE[$__u]}"
+}
+
 __file_fallback() {
   __emit_opts filenames
   local __w=$1 __cwd=$2
@@ -111,7 +126,7 @@ __file_fallback() {
     \~)   __w=$HOME ;;
     \~/*) __w=${HOME}${__w:1} ;;
     \~*)  local __u=${__w#\~}; __u=${__u%%/*}
-          local __h; __h=$(getent passwd "$__u" 2>/dev/null | cut -d: -f6)
+          local __h; __h=$(__home_of "$__u")
           [[ -z $__h ]] && __h=$HOME; __w=$__h${__w:1+${#__u}+1} ;;
   esac
   local __dir=${__w%/*}
@@ -148,9 +163,10 @@ __file_fallback() {
 
 # ---- CMD / CMDCTX: command names with type classification.
 __do_cmd() {
-  local __word=$1 __c __t __cat
+  local __word=$1 __c __t __cat __n=0
   while IFS= read -r __c; do
     [[ -z "$__c" ]] && continue
+    [[ $__n -ge ${__MAX_CANDIDATES} ]] && break
     __t=$(type -t "$__c" 2>/dev/null); __cat=0
     case "$__t" in
       alias)    __cat=1;;
@@ -159,25 +175,34 @@ __do_cmd() {
       *)        __cat=0;;
     esac
     printf '%s\t%s\0' "$__c" "$__cat"
-  done < <(compgen -c -- "$__word" 2>/dev/null | head -n "${__MAX_CANDIDATES}")
+    __n=$((__n+1))
+  done < <(compgen -c -- "$__word" 2>/dev/null)
   __emit_opts nospace nosort noquote
 }
 
 # ---- VAR: variable names. WORD arrives already stripped of its $ / ${ sigil by
 # Java, which also re-wraps the emitted candidates, so here we emit bare names.
 __do_var() {
-  local __word=$1
-  compgen -v -- "$__word" 2>/dev/null | head -n "${__MAX_CANDIDATES}" \
-    | while IFS= read -r __v; do printf '%s\0' "$__v"; done
+  local __word=$1 __v __n=0
+  while IFS= read -r __v; do
+    [[ -z "$__v" ]] && continue
+    [[ $__n -ge ${__MAX_CANDIDATES} ]] && break
+    printf '%s\0' "$__v"
+    __n=$((__n+1))
+  done < <(compgen -v -- "$__word" 2>/dev/null)
   __emit_opts noquote nospace nosort
 }
 
 # ---- SIGNAL: WORD arrives as a SIGxxx prefix (Java maps -USR1 -> SIGUSR1).
 # We emit the matching signal names WITHOUT the SIG prefix; Java re-prepends '-'.
 __do_signal() {
-  local __word=$1
-  compgen -A signal -- "$__word" 2>/dev/null | sed 's/^SIG//' \
-    | head -n "${__MAX_CANDIDATES}" | while IFS= read -r __s; do printf '%s\0' "$__s"; done
+  local __word=$1 __s __n=0
+  while IFS= read -r __s; do
+    [[ -z "$__s" ]] && continue
+    [[ $__n -ge ${__MAX_CANDIDATES} ]] && break
+    printf '%s\0' "${__s#SIG}"
+    __n=$((__n+1))
+  done < <(compgen -A signal -- "$__word" 2>/dev/null)
   __emit_opts noquote nospace nosort
 }
 
@@ -202,6 +227,11 @@ __ensure_bc() {
 # a compspec already registered in this session; never triggers the lazy loader
 # (that would re-introduce the bash-completion load cost). Falls back to empty
 # so Java can path/command-fallback locally.
+# Cache of commands whose compspec lookup has already been attempted (and which
+# had no registered compspec / the loader produced nothing). Avoids re-running
+# the expensive _completion_loader for the same unknown command on every request.
+declare -A __tried=()
+
 __do_compspec() {
   local __word=$1 __cwd=$2 __line=$3
   # Resolve through command wrappers (sudo/xargs/env/time/…) and any inline
@@ -232,32 +262,64 @@ __do_compspec() {
   # as `git --` yield its option set. The helper stack is sourced at most once
   # per process (see __ensure_bc); if bash-completion is not installed this is a
   # no-op and the command-name fallback below still applies.
-  if [[ -z $__spec && -n $__cmd ]]; then
+  #
+  # Cache: once we have attempted the loader for a command and it still yielded
+  # no compspec, remember it in __tried so we skip the (expensive) loader call
+  # on every subsequent request for the same command.
+  if [[ -z $__spec && -n $__cmd && -z ${__tried[$__cmd]+x} ]]; then
     __ensure_bc
     if type -t _completion_loader >/dev/null 2>&1; then
       _completion_loader "$__cmd" 2>/dev/null
       __spec=$(complete -p -- "$__cmd" 2>/dev/null)
     fi
+    [[ -z $__spec ]] && __tried[$__cmd]=1
   fi
   if [[ -n $__spec ]]; then
-    local __opts
-    __opts=$(awk '{for(i=1;i<=NF;i++) if($i=="-o") printf "%s,", $(i+1)}' <<<"$__spec")
-    if [[ $__spec =~ (^| )-F([ $'\t']|$) ]]; then
-      local __func
-      __func=$(awk '{for(i=1;i<=NF;i++) if($i=="-F"){print $(i+1);exit}}' <<<"$__spec")
-      if [[ -n $__func ]] && type -t "$__func" >/dev/null 2>&1; then
-        # Populate the vars a -F completer reads with readline-faithful
-        # tokenization so the compspec computes the same context bash would.
-        COMP_LINE="$__line"; COMP_POINT=${#__line}
-        __termux_tokenize "$__line" "$COMP_POINT"
-        "$__func" 2>/dev/null
+    # Parse the compspec line WITHOUT awk: walk fields, capture the option
+    # string after "-o" and the function name after "-F".
+    local __opts="" __func=""
+    local __f __prev=""
+    local __capture_func=0
+    for __f in $__spec; do
+      case "$__prev" in
+        -o) __opts+=",$__f" ;;
+      esac
+      if (( __capture_func )); then
+        __func=$__f
+        __capture_func=0
       fi
+      case "$__f" in
+        -F) __capture_func=1 ;;
+        *)  ;;
+      esac
+      __prev=$__f
+    done
+    if [[ -n $__func ]] && type -t "$__func" >/dev/null 2>&1; then
+      # Populate the vars a -F completer reads with readline-faithful
+      # tokenization so the compspec computes the same context bash would.
+      COMP_LINE="$__line"; COMP_POINT=${#__line}
+      __termux_tokenize "$__line" "$COMP_POINT"
+      "$__func" 2>/dev/null
+      __opts=""
     else
       local __rest=${__spec#complete }
       __rest=${__rest% [^ ]*}
       COMPREPLY=($(eval "compgen $__rest -- '$__word'" 2>/dev/null))
     fi
-    [[ -n $__opts ]] && { __opts=$(echo "$__opts" | tr ',' '\n' | grep -v '^$' | sort -u | paste -sd, -); [[ -n $__opts ]] && printf '__COMPOPTS:%s\0' "$__opts"; }
+    if [[ -n $__opts ]]; then
+      # De-dup + sort unique option tokens (replaces the old awk|tr|sort|paste).
+      local __seen="" __o __acc=""
+      local IFS=,
+      for __o in ${__opts#,}; do
+        [[ -z $__o ]] && continue
+        case ",$__seen," in
+          *",$__o,"*) continue ;;
+        esac
+        __seen+="$__o,"; __acc+="$__o,"
+      done
+      __acc=${__acc%,}
+      [[ -n $__acc ]] && printf '__COMPOPTS:%s\0' "$__acc"
+    fi
   fi
 
   # Command-name fallback (S9): when the compspec produced nothing AND the FIRST
@@ -293,7 +355,7 @@ while IFS= read -r __req; do
   IFS=$'\x01' read -r __type __word __cwd __line <<<"$__req"
   case "$__type" in
     CMD)      __do_cmd "$__word" ;;
-    PATH|FILE|REDIR) __file_fallback "$__word" "$__cwd" ;;
+    PATH|REDIR) __file_fallback "$__word" "$__cwd" ;;
     VAR)      __do_var "$__word" ;;
     SIGNAL)   __do_signal "$__word" ;;
     COMPSPEC) __do_compspec "$__word" "$__cwd" "$__line" ;;
