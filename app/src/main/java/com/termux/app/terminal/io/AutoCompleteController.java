@@ -89,6 +89,20 @@ public final class AutoCompleteController {
      * the shell group at the top of the popup.
      */
     private final java.util.ArrayList<Boolean> mCurrentIsShell = new java.util.ArrayList<>();
+    /**
+     * Parallel to {@link #mCurrentSuggestions}: the coarse {@link CandidateType}
+     * of a shell candidate (for type-aware insertion/rendering). Entries for
+     * history items are {@code null}.
+     */
+    private final java.util.ArrayList<ShellCompletionProvider.CandidateType> mCurrentShellType =
+            new java.util.ArrayList<>();
+    /**
+     * Parallel to {@link #mCurrentSuggestions}: effective completion options for
+     * a shell candidate (e.g. do-not-append-space). Entries for history items are
+     * null.
+     */
+    private final java.util.ArrayList<ShellCompletionProvider.ShellCandidate> mCurrentShellMeta =
+            new java.util.ArrayList<>();
     /** Number of leading shell-completion entries in {@link #mCurrentSuggestions} (the divider sits after them). */
     private int mShellSuggestionCount = 0;
     /**
@@ -201,6 +215,16 @@ public final class AutoCompleteController {
      * clobbering the current suggestions.
      */
     private final AtomicInteger mShellGen = new AtomicInteger();
+
+    /**
+     * Debounce for the (potentially expensive) shell fetch. History candidates are
+     * shown instantly; only the background bash fetch is delayed slightly so rapid
+     * keystrokes don't each spawn a subprocess. The generation guard still discards
+     * any stale result that arrives after a newer fetch.
+     */
+    private final android.os.Handler mShellDebounceHandler =
+            new android.os.Handler(android.os.Looper.getMainLooper());
+    private static final long SHELL_FETCH_DEBOUNCE_MS = 70;
 
     /**
      * @param context              the host Activity/Context (used for resources and the window).
@@ -520,6 +544,8 @@ public final class AutoCompleteController {
 
         mCurrentSuggestions.clear();
         mCurrentIsShell.clear();
+        mCurrentShellType.clear();
+        mCurrentShellMeta.clear();
         mShellSuggestionCount = 0;
 
         // History suggestions first (instant, no shell involved).
@@ -559,22 +585,32 @@ public final class AutoCompleteController {
         if (mShellCompletionProvider == null) return;
         final int gen = mShellGen.incrementAndGet();
         final String line = text;
+        final int cursor = (mInputField != null) ? mInputField.getSelectionStart() : line.length();
         final String cwd = mCwdProvider.getCwd();
-        mShellExec.execute(() -> {
-            List<String> shellCandidates = mShellCompletionProvider.complete(line, cwd);
-            final List<String> result = new ArrayList<>(shellCandidates);
-            if (mInputField != null) {
-                mInputField.post(() -> {
-                    if (gen != mShellGen.get()) return; // stale word → discard
-                    // If the user kept typing the same word, the fetched list (built
-                    // for the prefix at fetch time) still covers the current prefix,
-                    // so merge against the LIVE text. Only a different word slot
-                    // (generation already bumped by a newer fetch) discards this.
-                    String liveText = mInputField.getText().toString();
-                    mergeShellCandidates(result, liveText);
-                });
-            }
-        });
+        // Debounce the (expensive) background fetch; the generation guard discards
+        // the result if a newer fetch supersedes this one before it runs.
+        mShellDebounceHandler.removeCallbacksAndMessages(null);
+        mShellDebounceHandler.postDelayed(() -> {
+            if (gen != mShellGen.get()) return; // superseded during the debounce window
+            mShellExec.execute(() -> {
+                ShellCompletionProvider.CompletionResult result =
+                        mShellCompletionProvider.complete(line, cwd, cursor);
+                if (mInputField != null) {
+                    mInputField.post(() -> {
+                        if (gen != mShellGen.get()) return; // stale word → discard
+                        // Guard against a now-detached/stale input field (e.g. session
+                        // switch between fetch and delivery).
+                        if (mInputField == null || mSuggestionsContent == null) return;
+                        // If the user kept typing the same word, the fetched list (built
+                        // for the prefix at fetch time) still covers the current prefix,
+                        // so merge against the LIVE text. Only a different word slot
+                        // (generation already bumped by a newer fetch) discards this.
+                        String liveText = mInputField.getText().toString();
+                        mergeShellCandidates(result, liveText);
+                    });
+                }
+            });
+        }, SHELL_FETCH_DEBOUNCE_MS);
     }
 
     /**
@@ -582,12 +618,15 @@ public final class AutoCompleteController {
      * replacing any previous shell group, and refresh the popup. Matching is against
      * the last word (the token actually being completed). Runs on the UI thread.
      */
-    private void mergeShellCandidates(@NonNull List<String> shellCandidates, @NonNull String text) {
+    private void mergeShellCandidates(@NonNull ShellCompletionProvider.CompletionResult result,
+                                      @NonNull String text) {
         // Remove any pre-existing shell entries (from a previous, now-replaced group).
         for (int i = mCurrentSuggestions.size() - 1; i >= 0; i--) {
             if (i < mCurrentIsShell.size() && mCurrentIsShell.get(i)) {
                 mCurrentSuggestions.remove(i);
                 mCurrentIsShell.remove(i);
+                if (i < mCurrentShellType.size()) mCurrentShellType.remove(i);
+                if (i < mCurrentShellMeta.size()) mCurrentShellMeta.remove(i);
             }
         }
         mShellSuggestionCount = 0;
@@ -595,14 +634,17 @@ public final class AutoCompleteController {
         String lastWord = lastWordOf(text);
         // Insert at front so shell stays above the history group.
         int insertAt = 0;
-        for (String cand : shellCandidates) {
+        for (ShellCompletionProvider.ShellCandidate cand : result.candidates) {
+            String value = cand.value;
             if (mCurrentSuggestions.size() >= 512) break;
-            if (!mCurrentSuggestions.contains(cand)
-                    && cand.length() > lastWord.length()
-                    && cand.regionMatches(true, 0, lastWord, 0, lastWord.length())
-                    && !cand.equals(lastWord)) {
-                mCurrentSuggestions.add(insertAt, cand);
+            if (!mCurrentSuggestions.contains(value)
+                    && value.length() > lastWord.length()
+                    && value.regionMatches(true, 0, lastWord, 0, lastWord.length())
+                    && !value.equals(lastWord)) {
+                mCurrentSuggestions.add(insertAt, value);
                 mCurrentIsShell.add(insertAt, Boolean.TRUE);
+                mCurrentShellType.add(insertAt, cand.type);
+                mCurrentShellMeta.add(insertAt, cand);
                 insertAt++;
             }
         }
@@ -649,7 +691,7 @@ public final class AutoCompleteController {
      * (the provider strips trailing {@code '/'} during normalization, so a typed
      * "dir/" must still keep the normalized "dir" candidate).
      */
-    private static void filterSuggestionsByPrefix(@NonNull String text,
+    private void filterSuggestionsByPrefix(@NonNull String text,
             @NonNull List<String> sugg, @NonNull List<Boolean> isShell) {
         String lastWord = lastWordOf(text);
         int lwLen = lastWord.length();
@@ -673,6 +715,8 @@ public final class AutoCompleteController {
             if (s.length() <= pLen || !matches || s.equals(prefix)) {
                 sugg.remove(i);
                 if (i < isShell.size()) isShell.remove(i);
+                if (i < mCurrentShellType.size()) mCurrentShellType.remove(i);
+                if (i < mCurrentShellMeta.size()) mCurrentShellMeta.remove(i);
             }
         }
     }
@@ -1148,13 +1192,17 @@ public final class AutoCompleteController {
         }
         tv.setClickable(true);
         final String finalSuggestion = suggestion;
+        // Capture the candidate's metadata so we can insert it readline-style (only
+        // the current word is replaced; directories get a trailing '/', files/commands
+        // a trailing space; options and -o nospace candidates get no space).
+        final ShellCompletionProvider.ShellCandidate finalMeta = isShell
+                ? findShellMeta(suggestion) : null;
 
         tv.setOnClickListener(v -> {
             mSuppressAutoComplete = true;
             try {
                 if (mInputField != null) {
-                    mInputField.setText(finalSuggestion);
-                    mInputField.setSelection(finalSuggestion.length());
+                    insertCandidate(finalSuggestion, finalMeta);
                 }
             } finally {
                 mSuppressAutoComplete = false;
@@ -1164,6 +1212,82 @@ public final class AutoCompleteController {
         });
         tv.setOnTouchListener(this::onSuggestionSwipeTouch);
         return tv;
+    }
+
+    /**
+     * Find the {@link ShellCompletionProvider.ShellCandidate} metadata for a
+     * displayed shell suggestion (matched by its value string). Returns null for
+     * history items or when not found.
+     */
+    @Nullable
+    private ShellCompletionProvider.ShellCandidate findShellMeta(@NonNull String suggestion) {
+        for (int i = 0; i < mCurrentSuggestions.size(); i++) {
+            if (i < mCurrentIsShell.size() && mCurrentIsShell.get(i)
+                    && i < mCurrentShellMeta.size()
+                    && suggestion.equals(mCurrentSuggestions.get(i))) {
+                return mCurrentShellMeta.get(i);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Insert a chosen shell candidate into the input field the way readline would:
+     * only the CURRENT last word is replaced (the rest of the line is preserved),
+     * and a trailing decoration is appended based on the candidate type:
+     *
+     * <ul>
+     *   <li>directory → append {@code '/'} (no space), so the next segment continues inside;</li>
+     *   <li>file → append a space (unless the compspec said {@code -o nospace});</li>
+     *   <li>command / alias / function → append a space (unless {@code -o nospace});</li>
+     *   <li>option → append nothing (flags are usually followed by {@code =} or an argument);</li>
+     *   <li>unknown → append a space (unless {@code -o nospace}).</li>
+     * </ul>
+     *
+     * The candidate value already includes any {@code -P}/{@code -S} prefix/suffix
+     * produced by bash, so it is inserted verbatim.
+     */
+    private void insertCandidate(@NonNull String candidate,
+                                 @Nullable ShellCompletionProvider.ShellCandidate meta) {
+        if (mInputField == null) return;
+        Editable editable = mInputField.getText();
+        if (editable == null) return;
+        String text = editable.toString();
+        String lastWord = lastWordOf(text);
+        int replaceStart = text.length() - lastWord.length();
+        if (replaceStart < 0) replaceStart = 0;
+
+        String insert = candidate;
+        boolean addSpace = false;
+        if (meta != null) {
+            switch (meta.type) {
+                case DIRECTORY:
+                    if (!insert.endsWith("/")) insert += "/";
+                    addSpace = false;
+                    break;
+                case FILE:
+                    addSpace = !meta.noSpace;
+                    break;
+                case OPTION:
+                    addSpace = false;
+                    break;
+                case COMMAND:
+                case ALIAS:
+                case FUNCTION:
+                case UNKNOWN:
+                default:
+                    addSpace = !meta.noSpace;
+                    break;
+            }
+        } else {
+            // History item: insert the whole line verbatim, no trailing space.
+            addSpace = false;
+        }
+        if (addSpace) insert += " ";
+
+        String newText = text.substring(0, replaceStart) + insert;
+        mInputField.setText(newText);
+        mInputField.setSelection(newText.length());
     }
 
     /**
@@ -1723,10 +1847,13 @@ public final class AutoCompleteController {
         }
         mCurrentSuggestions.clear();
         mCurrentIsShell.clear();
+        mCurrentShellType.clear();
+        mCurrentShellMeta.clear();
         mShellSuggestionCount = 0;
         // Invalidate any in-flight async shell fetch so its result can't resurrect
         // a dismissed popup or clobber the next word's suggestions.
         mShellGen.incrementAndGet();
+        mShellDebounceHandler.removeCallbacksAndMessages(null);
         mSuggestionsContent = null;
         mLastAppliedPrefix = "";
         mLastPopupX = 0;
