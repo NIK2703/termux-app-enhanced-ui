@@ -60,6 +60,17 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
 
     static final int MAX_SESSIONS = 8;
 
+    /**
+     * The session that was just created by a right-swipe-to-add gesture. The tab-strip's
+     * right-end scroll must be deferred until this session's label is actually set (the shell
+     * emits an OSC window title), so the scroll reveals the (+) button only once the new tab
+     * shows its real title — never while it still reads the default placeholder. Cleared once
+     * the end-scroll fires (via onTitleChanged or the fallback timer).
+     */
+    private TerminalSession mPendingEndScrollSession = null;
+    /** Fallback runnable that scrolls to the end even if the shell never sets a title. */
+    private java.lang.Runnable mEndScrollFallback;
+
     private SoundPool mBellSoundPool;
 
     private int mBellSoundId;
@@ -68,6 +79,14 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
 
     public TermuxTerminalSessionActivityClient(TermuxActivity activity) {
         this.mActivity = activity;
+        // Fallback runnable that scrolls to the end even if the shell never sets a title.
+        this.mEndScrollFallback = () -> {
+            if (mPendingEndScrollSession != null) {
+                TermuxSessionTabsController tabs = mActivity.getTermuxSessionTabsController();
+                if (tabs != null) tabs.scrollStripToEnd();
+                mPendingEndScrollSession = null;
+            }
+        };
     }
 
     /**
@@ -157,7 +176,34 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
 
         // Toast suppressed — the user requested no popups on session events.
 
+        // If this is the session we just added by a right-swipe, its label is now real — scroll
+        // the tab strip to the right end (revealing the (+) button) ONLY now, after the label is
+        // actually set. Clear the pending ref + cancel the fallback timer.
+        if (mPendingEndScrollSession == updatedSession) {
+            mPendingEndScrollSession = null;
+            android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+            mainHandler.removeCallbacks(mEndScrollFallback);
+            TermuxSessionTabsController tabs = mActivity.getTermuxSessionTabsController();
+            if (tabs != null) tabs.scrollStripToEnd();
+            // Still refresh the tab list so the new title paints.
+            termuxSessionListNotifyUpdated();
+            return;
+        }
+
         termuxSessionListNotifyUpdated();
+    }
+
+    /**
+     * Arm the right-end scroll for the session just created by a right-swipe-to-add gesture.
+     * The actual scroll fires from {@link #onTitleChanged} once the shell sets the tab's real
+     * title (so we never scroll to a default/"Terminal" label), with a short fallback timer in
+     * case the shell never emits a title.
+     */
+    public void markPendingEndScrollSession(@NonNull TerminalSession session) {
+        mPendingEndScrollSession = session;
+        android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+        mainHandler.removeCallbacks(mEndScrollFallback);
+        mainHandler.postDelayed(mEndScrollFallback, 250);
     }
 
     @Override

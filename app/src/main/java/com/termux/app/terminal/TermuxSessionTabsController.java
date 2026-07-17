@@ -46,21 +46,20 @@ public class TermuxSessionTabsController {
         this.mTabsContainer = activity.findViewById(R.id.session_tabs);
         this.mTabsScroll = activity.findViewById(R.id.session_tabs_scroll);
 
-        // Enable layout animations so that when a tab is removed the tabs to its
-        // right glide smoothly into the freed space (instead of an instant jump).
-        // The DISAPPEARING animation is disabled below — we run our own closing
-        // animation on the removed tab, and a built-in DISAPPEARING fade would
-        // both delay the slide-in of the neighbours and fight our effect.
+        // Enable the CHANGING layout transition only: when a tab is removed the tabs to its right
+        // glide smoothly into the freed space (and our own close animation drives the width). We do
+        // NOT enable APPEARING/CHANGE_APPEARING — those animate a newly-added tab's width 0->full,
+        // which makes the scrollable width unstable for ~220ms after an add and was the root cause of
+        // the janky/under-scrolling end-scroll. Adding a tab at its full measured width lets the
+        // strip geometry settle within one layout pass, so the right-end scroll reads correct widths.
         LayoutTransition transition = new LayoutTransition();
         transition.enableTransitionType(LayoutTransition.CHANGING);
-        transition.enableTransitionType(LayoutTransition.APPEARING);
-        transition.enableTransitionType(LayoutTransition.CHANGE_APPEARING);
+        transition.disableTransitionType(LayoutTransition.APPEARING);
+        transition.disableTransitionType(LayoutTransition.CHANGE_APPEARING);
         transition.disableTransitionType(LayoutTransition.DISAPPEARING);
         transition.disableTransitionType(LayoutTransition.CHANGE_DISAPPEARING);
         transition.setDuration(220);
         transition.setInterpolator(LayoutTransition.CHANGING,
-                new AccelerateDecelerateInterpolator());
-        transition.setInterpolator(LayoutTransition.CHANGE_APPEARING,
                 new AccelerateDecelerateInterpolator());
         mTabsContainer.setLayoutTransition(transition);
     }
@@ -135,6 +134,8 @@ public class TermuxSessionTabsController {
         } else if (newCount < sessionCount) {
             // Remove trailing tab views (not the add button). No full wipe, scrollX preserved.
             mTabsContainer.removeViews(newCount, sessionCount - newCount);
+            // A tab was closed — any sticky end-scroll from a previous add no longer applies.
+            mEndScrollActive = false;
         }
 
         // Update titles, colors and selection state on ALL tabs in-place.
@@ -147,18 +148,23 @@ public class TermuxSessionTabsController {
             populateTabView(tabView, termuxSession, i, i == currentSessionIndex);
         }
 
-        // Scroll after the rebuild.  The post from scrollToTab()/scrollToTabIndexRightEdge()
-        // uses last-call-wins (removeCallbacks + Runnable field), so setCurrentSession() calling
-        // scrollToTab() first and updateTabs() calling it right after does NOT queue two competing
-        // scrolls.
+        // Scroll after the rebuild, through the single-owner requestScroll() (last-call-wins, so a
+        // centre request from setCurrentSession() and this end request can never run two competing
+        // smoothScrollTo()s in one frame).
         mCurrentSessionIndex = currentSessionIndex;
         if (newCount > sessionCount) {
-            // A new tab was just added: reveal the RIGHT edge of the strip (not centre) so the
-            // freshly created tab — its session already initialised and its label just populated
-            // above — is fully visible at the end of the list.
-            scrollToTabIndexRightEdge(newCount - 1);
+            // A new tab was just added: scroll the strip to its absolute right end so the new tab
+            // AND the trailing (+) button are fully revealed. Both add paths (the (+) button tap and
+            // the right-swipe placeholder commit) funnel through here, so this single call covers
+            // them both. scrollStripToEnd() measures geometry only after the container is laid out
+            // (see runEndScroll), so it always reaches the true right edge — no under-scroll.
+            scrollStripToEnd();
         } else if (currentSessionIndex >= 0) {
-            scrollToTab(currentSessionIndex);
+            // No size change (e.g. a title-only refresh after the shell sets its window title via
+            // OSC). If we are still in the sticky end-scroll from a just-added tab, do NOT recentre
+            // — that would yank the strip back from the right end. A real tab switch goes through
+            // setCurrentSession(), which clears mEndScrollActive first.
+            if (!mEndScrollActive) requestScroll(SCROLL_CENTRE, currentSessionIndex);
         }
 
         // Hide the (+) add-tab button once the terminal session limit is reached,
@@ -175,8 +181,11 @@ public class TermuxSessionTabsController {
         if (mTabsContainer == null) return;
         View addBtn = mTabsContainer.findViewById(R.id.new_session_tab_button);
         if (addBtn == null) return;
+        // Use INVISIBLE (not GONE) so the button's footprint stays reserved and the scrollable
+        // content width never changes when the session limit is hit. GONE would shrink
+        // mTabsContainer.getMeasuredWidth() and could re-clamp an in-flight end-scroll short.
         addBtn.setVisibility(sessionCount >= TermuxTerminalSessionActivityClient.MAX_SESSIONS
-                ? View.GONE : View.VISIBLE);
+                ? View.INVISIBLE : View.VISIBLE);
     }
 
     /**
@@ -428,41 +437,205 @@ public class TermuxSessionTabsController {
     private int mPendingTabScrollIndex = -1;
 
     /**
-     * Last-call-wins scroll to the tab at {@code index}.  If a scroll is already
-     * queued (from a caller that is about to call again — e.g. addNewSession →
-     * setCurrentSession + updateTabs both call scrollToTab), the earlier one is
-     * cancelled and only the final target survives.  This prevents the animation
-     * fighting that made the tab strip look abrupt/jerky.
+     * Centre the tab at {@code index} in the strip. All scrolls funnel through the single-owner
+     * {@link #requestScroll(int, int)} (last-call-wins), so an end-scroll requested by
+     * {@link #scrollStripToEnd()} (on tab addition) wins over a centre request instead of fighting
+     * it — that was the source of the previous janky scrolling.
      */
-    private void scrollToTab(int index) {
+    // Single owner for all strip scrolls. CENTRE centres a tab; END scrolls to the absolute right
+    // end (incl. the (+) button). last-call-wins across both modes — only ONE smoothScrollTo ever
+    // runs per frame, so a centre request and an end request can never fight (which previously
+    // caused janky scrolling when adding a tab).
+    private static final int SCROLL_NONE = 0;
+    private static final int SCROLL_CENTRE = 1;
+    private static final int SCROLL_END = 2;
+    private int mPendingScrollMode = SCROLL_NONE;
+    // Set when an end-scroll is requested after a tab add. While active, a title-only refresh
+    // (updateTabs with no size change) must NOT recentre the strip, otherwise the shell's OSC
+    // title update would yank the strip back from the right end ~200ms after the add.
+    private boolean mEndScrollActive = false;
+    private int mPageScrollSuppressed = 0;
+
+    // Monotonic sequence guard: an END request always outranks a CENTRE request regardless of the
+    // order in which they are posted to the looper. mScrollSeqPending is the sequence of the
+    // runnable currently queued; a runnable whose sequence is older than the latest issued request
+    // drops itself so a stale CENTRE can never clobber a newer END (the prior "last-call-wins"
+    // rule was order-dependent and let a CENTRE posted after END win).
+    private long mScrollSeq = 0;
+    private long mScrollSeqPending = -1;
+
+    /** Pending global-layout listener used to measure the strip only after it is laid out. */
+    private android.view.ViewTreeObserver.OnGlobalLayoutListener mPendingEndLayoutListener = null;
+
+    private final Runnable mScrollRunnable = new Runnable() {
+        @Override
+        public void run() {
+            final long seq = mScrollSeqPending;
+            mScrollSeqPending = -1;
+            // A newer (higher-priority) request was issued after this runnable was queued: drop.
+            if (seq < mScrollSeq) return;
+            if (mTabsContainer == null || mTabsScroll == null) return;
+            final int mode = mPendingScrollMode;
+            mPendingScrollMode = SCROLL_NONE;
+            if (mode == SCROLL_END) {
+                runEndScroll();
+            } else if (mode == SCROLL_CENTRE) {
+                if (mPendingTabScrollIndex < 0
+                        || mPendingTabScrollIndex >= mTabsContainer.getChildCount() - 1) return;
+                final View tabView = mTabsContainer.getChildAt(mPendingTabScrollIndex);
+                if (tabView == null) return;
+                final int scrollX = tabView.getLeft() - mTabsScroll.getWidth() / 2 + tabView.getWidth() / 2;
+                mTabsScroll.smoothScrollTo(scrollX, 0);
+            }
+        }
+    };
+
+    /**
+     * Scroll the strip to its absolute right end (newly-added tab + trailing (+) button fully
+     * revealed). The measurement is deferred to a global-layout listener so it runs ONLY after the
+     * container has actually been laid out at its new width.
+     *
+     * <p>CRITICAL: we do NOT use mTabsScroll.smoothScrollTo(). HorizontalScrollView re-clamps the
+     * in-flight smooth scroll to its content width on EVERY frame, so if the content width SHRINKS
+     * while the animation runs (LayoutTransition CHANGING reflow, a late OSC title re-measure, or the
+     * (+) button toggling GONE/VISIBLE) the strip freezes short of the true end — exactly the
+     * "new tab + (+) button stay partly off-screen" symptom. Instead we drive scrollX ourselves via
+     * a ValueAnimator that calls mTabsScroll.scrollTo(fixedTarget) to a target computed ONCE from the
+     * settled final width, so the live re-clamp cannot shorten the trip. The LayoutTransition is
+     * detached for the duration of the animation so the content width stays stable (the CHANGING
+     * glide is sacrificed only for the add END-scroll; the close animation is unaffected).
+     */
+    private android.animation.ValueAnimator mEndScrollAnim = null;
+
+    private void cancelEndScroll() {
+        if (mEndScrollAnim != null) {
+            mEndScrollAnim.cancel();
+            mEndScrollAnim = null;
+        }
+        if (mPendingEndLayoutListener != null && mTabsContainer != null) {
+            mTabsContainer.getViewTreeObserver().removeOnGlobalLayoutListener(mPendingEndLayoutListener);
+            mPendingEndLayoutListener = null;
+        }
+    }
+
+    private void runEndScroll() {
         if (mTabsContainer == null || mTabsScroll == null) return;
-        if (index < 0 || index >= mTabsContainer.getChildCount() - 1) return;
 
-        final View tabView = mTabsContainer.getChildAt(index);
-        if (tabView == null) return;
+        // Cancel any in-flight end-scroll (a newer request, or a re-entry) before starting fresh.
+        cancelEndScroll();
 
-        mPendingTabScrollIndex = index;
-        mTabsScroll.removeCallbacks(mTabScrollRunnable);
-        mTabsScroll.post(mTabScrollRunnable);
+        // Record the width BEFORE the add so we only scroll once the container has actually grown
+        // to include the new tab (a layout pass may fire without the new width folded in yet).
+        final int widthBefore = mTabsContainer.getMeasuredWidth();
+
+        final android.view.ViewTreeObserver.OnGlobalLayoutListener listener =
+                new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
+                    private int mRetries = 0;
+                    @Override
+                    public void onGlobalLayout() {
+                        if (mTabsContainer == null || mTabsScroll == null) {
+                            mTabsContainer.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                            mPendingEndLayoutListener = null;
+                            return;
+                        }
+                        final int newWidth = mTabsContainer.getMeasuredWidth();
+                        // Wait until the container has actually grown to include the new tab, but
+                        // bound the wait so a never-growing layout still eventually scrolls.
+                        if (newWidth <= widthBefore && mRetries < 6) {
+                            mRetries++;
+                            return;
+                        }
+                        mTabsContainer.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                        if (mPendingEndLayoutListener == this) mPendingEndLayoutListener = null;
+
+                        // Authoritative scrollable extent: the HorizontalScrollView clamps scroll to
+                        // [0, childMeasuredWidth - viewportWidth]. getMeasuredWidth() of the
+                        // wrap_content container already includes the (+) button's marginEnd and the
+                        // container padding, so this equals the true right end with nothing clipped.
+                        final int childMeasuredW = mTabsContainer.getMeasuredWidth();
+                        final int scrollW = mTabsScroll.getWidth();
+                        final int maxScroll = Math.max(0, childMeasuredW - scrollW);
+
+                        // Detach the CHANGING LayoutTransition so the content width cannot shrink
+                        // mid-animation (this was the source of the live re-clamp / short stop).
+                        // Restored in the animator's end/cancel callbacks.
+                        final android.animation.LayoutTransition saved =
+                                mTabsContainer.getLayoutTransition();
+                        mTabsContainer.setLayoutTransition(null);
+
+                        final int startX = mTabsScroll.getScrollX();
+                        if (startX == maxScroll) {
+                            mTabsContainer.setLayoutTransition(saved);
+                            return;
+                        }
+                        // Self-driven scroll: we own the target, HSV's per-frame re-clamp is bypassed.
+                        mEndScrollAnim = android.animation.ValueAnimator.ofInt(startX, maxScroll);
+                        mEndScrollAnim.setDuration(250);
+                        mEndScrollAnim.setInterpolator(
+                                new android.view.animation.AccelerateDecelerateInterpolator());
+                        mEndScrollAnim.addUpdateListener(anim ->
+                                mTabsScroll.scrollTo((int) anim.getAnimatedValue(), 0));
+                        mEndScrollAnim.addListener(new android.animation.AnimatorListenerAdapter() {
+                            @Override
+                            public void onAnimationEnd(android.animation.Animator animation) {
+                                mEndScrollAnim = null;
+                                if (mTabsContainer != null)
+                                    mTabsContainer.setLayoutTransition(saved);
+                            }
+                            @Override
+                            public void onAnimationCancel(android.animation.Animator animation) {
+                                mEndScrollAnim = null;
+                                if (mTabsContainer != null)
+                                    mTabsContainer.setLayoutTransition(saved);
+                            }
+                        });
+                        mEndScrollAnim.start();
+                    }
+                };
+        mPendingEndLayoutListener = listener;
+        mTabsContainer.getViewTreeObserver().addOnGlobalLayoutListener(listener);
+    }
+
+    /** Queue a strip scroll. Single owner with a monotonic sequence so END always beats CENTRE. */
+    private void requestScroll(int mode, int index) {
+        if (mode == SCROLL_CENTRE) {
+            // A CENTRE request must never clobber an in-flight/active END scroll. The sequence guard
+            // (mScrollSeqPending) lets an END issued after this CENTRE win regardless of looper order.
+            if (mEndScrollActive) return;
+            mPendingTabScrollIndex = index;
+        }
+        mPendingScrollMode = mode;
+        mScrollSeq++;
+        mScrollSeqPending = mScrollSeq;
+        if (mTabsScroll != null) {
+            mTabsScroll.removeCallbacks(mScrollRunnable);
+            mTabsScroll.post(mScrollRunnable);
+        }
     }
 
     /**
-     * Force the tab strip to reveal a specific tab, waiting until the strip layout
-     * has fully settled before measuring.
-     *
-     * <p>Used after committing the trailing "swipe-right for new tab" placeholder. The
-     * naive approach (a single {@code post} + centre-on-tab) mis-scrolled because the
-     * freshly-added tab enters via the container's {@link LayoutTransition} APPEARING
-     * animation: its width grows from 0 to full over 220ms while the neighbours slide,
-     * so a scroll computed one frame after {@code addView} reads unsettled
-     * {@code getLeft()}/{@code getWidth()} values and lands the strip somewhere in the
-     * middle. Here we defer the scroll until the APPEARING transition ends (via a
-     * one-shot {@link LayoutTransition.TransitionListener}); if no transition is
-     * running we scroll on the next layout pass.</p>
+     * Smoothly scroll the strip to its absolute right end (newly-added tab + trailing (+) button
+     * fully revealed). Called ONLY after the new session's label has actually been set (the shell
+     * emits an OSC title) — see TermuxTerminalSessionActivityClient.onTitleChanged. The new tab is
+     * inserted at full width, so the container geometry is already final; the scroll is posted to
+     * the next layout pass and reads the true right end there. Marks the strip end-scrolled so a
+     * subsequent title-only refresh does not recentre it.
+     */
+    public void scrollStripToEnd() {
+        if (mTabsContainer == null || mTabsScroll == null) return;
+        // Mark the strip as end-scrolled so a subsequent title-only refresh does not recentre it.
+        mEndScrollActive = true;
+        // Post to the next layout pass — the new tab is inserted at full width, so by the time the
+        // runnable runs the container has laid out at its final width and the end is measurable.
+        requestScroll(SCROLL_END, -1);
+    }
+
+    /**
+     * Force the tab strip to reveal (centre) a specific tab, waiting until the strip layout has
+     * fully settled before measuring. Used for normal tab switches (not tab addition).
      */
     public void scrollToTabIndex(int index) {
         if (mTabsContainer == null || mTabsScroll == null) return;
-
         final LayoutTransition transition = mTabsContainer.getLayoutTransition();
         if (transition != null && transition.isRunning()) {
             transition.addTransitionListener(new LayoutTransition.TransitionListener() {
@@ -473,72 +646,15 @@ public class TermuxSessionTabsController {
                 @Override
                 public void endTransition(LayoutTransition t, ViewGroup container,
                                           View view, int transitionType) {
-                    // Only act once the whole transition batch has finished so the
-                    // final geometry is stable. Remove the listener so it fires once.
                     if (t.isRunning()) return;
                     t.removeTransitionListener(this);
-                    scrollToTab(index);
+                    requestScroll(SCROLL_CENTRE, index);
                 }
             });
             return;
         }
-
-        // No transition running — scroll after the next layout pass so a just-added
-        // tab that has not been measured yet gets its final position first.
-        mTabsScroll.post(() -> scrollToTab(index));
+        requestScroll(SCROLL_CENTRE, index);
     }
-
-    /**
-     * Like {@link #scrollToTabIndex(int)} but always scrolls the strip so the very end of the tab
-     * list (newly-added tab + trailing (+) button) is fully revealed — used when a brand-new tab is
-     * committed. The actual scroll is deferred to the next layout pass (see {@link
-     * #scrollToTabRightEdge}) so it runs only after the new tab's width AND label have been laid
-     * out, never mid-animation.
-     */
-    public void scrollToTabIndexRightEdge(int index) {
-        if (mTabsContainer == null || mTabsScroll == null) return;
-        scrollToTabRightEdge(index);
-    }
-
-    private void scrollToTabRightEdge(int index) {
-        if (mTabsContainer == null || mTabsScroll == null) return;
-        if (index < 0 || index >= mTabsContainer.getChildCount() - 1) return;
-        // Defer to the next layout pass: by then the add-tab button (last child, incl. the (+)
-        // button) has its final right edge and the new tab's label is populated. Computing scrollX
-        // from the (+) button's right edge lands exactly at the strip's end — unlike aligning to the
-        // last tab's right edge, which stopped short and left the button off-screen.
-        final android.view.ViewTreeObserver vto = mTabsContainer.getViewTreeObserver();
-        if (vto == null || !vto.isAlive()) return;
-        vto.addOnGlobalLayoutListener(new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
-            @Override
-            public void onGlobalLayout() {
-                vto.removeOnGlobalLayoutListener(this);
-                if (mTabsContainer == null || mTabsScroll == null) return;
-                final View addBtn = mTabsContainer.findViewById(R.id.new_session_tab_button);
-                final int targetRight = (addBtn != null) ? addBtn.getRight() : mTabsContainer.getRight();
-                // Post so this runs AFTER any pending centred scrollToTab() from setCurrentSession,
-                // letting the right-edge scroll win smoothly (no mid-flight fight between the two).
-                mTabsScroll.post(() -> {
-                    if (mTabsContainer == null || mTabsScroll == null) return;
-                    int scrollX = targetRight - mTabsScroll.getWidth();
-                    if (scrollX < 0) scrollX = 0;
-                    mTabsScroll.smoothScrollTo(scrollX, 0);
-                });
-            }
-        });
-    }
-
-    private final Runnable mTabScrollRunnable = new Runnable() {
-        @Override
-        public void run() {
-            final int idx = mPendingTabScrollIndex;
-            if (idx < 0 || idx >= mTabsContainer.getChildCount() - 1) return;
-            final View tabView = mTabsContainer.getChildAt(idx);
-            if (tabView == null) return;
-            int scrollX = tabView.getLeft() - mTabsScroll.getWidth() / 2 + tabView.getWidth() / 2;
-            mTabsScroll.smoothScrollTo(scrollX, 0);
-        }
-    };
 
     /**
      * Re-apply the terminal color scheme to every existing tab view: text/close-icon color and a
@@ -588,6 +704,24 @@ public class TermuxSessionTabsController {
         mPlaceholderActive = active;
     }
 
+    /**
+     * Reserve the right-end scroll for a freshly-added tab. While reserved, the pager's
+     * onPageScrolled() instant scrollTo() is suppressed (so it cannot fight the smooth END scroll)
+     * and setCurrentSession() will not post a competing CENTRE scroll. The reservation is cleared
+     * when the END scroll actually fires (after the new tab's label is set) or when the user makes
+     * a genuine tab switch / closes a tab.
+     */
+    public void setEndScrollReserved(boolean reserved) {
+        mEndScrollActive = reserved;
+        if (!reserved) {
+            // User-initiated navigation cancels the end-scroll reservation entirely: allow a
+            // subsequent CENTRE request to win again. Also stop any in-flight self-driven scroll
+            // so the user's drag is not fought.
+            mScrollSeqPending = -1;
+            cancelEndScroll();
+        }
+    }
+
     public void setCurrentSession(int index) {        if (mTabsContainer == null) return;
         if (index < 0 || index >= mTabsContainer.getChildCount() - 1) return;
 
@@ -619,7 +753,15 @@ public class TermuxSessionTabsController {
         }
 
         mCurrentSessionIndex = index;
-        scrollToTab(index);
+        // A genuine tab selection (user tap / page settle) cancels any sticky end-scroll so the
+        // strip can recentre on the chosen tab. BUT if an end-scroll is already reserved (we just
+        // added a tab and are waiting for its label before scrolling to the right end), do NOT
+        // cancel it or post a competing CENTRE scroll — that would fight the end-scroll and cause
+        // the (+) button to stay clipped. The end-scroll clears mEndScrollActive itself once the
+        // label is set (or via the fallback timer).
+        if (mEndScrollActive) return;
+        mEndScrollActive = false;
+        requestScroll(SCROLL_CENTRE, index);
     }
 
     // ── Intermediate page-scroll support ──────────────────────────────────
@@ -637,6 +779,16 @@ public class TermuxSessionTabsController {
     public void onPageScrolled(int position, float positionOffset) {
         if (mTabsContainer == null || mTabsScroll == null) return;
         if (!mSchemeApplied) return;
+        if (mEndScrollActive) {
+            // Suppressed while end-scroll owns the strip — log once per active window via counter.
+            mPageScrollSuppressed++;
+            return;
+        }
+        mPageScrollSuppressed = 0;
+        // While a just-added tab's end-scroll is active, let scrollStripToEnd() own the strip
+        // scroll. The pager's smooth settle would otherwise issue instant scrollTo() calls here
+        // that fight the smooth END scroll (jank + under-scroll, (+) button left clipped).
+        if (mEndScrollActive) return;
 
         int leftIdx = position;
         int rightIdx = position + 1;

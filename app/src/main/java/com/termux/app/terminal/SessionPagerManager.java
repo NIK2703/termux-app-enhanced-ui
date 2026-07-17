@@ -124,6 +124,12 @@ public final class SessionPagerManager {
                 // scroll that merely lands on the placeholder's index.
                 if (state == ViewPager2.SCROLL_STATE_DRAGGING) {
                     mUserScrollInProgress = true;
+                    // A user-initiated swipe starts a genuine tab navigation: release the reserved
+                    // end-scroll so onPageScrolled()'s finger-follow instant scroll is re-enabled and
+                    // the strip can move with the swipe. The end-scroll (if any) already fired once
+                    // the label was set; a manual swipe means the user is taking over.
+                    TermuxSessionTabsController tabs = mActivity.getTermuxSessionTabsController();
+                    if (tabs != null) tabs.setEndScrollReserved(false);
                 } else if (state == ViewPager2.SCROLL_STATE_IDLE) {
                     mUserScrollInProgress = false;
                 }
@@ -340,6 +346,16 @@ public final class SessionPagerManager {
         TermuxSessionTabsController tabs = mActivity.getTermuxSessionTabsController();
         if (tabs != null) tabs.setPlaceholderActive(false);
 
+        // Reserve the end-scroll NOW (before the deferred post() bookkeeping runs) so that every
+        // onPageScrolled() instant scrollTo() during the pager settle is suppressed by the
+        // mEndScrollActive guard — only the single END smooth scroll (fired after the label is set)
+        // will drive the strip. Also arm the label-triggered scroll: the right-end scroll fires only
+        // once the new session's title is actually set (onTitleChanged), with a 250ms fallback.
+        if (tabs != null) tabs.setEndScrollReserved(true);
+        if (newSession.getTerminalSession() != null) {
+            client.markPendingEndScrollSession(newSession.getTerminalSession());
+        }
+
         // NOTE: do NOT re-arm the placeholder synchronously here. Re-inserting the page during the
         // commit (notifyItemInserted) makes ViewPager2's DataSetChangeObserver snapToPage() and
         // rewind the pager (the old 6->0 cascade). The placeholder is instead re-appended on the
@@ -366,8 +382,6 @@ public final class SessionPagerManager {
             // resolves the correct TerminalView (not the previous tab). The tab strip scrolls to
             // the right edge when updateTabs() adds the new tab (see TermuxSessionTabsController).
             onTerminalPageSelected(idx);
-            TermuxSessionTabsController tabsCtrl = mActivity.getTermuxSessionTabsController();
-            if (tabsCtrl != null) tabsCtrl.scrollToTabIndex(idx);
         });
     }
 
