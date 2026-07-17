@@ -181,11 +181,13 @@ public class TermuxSessionTabsController {
         if (mTabsContainer == null) return;
         View addBtn = mTabsContainer.findViewById(R.id.new_session_tab_button);
         if (addBtn == null) return;
-        // Use INVISIBLE (not GONE) so the button's footprint stays reserved and the scrollable
-        // content width never changes when the session limit is hit. GONE would shrink
-        // mTabsContainer.getMeasuredWidth() and could re-clamp an in-flight end-scroll short.
+        // Use GONE once the session limit is reached so the button's footprint (width + marginEnd)
+        // is released and no dead trailing gap is left in the strip. This is safe now that the
+        // end-scroll is a self-driven ValueAnimator calling scrollTo() to a fixed target (no live
+        // HSV re-clamp), and the target is measured in endScrollLayout AFTER the button has already
+        // been hidden — so the strip scrolls exactly to the last real tab with no extra offset.
         addBtn.setVisibility(sessionCount >= TermuxTerminalSessionActivityClient.MAX_SESSIONS
-                ? View.INVISIBLE : View.VISIBLE);
+                ? View.GONE : View.VISIBLE);
     }
 
     /**
