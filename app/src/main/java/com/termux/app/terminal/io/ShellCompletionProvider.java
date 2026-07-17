@@ -204,13 +204,23 @@ public class ShellCompletionProvider {
 
     private final File mBashExecutable;
 
-    /** Android context used to load the bash completion script templates from raw resources. */
+    /** Android context used to load the bash completion dispatcher from raw resources. */
     @Nullable private final Context mContext;
 
-    /** Lazily-loaded fast-path / slow-path script templates (raw resources). */
-    @Nullable private String mFastTemplate;
-    @Nullable private String mSlowTemplate;
-    @Nullable private String mCommonTemplate;
+    /** Field delimiter for the persistent-process wire protocol (TYPE\x01WORD\x01CWD\x01LINE). */
+    private static final char REQ_SEP = '\u0001';
+    /** End-of-response marker line the dispatcher prints after each request. */
+    private static final String END_MARKER = "__END__";
+
+    /** The single long-lived bash dispatcher process (lazy-started). */
+    @Nullable private Process mPersistent;
+    @Nullable private java.io.BufferedWriter mPersistentIn;
+    @Nullable private java.io.BufferedReader mPersistentOut;
+    @Nullable private Thread mPersistentErrDrain;
+    /** Temp file the dispatcher script is materialized to (once), reused for restarts. */
+    @Nullable private File mScriptFile;
+    /** Serializes write-request / read-response so concurrent callers can't interleave. */
+    private final Object mProcLock = new Object();
 
     /**
      * Per-word completion cache. We fetch bash completion ONCE for the word slot
@@ -309,38 +319,31 @@ public class ShellCompletionProvider {
         }
     }
 
-    @Nullable
-    private String fastTemplate() {
-        if (mFastTemplate == null) mFastTemplate = withCommon(loadRawResource("shell_complete_fast"));
-        return mFastTemplate;
-    }
-
-    /** @deprecated kept only so a stale reference can't break compilation. */
-    @Nullable
-    private String slowTemplate() {
-        return null;
-    }
-
     /**
-     * Prepend the shared {@code shell_complete_common.sh} header to a scenario
-     * template. The header defines the tokenizer, the file fallback and the
-     * __COMPOPTS emitter, installs the process-group trap, and scans ~/.bashrc
-     * for compspec registrations. We concatenate in Java (rather than bash
-     * `source`) because the script runs via `bash -c` where BASH_SOURCE is
-     * undefined and a cross-file source would silently fail.
+     * Materialize the persistent dispatcher script to a stable temp file (once)
+     * and return it. The script is loaded from the {@code shell_complete} raw
+     * resource. Returns {@code null} if the resource is unavailable.
      */
     @Nullable
-    private String withCommon(@Nullable String scenario) {
-        if (scenario == null) return null;
-        String common = commonTemplate();
-        if (common == null) return scenario;
-        return common + "\n" + scenario;
-    }
-
-    @Nullable
-    private String commonTemplate() {
-        if (mCommonTemplate == null) mCommonTemplate = loadRawResource("shell_complete_common");
-        return mCommonTemplate;
+    private synchronized File dispatcherScriptFile() {
+        if (mScriptFile != null && mScriptFile.isFile()) return mScriptFile;
+        String script = loadRawResource("shell_complete");
+        if (script == null) return null;
+        try {
+            File dir = (mContext != null) ? mContext.getCacheDir()
+                    : new File(System.getProperty("java.io.tmpdir", "/data/data/com.termux/files/usr/tmp"));
+            if (dir != null && !dir.isDirectory()) dir.mkdirs();
+            File f = File.createTempFile("shell_complete", ".sh", dir);
+            try (java.io.OutputStream os = new java.io.FileOutputStream(f)) {
+                os.write(script.getBytes(StandardCharsets.UTF_8));
+            }
+            f.deleteOnExit();
+            mScriptFile = f;
+            return f;
+        } catch (Exception e) {
+            Logger.logStackTraceWithMessage(LOG_TAG, "failed to materialize dispatcher script", e);
+            return null;
+        }
     }
 
     /** Returns true if the configured shell binary exists and can be used. */
@@ -732,45 +735,6 @@ public class ShellCompletionProvider {
         ARRAY_INDEX
     }
 
-    /** Lazily-loaded per-scenario script templates (raw resources). */
-    @Nullable private String mCmdctxTemplate;
-    @Nullable private String mRedirTemplate;
-    @Nullable private String mVarsTemplate;
-    @Nullable private String mSignalsTemplate;
-    @Nullable private String mCompspecTemplate;
-    @Nullable private String mPathTemplate;
-
-    @Nullable
-    private String cmdctxTemplate() {
-        if (mCmdctxTemplate == null) mCmdctxTemplate = withCommon(loadRawResource("shell_complete_cmdctx"));
-        return mCmdctxTemplate;
-    }
-    @Nullable
-    private String redirTemplate() {
-        if (mRedirTemplate == null) mRedirTemplate = withCommon(loadRawResource("shell_complete_redir"));
-        return mRedirTemplate;
-    }
-    @Nullable
-    private String varsTemplate() {
-        if (mVarsTemplate == null) mVarsTemplate = withCommon(loadRawResource("shell_complete_vars"));
-        return mVarsTemplate;
-    }
-    @Nullable
-    private String signalsTemplate() {
-        if (mSignalsTemplate == null) mSignalsTemplate = withCommon(loadRawResource("shell_complete_signals"));
-        return mSignalsTemplate;
-    }
-    @Nullable
-    private String compspecTemplate() {
-        if (mCompspecTemplate == null) mCompspecTemplate = withCommon(loadRawResource("shell_complete_compspec"));
-        return mCompspecTemplate;
-    }
-    @Nullable
-    private String pathTemplate() {
-        if (mPathTemplate == null) mPathTemplate = withCommon(loadRawResource("shell_complete_path"));
-        return mPathTemplate;
-    }
-
     /**
      * Classify the word slot being completed into one of the {@link Scenario}
      * scripts. This is the single source of truth for *which* bash template to
@@ -996,16 +960,17 @@ public class ShellCompletionProvider {
     }
 
     /**
-     * Return the bash completion script for the classified scenario. The scripts
-     * live as raw resources ({@code shell_complete_*.sh}) so each usage scenario's
-     * logic is editable in its own file. They are parameterized entirely through
-     * positional arguments and the {@code __MAX_CANDIDATES} variable, so
-     * {@link #runBash(String, String)} passes {@code compLine}, {@code compPoint}
-     * and {@code currentWord} as {@code $1 $2 $3} and exports the candidate cap.
+     * Map the classified scenario to the persistent-dispatcher wire TYPE token.
+     * This is the request selector fed to the single long-lived bash process
+     * (see {@code res/raw/shell_complete.sh}). It replaces the old
+     * per-scenario-script selection: instead of returning a bash script to spawn,
+     * it returns the one-word TYPE that tells the dispatcher which single compgen
+     * / glob to run.
      *
-     * @return the script to feed to bash, or {@code null} if the template could
-     *         not be loaded (caller should return an empty result rather than
-     *         caching it).
+     * @return the wire TYPE ({@code CMD/PATH/FILE/REDIR/VAR/SIGNAL/COMPSPEC}), or
+     *         {@code null} for scenarios that are never completable
+     *         (HISTORY_EXPANSION / ARRAY_INDEX) — the caller treats {@code null}
+     *         as EMPTY (no request, no cache).
      */
     @Nullable
     private String buildCompletionScript(@NonNull String[] words, int cword,
@@ -1013,185 +978,403 @@ public class ShellCompletionProvider {
         Scenario scenario = classifyScenario(words, cword);
         switch (scenario) {
             case COMMAND_NAME:
-                return fastTemplate();
-            case PATH:
-                return pathTemplate();
-            case REDIRECTION:
-                return redirTemplate();
             case COMMAND_CONTEXT:
-                return cmdctxTemplate();
+                return "CMD";
+            case PATH:
+                return "PATH";
+            case REDIRECTION:
+                return "REDIR";
             case VARIABLE:
-                return varsTemplate();
+                return "VAR";
             case SIGNAL_JOB:
-                return signalsTemplate();
+                return "SIGNAL";
             case HISTORY_EXPANSION:
             case ARRAY_INDEX:
-                return null; // complete() treats null as EMPTY (no cache, no spawn)
+                return null; // complete() treats null as EMPTY (no request, no cache)
             case COMPSPEC:
             default:
-                return compspecTemplate();
+                return "COMPSPEC";
         }
     }
 
     /**
-     * Run the bash script and collect its stdout lines as candidates. Returns
-     * {@code null} on timeout/error so the caller does NOT cache the (empty)
-     * result. Completion options ({@code -o filenames/nospace/nosort/noquote})
-     * are parsed from a side-channel {@code __COMPOPTS:...} sentinel line the
-     * script emits.
+     * Issue ONE completion request to the persistent bash dispatcher and collect
+     * its NUL-delimited candidates. Returns {@code null} on timeout/error so the
+     * caller does NOT cache the (empty) result. Completion options
+     * ({@code -o filenames/nospace/nosort/noquote}) are parsed from the
+     * side-channel {@code __COMPOPTS:...} record the dispatcher emits.
+     *
+     * <p>The seam signature is retained (tests override it to count fetches).
+     * Here {@code script} carries the wire TYPE token
+     * ({@code CMD/PATH/FILE/REDIR/VAR/SIGNAL/COMPSPEC}) produced by
+     * {@link #buildCompletionScript}, and {@code currentWord} is the raw token
+     * being completed. All TYPE-specific token shaping (VAR {@code $}/{@code ${}}
+     * sigil strip + re-wrap, SIGNAL {@code -}/{@code SIG} mapping, PATH
+     * {@code NAME=} assignment strip + re-prepend, COMPSPEC wrapper-skip) happens
+     * here in Java — the dispatcher runs exactly one compgen/glob per request.
      */
     @Nullable
     protected BashResult runBash(@NonNull String script, @Nullable String cwd,
                                  @NonNull String compLine, int compPoint, @NonNull String currentWord) {
-        List<String> raw = new ArrayList<>();
-        Process process = null;
-        boolean isFilename = false, noSpace = false, noSort = false, noQuote = false;
-        // Upper bound on bytes we keep from a (potentially runaway) completion so a
-        // completer emitting 100k paths cannot OOM the background thread.
-        final int MAX_OUTPUT_BYTES = 2_000_000;
-        try {
-            // Pass compLine / compPoint / currentWord as positional args ($1/$2/$3)
-            // and export the candidate cap so the raw-resource template stays
-            // parameter-driven (no Java string concatenation into the script).
-            ProcessBuilder pb = new ProcessBuilder(
-                    mBashExecutable.getAbsolutePath(), "--norc", "--noprofile", "-c", script,
-                    "--", compLine, Integer.toString(compPoint), currentWord);
-            if (!TextUtils.isEmpty(cwd)) {
-                File dir = new File(cwd);
-                if (dir.isDirectory()) pb.directory(dir);
+        String type = script;
+
+        // ── TYPE-specific request shaping (moved out of bash). ──
+        String word = currentWord;
+        String assignPrefix = null;     // PATH: re-prepended to every candidate
+        String varSigil = null;         // VAR: '$' + optional '{'
+        String varClose = "";           // VAR: '}' when ${...
+        boolean signalDash = false;     // SIGNAL: candidate re-prefixed with '-'
+
+        switch (type) {
+            case "PATH":
+            case "REDIR":
+            case "FILE": {
+                // Bash's word tokenizer strips a single layer of surrounding
+                // quotes, so the old per-scenario path template resolved
+                // CURRENT_WORD from COMP_WORDS (unquoted) before globbing. The
+                // persistent dispatcher receives the RAW word (quote retained by
+                // splitCommandLine), so a `cd "$HOME/DI` would arrive as
+                // `"/…/home/DI`; the leading quote defeats `compgen -G`. Strip the
+                // outer quote here to restore the original candidate set (S8/S13).
+                word = stripOuterQuotes(word);
+                // NAME=value assignment: complete the VALUE against the filesystem,
+                // re-prepend VAR= to each candidate so the UI inserts the full token.
+                if (word.matches("[A-Za-z_][A-Za-z0-9_]*=.*")) {
+                    int eq = word.indexOf('=');
+                    assignPrefix = word.substring(0, eq + 1);
+                    word = word.substring(eq + 1);
+                }
+                break;
             }
-            // Keep the environment minimal but functional (PATH so compgen -c works).
-            // Prepend the Termux bin dir so termux-provided commands are always
-            // discoverable even if the inherited PATH omits them.
+            case "VAR": {
+                // $VAR / ${VAR}: strip the sigil for compgen -v, remember it to
+                // re-wrap each emitted candidate.
+                if (word.startsWith("$")) {
+                    varSigil = "$";
+                    String bare = word.substring(1);
+                    if (bare.startsWith("{")) { varSigil = "${"; varClose = "}"; bare = bare.substring(1); }
+                    word = bare;
+                }
+                break;
+            }
+            case "SIGNAL": {
+                // kill/trap -SIGNAL: map "-USR1"/"-HUP" onto "SIGUSR1"/"SIGHUP"
+                // for compgen -A signal; re-prepend '-' to each name on return.
+                if (word.startsWith("-")) {
+                    signalDash = true;
+                    String sig = word.substring(1);
+                    if (!sig.startsWith("SIG")) sig = "SIG" + sig;
+                    word = sig;
+                } else {
+                    // "%job" and other forms are not supported by the fast path.
+                    word = "";
+                }
+                break;
+            }
+            case "COMPSPEC":
+                // No Java-side word shaping: the bash dispatcher resolves the real
+                // command (through wrappers/assignments) and detects a leading
+                // wrapper for the command-name fallback from the full COMP_LINE.
+                break;
+            default:
+                break;
+        }
+
+        // ── Persistent request/response, guarded so callers never interleave. ──
+        List<String> raw = new ArrayList<>();
+        boolean[] flags = new boolean[4]; // isFilename, noSpace, noSort, noQuote
+        // COMPSPEC must receive the FULL command line so the bash dispatcher can
+        // (a) resolve the real command through its own wrapper/assignment loop and
+        // (b) detect a leading wrapper (sudo/env/xargs/…) for the command-name
+        // fallback — exactly as the original compspec template did via
+        // `cmd="${1%% *}"`. Rewriting the line to `<resolvedCmd> <word>` dropped the
+        // wrapper token, breaking the `sudo gi`/`env gi`/`xargs gi` fallback (S9).
+        String responseLine = compLine;
+        byte[] out = queryPersistent(type, word, cwd, responseLine);
+        if (out == null) {
+            trace("BASH", "persistent query TIMEOUT/error (type=" + type + ")");
+            return null;
+        }
+        parseNulRecords(out, raw, flags);
+
+        // ── TYPE-specific candidate re-shaping (moved out of bash). ──
+        if (varSigil != null) {
+            List<String> wrapped = new ArrayList<>(raw.size());
+            for (String r : raw) wrapped.add(varSigil + r + varClose);
+            raw = wrapped;
+        } else if (signalDash) {
+            List<String> wrapped = new ArrayList<>(raw.size());
+            for (String r : raw) wrapped.add("-" + r);
+            raw = wrapped;
+        } else if (assignPrefix != null) {
+            List<String> wrapped = new ArrayList<>(raw.size());
+            for (String r : raw) wrapped.add(assignPrefix + r);
+            raw = wrapped;
+        }
+
+        return new BashResult(normalizeCandidates(raw, cwd),
+                flags[0], flags[1], flags[2], flags[3]);
+    }
+
+    /**
+     * Resolve the real command whose compspec should run: skip known
+     * command-wrappers ({@code sudo xargs env time nohup nice exec stdbuf
+     * timeout ionice setsid}) and inline {@code NAME=value} assignments that
+     * precede it, so e.g. {@code sudo systemctl sta} completes {@code systemctl}.
+     * Returns the command name (words[0] when no wrapper), or {@code null} when
+     * the word array is empty.
+     */
+    @Nullable
+    private static String resolveCompspecCommand(@NonNull String[] words) {
+        if (words.length == 0) return null;
+        int i = 0;
+        String cmd = words[0];
+        while (cmd != null && WRAPPER_COMMANDS.contains(cmd) && i + 1 < words.length) {
+            i++;
+            cmd = words[i];
+            while (cmd != null && cmd.matches("[A-Za-z_][A-Za-z0-9_]*=.*") && i + 1 < words.length) {
+                i++;
+                cmd = words[i];
+            }
+        }
+        return (cmd == null || cmd.isEmpty()) ? null : cmd;
+    }
+
+    /** Command wrappers whose real target is the following argument (COMPSPEC). */
+    private static final Set<String> WRAPPER_COMMANDS = Collections.unmodifiableSet(
+            new HashSet<>(java.util.Arrays.asList(
+                    "sudo", "xargs", "env", "time", "nohup", "nice", "exec",
+                    "stdbuf", "timeout", "ionice", "setsid")));
+
+    /**
+     * Send one request to the persistent dispatcher and read its response up to
+     * the {@code __END__} marker. Returns the raw NUL-delimited response bytes,
+     * or {@code null} on timeout/error. On timeout it first attempts a graceful
+     * drain (read the still-pending {@code __END__} without killing the process);
+     * if that fails the process is restarted so a wedged compspec cannot poison
+     * every future request.
+     */
+    @Nullable
+    private byte[] queryPersistent(@NonNull String type, @NonNull String word,
+                                   @Nullable String cwd, @NonNull String line) {
+        synchronized (mProcLock) {
+            if (!ensurePersistent()) return null;
+
+            // Sanitize the request fields: strip our field separator and newlines
+            // (they would corrupt the single-line wire format).
+            String req = sanitizeField(type) + REQ_SEP + sanitizeField(word) + REQ_SEP
+                    + sanitizeField(cwd == null ? "" : cwd) + REQ_SEP + sanitizeField(line);
+            final java.io.BufferedWriter in = mPersistentIn;
+            final java.io.BufferedReader stdout = mPersistentOut;
+            if (in == null || stdout == null) return null;
+
+            try {
+                in.write(req);
+                in.write('\n');
+                in.flush();
+            } catch (IOException e) {
+                trace("BASH", "persistent write failed; restarting");
+                stopPersistent();
+                return null;
+            }
+
+            // Read the response on a bounded side thread so we can time it out
+            // without blocking on a wedged dispatcher.
+            final java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+            final Object done = new Object();
+            final boolean[] completed = {false};
+            final boolean[] eof = {false};
+            Thread reader = new Thread(() -> {
+                try {
+                    String l;
+                    while ((l = stdout.readLine()) != null) {
+                        if (END_MARKER.equals(l)) {
+                            synchronized (done) { completed[0] = true; done.notifyAll(); }
+                            return;
+                        }
+                        byte[] b = l.getBytes(StandardCharsets.UTF_8);
+                        if (bos.size() < 2_000_000) { bos.write(b, 0, b.length); bos.write('\n'); }
+                    }
+                    synchronized (done) { eof[0] = true; done.notifyAll(); }
+                } catch (IOException ignored) {
+                    synchronized (done) { eof[0] = true; done.notifyAll(); }
+                }
+            }, "shell-completion-read");
+            reader.setDaemon(true);
+            reader.start();
+
+            long deadline = System.currentTimeMillis() + TIMEOUT_MS;
+            synchronized (done) {
+                while (!completed[0] && !eof[0]) {
+                    long wait = deadline - System.currentTimeMillis();
+                    if (wait <= 0) break;
+                    try { done.wait(wait); } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+            }
+
+            if (completed[0]) {
+                // Dispatcher output arrives newline-framed by readLine(); the caller
+                // parser splits on NUL. Rejoin: our records ARE NUL-terminated inside
+                // each line, so keep the raw bytes as-is (the trailing '\n' per line
+                // is harmless — parseNulRecords splits on '\0' only).
+                return bos.toByteArray();
+            }
+            if (eof[0]) {
+                // Process died mid-response — restart for the next call.
+                trace("BASH", "persistent EOF mid-response; restarting");
+                stopPersistent();
+                byte[] partial = bos.toByteArray();
+                return partial.length > 0 ? partial : null;
+            }
+
+            // Timeout: the dispatcher is wedged on this request. We cannot safely
+            // resume mid-response (the pending __END__ would corrupt the NEXT
+            // read), so restart the process. The reader thread is daemon and will
+            // exit when the stream closes.
+            trace("BASH", "persistent query timeout (> " + TIMEOUT_MS + "ms); restarting");
+            stopPersistent();
+            return null;
+        }
+    }
+
+    /** Replace wire-breaking characters (our separator, CR/LF) in a request field. */
+    @NonNull
+    private static String sanitizeField(@NonNull String s) {
+        if (s.indexOf(REQ_SEP) < 0 && s.indexOf('\n') < 0 && s.indexOf('\r') < 0) return s;
+        return s.replace(REQ_SEP, ' ').replace('\n', ' ').replace('\r', ' ');
+    }
+
+    /** Parse a NUL-delimited response buffer into candidates + comp-option flags. */
+    private static void parseNulRecords(@NonNull byte[] out, @NonNull List<String> raw,
+                                        @NonNull boolean[] flags) {
+        int start = 0;
+        for (int i = 0; i <= out.length; i++) {
+            if (i == out.length || out[i] == 0) {
+                if (i > start) {
+                    String rec = new String(out, start, i - start, StandardCharsets.UTF_8);
+                    // readLine() framing may leave a trailing '\n' on the last record
+                    // of a line; drop it so records compare cleanly.
+                    if (rec.endsWith("\n")) rec = rec.substring(0, rec.length() - 1);
+                    if (!rec.isEmpty()) {
+                        if (rec.startsWith("__COMPOPTS:")) {
+                            for (String o : rec.substring("__COMPOPTS:".length()).split(",")) {
+                                switch (o) {
+                                    case "filenames": flags[0] = true; break;
+                                    case "nospace":   flags[1] = true; break;
+                                    case "nosort":    flags[2] = true; break;
+                                    case "noquote":   flags[3] = true; break;
+                                    default: break;
+                                }
+                            }
+                        } else {
+                            raw.add(rec);
+                        }
+                    }
+                }
+                start = i + 1;
+            }
+        }
+    }
+
+    /** Lazily (re)start the persistent dispatcher. Returns false if unavailable. */
+    private boolean ensurePersistent() {
+        if (mPersistent != null && mPersistent.isAlive()
+                && mPersistentIn != null && mPersistentOut != null) {
+            return true;
+        }
+        stopPersistent();
+        File scriptFile = dispatcherScriptFile();
+        if (scriptFile == null) {
+            trace("BASH", "dispatcher script unavailable");
+            return false;
+        }
+        try {
+            ProcessBuilder pb = new ProcessBuilder(
+                    mBashExecutable.getAbsolutePath(), "--norc", "--noprofile",
+                    scriptFile.getAbsolutePath());
             String inheritedPath = pb.environment().get("PATH");
             String termuxPath = TermuxConstants.TERMUX_BIN_PREFIX_DIR_PATH
                     + ":/system/bin:/system/xbin";
             pb.environment().put("PATH",
                     (inheritedPath == null || inheritedPath.isEmpty())
-                            ? termuxPath
-                            : termuxPath + ":" + inheritedPath);
-            pb.environment().putIfAbsent("TERMUX_PREFIX",
-                    TermuxConstants.TERMUX_PREFIX_DIR_PATH);
-            // Locale + HOME so bash/compgen treat multibyte input as UTF-8 and ~
-            // expansion is deterministic even if the host env lacks them.
+                            ? termuxPath : termuxPath + ":" + inheritedPath);
+            pb.environment().putIfAbsent("TERMUX_PREFIX", TermuxConstants.TERMUX_PREFIX_DIR_PATH);
             pb.environment().putIfAbsent("LANG", "C.UTF-8");
             pb.environment().putIfAbsent("LC_ALL", "C.UTF-8");
             String home = System.getenv("HOME");
             if (home != null) pb.environment().putIfAbsent("HOME", home);
-            // Candidate cap consumed by the raw-resource templates via ${__MAX_CANDIDATES}.
             pb.environment().put("__MAX_CANDIDATES", Integer.toString(MAX_BASH_CANDIDATES));
             pb.redirectErrorStream(false);
-            process = pb.start();
-            final Process proc = process;
-            final java.io.InputStream errStream = proc.getErrorStream();
-
-            // Drain stderr on a side thread so a chatty completion script can never
-            // block the (full-pipe) subprocess, and so we can surface diagnostics on
-            // timeout. The buffer is read back only in the failure path below.
-            final StringBuilder stderrBuf = new StringBuilder();
-            Thread errDrain = new Thread(() -> {
+            Process p = pb.start();
+            mPersistent = p;
+            mPersistentIn = new java.io.BufferedWriter(
+                    new java.io.OutputStreamWriter(p.getOutputStream(), StandardCharsets.UTF_8));
+            mPersistentOut = new BufferedReader(
+                    new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8));
+            final java.io.InputStream err = p.getErrorStream();
+            Thread drain = new Thread(() -> {
                 try (BufferedReader er = new BufferedReader(
-                        new InputStreamReader(errStream, StandardCharsets.UTF_8))) {
-                    String l;
-                    while ((l = er.readLine()) != null) {
-                        if (stderrBuf.length() < 2000) stderrBuf.append(l).append('\n');
-                    }
-                } catch (IOException ignored) {
-                }
-            }, "shell-completion-stderr");
-            errDrain.setDaemon(true);
-            errDrain.start();
-
-            // Stream stdout on a side thread (bounded) so a timeout still yields any
-            // candidates bash emitted before hanging — graceful partial results.
-            final java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
-            final Thread outDrain = new Thread(() -> {
-                byte[] buf = new byte[4096];
-                int r;
-                try (java.io.InputStream in = proc.getInputStream()) {
-                    while ((r = in.read(buf)) != -1) {
-                        if (bos.size() < MAX_OUTPUT_BYTES) bos.write(buf, 0, r);
-                        else break;
-                    }
-                } catch (IOException ignored) {
-                }
-            }, "shell-completion-stdout");
-            outDrain.setDaemon(true);
-            outDrain.start();
-
-            // Guard against a hanging completion script (e.g. network-dependent).
-            boolean finished = process.waitFor(TIMEOUT_MS, TimeUnit.MILLISECONDS);
-            if (!finished) {
-                // Kill the WHOLE process group, not just bash: a -F/-C completer or a
-                // sourced .bashrc line may have spawned children that would otherwise
-                // orphan, hold the pipe, and starve the single-thread executor.
-                killProcessGroup(process);
-                process.destroyForcibly();
-                // Closing the streams unblocks the drain threads so they exit.
-                closeQuietly(process.getInputStream());
-                closeQuietly(process.getErrorStream());
-                byte[] partial = bos.toByteArray();
-                String diag = stderrBuf.toString().trim();
-                Logger.logWarn(LOG_TAG, "bash completion timed out (> " + TIMEOUT_MS
-                        + "ms)" + (diag.isEmpty() ? "" : "; stderr: " + diag));
-                trace("BASH", "TIMEOUT (> " + TIMEOUT_MS + "ms)"
-                        + (diag.isEmpty() ? "" : "; stderr: " + diag.substring(0, Math.min(400, diag.length()))));
-                // Return whatever bash managed to emit before the hang (partial).
-                if (partial.length > 0) {
-                    return parseBashOutput(partial, cwd, raw,
-                            new boolean[]{isFilename, noSpace, noSort, noQuote});
-                }
-                return null;
-            }
-
-            outDrain.join(2000);
-            byte[] out = bos.toByteArray();
-            String diag = stderrBuf.toString().trim();
-            int exitCode = 0;
-            try { exitCode = process.exitValue(); } catch (IllegalThreadStateException ignored) {}
-            if (!diag.isEmpty()) {
-                trace("BASH", "stderr (first 400): " + diag.substring(0, Math.min(400, diag.length())));
-            }
-            trace("BASH", "exit=" + exitCode + " rawRecords=" + raw.size()
-                    + " bytes=" + out.length + " isFilename=" + isFilename);
-            int start = 0;
-            for (int i = 0; i <= out.length; i++) {
-                if (i == out.length || out[i] == 0) {
-                    if (i > start) {
-                        String rec = new String(out, start, i - start, StandardCharsets.UTF_8);
-                        if (!rec.isEmpty()) {
-                            // Side-channel sentinel carrying the resolved -o comp-options.
-                            if (rec.startsWith("__COMPOPTS:")) {
-                                String opts = rec.substring("__COMPOPTS:".length());
-                                for (String o : opts.split(",")) {
-                                    switch (o) {
-                                        case "filenames": isFilename = true; break;
-                                        case "nospace": noSpace = true; break;
-                                        case "nosort": noSort = true; break;
-                                        case "noquote": noQuote = true; break;
-                                        default: break;
-                                    }
-                                }
-                            } else {
-                                raw.add(rec);
-                            }
-                        }
-                    }
-                    start = i + 1;
-                }
-            }
-        } catch (IOException | InterruptedException e) {
-            Logger.logStackTraceWithMessage(LOG_TAG, "bash completion failed", e);
-            if (e instanceof InterruptedException) Thread.currentThread().interrupt();
-            return null;
-        } finally {
-            if (process != null && process.isAlive()) {
-                killProcessGroup(process);
-                process.destroyForcibly();
-            }
+                        new InputStreamReader(err, StandardCharsets.UTF_8))) {
+                    while (er.readLine() != null) { /* discard */ }
+                } catch (IOException ignored) { }
+            }, "shell-completion-persist-stderr");
+            drain.setDaemon(true);
+            drain.start();
+            mPersistentErrDrain = drain;
+            return true;
+        } catch (IOException e) {
+            trace("BASH", "failed to start persistent bash: " + e.getMessage());
+            stopPersistent();
+            return false;
         }
-        return new BashResult(normalizeCandidates(raw, cwd),
-                isFilename, noSpace, noSort, noQuote);
+    }
+
+    /** Tear down the persistent dispatcher (on death, timeout or shutdown). */
+    private void stopPersistent() {
+        // Snapshot the live references and NULL the fields synchronously so a
+        // concurrent/next queryPersistent()/ensurePersistent() immediately sees a
+        // torn-down dispatcher and never touches a half-closed stream. The actual
+        // stream closes AND the process kill are deferred to a daemon reaper so
+        // this call returns without blocking.
+        //
+        // This is load-bearing: closing the stdin/stdout of a wedged child (e.g. a
+        // fake-bash that `sleep 30`) can BLOCK until the child actually exits in
+        // some Process implementations (Robolectric's shadow in particular waits
+        // for the process to terminate before the close() of its pipes returns).
+        // Doing the close inline would make queryPersistent() hang for the FULL
+        // child duration, defeating the entire 1500ms timeout budget.
+        final java.io.Closeable in = mPersistentIn;
+        final java.io.Closeable out = mPersistentOut;
+        final Thread errDrain = mPersistentErrDrain;
+        final Process p = mPersistent;
+        mPersistentIn = null;
+        mPersistentOut = null;
+        mPersistentErrDrain = null;
+        mPersistent = null;
+        if (p == null && in == null && out == null) return;
+        Thread reaper = new Thread(() -> {
+            closeQuietly(in);
+            closeQuietly(out);
+            if (p != null) {
+                try { killProcessGroup(p); } catch (Throwable ignored) { }
+                try { p.destroyForcibly(); } catch (Throwable ignored) { }
+            }
+            if (errDrain != null && errDrain.isAlive()) {
+                try { errDrain.interrupt(); } catch (Throwable ignored) { }
+            }
+        }, "shell-completion-reaper");
+        reaper.setDaemon(true);
+        reaper.start();
+    }
+
+    /** Release the persistent process (call on provider disposal / session end). */
+    public void shutdown() {
+        synchronized (mProcLock) {
+            stopPersistent();
+        }
     }
 
     /** Parse a NUL-delimited bash output buffer into candidates + comp-options. */
