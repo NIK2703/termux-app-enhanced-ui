@@ -30,6 +30,14 @@ public class TermuxSessionTabsController {
     private final HorizontalScrollView mTabsScroll;
     private int mCurrentSessionIndex = -1;
 
+    /**
+     * False until the strip has been built at least once. The very first updateTabs() after a
+     * cold start (Activity finished via BACK and reopened) must reveal the RESTORED active tab,
+     * not pin the strip to the right end — so we distinguish "initial population" from a
+     * user-initiated tab add (which legitimately scrolls to the end).
+     */
+    private boolean mBuilt = false;
+
     // Last terminal scheme colors applied via applySchemeColorsToTabs(). Stored so that tabs
     // created later in updateTabs() (e.g. a freshly opened session) are colored from the
     // Termux:Style scheme too, instead of the hardcoded layout default color.
@@ -152,7 +160,17 @@ public class TermuxSessionTabsController {
         // centre request from setCurrentSession() and this end request can never run two competing
         // smoothScrollTo()s in one frame).
         mCurrentSessionIndex = currentSessionIndex;
-        if (newCount > sessionCount) {
+        if (!mBuilt) {
+            // FIRST build (cold start after the app was finished via BACK, or a fresh launch).
+            // Smoothly scroll the strip so the restored active tab is centred/visible. We go through
+            // requestScroll(SCROLL_CENTRE) so the geometry is measured only AFTER the container is
+            // laid out (deferred OnGlobalLayoutListener) — this fixes the old cold-start bug where a
+            // plain post()'d centre read tabView.getLeft() before layout (geometry 0) and no-op'd to
+            // scrollX=0, leaving the active tab off-screen. A user-initiated add (next branch) still
+            // scrolls to the right end via scrollStripToEnd().
+            requestScroll(SCROLL_CENTRE, currentSessionIndex);
+            mBuilt = true;
+        } else if (newCount > sessionCount) {
             // A new tab was just added: scroll the strip to its absolute right end so the new tab
             // AND the trailing (+) button are fully revealed. Both add paths (the (+) button tap and
             // the right-swipe placeholder commit) funnel through here, so this single call covers
@@ -482,12 +500,7 @@ public class TermuxSessionTabsController {
             if (mode == SCROLL_END) {
                 runEndScroll();
             } else if (mode == SCROLL_CENTRE) {
-                if (mPendingTabScrollIndex < 0
-                        || mPendingTabScrollIndex >= mTabsContainer.getChildCount() - 1) return;
-                final View tabView = mTabsContainer.getChildAt(mPendingTabScrollIndex);
-                if (tabView == null) return;
-                final int scrollX = tabView.getLeft() - mTabsScroll.getWidth() / 2 + tabView.getWidth() / 2;
-                mTabsScroll.smoothScrollTo(scrollX, 0);
+                runCentreScroll(seq);
             }
         }
     };
@@ -613,6 +626,91 @@ public class TermuxSessionTabsController {
             mTabsScroll.removeCallbacks(mScrollRunnable);
             mTabsScroll.post(mScrollRunnable);
         }
+    }
+
+    /** Pending global-layout listener for the CENTRE scroll (measures only after layout). */
+    private android.view.ViewTreeObserver.OnGlobalLayoutListener mPendingCentreLayoutListener = null;
+
+    private void cancelCentreScroll() {
+        if (mPendingCentreLayoutListener != null && mTabsContainer != null) {
+            mTabsContainer.getViewTreeObserver().removeOnGlobalLayoutListener(mPendingCentreLayoutListener);
+            mPendingCentreLayoutListener = null;
+        }
+    }
+
+    /**
+     * Centre a tab in the strip, measuring its geometry ONLY after the container has actually been
+     * laid out. This mirrors the END path's OnGlobalLayoutListener deferred-measurement (runEndScroll)
+     * and fixes the cold-start bug where a plain post()'d CENTRE read tabView.getLeft() before the
+     * first layout pass (geometry 0) and no-op'd to scrollX=0, leaving the restored active tab
+     * off-screen to the left. The measured scroll respects the live HSV clamp so it never overshoots.
+     *
+     * @param seq the sequence stamp captured by requestScroll BEFORE mScrollSeqPending was cleared,
+     *            so the listener can drop itself if a newer (higher-priority) request supersedes it.
+     */
+    private void runCentreScroll(long seq) {
+        if (mTabsContainer == null || mTabsScroll == null) return;
+
+        cancelCentreScroll();
+
+        final int idx = mPendingTabScrollIndex;
+        if (idx < 0) return;
+
+        final android.view.ViewTreeObserver.OnGlobalLayoutListener listener =
+                new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
+                    private int mRetries = 0;
+                    @Override
+                    public void onGlobalLayout() {
+                        if (mTabsContainer == null || mTabsScroll == null) {
+                            cleanup();
+                            return;
+                        }
+                        // A newer (higher-priority) request was issued after this listener was queued: drop.
+                        if (seq < mScrollSeq) { cleanup(); return; }
+                        // Wait until the container holds the target tab and has a real (non-zero) width.
+                        // A layout pass may fire before the tab views are measured, leaving getLeft()==0.
+                        if ((mTabsContainer.getChildCount() - 1 <= idx
+                                || mTabsContainer.getMeasuredWidth() <= 0) && mRetries < 6) {
+                            mRetries++;
+                            return;
+                        }
+                        cleanup();
+                        if (idx >= mTabsContainer.getChildCount() - 1) return;
+                        final View tabView = mTabsContainer.getChildAt(idx);
+                        if (tabView == null) return;
+                        final int scrollW = mTabsScroll.getWidth();
+                        final int maxScroll = Math.max(0,
+                                mTabsContainer.getMeasuredWidth() - scrollW);
+                        int scrollX = tabView.getLeft() - scrollW / 2 + tabView.getWidth() / 2;
+                        if (scrollX < 0) scrollX = 0;
+                        if (scrollX > maxScroll) scrollX = maxScroll;
+                        // Self-driven ValueAnimator writing a FIXED target is re-clamp-proof.
+                        // This is the CENTRE equivalent of runEndScroll(): HorizontalScrollView.smoothScrollTo()
+                        // re-clamps the in-flight animation to its (possibly changing) content width on
+                        // every frame, so the strip could yank left mid-animation on cold start — "криво".
+                        final int fromX = mTabsScroll.getScrollX();
+                        if (fromX == scrollX) return;
+                        final android.animation.ValueAnimator anim =
+                                android.animation.ValueAnimator.ofInt(fromX, scrollX);
+                        anim.setDuration(220);
+                        anim.setInterpolator(new android.view.animation.DecelerateInterpolator());
+                        anim.addUpdateListener(new android.animation.ValueAnimator.AnimatorUpdateListener() {
+                            @Override
+                            public void onAnimationUpdate(android.animation.ValueAnimator animation) {
+                                if (mTabsScroll == null) return;
+                                mTabsScroll.scrollTo((Integer) animation.getAnimatedValue(), 0);
+                            }
+                        });
+                        anim.start();
+                    }
+                    private void cleanup() {
+                        if (mTabsContainer != null)
+                            mTabsContainer.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                        if (mPendingCentreLayoutListener == this) mPendingCentreLayoutListener = null;
+                    }
+                };
+        mPendingCentreLayoutListener = listener;
+        mTabsContainer.getViewTreeObserver().addOnGlobalLayoutListener(listener);
     }
 
     /**
