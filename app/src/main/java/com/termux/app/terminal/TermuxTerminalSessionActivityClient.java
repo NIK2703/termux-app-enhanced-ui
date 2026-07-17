@@ -376,6 +376,11 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         // Preserve the text input content of the session we are leaving.
         mActivity.saveTextInputForCurrentSession();
 
+        // Switching sessions invalidates any in-flight shell-completion context
+        // (cwd, cwd-bound candidates, running bash subprocess). Dismiss the
+        // autocomplete popup so stale candidates from the old session don't linger.
+        mActivity.dismissAutoCompleteSuggestions();
+
         // If the pager has not been populated yet (e.g. onStart restored the stored session before
         // onServiceConnected filled the adapter), remember it and bail; syncTerminalPagerToService()
         // will select it once sessions exist.

@@ -160,6 +160,18 @@ android {
     testOptions {
         unitTests {
             includeAndroidResources = true
+            all {
+                maxParallelForks = 1
+
+                // Robolectric 4.10 on JDK 17 needs these modules opened so its
+                // shadows (ActivityThread, etc.) can reflect into JDK internals;
+                // without them the per-test teardown NPEs with
+                // "ShadowActivityThread.reset: ActivityThread not set".
+                jvmArgs '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
+                        '--add-opens', 'java.base/java.lang.reflect=ALL-UNNAMED',
+                        '--add-opens', 'java.base/java.util=ALL-UNNAMED',
+                        '--add-opens', 'java.base/sun.nio.ch=ALL-UNNAMED'
+            }
         }
     }
 
@@ -188,7 +200,19 @@ android {
 
 dependencies {
     testImplementation "junit:junit:4.13.2"
-    testImplementation "org.robolectric:robolectric:4.10"
+    testImplementation "org.robolectric:robolectric:4.11.1"
+    // Robolectric 4.11 links conscrypt's native JNI lib; supply the aarch64 build
+    // so unit tests run on-device (the uber jar only bundles x86_64).
+    testImplementation("org.conscrypt:conscrypt-openjdk:2.6.1") {
+        artifact {
+            name = "conscrypt-openjdk"
+            type = "jar"
+            classifier = "linux-aarch_64"
+        }
+    }
+    // Pin the SDK-28 android-all runtime so Robolectric does not need to fetch it
+    // at test runtime (its built-in downloader has no network in some CI envs).
+    testImplementation "org.robolectric:android-all-instrumented:9-robolectric-4913185-2-i6"
     coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:1.1.5"
 }
 

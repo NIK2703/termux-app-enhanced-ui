@@ -725,6 +725,11 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         // Unbind the TermuxService, releasing the session client so the service no longer holds
         // a reference to this activity.
         mServiceConnectionManager.unbindService();
+
+        // Release the auto-complete controller's background executor + debounce
+        // handler so the single-thread shell-fetch worker doesn't leak across
+        // activity destruction.
+        if (mAutoCompleteCtrl != null) mAutoCompleteCtrl.destroy();
     }
 
     @Override

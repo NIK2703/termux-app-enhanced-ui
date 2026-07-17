@@ -19,6 +19,7 @@ import android.text.SpannableString;
 import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.text.TextUtils;
+import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -35,10 +36,16 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.termux.R;
@@ -63,8 +70,48 @@ public final class AutoCompleteController {
 
     private static final String LOG_TAG = "AutoCompleteController";
 
+    /**
+     * Persistent trace log for diagnosing the shell-completion flyout. Written to
+     * the shared Download folder so it survives and can be pulled without root.
+     * Mirrors every interesting auto-complete event (text change, path A/B, fetch
+     * gate decision, bash result, merge size) with a millisecond timestamp and a
+     * sequence number so the whole pipeline can be reconstructed offline.
+     */
+    private static final File TRACE_FILE =
+            new File("/storage/emulated/0/Download/termux/autocomplete_log.txt");
+    private static final AtomicInteger TRACE_SEQ = new AtomicInteger();
+    private static volatile boolean sTraceFileOkay = true;
+
+    private static void trace(@NonNull String tag, @NonNull String msg) {
+        Logger.logInfo(LOG_TAG, msg);
+        if (!sTraceFileOkay) return;
+        try {
+            StringBuilder sb = new StringBuilder();
+            sb.append(new SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.US).format(new Date()));
+            sb.append(" #").append(String.format(Locale.US, "%05d", TRACE_SEQ.incrementAndGet()));
+            sb.append(" [").append(tag).append("] ").append(msg).append("\n");
+            try (FileWriter fw = new FileWriter(TRACE_FILE, true)) {
+                fw.write(sb.toString());
+            }
+        } catch (Throwable t) {
+            // Never let tracing break the UI. Disable on first failure.
+            sTraceFileOkay = false;
+        }
+    }
+
+    /** Append a one-line header (call once at session start) marking a fresh run. */
+    private static void traceHeader() {
+        try {
+            try (FileWriter fw = new FileWriter(TRACE_FILE, true)) {
+                fw.write("\n===== autocomplete trace " +
+                        new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(new Date()) +
+                        " =====\n");
+            }
+        } catch (Throwable ignored) { /* best effort */ }
+    }
+
     private final Context mContext;
-    private final EditText mInputField;
+    private EditText mInputField;
     private final MessageHistoryController mMessageHistoryCtrl;
     private final TermuxColorSchemeManager mColorSchemeManager;
     private final SharedPreferences mPrefs;
@@ -198,8 +245,10 @@ public final class AutoCompleteController {
     /** Key (in the controller's SharedPreferences) for the shell-completion toggle. */
     private static final String KEY_SHELL_COMPLETION_ENABLED = "shell_completion_enabled";
 
-    /** Optional source of command completions from the user's shell (bash). Null when disabled. */
-    @Nullable private ShellCompletionProvider mShellCompletionProvider;
+    /** Optional source of command completions from the user's shell (bash). Null when disabled.
+     *  Written on the UI thread (enable/disable) and read on the background fetch thread,
+     *  so it is volatile to publish the reference safely. */
+    @Nullable private volatile ShellCompletionProvider mShellCompletionProvider;
 
     /**
      * Single-thread executor that runs the (potentially slow) bash completion
@@ -215,6 +264,9 @@ public final class AutoCompleteController {
      * clobbering the current suggestions.
      */
     private final AtomicInteger mShellGen = new AtomicInteger();
+
+    /** True while a background bash fetch is running, used to bound in-flight work. */
+    private final AtomicBoolean mShellFetchInFlight = new AtomicBoolean();
 
     /**
      * Debounce for the (potentially expensive) shell fetch. History candidates are
@@ -269,7 +321,7 @@ public final class AutoCompleteController {
         // The working directory is part of the shell-completion cache key, but the
         // provider only learns the new cwd on its next query. Drop the cache now so
         // no stale (previous-directory) candidates linger until the next fetch.
-        if (mShellCompletionProvider != null) mShellCompletionProvider.clearCache();
+        if (mShellCompletionProvider != null) mShellCompletionProvider.bumpEnvironmentVersion();
     }
 
     public void setInvalidState(boolean invalid) {
@@ -284,22 +336,103 @@ public final class AutoCompleteController {
      * never consulted. This is OPTIONAL and off by default.
      */
     public void setShellCompletionEnabled(boolean enabled) {
+        trace("CFG", "setShellCompletionEnabled(" + enabled + ")");
         if (enabled) {
             if (mShellCompletionProvider == null) {
-                mShellCompletionProvider = new ShellCompletionProvider();
+                mShellCompletionProvider = new ShellCompletionProvider(mContext);
+                trace("CFG", "provider CREATED bash="
+                        + mShellCompletionProvider.isAvailable());
             }
         } else {
             // Drop the provider (and its per-word cache) when disabled.
-            if (mShellCompletionProvider != null) mShellCompletionProvider.clearCache();
+            if (mShellCompletionProvider != null) mShellCompletionProvider.bumpEnvironmentVersion();
             mShellCompletionProvider = null;
             // Cancel any in-flight async fetch so it can't re-enable the group.
             mShellGen.incrementAndGet();
+            trace("CFG", "provider set to NULL (shell completion OFF)");
         }
+    }
+
+    /**
+     * Test-only accessor: whether the shell-completion provider is currently
+     * unset (shell completion disabled). Lets unit tests assert the
+     * {@code mShellCompletionProvider == null} gate without reaching into the
+     * volatile field via reflection.
+     */
+    boolean isShellProviderNull() {
+        return mShellCompletionProvider == null;
+    }
+
+    /**
+     * Test-only accessor: directly install a (mock) shell-completion provider,
+     * bypassing the real {@link ShellCompletionProvider} construction. Behaviour
+     * is unchanged for production callers.
+     */
+    void debugSetProvider(@Nullable ShellCompletionProvider p) {
+        mShellCompletionProvider = p;
+    }
+
+    /**
+     * Test-only wrapper that exposes the private shell-fetch entry point so unit
+     * tests can drive the guard logic directly.
+     */
+    void debugFetchShellCandidatesAsync(@NonNull String text) {
+        fetchShellCandidatesAsync(text);
+    }
+
+    /** Test-only: current merged suggestion list (shell first, then history). */
+    java.util.ArrayList<String> debugSuggestions() {
+        return mCurrentSuggestions;
+    }
+
+    /** Test-only: parallel isShell flags for {@link #debugSuggestions()}. */
+    java.util.ArrayList<Boolean> debugIsShell() {
+        return mCurrentIsShell;
+    }
+
+    /** Test-only: install the text the dispatcher believes preceded this change. */
+    void debugSetPrevText(@NonNull String prev) {
+        mAutoCompletePrevText = prev;
+    }
+
+    /** Test-only: install the change-count (new chars inserted) the dispatcher expects. */
+    void debugSetChangeCount(int count) {
+        mAutoCompleteChangeCount = count;
+    }
+
+    /** Test-only: install the before-count (chars replaced) the dispatcher expects. */
+    void debugSetChangeBefore(int before) {
+        mAutoCompleteChangeBefore = before;
+    }
+
+    /** Test-only: number of leading shell candidates after the last merge. */
+    int debugShellCount() {
+        return mShellSuggestionCount;
+    }
+
+    /** Test-only: directly invoke the merge routine (no async fetch). */
+    void debugMergeShellCandidates(@NonNull ShellCompletionProvider.CompletionResult result,
+                                  @NonNull String text) {
+        mergeShellCandidates(result, text);
     }
 
     /** Re-read the shell-completion toggle from the backing SharedPreferences. */
     public void syncShellCompletionEnabled() {
-        setShellCompletionEnabled(mPrefs.getBoolean(KEY_SHELL_COMPLETION_ENABLED, false));
+        boolean pref = mPrefs.getBoolean(KEY_SHELL_COMPLETION_ENABLED, false);
+        trace("CFG", "syncShellCompletionEnabled pref=" + pref);
+        setShellCompletionEnabled(pref);
+    }
+
+    /**
+     * Release background resources (executor + debounce handler). Call from the
+     * host's lifecycle teardown so the single-thread executor and its pending
+     * tasks don't leak across activity/session destruction.
+     */
+    public void destroy() {
+        mShellDebounceHandler.removeCallbacksAndMessages(null);
+        mShellGen.incrementAndGet();
+        mShellFetchInFlight.set(false);
+        mShellExec.shutdownNow();
     }
 
     public void setSuppressAutoComplete(boolean suppress) {
@@ -413,16 +546,35 @@ public final class AutoCompleteController {
      * receives a text-change event.
      */
     private void updateAutoCompleteSuggestions() {
-        if (mIsInvalidState) return;
-        if (mSuppressAutoComplete) return;
+        if (mIsInvalidState) {
+            trace("ACC", "updateAutoCompleteSuggestions SKIP mIsInvalidState=true");
+            return;
+        }
+        if (mSuppressAutoComplete) {
+            trace("ACC", "updateAutoCompleteSuggestions SKIP mSuppressAutoComplete=true");
+            return;
+        }
 
         final EditText inputField = mInputField;
-        if (inputField == null) return;
+        if (inputField == null) {
+            trace("ACC", "updateAutoCompleteSuggestions SKIP mInputField==null");
+            return;
+        }
 
         final String text = inputField.getText().toString();
-        Logger.logInfo(LOG_TAG, "[autocomplete] text=\"" + text + "\"");
+        traceHeader();
+        trace("ACC", "updateAutoCompleteSuggestions text=\"" + text + "\"");
 
         if (TextUtils.isEmpty(text)) {
+            dismissAutoCompleteSuggestions();
+            return;
+        }
+
+        // Only show auto-complete when the caret sits at the end of the input field.
+        // When the caret is anywhere else the contextual popup must stay hidden.
+        int caret = inputField.getSelectionStart();
+        if (caret < 0 || caret != text.length()) {
+            trace("ACC", "updateAutoCompleteSuggestions SKIP caret not at end (caret=" + caret + " len=" + text.length() + ")");
             dismissAutoCompleteSuggestions();
             return;
         }
@@ -448,7 +600,7 @@ public final class AutoCompleteController {
             if (mMessageHistoryCtrl.getHistoryVersion() == mLastBuiltHistoryVersion
                     && mSuggestionsPopup != null && mSuggestionsPopup.isShowing()
                     && !mCurrentSuggestions.isEmpty()) {
-                Logger.logInfo(LOG_TAG, "[autocomplete] skip recompose (text==prevText, popup showing)");
+                trace("ACC", "updateAutoCompleteSuggestions SKIP recompose (text==prevText, popup showing)");
                 return;
             }
         }
@@ -467,14 +619,14 @@ public final class AutoCompleteController {
                 && !mCurrentSuggestions.isEmpty()) {
             additive = true;
         }
-        Logger.logInfo(LOG_TAG, "[autocomplete] prev=\"" + prevText + "\" before="
+        trace("ACC", "prev=\"" + prevText + "\" before="
                 + mAutoCompleteChangeBefore + " count=" + mAutoCompleteChangeCount
                 + " additive=" + additive + " hVer=" + mMessageHistoryCtrl.getHistoryVersion()
-                + "/" + mLastBuiltHistoryVersion);
+                + "/" + mLastBuiltHistoryVersion + " maxCount=" + maxCount);
 
         // ── Path A (full rebuild): not additive OR history changed externally ──
         if (!additive || mMessageHistoryCtrl.getHistoryVersion() != mLastBuiltHistoryVersion) {
-            Logger.logInfo(LOG_TAG, "[autocomplete] → PATH A (fullRescan) reason="
+            trace("ACC", "→ PATH A (fullRescan) reason="
                     + (!additive ? "non-additive" : "history=" + mMessageHistoryCtrl.getHistoryVersion() + "≠" + mLastBuiltHistoryVersion));
             fullRescanSuggestions(text, maxCount);
             return;
@@ -488,7 +640,7 @@ public final class AutoCompleteController {
         final int preFilterCount = mCurrentSuggestions.size();
         filterSuggestionsByPrefix(text, mCurrentSuggestions, mCurrentIsShell);
         int filteredRemoved = preFilterCount - mCurrentSuggestions.size();
-        Logger.logInfo(LOG_TAG, "[autocomplete] → PATH B filteredRemoved=" + filteredRemoved
+        trace("ACC", "→ PATH B filteredRemoved=" + filteredRemoved
                 + " remaining=" + mCurrentSuggestions.size());
 
         if (mCurrentSuggestions.isEmpty()) {
@@ -499,7 +651,7 @@ public final class AutoCompleteController {
             // here would silently drop a legitimate character. Fall back to a full
             // history rescan: it shows suggestions if any match, otherwise it still
             // dismisses correctly.
-            Logger.logInfo(LOG_TAG, "[autocomplete] filter emptied list → full rescan");
+            trace("ACC", "filter emptied list → full rescan");
             fullRescanSuggestions(text, maxCount);
             return;
         }
@@ -517,11 +669,11 @@ public final class AutoCompleteController {
             }
         }
 
-        Logger.logInfo(LOG_TAG, "[autocomplete] after top-up suggestions=" + mCurrentSuggestions.size());
+        trace("ACC", "after top-up suggestions=" + mCurrentSuggestions.size());
 
         // If popup isn't showing yet, build it fresh
         if (mSuggestionsPopup == null || !mSuggestionsPopup.isShowing()) {
-            Logger.logInfo(LOG_TAG, "[autocomplete] → showAutoCompletePopup (popup null or not showing)");
+            trace("ACC", "→ showAutoCompletePopup (popup null or not showing)");
             showAutoCompletePopup(inputField);
             return;
         }
@@ -560,20 +712,50 @@ public final class AutoCompleteController {
             }
         }
 
-        Logger.logInfo(LOG_TAG, "[autocomplete] fullRescan text=\"" + text + "\" max=" + maxCount
+        trace("ACC", "fullRescan text=\"" + text + "\" max=" + maxCount
                 + " history=" + mCurrentSuggestions.size());
 
         if (mCurrentSuggestions.isEmpty()) {
             // No history yet — but shell may still produce candidates. Don't dismiss;
             // the async shell merge will either show the popup or dismiss if empty.
+            trace("ACC", "fullRescan: no history → fetchShellCandidatesAsync (popup may appear via merge)");
             fetchShellCandidatesAsync(text);
         } else {
             showAutoCompletePopup(mInputField);
-            if (mShellCompletionProvider != null) {
-                // Shell candidates arrive async; the popup already shows history.
-                fetchShellCandidatesAsync(text);
-            }
+            fetchShellCandidatesAsync(text);
         }
+    }
+
+    /**
+     * True when the typed text already has enough strong history matches that
+     * spawning bash would be pure waste. The dominant real-world case is
+     * re-running a recent command ("git status", "ls -la"): history covers the
+     * prefix, so we skip the subprocess entirely and just show history. We only
+     * skip for non-path prefixes (a '/' means the user is completing a file, where
+     * bash is essential), and only when there is no in-flight fetch already.
+     */
+    boolean historyCoversPrefix(@NonNull String text) {
+        if (text.isEmpty()) return false;
+        if (text.indexOf('/') >= 0) return false; // likely a path — bash needed
+        if (mShellFetchInFlight.get()) return false; // don't starve a pending fetch
+        // Don't starve the shell when the word being completed is a subcommand or
+        // a flag: "git st" should still surface "git stash" even if history holds
+        // "git status" x3, and "-col" should complete to "--color". Only skip bash
+        // for a plain command-name re-run (first word, no leading '-'), which is
+        // the dominant "re-run last command" win.
+        String lw = lastWordOf(text);
+        if (lw.indexOf(' ') >= 0) return false;   // multi-token arg -> bash needed
+        if (lw.startsWith("-")) return false;     // flag completion -> bash needed
+        // Only skip bash when the typed word IS a whole command already present
+        // in history (re-run-last-command case). A bare PREFIX must still reach
+        // bash so e.g. `git` surfaces `git`/`gitk` and `git st` surfaces
+        // `git stash` — otherwise shell completion appears dead for common
+        // commands whose prefix occurs >=3 times in history.
+        if (!lw.equals(text)) return false; // not the first/only word -> arg context
+        for (String msg : mMessageHistoryCtrl.getHistoryList()) {
+            if (msg.equals(lw)) return true;
+        }
+        return false;
     }
 
     /**
@@ -582,25 +764,62 @@ public final class AutoCompleteController {
      * suggestion list on top, preserving history below a divider.
      */
     private void fetchShellCandidatesAsync(@NonNull String text) {
-        if (mShellCompletionProvider == null) return;
+        if (mInputField == null) {
+            trace("FETCH", "ABORT mInputField==null (text=\"" + text + "\")");
+            return;
+        }
+        if (mShellCompletionProvider == null) {
+            trace("FETCH", "ABORT mShellCompletionProvider==null (shell completion disabled in settings? text=\"" + text + "\")");
+            return;
+        }
+        // If history already answers the prefix (re-run-last-command case), skip
+        // the subprocess entirely — pure CPU/UX win, history is shown instantly.
+        if (historyCoversPrefix(text)) {
+            trace("FETCH", "ABORT historyCoversPrefix(text=\"" + text + "\") → only history shown");
+            return;
+        }
+        if (mShellFetchInFlight.get()) {
+            trace("FETCH", "ABORT mShellFetchInFlight (text=\"" + text + "\")");
+            return; // one in-flight fetch at a time
+        }
         final int gen = mShellGen.incrementAndGet();
         final String line = text;
         final int cursor = (mInputField != null) ? mInputField.getSelectionStart() : line.length();
         final String cwd = mCwdProvider.getCwd();
+        trace("FETCH", "scheduled gen=" + gen + " text=\"" + text + "\" cursor=" + cursor
+                + " cwd=\"" + cwd + "\" debounceMs=" + SHELL_FETCH_DEBOUNCE_MS);
         // Debounce the (expensive) background fetch; the generation guard discards
         // the result if a newer fetch supersedes this one before it runs.
         mShellDebounceHandler.removeCallbacksAndMessages(null);
         mShellDebounceHandler.postDelayed(() -> {
-            if (gen != mShellGen.get()) return; // superseded during the debounce window
+            if (gen != mShellGen.get()) {
+                trace("FETCH", "DISCARD debounce-superseded gen=" + gen + " now=" + mShellGen.get());
+                return; // superseded during the debounce window
+            }
+            mShellFetchInFlight.set(true);
+            trace("FETCH", "EXEC gen=" + gen + " running bash (text=\"" + line + "\")");
             mShellExec.execute(() -> {
-                ShellCompletionProvider.CompletionResult result =
-                        mShellCompletionProvider.complete(line, cwd, cursor);
+                final ShellCompletionProvider.CompletionResult result;
+                try {
+                    result = mShellCompletionProvider.complete(line, cwd, cursor);
+                } finally {
+                    mShellFetchInFlight.set(false);
+                }
+                trace("FETCH", "RESULT gen=" + gen + " text=\"" + line + "\" candidates="
+                        + (result == null ? "null" : (result.candidates == null ? "null-list"
+                                : String.valueOf(result.candidates.size()))));
                 if (mInputField != null) {
                     mInputField.post(() -> {
-                        if (gen != mShellGen.get()) return; // stale word → discard
+                        if (gen != mShellGen.get()) {
+                            trace("FETCH", "DISCARD delivery-stale gen=" + gen + " now=" + mShellGen.get());
+                            return; // stale word → discard
+                        }
                         // Guard against a now-detached/stale input field (e.g. session
                         // switch between fetch and delivery).
-                        if (mInputField == null || mSuggestionsContent == null) return;
+                        if (mInputField == null) {
+                            trace("FETCH", "DISCARD inputField==null at delivery gen=" + gen);
+                            return;
+                        }
                         // If the user kept typing the same word, the fetched list (built
                         // for the prefix at fetch time) still covers the current prefix,
                         // so merge against the LIVE text. Only a different word slot
@@ -618,8 +837,8 @@ public final class AutoCompleteController {
      * replacing any previous shell group, and refresh the popup. Matching is against
      * the last word (the token actually being completed). Runs on the UI thread.
      */
-    private void mergeShellCandidates(@NonNull ShellCompletionProvider.CompletionResult result,
-                                      @NonNull String text) {
+    void mergeShellCandidates(@NonNull ShellCompletionProvider.CompletionResult result,
+                              @NonNull String text) {
         // Remove any pre-existing shell entries (from a previous, now-replaced group).
         for (int i = mCurrentSuggestions.size() - 1; i >= 0; i--) {
             if (i < mCurrentIsShell.size() && mCurrentIsShell.get(i)) {
@@ -631,32 +850,65 @@ public final class AutoCompleteController {
         }
         mShellSuggestionCount = 0;
 
-        String lastWord = lastWordOf(text);
+        String lastWord = lastWordOfStripped(text);
+        // Pre-index existing non-shell (history) values for O(1) dedup instead of
+        // the previous O(n) ArrayList.contains scan on every candidate.
+        java.util.Set<String> existing = new java.util.HashSet<>();
+        for (int i = 0; i < mCurrentSuggestions.size(); i++) {
+            if (i < mCurrentIsShell.size() && !mCurrentIsShell.get(i)) {
+                existing.add(mCurrentSuggestions.get(i));
+            }
+        }
         // Insert at front so shell stays above the history group.
         int insertAt = 0;
         for (ShellCompletionProvider.ShellCandidate cand : result.candidates) {
             String value = cand.value;
             if (mCurrentSuggestions.size() >= 512) break;
-            if (!mCurrentSuggestions.contains(value)
+            boolean ignoreCase = !cand.isFilename;
+            // De-dup against already-present values using the SAME case-sensitivity
+            // the prefix match uses: filenames are case-sensitive (case-sensitive
+            // FS), non-filenames case-insensitive (bash completion is
+            // case-insensitive for command/option/variable/signal tokens). Without
+            // the case-insensitive check two variants like "MyCmd"/"mycmd" would
+            // both survive for a non-filename token (S15).
+            boolean alreadyPresent = false;
+            for (String e : existing) {
+                if (e.length() == value.length()
+                        && e.regionMatches(ignoreCase, 0, value, 0, value.length())) {
+                    alreadyPresent = true;
+                    break;
+                }
+            }
+            if (!alreadyPresent
                     && value.length() > lastWord.length()
-                    && value.regionMatches(true, 0, lastWord, 0, lastWord.length())
+                    && value.regionMatches(ignoreCase, 0, lastWord, 0, lastWord.length())
                     && !value.equals(lastWord)) {
                 mCurrentSuggestions.add(insertAt, value);
                 mCurrentIsShell.add(insertAt, Boolean.TRUE);
                 mCurrentShellType.add(insertAt, cand.type);
                 mCurrentShellMeta.add(insertAt, cand);
+                existing.add(value);
                 insertAt++;
             }
         }
         mShellSuggestionCount = insertAt;
 
-        Logger.logInfo(LOG_TAG, "[autocomplete] mergeShell shell=" + mShellSuggestionCount
-                + " total=" + mCurrentSuggestions.size());
+        // NOTE: we never alphabetize the shell group, even when the compspec's
+        // -o nosort is UNSET. Bash curates a meaningful order (e.g. most-relevant
+        // subcommand first); sorting would destroy it. If a future change adds a
+        // sort, guard it with `if (!result.noSort)` so nosort compspecs keep order.
+        trace("MERGE", "shell=" + mShellSuggestionCount
+                + " total=" + mCurrentSuggestions.size()
+                + " lastWord=\"" + lastWord + "\" popupShowing="
+                + (mSuggestionsPopup != null && mSuggestionsPopup.isShowing()));
         if (mCurrentSuggestions.isEmpty()) {
+            trace("MERGE", "dismiss (nothing to show)");
             dismissAutoCompleteSuggestions();
         } else if (mSuggestionsPopup == null || !mSuggestionsPopup.isShowing()) {
+            trace("MERGE", "showAutoCompletePopup (popup null/not showing)");
             showAutoCompletePopup(mInputField);
         } else {
+            trace("MERGE", "updatePopupContent");
             updatePopupContent(text, mInputField);
         }
     }
@@ -677,8 +929,18 @@ public final class AutoCompleteController {
      * candidates continue to be matched against the whole line.
      */
     @NonNull
-    private static String lastWordOf(@NonNull String s) {
+    static String lastWordOf(@NonNull String s) {
         return ShellCompletionProvider.lastWordOf(s);
+    }
+
+    /**
+     * Last word with one layer of surrounding shell quotes stripped, matching the
+     * unquoted form bash returns as candidates. Used for local prefix-matching of
+     * shell completions (S8/S13) where the typed token may still carry a quote.
+     */
+    @NonNull
+    static String lastWordOfStripped(@NonNull String s) {
+        return ShellCompletionProvider.dequoteLikeBash(ShellCompletionProvider.lastWordOf(s));
     }
 
     /**
@@ -691,9 +953,9 @@ public final class AutoCompleteController {
      * (the provider strips trailing {@code '/'} during normalization, so a typed
      * "dir/" must still keep the normalized "dir" candidate).
      */
-    private void filterSuggestionsByPrefix(@NonNull String text,
+    void filterSuggestionsByPrefix(@NonNull String text,
             @NonNull List<String> sugg, @NonNull List<Boolean> isShell) {
-        String lastWord = lastWordOf(text);
+        String lastWord = lastWordOfStripped(text);
         int lwLen = lastWord.length();
         int tLen = text.length();
         for (int i = sugg.size() - 1; i >= 0; i--) {
@@ -708,9 +970,19 @@ public final class AutoCompleteController {
                 // only when it is non-empty itself — guarded by s.length() > pLen below.
                 matches = !isShellItem;
             } else {
-                matches = s.regionMatches(true, 0, prefix, 0, pLen)
-                        || (isShellItem && prefix.endsWith("/")
-                            && s.regionMatches(true, 0, prefix, 0, pLen - 1));
+                // Shell filesystem paths match CASE-SENSITIVELY (case-sensitive FS),
+                // but non-path shell tokens (command/option/signal/variable) match
+                // CASE-INSENSITIVELY (bash completion is case-insensitive for those).
+                // History matches case-insensitively (recall is forgiving).
+                boolean isFsPath = isShellItem && (s.startsWith("/") || s.startsWith("~")
+                        || s.startsWith("./") || s.indexOf('/') >= 0);
+                matches = (isShellItem
+                        ? (s.regionMatches(!isFsPath, 0, prefix, 0, pLen)
+                            || (prefix.endsWith("/")
+                                && s.regionMatches(!isFsPath, 0, prefix, 0, pLen - 1)))
+                        : (s.regionMatches(true, 0, prefix, 0, pLen)
+                            || (prefix.endsWith("/")
+                                && s.regionMatches(true, 0, prefix, 0, pLen - 1))));
             }
             if (s.length() <= pLen || !matches || s.equals(prefix)) {
                 sugg.remove(i);
@@ -1086,6 +1358,33 @@ public final class AutoCompleteController {
         return Math.min(mCurrentSuggestions.size(), mDisplayMax);
     }
 
+    // ── Package-private debug hooks for unit tests ──
+    // (debugSuggestions / debugIsShell / debugShellCount are declared earlier.)
+
+    /** Current incremental-change field used by the additive-detection logic. */
+    void debugSetChangeState(@NonNull String prevText, int changeCount) {
+        mAutoCompletePrevText = prevText;
+        mAutoCompleteChangeCount = changeCount;
+        mAutoCompleteChangeBefore = 0;
+    }
+
+    /**
+     * Seed the current suggestion list with history items (isShell = false),
+     * resetting the shell group. Lets merge tests populate the controller state
+     * without going through the popup-building code paths.
+     */
+    void debugSeedHistorySuggestions(@NonNull String... history) {
+        mCurrentSuggestions.clear();
+        mCurrentIsShell.clear();
+        mCurrentShellType.clear();
+        mCurrentShellMeta.clear();
+        mShellSuggestionCount = 0;
+        for (String h : history) {
+            mCurrentSuggestions.add(h);
+            mCurrentIsShell.add(Boolean.FALSE);
+        }
+    }
+
     /** Whether the rendered popup should show the shell/history divider. */
     private boolean dividerShown() {
         int shellN = displayShellCount();
@@ -1169,12 +1468,42 @@ public final class AutoCompleteController {
         // setEllipsize(END) is unreliable for maxLines>1 on API 21-28).
         SpannableString ss = buildSuggestionSpannable(
                 suggestion, input, availWidth, tv.getPaint(), isShell);
+        // Shell rows: a type marker (alias '~' / function '*') tinted with the
+        // cursor colour, and a monospace face. The marker is appended AFTER the
+        // (possibly truncated) display text so it is never ellipsized away.
+        if (isShell) {
+            ShellCompletionProvider.ShellCandidate meta = findShellMeta(suggestion);
+            String marker = "";
+            if (meta != null) {
+                if (meta.type == ShellCompletionProvider.CandidateType.ALIAS) marker = "  ~";
+                else if (meta.type == ShellCompletionProvider.CandidateType.FUNCTION) marker = "  *";
+            }
+            if (!marker.isEmpty()) {
+                int len = ss.length();
+                ss = new SpannableString(ss.toString() + marker);
+                // Re-apply the bold span over the original suggestion portion only.
+                String matchStr = lastWordOf(input);
+                int wordStart = Math.min(wordStartOffset(matchStr), suggestion.length());
+                int boldLen = matchStr.length() - wordStart;
+                if (boldLen > 0 && wordStart + boldLen <= len) {
+                    ss.setSpan(new StyleSpan(Typeface.BOLD),
+                            (wordStart > 0 ? 4 : 0), (wordStart > 0 ? 4 : 0) + boldLen,
+                            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
+                ss.setSpan(new ForegroundColorSpan(
+                                mColorSchemeManager.getHistoryPopupSepColor()),
+                        len, ss.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            tv.setTypeface(Typeface.MONOSPACE);
+        }
         tv.setText(ss, TextView.BufferType.SPANNABLE);
         tv.setMaxLines(2);
         tv.setEllipsize(TextUtils.TruncateAt.END); // backup; text already fits 2 lines
         tv.setTextColor(mColorSchemeManager.getHistoryTextColor());
         tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         tv.setPadding(padH, padV, padH, padV);
+        // Accessibility: describe shells vs history and the candidate type.
+        tv.setContentDescription((isShell ? "Completion: " : "History: ") + suggestion);
         tv.setTag(suggestion);
         // Solid press highlight matching the message-history popup (per-theme)
         StateListDrawable sel = new StateListDrawable();
@@ -1254,28 +1583,67 @@ public final class AutoCompleteController {
         if (editable == null) return;
         String text = editable.toString();
         String lastWord = lastWordOf(text);
-        int replaceStart = text.length() - lastWord.length();
-        if (replaceStart < 0) replaceStart = 0;
+        int tailStart = text.length() - lastWord.length();
+        if (tailStart < 0) tailStart = 0;
+
+        // Respect a caret that is NOT at the end of the line: replace from the
+        // start of the last word up to the caret, and keep whatever follows the
+        // caret intact. When the caret is at/past the end we drop the whole tail.
+        int caret = mInputField.getSelectionStart();
+        if (caret < 0) caret = text.length();
+        // When the candidate is a filesystem path (DIRECTORY/FILE) it is the fully
+        // resolved token, so we always replace the entire tail — even if the caret
+        // sits mid-word — otherwise the trailing remainder of the original word is
+        // left intact (S12). For non-path candidates we keep the existing behaviour
+        // of only replacing up to the caret, preserving any text after it.
+        boolean isPathLike = (meta != null)
+                && (meta.type == ShellCompletionProvider.CandidateType.DIRECTORY
+                    || meta.type == ShellCompletionProvider.CandidateType.FILE);
+        int replaceStart = tailStart;
+        int replaceEnd = text.length();
+        if (caret >= tailStart && caret < text.length() && !isPathLike) {
+            // Caret is inside the last (partially typed) word: only drop the
+            // remainder of that word, not the rest of the line.
+            replaceEnd = caret;
+        }
 
         String insert = candidate;
         boolean addSpace = false;
         if (meta != null) {
             switch (meta.type) {
                 case DIRECTORY:
+                    // dirs are filenames: quote stems that contain metacharacters,
+                    // then ensure the trailing '/' sits OUTSIDE any quotes.
+                    if (meta.isFilename && !meta.noQuote) {
+                        insert = quoteIfNeeded(insert);
+                    }
                     if (!insert.endsWith("/")) insert += "/";
                     addSpace = false;
                     break;
                 case FILE:
+                    // files are filenames: quote only if the stem has metachars.
+                    if (meta.isFilename && !meta.noQuote) {
+                        insert = quoteIfNeeded(insert);
+                    }
                     addSpace = !meta.noSpace;
                     break;
                 case OPTION:
-                    addSpace = false;
+                    // Options are never quoted (they are shell syntax, not paths).
+                    // Append a space unless the compspec said nospace (e.g. flags
+                    // that take a '=' argument like --color=).
+                    addSpace = !meta.noSpace;
                     break;
                 case COMMAND:
                 case ALIAS:
                 case FUNCTION:
                 case UNKNOWN:
                 default:
+                    // Commands/aliases/functions are not paths, but a name that
+                    // contains a shell metacharacter (e.g. a function "my cmd") must
+                    // still be quoted so it inserts as one token, not two.
+                    if (!meta.noQuote) {
+                        insert = quoteIfNeeded(insert);
+                    }
                     addSpace = !meta.noSpace;
                     break;
             }
@@ -1285,9 +1653,66 @@ public final class AutoCompleteController {
         }
         if (addSpace) insert += " ";
 
-        String newText = text.substring(0, replaceStart) + insert;
+        String newText = text.substring(0, replaceStart) + insert + text.substring(replaceEnd);
         mInputField.setText(newText);
-        mInputField.setSelection(newText.length());
+        mInputField.setSelection(replaceStart + insert.length());
+    }
+
+    /**
+     * Single-quote a candidate when it contains shell metacharacters and is not
+     * already quoted. Embedded single-quotes are escaped as {@code '\''}. Commands,
+     * options and already-quoted strings are returned unchanged. This mirrors how
+     * readline inserts a completion that contains characters special to the shell.
+     */
+    @NonNull
+    private static String quoteIfNeeded(@NonNull String s) {
+        if (s.isEmpty()) return s;
+        // Already a fully-quoted token -> leave untouched.
+        if (isAlreadyQuoted(s)) return s;
+        // A leading '~' (or '~user') must keep its tilde UNQUOTED so bash performs
+        // tilde expansion; only the remainder (which may contain spaces) is quoted.
+        // e.g. ~/My Documents -> ~/My\ Documents, ~bob/My Docs -> ~bob/My\ Docs.
+        if (s.charAt(0) == '~') {
+            int slash = s.indexOf('/');
+            String tildePart = (slash < 0) ? s : s.substring(0, slash);
+            String rest = (slash < 0) ? "" : s.substring(slash);
+            if (needsQuoting(rest)) {
+                return tildePart + quoteHard(rest);
+            }
+            return s;
+        }
+        if (needsQuoting(s)) {
+            return quoteHard(s);
+        }
+        return s;
+    }
+
+    /** True if {@code s} contains a shell metacharacter that warrants quoting. */
+    private static boolean needsQuoting(@NonNull String s) {
+        for (int i = 0; i < s.length(); i++) {
+            if (" \t()&;|<>*?[]{}'\"$`\\".indexOf(s.charAt(i)) >= 0) return true;
+        }
+        return false;
+    }
+
+    /** Wrap {@code s} in single quotes, escaping embedded single quotes POSIX-style. */
+    private static String quoteHard(@NonNull String s) {
+        return "'" + s.replace("'", "'\\''") + "'";
+    }
+
+    /**
+     * True if {@code s} is already a complete, balanced, shell-valid quoted token
+     * and must NOT be re-quoted. We only accept a token that is fully surrounded
+     * by a matching open+close quote; we do NOT treat a token that merely
+     * *contains* a stray quote (e.g. a real filename {@code it's}) as "done",
+     * because that would leave an unescaped metacharacter in the command line.
+     */
+    private static boolean isAlreadyQuoted(@NonNull String s) {
+        int n = s.length();
+        if (n < 2) return false;
+        char first = s.charAt(0);
+        char last = s.charAt(n - 1);
+        return (first == '\'' && last == '\'') || (first == '"' && last == '"');
     }
 
     /**
@@ -1775,6 +2200,15 @@ public final class AutoCompleteController {
     /** Reposition the auto-complete popup at the current caret position. */
     public void repositionAutoCompletePopup() {
         if (mSuggestionsPopup == null || !mSuggestionsPopup.isShowing()) return;
+        // Hide the popup if the caret is no longer at the end of the input field.
+        if (mInputField != null) {
+            int caret = mInputField.getSelectionStart();
+            String text = mInputField.getText().toString();
+            if (caret < 0 || caret != text.length()) {
+                dismissAutoCompleteSuggestions();
+                return;
+            }
+        }
         // Use a FRESH findViewById each call (matching the original TermuxActivity).
         // mInputField is captured once in the constructor and can go stale if the
         // input field view is detached/re-attached (e.g. on session switch), which
@@ -1872,5 +2306,53 @@ public final class AutoCompleteController {
             }
             mSuggestionsLayoutListener = null;
         }
+    }
+
+    // ── Additional test-only accessors (package-private) ──
+
+    /** @return true when the shell-completion provider is null (shell completion off → Path A). */
+    boolean debugProviderNull() {
+        return mShellCompletionProvider == null;
+    }
+
+    /** Directly inject a history list for deterministic dispatch tests. */
+    void debugSetHistory(@NonNull java.util.List<String> history) {
+        mMessageHistoryCtrl.clearAllPerDirectory();
+        for (String h : history) mMessageHistoryCtrl.addToMessageHistory(h, ".");
+    }
+
+    /** Test-only: current shell-fetch generation token. */
+    int debugGetGen() {
+        return mShellGen.get();
+    }
+
+    /** Test-only: bump the generation token so any in-flight/queued fetch is discarded. */
+    void debugBumpGen() {
+        mShellGen.incrementAndGet();
+    }
+
+    /** Test-only: whether a background bash fetch is currently in flight. */
+    boolean debugIsFetchInFlight() {
+        return mShellFetchInFlight.get();
+    }
+
+    /** Test-only: install a null input field to exercise the mInputField==null guard. */
+    void debugSetInputFieldNull() {
+        mInputField = null;
+    }
+
+    /** Test-only: restore a (non-null) input field after {@link #debugSetInputFieldNull()}. */
+    void debugSetInputField(@NonNull EditText field) {
+        mInputField = field;
+    }
+
+    /** Test-only: the current input field (so tests can mutate its text). */
+    @Nullable EditText debugGetInputField() {
+        return mInputField;
+    }
+
+    /** Test-only: suppress the fetch debounce delay for deterministic assertions. */
+    void debugFlushDebounce() {
+        mShellDebounceHandler.removeCallbacksAndMessages(null);
     }
 }
