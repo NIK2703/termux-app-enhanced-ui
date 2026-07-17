@@ -153,6 +153,17 @@ public final class TermuxPreferenceConstants {
 
 
         /**
+         * Defines the key for whether command auto-complete suggestions should also be
+         * sourced from the user's shell (bash) programmable completion. Off by default;
+         * when enabled, the text-input auto-complete popup merges shell-completion
+         * candidates (command names, subcommands, options) with the message-history
+         * suggestions.
+         */
+        public static final String KEY_SHELL_COMPLETION_ENABLED = "shell_completion_enabled";
+        public static final boolean DEFAULT_VALUE_SHELL_COMPLETION_ENABLED = false;
+
+
+        /**
          * Defines the key for whether to always keep screen on.
          */
         public static final String KEY_KEEP_SCREEN_ON = "screen_always_on";

@@ -29,14 +29,23 @@ public class TermuxTerminalExtraKeys extends TerminalExtraKeys {
     private static final String LOG_TAG = "TermuxTerminalExtraKeys";
 
     public TermuxTerminalExtraKeys(TermuxActivity activity, @NonNull TerminalView terminalView,
-                                   TermuxTerminalViewClient termuxTerminalViewClient,
-                                   TermuxTerminalSessionActivityClient termuxTerminalSessionActivityClient) {
+                                    TermuxTerminalViewClient termuxTerminalViewClient,
+                                    TermuxTerminalSessionActivityClient termuxTerminalSessionActivityClient) {
         super(terminalView);
 
         mActivity = activity;
         mTermuxTerminalViewClient = termuxTerminalViewClient;
         mTermuxTerminalSessionActivityClient = termuxTerminalSessionActivityClient;
 
+        setExtraKeys();
+    }
+
+    /**
+     * Re-read the {@code extra-keys} and {@code extra-keys-style} properties from disk and rebuild
+     * the {@link ExtraKeysInfo}. Call this after those properties change at runtime so the panel
+     * updates without restarting the app.
+     */
+    public void reloadExtraKeys() {
         setExtraKeys();
     }
 

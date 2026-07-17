@@ -1,0 +1,38 @@
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory
+        app:key="extra_keys"
+        app:title="@string/extra_keys_header">
+
+        <EditTextPreference
+            app:key="extra-keys"
+            app:title="@string/extra_keys_layout_title"
+            app:summary="@string/extra_keys_layout_summary"
+            app:dialogTitle="@string/extra_keys_layout_title"
+            app:defaultValue='[["ESC","/",{"key": "-", "popup": "|"},"HOME","UP","END","PGUP"], ["TAB","CTRL","ALT","LEFT","DOWN","RIGHT","PGDN"]]' />
+
+        <ListPreference
+            app:key="extra-keys-style"
+            app:defaultValue="default"
+            app:title="@string/extra_keys_style_title"
+            app:summary="@string/extra_keys_style_summary"
+            app:entries="@array/extra_keys_style_entries"
+            app:entryValues="@array/extra_keys_style_values" />
+
+        <SwitchPreferenceCompat
+            app:key="extra-keys-text-all-caps"
+            app:defaultValue="true"
+            app:title="@string/extra_keys_text_all_caps_title"
+            app:summary="@string/extra_keys_text_all_caps_summary" />
+
+        <ListPreference
+            app:key="extra-keys-special-button-mode"
+            app:defaultValue="sticky"
+            app:title="@string/extra_keys_special_button_mode_title"
+            app:summary="@string/extra_keys_special_button_mode_summary"
+            app:entries="@array/extra_keys_special_button_mode_entries"
+            app:entryValues="@array/extra_keys_special_button_mode_values" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>

@@ -35,9 +35,16 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import com.termux.R;
 import com.termux.app.terminal.TermuxColorSchemeManager;
 import com.termux.shared.logger.Logger;
+import com.termux.app.terminal.io.ShellCompletionProvider;
 
 /**
  * Self-contained controller that owns the entire message-history auto-complete
@@ -73,8 +80,24 @@ public final class AutoCompleteController {
     // ── Auto-complete suggestions popup ────────────────
     /** Popup window showing auto-complete suggestions from message history. */
     @Nullable private PopupWindow mSuggestionsPopup;
-    /** Current list of suggestion strings being displayed. */
+    /** Current list of suggestion strings being displayed (shell completions first, then history). */
     private final java.util.ArrayList<String> mCurrentSuggestions = new java.util.ArrayList<>();
+    /**
+     * Parallel to {@link #mCurrentSuggestions}: {@code true} at index i means the
+     * i-th suggestion came from the shell (bash) completion provider rather than
+     * message history. Used to place a divider between the two groups and to keep
+     * the shell group at the top of the popup.
+     */
+    private final java.util.ArrayList<Boolean> mCurrentIsShell = new java.util.ArrayList<>();
+    /** Number of leading shell-completion entries in {@link #mCurrentSuggestions} (the divider sits after them). */
+    private int mShellSuggestionCount = 0;
+    /**
+     * Maximum number of suggestions to RENDER in the popup (the user setting
+     * "suggestions_max_count"). The stored {@link #mCurrentSuggestions} list may
+     * hold more (especially all cached shell candidates), but only this many are
+     * displayed; the rest remain available to Path B local filtering.
+     */
+    private int mDisplayMax = 4;
     /** Suppress auto-complete popup during programmatic text changes (suggestion tap, etc.). */
     private boolean mSuppressAutoComplete;
     /** Global layout listener on the input field, used to reposition the auto-complete popup. */
@@ -123,6 +146,8 @@ public final class AutoCompleteController {
     @Nullable private String[] mSwipeWords;
     /** Text kept before any swipe-added words (the user's already-typed prefix / base). */
     @Nullable private String mSwipeBaseText;
+    /** Whether a leading space is needed before the first appended word. */
+    private boolean mSwipeNeedsLeadingSpace;
     /** Selection anchor (start) — stays fixed while the selection end grows/shrinks. */
     private int mSwipeAnchorStart;
     /** Number of words currently appended to the selection. */
@@ -156,6 +181,27 @@ public final class AutoCompleteController {
         @NonNull String getCwd();
     }
 
+    /** Key (in the controller's SharedPreferences) for the shell-completion toggle. */
+    private static final String KEY_SHELL_COMPLETION_ENABLED = "shell_completion_enabled";
+
+    /** Optional source of command completions from the user's shell (bash). Null when disabled. */
+    @Nullable private ShellCompletionProvider mShellCompletionProvider;
+
+    /**
+     * Single-thread executor that runs the (potentially slow) bash completion
+     * fetch off the UI thread. All {@link ShellCompletionProvider#complete} calls
+     * happen here so the keystroke that triggers a fetch never blocks input.
+     */
+    private final ExecutorService mShellExec = Executors.newSingleThreadExecutor();
+
+    /**
+     * Epoch/generation token for in-flight shell fetches. Incremented on every new
+     * fetch request; a result is applied only if its captured generation still
+     * matches, so a late result from a previous word is discarded instead of
+     * clobbering the current suggestions.
+     */
+    private final AtomicInteger mShellGen = new AtomicInteger();
+
     /**
      * @param context              the host Activity/Context (used for resources and the window).
      * @param inputField           the terminal toolbar EditText the suggestions are anchored to.
@@ -184,6 +230,7 @@ public final class AutoCompleteController {
         mPopupMinYPx = res.getDimensionPixelSize(R.dimen.autocomplete_popup_min_y);
         mPopupContentAlpha = res.getFraction(R.fraction.autocomplete_popup_content_alpha, 1, 1);
         mPopupShadowAlpha = res.getFraction(R.fraction.autocomplete_popup_shadow_alpha, 1, 1);
+        syncShellCompletionEnabled();
         attachInputListeners();
     }
 
@@ -195,10 +242,40 @@ public final class AutoCompleteController {
 
     public void setCwdProvider(@NonNull CwdProvider provider) {
         mCwdProvider = provider;
+        // The working directory is part of the shell-completion cache key, but the
+        // provider only learns the new cwd on its next query. Drop the cache now so
+        // no stale (previous-directory) candidates linger until the next fetch.
+        if (mShellCompletionProvider != null) mShellCompletionProvider.clearCache();
     }
 
     public void setInvalidState(boolean invalid) {
         mIsInvalidState = invalid;
+    }
+
+    /**
+     * Enable or disable sourcing auto-complete candidates from the system shell
+     * (bash) programmable completion. When enabled, a {@link ShellCompletionProvider}
+     * is created (lazily, only if bash is available) and its candidates are merged
+     * with the message-history suggestions. When disabled, shell completion is
+     * never consulted. This is OPTIONAL and off by default.
+     */
+    public void setShellCompletionEnabled(boolean enabled) {
+        if (enabled) {
+            if (mShellCompletionProvider == null) {
+                mShellCompletionProvider = new ShellCompletionProvider();
+            }
+        } else {
+            // Drop the provider (and its per-word cache) when disabled.
+            if (mShellCompletionProvider != null) mShellCompletionProvider.clearCache();
+            mShellCompletionProvider = null;
+            // Cancel any in-flight async fetch so it can't re-enable the group.
+            mShellGen.incrementAndGet();
+        }
+    }
+
+    /** Re-read the shell-completion toggle from the backing SharedPreferences. */
+    public void syncShellCompletionEnabled() {
+        setShellCompletionEnabled(mPrefs.getBoolean(KEY_SHELL_COMPLETION_ENABLED, false));
     }
 
     public void setSuppressAutoComplete(boolean suppress) {
@@ -380,16 +457,12 @@ public final class AutoCompleteController {
         }
 
         // ── Path B (additive filter): only appending characters ──
-        // Filter mCurrentSuggestions in-place
+        // Filter mCurrentSuggestions in-place using the single unified routine that
+        // matches shell candidates against the last word and history against the whole
+        // line (kept in lock-step with mCurrentIsShell). The cached, full shell list
+        // stays intact so no re-query is needed; only local narrowing happens.
         final int preFilterCount = mCurrentSuggestions.size();
-        for (int i = mCurrentSuggestions.size() - 1; i >= 0; i--) {
-            String s = mCurrentSuggestions.get(i);
-            if (s.length() <= text.length()
-                    || !s.regionMatches(true, 0, text, 0, text.length())
-                    || s.equals(text)) {
-                mCurrentSuggestions.remove(i);
-            }
-        }
+        filterSuggestionsByPrefix(text, mCurrentSuggestions, mCurrentIsShell);
         int filteredRemoved = preFilterCount - mCurrentSuggestions.size();
         Logger.logInfo(LOG_TAG, "[autocomplete] → PATH B filteredRemoved=" + filteredRemoved
                 + " remaining=" + mCurrentSuggestions.size());
@@ -434,27 +507,115 @@ public final class AutoCompleteController {
     }
 
     /**
-     * Path A: full re-scan of mMessageHistoryCtrl.getHistoryList() and fresh popup creation.
-     * Same logic as the original updateAutoCompleteSuggestions().
+     * Path A: full re-scan of the message history and (asynchronously) the shell
+     * completion candidates. History is merged and the popup is shown immediately
+     * so typing never blocks; the shell group is fetched on a background thread
+     * and injected on top when it arrives (see {@link #mergeShellCandidates}).
      */
     private void fullRescanSuggestions(@NonNull String text, int maxCount) {
+        // The user's max setting governs how many items are RENDERED; the stored
+        // list may be larger (all cached shell candidates) so Path B can keep
+        // filtering locally without re-querying the shell.
+        mDisplayMax = maxCount;
+
         mCurrentSuggestions.clear();
+        mCurrentIsShell.clear();
+        mShellSuggestionCount = 0;
+
+        // History suggestions first (instant, no shell involved).
         for (String msg : mMessageHistoryCtrl.getHistoryList()) {
-            if (mCurrentSuggestions.size() >= maxCount) break;
-            if (msg.length() > text.length()
+            if (mCurrentSuggestions.size() >= 512) break;
+            if (!mCurrentSuggestions.contains(msg)
+                    && msg.length() > text.length()
                     && msg.regionMatches(true, 0, text, 0, text.length())
                     && !msg.equals(text)) {
                 mCurrentSuggestions.add(msg);
+                mCurrentIsShell.add(Boolean.FALSE);
             }
         }
 
         Logger.logInfo(LOG_TAG, "[autocomplete] fullRescan text=\"" + text + "\" max=" + maxCount
-                + " matches=" + mCurrentSuggestions.size());
+                + " history=" + mCurrentSuggestions.size());
 
         if (mCurrentSuggestions.isEmpty()) {
-            dismissAutoCompleteSuggestions();
+            // No history yet — but shell may still produce candidates. Don't dismiss;
+            // the async shell merge will either show the popup or dismiss if empty.
+            fetchShellCandidatesAsync(text);
         } else {
             showAutoCompletePopup(mInputField);
+            if (mShellCompletionProvider != null) {
+                // Shell candidates arrive async; the popup already shows history.
+                fetchShellCandidatesAsync(text);
+            }
+        }
+    }
+
+    /**
+     * Fetch shell-completion candidates off the UI thread. When the result arrives
+     * and is still current (same generation and unchanged input), merge it into the
+     * suggestion list on top, preserving history below a divider.
+     */
+    private void fetchShellCandidatesAsync(@NonNull String text) {
+        if (mShellCompletionProvider == null) return;
+        final int gen = mShellGen.incrementAndGet();
+        final String line = text;
+        final String cwd = mCwdProvider.getCwd();
+        mShellExec.execute(() -> {
+            List<String> shellCandidates = mShellCompletionProvider.complete(line, cwd);
+            final List<String> result = new ArrayList<>(shellCandidates);
+            if (mInputField != null) {
+                mInputField.post(() -> {
+                    if (gen != mShellGen.get()) return; // stale word → discard
+                    // If the user kept typing the same word, the fetched list (built
+                    // for the prefix at fetch time) still covers the current prefix,
+                    // so merge against the LIVE text. Only a different word slot
+                    // (generation already bumped by a newer fetch) discards this.
+                    String liveText = mInputField.getText().toString();
+                    mergeShellCandidates(result, liveText);
+                });
+            }
+        });
+    }
+
+    /**
+     * Insert fetched shell candidates at the front of {@link #mCurrentSuggestions},
+     * replacing any previous shell group, and refresh the popup. Matching is against
+     * the last word (the token actually being completed). Runs on the UI thread.
+     */
+    private void mergeShellCandidates(@NonNull List<String> shellCandidates, @NonNull String text) {
+        // Remove any pre-existing shell entries (from a previous, now-replaced group).
+        for (int i = mCurrentSuggestions.size() - 1; i >= 0; i--) {
+            if (i < mCurrentIsShell.size() && mCurrentIsShell.get(i)) {
+                mCurrentSuggestions.remove(i);
+                mCurrentIsShell.remove(i);
+            }
+        }
+        mShellSuggestionCount = 0;
+
+        String lastWord = lastWordOf(text);
+        // Insert at front so shell stays above the history group.
+        int insertAt = 0;
+        for (String cand : shellCandidates) {
+            if (mCurrentSuggestions.size() >= 512) break;
+            if (!mCurrentSuggestions.contains(cand)
+                    && cand.length() > lastWord.length()
+                    && cand.regionMatches(true, 0, lastWord, 0, lastWord.length())
+                    && !cand.equals(lastWord)) {
+                mCurrentSuggestions.add(insertAt, cand);
+                mCurrentIsShell.add(insertAt, Boolean.TRUE);
+                insertAt++;
+            }
+        }
+        mShellSuggestionCount = insertAt;
+
+        Logger.logInfo(LOG_TAG, "[autocomplete] mergeShell shell=" + mShellSuggestionCount
+                + " total=" + mCurrentSuggestions.size());
+        if (mCurrentSuggestions.isEmpty()) {
+            dismissAutoCompleteSuggestions();
+        } else if (mSuggestionsPopup == null || !mSuggestionsPopup.isShowing()) {
+            showAutoCompletePopup(mInputField);
+        } else {
+            updatePopupContent(text, mInputField);
         }
     }
 
@@ -467,6 +628,55 @@ public final class AutoCompleteController {
      * Returns 0 if no separator is found (the whole string is the only word)
      * or if {@code s} is empty.
      */
+    /**
+     * Returns the last whitespace-delimited token of {@code s} (the word currently
+     * being typed/completed). Delegates to {@link ShellCompletionProvider#lastWordOf}
+     * so the matching token is exactly what bash was asked to complete. History
+     * candidates continue to be matched against the whole line.
+     */
+    @NonNull
+    private static String lastWordOf(@NonNull String s) {
+        return ShellCompletionProvider.lastWordOf(s);
+    }
+
+    /**
+     * Unified local filter used by every additive (Path B) update. Mutates the
+     * parallel {@code sugg} / {@code isShell} lists in lock-step, dropping entries
+     * that no longer match the typed text. Shell-completion candidates are matched
+     * against the LAST WORD of the line (the token actually being completed);
+     * history candidates are matched against the WHOLE line. A trailing slash on a
+     * shell prefix also accepts candidates equal to the prefix minus that slash
+     * (the provider strips trailing {@code '/'} during normalization, so a typed
+     * "dir/" must still keep the normalized "dir" candidate).
+     */
+    private static void filterSuggestionsByPrefix(@NonNull String text,
+            @NonNull List<String> sugg, @NonNull List<Boolean> isShell) {
+        String lastWord = lastWordOf(text);
+        int lwLen = lastWord.length();
+        int tLen = text.length();
+        for (int i = sugg.size() - 1; i >= 0; i--) {
+            String s = sugg.get(i);
+            boolean isShellItem = (i < isShell.size()) && isShell.get(i);
+            String prefix = isShellItem ? lastWord : text;
+            int pLen = isShellItem ? lwLen : tLen;
+            boolean matches;
+            if (pLen == 0) {
+                // Empty prefix: shell candidates require at least one char (fetch is
+                // deferred until a char is typed); history matches the whole empty line
+                // only when it is non-empty itself — guarded by s.length() > pLen below.
+                matches = !isShellItem;
+            } else {
+                matches = s.regionMatches(true, 0, prefix, 0, pLen)
+                        || (isShellItem && prefix.endsWith("/")
+                            && s.regionMatches(true, 0, prefix, 0, pLen - 1));
+            }
+            if (s.length() <= pLen || !matches || s.equals(prefix)) {
+                sugg.remove(i);
+                if (i < isShell.size()) isShell.remove(i);
+            }
+        }
+    }
+
     private static int wordStartOffset(@NonNull String s) {
         int i = s.length();
         // Skip trailing separators so a space at the end of the typed text
@@ -507,9 +717,13 @@ public final class AutoCompleteController {
      */
     @NonNull
     private SpannableString buildSuggestionSpannable(@NonNull String suggestion,
-            @NonNull String input, int availWidth, @NonNull TextPaint paint) {
-        int wordStart = Math.min(wordStartOffset(input), suggestion.length());
-        int boldLen = input.length() - wordStart;
+            @NonNull String input, int availWidth, @NonNull TextPaint paint, boolean isShell) {
+        // Shell candidates are matched against the last word of the line (the token
+        // bash completed); history against the whole line. The bold highlight must
+        // cover the exact matched token.
+        String matchStr = isShell ? lastWordOf(input) : input;
+        int wordStart = Math.min(wordStartOffset(matchStr), suggestion.length());
+        int boldLen = matchStr.length() - wordStart;
         boolean hasLastWord = boldLen > 0;
         String prefix = (wordStart > 0) ? "... " : "";
         int prefixLen = prefix.length();
@@ -522,7 +736,7 @@ public final class AutoCompleteController {
         SpannableString ss = new SpannableString(displayText);
         int spanEnd = Math.min(prefixLen + boldLen, displayText.length());
         if (hasLastWord && spanEnd > prefixLen
-                && suggestion.regionMatches(true, 0, input, 0, input.length())) {
+                && suggestion.regionMatches(true, 0, matchStr, 0, matchStr.length())) {
             ss.setSpan(new StyleSpan(Typeface.BOLD),
                     prefixLen, spanEnd, SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
@@ -612,51 +826,80 @@ public final class AutoCompleteController {
         LinearLayout content = (LinearLayout) scroll.getChildAt(0);
         if (content == null) return;
 
-        // Precompute word-boundary info (shared across all child views)
-        final int inputLen = newText.length();
-        final int wordStart = Math.min(wordStartOffset(newText), inputLen);
+        // Walk the rendered suggestion views in the SAME order that
+        // rebuildSuggestionViews lays them out: the first `shellN` shell candidates,
+        // then the leading history candidates. This keeps the isShell flag aligned
+        // per row so shell candidates highlight their last word (not the whole line).
+        final int n = displayCount();
+        final int shellN = displayShellCount();
+        Logger.logInfo(LOG_TAG, "[autocomplete] updateBoldSpansOnly views=" + content.getChildCount());
+        int rendered = 0;
+        int viewIdx = 0;
+        // Shell rows
+        for (int s = 0; s < shellN && rendered < n; s++, rendered++) {
+            TextView tv = textViewAt(content, viewIdx++);
+            if (tv == null) break;
+            String suggestion = mCurrentSuggestions.get(s);
+            applyBoldSpan(tv, suggestion, newText, true);
+        }
+        // Divider (not a TextView) — skip it in the view walk.
+        if (shellN > 0 && rendered < n) viewIdx++;
+        // History rows
+        for (int h = mShellSuggestionCount;
+                h < mCurrentSuggestions.size() && rendered < n; h++, rendered++) {
+            TextView tv = textViewAt(content, viewIdx++);
+            if (tv == null) break;
+            String suggestion = mCurrentSuggestions.get(h);
+            applyBoldSpan(tv, suggestion, newText, false);
+        }
+    }
+
+    /** Returns the i-th TextView child of {@code content}, or null if it's not a TextView. */
+    @Nullable
+    private static TextView textViewAt(@NonNull LinearLayout content, int i) {
+        if (i < 0 || i >= content.getChildCount()) return null;
+        View child = content.getChildAt(i);
+        return (child instanceof TextView) ? (TextView) child : null;
+    }
+
+    /** Apply (or rebuild) the bold-span for a single suggestion row. */
+    private void applyBoldSpan(@NonNull TextView tv, @NonNull String suggestion,
+            @NonNull String newText, boolean isShell) {
+        String matchStr = isShell ? lastWordOf(newText) : newText;
+        final int inputLen = matchStr.length();
+        final int wordStart = Math.min(wordStartOffset(matchStr), suggestion.length());
         final int boldLen = inputLen - wordStart;
         final boolean hasLastWord = boldLen > 0;
         final String prefix = (wordStart > 0) ? "... " : "";
         final int prefixLen = prefix.length();
 
-        Logger.logInfo(LOG_TAG, "[autocomplete] updateBoldSpansOnly wordStart=" + wordStart
-                + " boldLen=" + boldLen + " views=" + content.getChildCount());
-        for (int i = 0; i < content.getChildCount(); i++) {
-            View child = content.getChildAt(i);
-            if (!(child instanceof TextView)) continue;
-            TextView tv = (TextView) child;
-            String suggestion = (String) tv.getTag();
-            if (suggestion == null) continue;
+        // Compute the expected word-truncated display string
+        int ws = Math.min(wordStart, suggestion.length());
+        String expectedDisplay = (prefixLen > 0)
+                ? prefix + suggestion.substring(ws)
+                : suggestion;
 
-            // Compute the expected word-truncated display string
-            int ws = Math.min(wordStart, suggestion.length());
-            String expectedDisplay = (prefixLen > 0)
-                    ? prefix + suggestion.substring(ws)
-                    : suggestion;
-
-            CharSequence currentText = tv.getText();
-            if (!expectedDisplay.contentEquals(currentText)) {
-                // Word-boundary anchor shifted → rebuild text with setText (rare:
-                // crossing a space or / boundary). Re-measure and re-truncate too
-                // so the trailing '…' stays correct for long suggestions.
-                int availWidth = tv.getWidth() - tv.getPaddingLeft() - tv.getPaddingRight();
-                SpannableString ss = buildSuggestionSpannable(
-                        suggestion, newText, Math.max(0, availWidth), tv.getPaint());
-                tv.setText(ss, TextView.BufferType.SPANNABLE);
-            } else {
-                // Display buffer unchanged → only mutate bold spans in-place (fast path)
-                Spannable sp = (Spannable) currentText;
-                StyleSpan[] old = sp.getSpans(0, sp.length(), StyleSpan.class);
-                for (StyleSpan s : old) sp.removeSpan(s);
-                if (hasLastWord && prefixLen + boldLen <= sp.length()
-                        && suggestion.regionMatches(true, 0, newText, 0, inputLen)) {
-                    sp.setSpan(new StyleSpan(Typeface.BOLD),
-                            prefixLen, prefixLen + boldLen,
-                            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                }
-                tv.invalidate();
+        CharSequence currentText = tv.getText();
+        if (!expectedDisplay.contentEquals(currentText)) {
+            // Word-boundary anchor shifted → rebuild text with setText (rare:
+            // crossing a space or / boundary). Re-measure and re-truncate too
+            // so the trailing '…' stays correct for long suggestions.
+            int availWidth = tv.getWidth() - tv.getPaddingLeft() - tv.getPaddingRight();
+            SpannableString ss = buildSuggestionSpannable(
+                    suggestion, newText, Math.max(0, availWidth), tv.getPaint(), isShell);
+            tv.setText(ss, TextView.BufferType.SPANNABLE);
+        } else {
+            // Display buffer unchanged → only mutate bold spans in-place (fast path)
+            Spannable sp = (Spannable) currentText;
+            StyleSpan[] old = sp.getSpans(0, sp.length(), StyleSpan.class);
+            for (StyleSpan s : old) sp.removeSpan(s);
+            if (hasLastWord && prefixLen + boldLen <= sp.length()
+                    && suggestion.regionMatches(true, 0, matchStr, 0, inputLen)) {
+                sp.setSpan(new StyleSpan(Typeface.BOLD),
+                        prefixLen, prefixLen + boldLen,
+                        SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
+            tv.invalidate();
         }
     }
 
@@ -677,51 +920,72 @@ public final class AutoCompleteController {
         LinearLayout content = (LinearLayout) scroll.getChildAt(0);
         if (content == null) { showAutoCompletePopup(inputField); return; }
 
-        // Remove non-matching views (iterate backward so indices stay valid)
-        final int inputLen = newText.length();
-        final int prevChildCount = content.getChildCount();
-        for (int i = prevChildCount - 1; i >= 0; i--) {
-            View child = content.getChildAt(i);
-            String suggestion = (String) child.getTag();
-            if (suggestion == null
-                    || suggestion.length() <= inputLen
-                    || !suggestion.regionMatches(true, 0, newText, 0, inputLen)
-                    || suggestion.equals(newText)) {
-                content.removeViewAt(i);
-            }
-        }
-        boolean contentChanged = (content.getChildCount() != prevChildCount);
-
-        // Rebuild mCurrentSuggestions list to match the current views
-        mCurrentSuggestions.clear();
-        for (int i = 0; i < content.getChildCount(); i++) {
-            View child = content.getChildAt(i);
-            String tag = (String) child.getTag();
-            if (tag != null) mCurrentSuggestions.add(tag);
+        // NOTE: mCurrentSuggestions is already filtered (by Path B's
+        // filterSuggestionsByPrefix, or by mergeShellCandidates which inserts
+        // prefix-matched shell entries with correct isShell flags). Re-filtering
+        // here would be a redundant O(n) scan, so we only recompute the leading
+        // shell count.
+        mShellSuggestionCount = 0;
+        for (boolean isShell : mCurrentIsShell) {
+            if (isShell) mShellSuggestionCount++;
+            else break;
         }
 
-        // Top-up from history if needed
+        // Top-up from history if the rendered set still has room (history items
+        // are always appended after the shell group, so the divider is preserved).
         int maxCount = mPrefs.getInt("suggestions_max_count", 4);
         if (maxCount < 0) maxCount = 0;
         if (maxCount > 10) maxCount = 10;
-        final int preTopUpCount = content.getChildCount();
-        if (mCurrentSuggestions.size() < maxCount) {
+        mDisplayMax = maxCount;
+        if (displayCount() < maxCount) {
+            final int storeCap = Math.max(maxCount, 512);
             for (String msg : mMessageHistoryCtrl.getHistoryList()) {
-                if (mCurrentSuggestions.size() >= maxCount) break;
+                if (displayCount() >= maxCount) break;
+                if (mCurrentSuggestions.size() >= storeCap) break;
                 if (!mCurrentSuggestions.contains(msg)
                         && msg.length() > newText.length()
                         && msg.regionMatches(true, 0, newText, 0, newText.length())
                         && !msg.equals(newText)) {
                     mCurrentSuggestions.add(msg);
-                    // Create a new TextView for this top-up item
-                    TextView tv = buildSuggestionTextView(msg, newText);
-                    content.addView(tv, new LinearLayout.LayoutParams(
-                            LinearLayout.LayoutParams.MATCH_PARENT,
-                            LinearLayout.LayoutParams.WRAP_CONTENT));
+                    mCurrentIsShell.add(Boolean.FALSE);
                 }
             }
         }
-        if (content.getChildCount() != preTopUpCount) contentChanged = true;
+
+        // Detect whether the visible set changed vs the currently shown views, using
+        // the SAME shell-then-history mapping that rebuildSuggestionViews uses.
+        final int expectedChildren = expectedChildCount();
+        boolean contentChanged = (content.getChildCount() != expectedChildren);
+        if (!contentChanged) {
+            final int n = displayCount();
+            final int shellN = displayShellCount();
+            int viewIdx = 0;
+            int rendered = 0;
+            // Shell rows
+            boolean mismatch = false;
+            for (int s = 0; s < shellN && rendered < n; s++, rendered++) {
+                TextView tv = textViewAt(content, viewIdx++);
+                if (tv == null || !tv.getText().toString().equals(mCurrentSuggestions.get(s))) {
+                    mismatch = true; break;
+                }
+            }
+            if (shellN > 0 && rendered < n) viewIdx++; // skip the divider view
+            // History rows
+            for (int h = mShellSuggestionCount;
+                    !mismatch && h < mCurrentSuggestions.size() && rendered < n;
+                    h++, rendered++) {
+                TextView tv = textViewAt(content, viewIdx++);
+                if (tv == null || !tv.getText().toString().equals(mCurrentSuggestions.get(h))) {
+                    mismatch = true; break;
+                }
+            }
+            contentChanged = mismatch;
+        }
+
+        if (contentChanged) {
+            // Rebuild the views (including the divider) to match the filtered lists.
+            rebuildSuggestionViews(content, newText);
+        }
 
         Logger.logInfo(LOG_TAG, "[autocomplete] updatePopupContent contentChanged=" + contentChanged
                 + " views=" + content.getChildCount() + " suggestions=" + mCurrentSuggestions.size());
@@ -735,9 +999,9 @@ public final class AutoCompleteController {
             return;
         }
 
-        // Structural change — update bold-spans, measure, resize
+        // Structural change — measure, resize. (Bold spans were already applied by
+        // rebuildSuggestionViews via buildSuggestionSpannable, so no extra pass.)
         Logger.logInfo(LOG_TAG, "[autocomplete] → STRUCTURAL CHANGE (measure+update)");
-        updateBoldSpansOnly(newText);
 
         // Reset scroll to top synchronously before measure (no post() needed,
         // the ScrollView is already laid out and showing).
@@ -753,8 +1017,96 @@ public final class AutoCompleteController {
         applyPopupGeometry(inputField);
     }
 
+    /**
+     * Build the thin horizontal divider shown between the shell-completion group
+     * (top) and the message-history group (bottom). It carries no suggestion tag,
+     * so the additive filter treats it as a non-suggestion child and leaves it
+     * alone.
+     */
+    @NonNull
+    private View buildDividerView() {
+        View divider = new View(mContext);
+        int thickness = Math.max(1, (int) (mContext.getResources().getDisplayMetrics().density));
+        divider.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, thickness));
+        divider.setBackgroundColor(mColorSchemeManager.getHistoryPopupSepColor());
+        return divider;
+    }
+
+    /**
+     * Number of suggestions to actually render (capped at the user's max setting),
+     * even though {@link #mCurrentSuggestions} may store more candidates for
+     * Path B local filtering.
+     */
+    private int displayCount() {
+        return Math.min(mCurrentSuggestions.size(), mDisplayMax);
+    }
+
+    /** Whether the rendered popup should show the shell/history divider. */
+    private boolean dividerShown() {
+        int shellN = displayShellCount();
+        return shellN > 0 && displayCount() > shellN;
+    }
+
+    /** Expected number of popup children (suggestions + optional divider). */
+    private int expectedChildCount() {
+        return displayCount() + (dividerShown() ? 1 : 0);
+    }
+
+    /**
+     * Number of leading shell-completion entries to render. Capped at the display
+     * limit, but when the shell group overflows the display AND history matches
+     * exist, we reserve one slot for history so the user never loses their
+     * message-history recall entirely. The divider sits after this many rendered
+     * shell items, but only if at least one history item is also rendered below it.
+     */
+    private int displayShellCount() {
+        int historyCount = mCurrentSuggestions.size() - mShellSuggestionCount;
+        if (historyCount > 0 && mShellSuggestionCount > mDisplayMax) {
+            return Math.max(0, mDisplayMax - 1);
+        }
+        return Math.min(mShellSuggestionCount, mDisplayMax);
+    }
+
+    /**
+     * Rebuild the popup content from {@link #mCurrentSuggestions}, inserting a
+     * divider after the leading shell-completion group (the first
+     * {@link #displayShellCount()} rendered entries) when both groups are present.
+     * Only the first {@link #displayCount()} suggestions are rendered; the rest
+     * remain in the stored list for Path B filtering. Used by every code path
+     * that (re)creates the suggestion views so ordering and the divider stay
+     * consistent.
+     */
+    private void rebuildSuggestionViews(@NonNull LinearLayout content, @NonNull String input) {
+        content.removeAllViews();
+        final int n = displayCount();
+        final int shellN = displayShellCount();
+        // Render the first `shellN` shell candidates, then the leading history
+        // candidates (those stored after the shell group), capping at `n` total.
+        // This keeps shell items above the divider and history below it even when
+        // the shell group is truncated to reserve a history slot.
+        int rendered = 0;
+        for (int i = 0; i < shellN && rendered < n; i++, rendered++) {
+            String suggestion = mCurrentSuggestions.get(i);
+            TextView tv = buildSuggestionTextView(suggestion, input, true);
+            content.addView(tv, new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT));
+        }
+        if (shellN > 0 && rendered < n) {
+            content.addView(buildDividerView());
+        }
+        for (int i = mShellSuggestionCount; i < mCurrentSuggestions.size() && rendered < n; i++, rendered++) {
+            String suggestion = mCurrentSuggestions.get(i);
+            TextView tv = buildSuggestionTextView(suggestion, input, false);
+            content.addView(tv, new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT));
+        }
+    }
+
     /** Build a single suggestion TextView (reusable helper). */
-    private TextView buildSuggestionTextView(@NonNull String suggestion, @NonNull String input) {
+    private TextView buildSuggestionTextView(@NonNull String suggestion, @NonNull String input, boolean isShell) {
         int padH = mPopupItemPadHPx;
         int padV = mPopupItemPadVPx;
         TextView tv = new TextView(mContext);
@@ -772,7 +1124,7 @@ public final class AutoCompleteController {
         // Word-based leading truncation + manual trailing '…' (TextView's
         // setEllipsize(END) is unreliable for maxLines>1 on API 21-28).
         SpannableString ss = buildSuggestionSpannable(
-                suggestion, input, availWidth, tv.getPaint());
+                suggestion, input, availWidth, tv.getPaint(), isShell);
         tv.setText(ss, TextView.BufferType.SPANNABLE);
         tv.setMaxLines(2);
         tv.setEllipsize(TextUtils.TruncateAt.END); // backup; text already fits 2 lines
@@ -850,8 +1202,19 @@ public final class AutoCompleteController {
                 // already-typed prefix, so we never re-append what's already there.
                 String base = mInputField.getText() != null ? mInputField.getText().toString() : "";
                 mSwipeBaseText = base;
+                boolean isPrefixMatch = !base.isEmpty()
+                        && mSwipeSuggestion.length() >= base.length()
+                        && mSwipeSuggestion.regionMatches(true, 0, base, 0, base.length());
                 String remainder = computeRemainder(mSwipeSuggestion, base);
                 mSwipeWords = splitShellWords(remainder);
+                // Add a leading space before the first word only when the first
+                // word starts a NEW token: i.e. the suggestion is NOT a prefix
+                // continuation of what's typed (so the word doesn't complete a
+                // half-typed token) AND the base doesn't already end in a
+                // separator (space or '/').
+                mSwipeNeedsLeadingSpace = !isPrefixMatch
+                        && !base.isEmpty()
+                        && !isWordSeparator(base.charAt(base.length() - 1));
                 mSwipeAnchorStart = base.length();
                 // Not consumed yet: allow a tap to become a click.
                 return false;
@@ -951,12 +1314,50 @@ public final class AutoCompleteController {
         return suggestion;
     }
 
-    /** Split a shell-command remainder into non-empty whitespace-delimited words. */
+    /**
+     * Split a remainder into "words" delimited by {@link #WORD_SEPARATORS}
+     * (space and '/'), keeping each word's <b>trailing</b> separator so the
+     * original spacing/path structure is restored exactly when re-appended.
+     * A leading run of separators is folded into the first word's prefix.
+     *
+     * <p>Example: {@code "usr/bin/env"} → {@code ["usr/", "bin/", "env"]}
+     * (no trailing separator fabricated for the last word);
+     * {@code " commit -m"} → {@code [" commit ", "-m"]}.
+     */
     @NonNull
     private static String[] splitShellWords(@NonNull String s) {
-        String trimmed = s.trim();
-        if (trimmed.isEmpty()) return new String[0];
-        return trimmed.split("\\s+");
+        if (s.isEmpty()) return new String[0];
+        java.util.ArrayList<String> out = new java.util.ArrayList<>();
+        int i = 0;
+        int n = s.length();
+        // Fold any leading separators into the prefix of the first token so that
+        // the boundary between the base text and the first word is preserved.
+        int leadStart = i;
+        while (i < n && isWordSeparator(s.charAt(i))) i++;
+        String lead = s.substring(leadStart, i);
+        while (i < n) {
+            int wordStart = i;
+            while (i < n && !isWordSeparator(s.charAt(i))) i++;
+            // Include the run of trailing separators that actually followed this
+            // word in the original suggestion (e.g. '/' for paths, one or more
+            // spaces for arguments). Nothing is added if the word ended the
+            // string, so a separator that wasn't in the original is never fabricated.
+            while (i < n && isWordSeparator(s.charAt(i))) i++;
+            String token = s.substring(wordStart, i);
+            if (!lead.isEmpty()) {
+                token = lead + token;
+                lead = "";
+            }
+            out.add(token);
+        }
+        // A remainder consisting only of separators (rare) still yields the lead.
+        if (!lead.isEmpty()) out.add(lead);
+        return out.toArray(new String[0]);
+    }
+
+    /** True if {@code c} is one of {@link #WORD_SEPARATORS} (space or '/'). */
+    private static boolean isWordSeparator(char c) {
+        return c == ' ' || c == '/';
     }
 
     /**
@@ -969,11 +1370,13 @@ public final class AutoCompleteController {
         if (mInputField == null || mSwipeWords == null || mSwipeBaseText == null) return;
         StringBuilder sb = new StringBuilder(mSwipeBaseText);
         for (int i = 0; i < n; i++) {
-            // The first word glues directly onto the base (it completes the word
-            // the user was mid-typing). Every appended word is followed by a
-            // trailing space, so the next word is naturally separated and the
-            // committed text ends ready for the next token.
-            sb.append(mSwipeWords[i]).append(' ');
+            // A leading space is inserted before the first word only when it
+            // begins a new token and the base doesn't already end in a separator.
+            if (i == 0 && mSwipeNeedsLeadingSpace) sb.append(' ');
+            // Each token already carries its own trailing separator (space or '/')
+            // captured from the suggestion, so path/argument structure is restored
+            // exactly and the text stays ready for the next token.
+            sb.append(mSwipeWords[i]);
         }
         String newText = sb.toString();
         mInputField.setText(newText);
@@ -1004,6 +1407,7 @@ public final class AutoCompleteController {
         mSwipeBaseText = null;
         mSwipeSuggestion = null;
         mSwipeWordsAdded = 0;
+        mSwipeNeedsLeadingSpace = false;
     }
 
     /**
@@ -1063,19 +1467,28 @@ public final class AutoCompleteController {
                 && mSuggestionsContent.getParent() != null) {
             final String input = inputField.getText().toString();
 
+            // Expected number of children: rendered suggestions plus (possibly) one
+            // divider between the shell group and the history group.
+            final int expectedChildren = expectedChildCount();
+
             // Content-changed guard: skip the removeAllViews + addViews + measure cycle
             // when the suggestion list is identical to what's already shown (e.g. an IME
             // re-compose of the same text that re-triggers Path A). Mirrors the
             // contentChanged check in updatePopupContent(), comparing the EXISTING
             // mSuggestionsContent children against mCurrentSuggestions.
-            boolean contentChanged = mSuggestionsContent.getChildCount() != mCurrentSuggestions.size();
+            boolean contentChanged = mSuggestionsContent.getChildCount() != expectedChildren;
             if (!contentChanged) {
-                for (int i = 0; i < mCurrentSuggestions.size(); i++) {
-                    String existing = ((TextView) mSuggestionsContent.getChildAt(i)).getText().toString();
-                    if (!existing.equals(mCurrentSuggestions.get(i))) {
+                int suggestionIdx = 0;
+                for (int i = 0; i < mSuggestionsContent.getChildCount(); i++) {
+                    View child = mSuggestionsContent.getChildAt(i);
+                    if (!(child instanceof TextView)) continue; // divider
+                    String existing = ((TextView) child).getText().toString();
+                    if (suggestionIdx >= mCurrentSuggestions.size()
+                            || !existing.equals(mCurrentSuggestions.get(suggestionIdx))) {
                         contentChanged = true;
                         break;
                     }
+                    suggestionIdx++;
                 }
             }
 
@@ -1097,14 +1510,7 @@ public final class AutoCompleteController {
                 ((ScrollView) mSuggestionsContent.getParent()).setScrollY(0);
             }
 
-            mSuggestionsContent.removeAllViews();
-            for (int i = 0; i < mCurrentSuggestions.size(); i++) {
-                mSuggestionsContent.addView(
-                        buildSuggestionTextView(mCurrentSuggestions.get(i), input),
-                        new LinearLayout.LayoutParams(
-                                LinearLayout.LayoutParams.MATCH_PARENT,
-                                LinearLayout.LayoutParams.WRAP_CONTENT));
-            }
+            rebuildSuggestionViews(mSuggestionsContent, input);
             mSuggestionsContent.measure(
                     View.MeasureSpec.makeMeasureSpec(mLastPopupWidth, View.MeasureSpec.EXACTLY),
                     View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
@@ -1133,13 +1539,7 @@ public final class AutoCompleteController {
         int padV = mPopupItemPadVPx;
         final String input = inputField.getText().toString();
 
-        for (int i = 0; i < mCurrentSuggestions.size(); i++) {
-            final String suggestion = mCurrentSuggestions.get(i);
-            TextView tv = buildSuggestionTextView(suggestion, input);
-            content.addView(tv, new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT));
-        }
+        rebuildSuggestionViews(content, input);
 
         // Wrap content in a ScrollView and size via WRAP_CONTENT + update() — this mirrors
         // the WORKING mHistoryPopup and avoids the zero-height / degenerate-shadow bug that a
@@ -1322,10 +1722,21 @@ public final class AutoCompleteController {
             mSuggestionsPopup = null;
         }
         mCurrentSuggestions.clear();
+        mCurrentIsShell.clear();
+        mShellSuggestionCount = 0;
+        // Invalidate any in-flight async shell fetch so its result can't resurrect
+        // a dismissed popup or clobber the next word's suggestions.
+        mShellGen.incrementAndGet();
         mSuggestionsContent = null;
         mLastAppliedPrefix = "";
         mLastPopupX = 0;
         mLastPopupY = 0;
+        // NOTE: we intentionally do NOT clear the shell per-word cache here. The
+        // provider caches candidates per (word-slot, cwd, prefix), so a dismissed
+        // popup that is later rebuilt for the same word reuses the cached list
+        // instead of re-spawning bash. The cache is invalidated automatically by a
+        // different cword/cwd or a divergent prefix (e.g. backspace+retype), and is
+        // explicitly cleared on session/cwd change (setCwdProvider) and toggle-off.
         if (mSuggestionsLayoutListener != null) {
             final android.view.View decor = (mContext instanceof Activity)
                     ? ((Activity) mContext).getWindow().getDecorView() : null;

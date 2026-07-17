@@ -180,6 +180,26 @@
                 <string name="termux_tab_height_mode_single">Single line (default)</string>
                 <string name="termux_tab_height_mode_double">Two lines</string>
 
+                <!-- Extra keys special button mode -->
+                <string name="extra_keys_special_button_mode_title">Special keys behaviour</string>
+                <string name="extra_keys_special_button_mode_summary">How modifier keys (CTRL, ALT, SHIFT, FN) respond to touch. Sticky: tap to toggle, long-press to lock on. Hold: active only while the key is pressed.</string>
+                <string name="extra_keys_special_button_mode_sticky">Sticky (toggle / lock)</string>
+                <string name="extra_keys_special_button_mode_hold">Hold (while pressed)</string>
+
+                <!-- Extra keys panel section -->
+                <string name="extra_keys_header">Extra keys</string>
+                <string name="extra_keys_layout_title">Keys layout</string>
+                <string name="extra_keys_layout_summary">JSON matrix defining the extra keys rows and their popups.</string>
+                <string name="extra_keys_style_title">Keys style</string>
+                <string name="extra_keys_style_summary">How special characters on the keys are displayed.</string>
+                <string name="extra_keys_style_default">Default</string>
+                <string name="extra_keys_style_arrows_only">Arrows only</string>
+                <string name="extra_keys_style_arrows_all">Arrows all</string>
+                <string name="extra_keys_style_all">All</string>
+                <string name="extra_keys_style_none">None</string>
+                <string name="extra_keys_text_all_caps_title">All caps text</string>
+                <string name="extra_keys_text_all_caps_summary">Show extra key labels in uppercase.</string>
+
                 <!-- Soft Keyboard Only If No Hardware-->
                 <string name="termux_soft_keyboard_enabled_only_if_no_hardware_title">Soft Keyboard Only If No Hardware</string>
                 <string name="termux_soft_keyboard_enabled_only_if_no_hardware_off">Soft keyboard will be enabled even if
@@ -258,8 +278,6 @@
     <!-- Session restore preferences -->
     <string name="restore_sessions_title">Restore tabs on launch</string>
     <string name="restore_sessions_summary">Reopen all tabs and their directories when the app starts</string>
-    <string name="restore_terminal_history_title">Restore terminal history</string>
-    <string name="restore_terminal_history_summary">Also save and restore the full scrollback of each terminal (read-only)</string>
 
     <!-- Screen orientation preference -->
     <string name="screen_orientation_title">Screen orientation</string>
@@ -377,4 +395,6 @@
     <!-- Text input auto-complete -->
     <string name="suggestions_max_count_title">Max suggestions</string>
     <string name="suggestions_max_count_summary">Auto-complete suggestions from message history (1–10)</string>
+    <string name="shell_completion_enabled_title">Shell command completion</string>
+    <string name="shell_completion_enabled_summary">Also suggest commands from the system shell (bash) programmable completion</string>
 </resources>

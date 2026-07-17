@@ -103,6 +103,42 @@ public class AppearancePreferencesFragment extends PreferenceFragmentCompat {
 
         wireSliderListener("button_bg_inactive_alpha", context);
         wireSliderListener("button_bg_active_alpha", context);
+
+        configureShellCompletionPreference();
+    }
+
+
+    // -----------------------------------------------------------------------
+    //  Shell command completion toggle
+    // -----------------------------------------------------------------------
+
+    /**
+     * The auto-complete controller (AutoCompleteController) reads its settings from
+     * the {@code termux_prefs} file, NOT the {@code com.termux_preferences} file the
+     * rest of this fragment auto-persists to. So this switch is wired to read/write
+     * {@code termux_prefs} directly and, on change, asks TermuxActivity to re-sync
+     * (and the running controller to pick up the new value without a restart).
+     */
+    private void configureShellCompletionPreference() {
+        final androidx.preference.SwitchPreferenceCompat pref =
+                findPreference("shell_completion_enabled");
+        if (pref == null) return;
+
+        final android.content.Context ctx = getContext();
+        if (ctx == null) return;
+
+        final android.content.SharedPreferences termuxPrefs =
+                ctx.getSharedPreferences("termux_prefs", android.content.Context.MODE_PRIVATE);
+        final boolean enabled = termuxPrefs.getBoolean("shell_completion_enabled", false);
+        pref.setChecked(enabled);
+
+        pref.setOnPreferenceChangeListener((preference, newValue) -> {
+            boolean value = (Boolean) newValue;
+            termuxPrefs.edit().putBoolean("shell_completion_enabled", value).apply();
+            // Notify the running TermuxActivity to re-sync the controller.
+            TermuxActivity.updateTermuxActivityStyling(ctx, false);
+            return true;
+        });
     }
 
 

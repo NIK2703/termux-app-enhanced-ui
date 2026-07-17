@@ -526,6 +526,14 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
                 findViewById(R.id.terminal_toolbar_text_input),
                 mMessageHistoryCtrl, mColorSchemeManager);
 
+        // Feed the controller the working directory of the active session so shell
+        // completion (file/path candidates) resolves in the right place.
+        mAutoCompleteCtrl.setCwdProvider(() -> {
+            TerminalSession session = getCurrentSession();
+            String cwd = session != null ? session.getCwd() : null;
+            return cwd != null ? cwd : ".";
+        });
+
         setNewSessionButtonView();
 
         setToggleTextInputButtonView();
@@ -2375,6 +2383,8 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
             reloadProperties();
 
             if (mExtraKeysView != null) {
+                if (mTermuxTerminalExtraKeys != null)
+                    mTermuxTerminalExtraKeys.reloadExtraKeys();
                 mExtraKeysView.setButtonTextAllCaps(mProperties.shouldExtraKeysTextBeAllCaps());
                 applyExtraKeysSpecialButtonMode();
                 mExtraKeysView.reload(mTermuxTerminalExtraKeys.getExtraKeysInfo(), mTerminalToolbarDefaultHeight);
@@ -2391,6 +2401,10 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
 
         if (mTermuxTerminalSessionActivityClient != null)
             mTermuxTerminalSessionActivityClient.onReloadActivityStyling();
+
+        // Reflect a changed shell-completion toggle without a full restart.
+        if (mAutoCompleteCtrl != null)
+            mAutoCompleteCtrl.syncShellCompletionEnabled();
 
         // Cache all UI colours from the (now-updated) COLOR_SCHEME so every consumer reads
         // fresh values without computing them on the fly.

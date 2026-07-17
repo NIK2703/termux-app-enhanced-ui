@@ -55,4 +55,28 @@
         <item>single</item>
         <item>double</item>
     </string-array>
+
+    <string-array name="extra_keys_special_button_mode_entries">
+        <item>@string/extra_keys_special_button_mode_sticky</item>
+        <item>@string/extra_keys_special_button_mode_hold</item>
+    </string-array>
+    <string-array name="extra_keys_special_button_mode_values">
+        <item>sticky</item>
+        <item>hold</item>
+    </string-array>
+
+    <string-array name="extra_keys_style_entries">
+        <item>@string/extra_keys_style_default</item>
+        <item>@string/extra_keys_style_arrows_only</item>
+        <item>@string/extra_keys_style_arrows_all</item>
+        <item>@string/extra_keys_style_all</item>
+        <item>@string/extra_keys_style_none</item>
+    </string-array>
+    <string-array name="extra_keys_style_values">
+        <item>default</item>
+        <item>arrows-only</item>
+        <item>arrows-all</item>
+        <item>all</item>
+        <item>none</item>
+    </string-array>
 </resources>
