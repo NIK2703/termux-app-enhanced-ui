@@ -207,6 +207,25 @@ public final class ExtraKeysView extends GridLayout {
     protected int mLongPressRepeatDelay;
 
 
+    /**
+     * Defines how the {@link #mSpecialButtons} behave when pressed.
+     * {@link SpecialButtonMode#STICKY} (default): a tap toggles the button on/off (latching), and a
+     * long hold locks it on until toggled off.
+     * {@link SpecialButtonMode#HOLD}: a touch activates the button immediately and it stays active
+     * only while the finger is held down, deactivating on release. No long-press competition since
+     * the hold engages as soon as the button is touched.
+     */
+    protected SpecialButtonMode mSpecialButtonMode = SpecialButtonMode.STICKY;
+
+    /** The behaviour mode for the {@link #mSpecialButtons}. */
+    public enum SpecialButtonMode {
+        /** Tap toggles the button on/off; long hold locks it on. */
+        STICKY,
+        /** Button is active only while touched, deactivating on release. */
+        HOLD
+    }
+
+
     /** The popup window shown if {@link ExtraKeyButton#getPopup()} returns a {@code non-null} value
      * and a swipe up action is done on an extra key. */
     protected PopupWindow mPopupWindow;
@@ -393,6 +412,18 @@ public final class ExtraKeysView extends GridLayout {
     }
 
 
+    /** Get {@link #mSpecialButtonMode}. */
+    @NonNull
+    public SpecialButtonMode getSpecialButtonMode() {
+        return mSpecialButtonMode;
+    }
+
+    /** Set {@link #mSpecialButtonMode}. Must not be {@code null}. */
+    public void setSpecialButtonMode(@NonNull SpecialButtonMode specialButtonMode) {
+        mSpecialButtonMode = specialButtonMode;
+    }
+
+
     /** Get the default map that can be used for {@link #mSpecialButtons}. */
     @NonNull
     public Map<SpecialButton, SpecialButtonState> getDefaultSpecialButtons(ExtraKeysView extraKeysView) {
@@ -462,6 +493,17 @@ public final class ExtraKeysView extends GridLayout {
                     switch (event.getAction()) {
                         case MotionEvent.ACTION_DOWN:
                             button.setBackgroundTintList(ColorStateList.valueOf(mButtonActiveBackgroundColor));
+                            // In HOLD mode a special button activates immediately on touch and stays
+                            // active only while held. There is no long-press competition, so we do not
+                            // start any scheduled executors and just engage the hold.
+                            if (mSpecialButtonMode == SpecialButtonMode.HOLD && isSpecialButton(buttonInfo)) {
+                                SpecialButtonState holdState = mSpecialButtons.get(SpecialButton.valueOf(buttonInfo.getKey()));
+                                if (holdState != null) {
+                                    holdState.setIsActive(true);
+                                    holdState.setIsHolding(true);
+                                }
+                                return true;
+                            }
                             // Start long press scheduled executors which will be stopped in next MotionEvent
                             startScheduledExecutors(view, buttonInfo, button);
                             return true;
@@ -484,11 +526,20 @@ public final class ExtraKeysView extends GridLayout {
                         case MotionEvent.ACTION_CANCEL:
                             button.setBackgroundTintList(ColorStateList.valueOf(mButtonBackgroundColor));
                             stopScheduledExecutors();
+                            // In HOLD mode a cancelled touch ends the hold
+                            if (mSpecialButtonMode == SpecialButtonMode.HOLD && isSpecialButton(buttonInfo)) {
+                                endSpecialButtonHold(buttonInfo);
+                            }
                             return true;
 
                         case MotionEvent.ACTION_UP:
                             button.setBackgroundTintList(ColorStateList.valueOf(mButtonBackgroundColor));
                             stopScheduledExecutors();
+                            // In HOLD mode a special button deactivates on release
+                            if (mSpecialButtonMode == SpecialButtonMode.HOLD && isSpecialButton(buttonInfo)) {
+                                endSpecialButtonHold(buttonInfo);
+                                return true;
+                            }
                             // If ACTION_UP up was not from a repetitive key or was with a key with a popup button
                             if (mLongPressCount == 0 || mPopupWindow != null) {
                                 // Trigger popup button click if swipe up complete
@@ -561,6 +612,9 @@ public final class ExtraKeysView extends GridLayout {
     public void onAnyExtraKeyButtonClick(View view, @NonNull ExtraKeyButton buttonInfo, MaterialButton button) {
         if (isSpecialButton(buttonInfo)) {
             if (mLongPressCount > 0) return;
+            // In HOLD mode the special button is driven entirely by touch events, so a click
+            // (which would normally toggle) must not interfere with the hold state.
+            if (mSpecialButtonMode == SpecialButtonMode.HOLD) return;
             SpecialButtonState state = mSpecialButtons.get(SpecialButton.valueOf(buttonInfo.getKey()));
             if (state == null) return;
 
@@ -608,6 +662,21 @@ public final class ExtraKeysView extends GridLayout {
         if (mSpecialButtonsLongHoldRunnable != null && mHandler != null) {
             mHandler.removeCallbacks(mSpecialButtonsLongHoldRunnable);
             mSpecialButtonsLongHoldRunnable = null;
+        }
+    }
+
+    /**
+     * Deactivate a special button that was engaged in {@link SpecialButtonMode#HOLD} mode because the
+     * finger was released (or the touch was cancelled). Only affects buttons currently held.
+     *
+     * @param buttonInfo The {@link ExtraKeyButton} for the special button being released.
+     */
+    private void endSpecialButtonHold(ExtraKeyButton buttonInfo) {
+        SpecialButtonState state = mSpecialButtons.get(SpecialButton.valueOf(buttonInfo.getKey()));
+        if (state == null) return;
+        if (state.isHolding) {
+            state.setIsHolding(false);
+            state.setIsActive(false);
         }
     }
 
@@ -692,8 +761,8 @@ public final class ExtraKeysView extends GridLayout {
         if (!state.isCreated || !state.isActive)
             return false;
 
-        // Disable active state only if not locked
-        if (autoSetInActive && !state.isLocked)
+        // Disable active state only if not locked and not currently held down
+        if (autoSetInActive && !state.isLocked && !state.isHolding)
             state.setIsActive(false);
 
         return true;

@@ -294,6 +294,8 @@ public abstract class TermuxSharedProperties {
                 return (String) getExtraKeysInternalPropertyValueFromValue(value);
             case TermuxPropertyConstants.KEY_EXTRA_KEYS_STYLE:
                 return (String) getExtraKeysStyleInternalPropertyValueFromValue(value);
+            case TermuxPropertyConstants.KEY_EXTRA_KEYS_SPECIAL_BUTTON_MODE:
+                return (String) getExtraKeysSpecialButtonModeInternalPropertyValueFromValue(value);
             case TermuxPropertyConstants.KEY_NIGHT_MODE:
                 return (String) getNightModeInternalPropertyValueFromValue(value);
             case TermuxPropertyConstants.KEY_SOFT_KEYBOARD_TOGGLE_BEHAVIOUR:
@@ -536,6 +538,20 @@ public abstract class TermuxSharedProperties {
      */
     public static String getExtraKeysStyleInternalPropertyValueFromValue(String value) {
         return SharedProperties.getDefaultIfNullOrEmpty(value, TermuxPropertyConstants.DEFAULT_IVALUE_EXTRA_KEYS_STYLE);
+    }
+
+    /**
+     * Returns the special buttons mode value mapped via
+     * {@link TermuxPropertyConstants#MAP_EXTRA_KEYS_SPECIAL_BUTTON_MODE} if the value is not {@code null}
+     * and is valid, otherwise returns {@link TermuxPropertyConstants#DEFAULT_IVALUE_EXTRA_KEYS_SPECIAL_BUTTON_MODE}.
+     *
+     * @param value {@link String} value to convert.
+     * @return Returns the internal value for value.
+     */
+    public static String getExtraKeysSpecialButtonModeInternalPropertyValueFromValue(String value) {
+        return (String) SharedProperties.getDefaultIfNotInMap(TermuxPropertyConstants.KEY_EXTRA_KEYS_SPECIAL_BUTTON_MODE,
+            TermuxPropertyConstants.MAP_EXTRA_KEYS_SPECIAL_BUTTON_MODE, SharedProperties.toLowerCase(value),
+            TermuxPropertyConstants.DEFAULT_IVALUE_EXTRA_KEYS_SPECIAL_BUTTON_MODE, true, LOG_TAG);
     }
 
     /**

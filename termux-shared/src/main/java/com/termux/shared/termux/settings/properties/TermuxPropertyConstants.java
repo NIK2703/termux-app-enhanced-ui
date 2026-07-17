@@ -332,6 +332,19 @@ public final class TermuxPropertyConstants {
     public static final String KEY_EXTRA_KEYS_STYLE =  "extra-keys-style"; // Default: "extra-keys-style"
     public static final String DEFAULT_IVALUE_EXTRA_KEYS_STYLE = "default";
 
+    /** Defines the key for the special buttons (CTRL, ALT, SHIFT, FN) behaviour mode */
+    public static final String KEY_EXTRA_KEYS_SPECIAL_BUTTON_MODE =  "extra-keys-special-button-mode"; // Default: "extra-keys-special-button-mode"
+    public static final String IVALUE_EXTRA_KEYS_SPECIAL_BUTTON_MODE_STICKY = "sticky";
+    public static final String IVALUE_EXTRA_KEYS_SPECIAL_BUTTON_MODE_HOLD = "hold";
+    public static final String DEFAULT_IVALUE_EXTRA_KEYS_SPECIAL_BUTTON_MODE = IVALUE_EXTRA_KEYS_SPECIAL_BUTTON_MODE_STICKY;
+
+    /** Defines the bidirectional map for special buttons mode values and their internal values */
+    public static final ImmutableBiMap<String, String> MAP_EXTRA_KEYS_SPECIAL_BUTTON_MODE =
+        new ImmutableBiMap.Builder<String, String>()
+            .put(IVALUE_EXTRA_KEYS_SPECIAL_BUTTON_MODE_STICKY, IVALUE_EXTRA_KEYS_SPECIAL_BUTTON_MODE_STICKY)
+            .put(IVALUE_EXTRA_KEYS_SPECIAL_BUTTON_MODE_HOLD, IVALUE_EXTRA_KEYS_SPECIAL_BUTTON_MODE_HOLD)
+            .build();
+
 
 
     /** Defines the key for {@link NightMode}. */
@@ -435,6 +448,7 @@ public final class TermuxPropertyConstants {
         KEY_DEFAULT_WORKING_DIRECTORY,
         KEY_EXTRA_KEYS,
         KEY_EXTRA_KEYS_STYLE,
+        KEY_EXTRA_KEYS_SPECIAL_BUTTON_MODE,
         KEY_NIGHT_MODE,
         KEY_SOFT_KEYBOARD_TOGGLE_BEHAVIOUR,
         KEY_VOLUME_KEYS_BEHAVIOUR

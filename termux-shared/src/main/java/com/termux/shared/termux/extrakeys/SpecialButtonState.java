@@ -17,6 +17,9 @@ public class SpecialButtonState {
     /** If special button is locked due to long hold on it and should not be deactivated if its
      * state is read. */
     boolean isLocked = false;
+    /** If special button is currently held down in {@link ExtraKeysView.SpecialButtonMode#HOLD} mode
+     * and should stay active (and not be deactivated when its state is read) until released. */
+    boolean isHolding = false;
 
     List<MaterialButton> buttons = new ArrayList<>();
 
@@ -49,6 +52,11 @@ public class SpecialButtonState {
     /** Set {@link #isLocked}. */
     public void setIsLocked(boolean value) {
         isLocked = value;
+    }
+
+    /** Set {@link #isHolding}. */
+    public void setIsHolding(boolean value) {
+        isHolding = value;
     }
 
 }
