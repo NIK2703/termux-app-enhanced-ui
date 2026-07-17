@@ -258,6 +258,8 @@
     <!-- Session restore preferences -->
     <string name="restore_sessions_title">Restore tabs on launch</string>
     <string name="restore_sessions_summary">Reopen all tabs and their directories when the app starts</string>
+    <string name="restore_terminal_history_title">Restore terminal history</string>
+    <string name="restore_terminal_history_summary">Also save and restore the full scrollback of each terminal (read-only)</string>
 
     <!-- Screen orientation preference -->
     <string name="screen_orientation_title">Screen orientation</string>

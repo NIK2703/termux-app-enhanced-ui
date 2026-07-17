@@ -123,8 +123,6 @@ public final class AutoCompleteController {
     @Nullable private String[] mSwipeWords;
     /** Text kept before any swipe-added words (the user's already-typed prefix / base). */
     @Nullable private String mSwipeBaseText;
-    /** Whether a separator space is needed between the base text and the first added word. */
-    private boolean mSwipeNeedsLeadingSpace;
     /** Selection anchor (start) — stays fixed while the selection end grows/shrinks. */
     private int mSwipeAnchorStart;
     /** Number of words currently appended to the selection. */
@@ -854,17 +852,6 @@ public final class AutoCompleteController {
                 mSwipeBaseText = base;
                 String remainder = computeRemainder(mSwipeSuggestion, base);
                 mSwipeWords = splitShellWords(remainder);
-                // The first appended token needs a separating space ONLY when the
-                // base ends on a word character AND the remainder begins a new word.
-                // If the remainder continues the word the user was mid-typing (base
-                // "git com" + remainder "mit ..."), the tail glues on with no space.
-                // If the base already ends in whitespace (or is empty), no space is
-                // added either (it's already there / not needed).
-                boolean baseEndsWithWordChar = !base.isEmpty()
-                        && !Character.isWhitespace(base.charAt(base.length() - 1));
-                boolean remainderStartsNewWord = remainder.isEmpty()
-                        || Character.isWhitespace(remainder.charAt(0));
-                mSwipeNeedsLeadingSpace = baseEndsWithWordChar && remainderStartsNewWord;
                 mSwipeAnchorStart = base.length();
                 // Not consumed yet: allow a tap to become a click.
                 return false;
@@ -982,12 +969,11 @@ public final class AutoCompleteController {
         if (mInputField == null || mSwipeWords == null || mSwipeBaseText == null) return;
         StringBuilder sb = new StringBuilder(mSwipeBaseText);
         for (int i = 0; i < n; i++) {
-            if (i == 0) {
-                if (mSwipeNeedsLeadingSpace) sb.append(' ');
-            } else {
-                sb.append(' ');
-            }
-            sb.append(mSwipeWords[i]);
+            // The first word glues directly onto the base (it completes the word
+            // the user was mid-typing). Every appended word is followed by a
+            // trailing space, so the next word is naturally separated and the
+            // committed text ends ready for the next token.
+            sb.append(mSwipeWords[i]).append(' ');
         }
         String newText = sb.toString();
         mInputField.setText(newText);
@@ -1018,7 +1004,6 @@ public final class AutoCompleteController {
         mSwipeBaseText = null;
         mSwipeSuggestion = null;
         mSwipeWordsAdded = 0;
-        mSwipeNeedsLeadingSpace = false;
     }
 
     /**

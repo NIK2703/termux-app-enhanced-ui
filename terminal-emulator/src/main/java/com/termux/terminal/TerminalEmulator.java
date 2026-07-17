@@ -502,6 +502,24 @@ public final class TerminalEmulator {
             processByte(buffer[i]);
     }
 
+    /**
+     * Re-inject previously captured scrollback/transcript text into the screen
+     * buffer, so it is available for scrolling back after a session is restored
+     * from a snapshot. The text is treated as plain terminal output (UTF-8
+     * bytes) and is processed line by line, exactly as if it had arrived from
+     * the pseudo-teletype. Escape sequences are not expected to be present in
+     * saved transcript text (it is already-rendered output), so this safely
+     * reconstructs the visible scrollback without side effects.
+     *
+     * @param text the transcript text previously returned by
+     *             {@link TerminalBuffer#getTranscriptText()} (or similar).
+     */
+    public void appendTranscriptText(String text) {
+        if (text == null || text.isEmpty()) return;
+        final byte[] bytes = text.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        append(bytes, bytes.length);
+    }
+
     private void processByte(byte byteToProcess) {
         if (mUtf8ToFollow > 0) {
             if ((byteToProcess & 0b11000000) == 0b10000000) {

@@ -61,6 +61,13 @@
             app:summary="@string/restore_sessions_summary"
             app:defaultValue="true"
             app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="restore_terminal_history"
+            app:title="@string/restore_terminal_history_title"
+            app:summary="@string/restore_terminal_history_summary"
+            app:defaultValue="false"
+            app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
     <PreferenceCategory app:title="@string/session_tabs_title" app:iconSpaceReserved="false">

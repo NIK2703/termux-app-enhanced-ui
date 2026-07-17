@@ -176,6 +176,11 @@ public class TermuxServiceConnectionManager implements ServiceConnection {
                                                 ts.updateSize(80, 24, 10, 10);
                                             }
                                         }
+                                        // Re-inject the saved scrollback into the now-initialized
+                                        // emulators before the pager is synced to the UI thread, so
+                                        // the user never sees an empty terminal.
+                                        mActivity.getSessionSnapshotManager()
+                                            .applyPendingTerminalHistory();
                                         activity.runOnUiThread(() -> {
                                             if (activity.isFinishing()) return;
                                             mActivity.setColdStartSessionPending(false);
