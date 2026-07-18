@@ -200,12 +200,7 @@ final class AutoCompletePopupManager {
                 + mData.getSuggestions().size());
 
         final String input = inputField.getText().toString();
-        int shellCount = 0;
-        ArrayList<Boolean> isShell = mData.getIsShell();
-        for (boolean s : isShell) {
-            if (s) shellCount++;
-            else break;
-        }
+        int shellCount = countLeadingShell();
         final int shellN = displayShellCount(shellCount);
         final int historyN = displayCount(shellCount) - shellN;
         final boolean hasShell = shellN > 0;
@@ -430,12 +425,7 @@ final class AutoCompletePopupManager {
             showAutoCompletePopup(inputField);
             return;
         }
-        int shellCount = 0;
-        ArrayList<Boolean> isShell = mData.getIsShell();
-        for (boolean s : isShell) {
-            if (s) shellCount++;
-            else break;
-        }
+        int shellCount = countLeadingShell();
         final int shellN = displayShellCount(shellCount);
         final int historyN = displayCount(shellCount) - shellN;
         if ((shellN > 0 && !shellShowing) || (historyN > 0 && !historyShowing)) {
@@ -462,12 +452,7 @@ final class AutoCompletePopupManager {
 
     private void rebuildShellViews(@NonNull LinearLayout content, @NonNull String input) {
         content.removeAllViews();
-        int shellCount = 0;
-        ArrayList<Boolean> isShell = mData.getIsShell();
-        for (boolean s : isShell) {
-            if (s) shellCount++;
-            else break;
-        }
+        int shellCount = countLeadingShell();
         final int n = displayCount(shellCount);
         final int shellN = displayShellCount(shellCount);
         int rendered = 0;
@@ -482,16 +467,10 @@ final class AutoCompletePopupManager {
 
     private void rebuildHistoryViews(@NonNull LinearLayout content, @NonNull String input) {
         content.removeAllViews();
-        int shellCount = 0;
-        ArrayList<Boolean> isShell = mData.getIsShell();
-        for (boolean s : isShell) {
-            if (s) shellCount++;
-            else break;
-        }
+        int shellCount = countLeadingShell();
         final int n = displayCount(shellCount);
         int rendered = 0;
         for (int i = shellCount; i < mData.getSuggestions().size() && rendered < n; i++, rendered++) {
-            if (i < isShell.size() && isShell.get(i)) continue;
             String suggestion = mData.getSuggestions().get(i);
             TextView tv = mData.buildSuggestionTextView(suggestion, input, false);
             content.addView(tv, new LinearLayout.LayoutParams(
@@ -509,12 +488,8 @@ final class AutoCompletePopupManager {
                                          @Nullable LinearLayout content,
                                          @NonNull String newText, boolean isShell) {
         if (popup == null || !popup.isShowing() || content == null) return;
-        int shellCount = 0;
         ArrayList<Boolean> isShellList = mData.getIsShell();
-        for (boolean s : isShellList) {
-            if (s) shellCount++;
-            else break;
-        }
+        int shellCount = countLeadingShell(isShellList);
         final int n = displayCount(shellCount);
         final int startIdx = isShell ? 0 : shellCount;
         Logger.logInfo(LOG_TAG, "[autocomplete] updateBoldSpansOnly("
@@ -592,6 +567,20 @@ final class AutoCompletePopupManager {
         return Math.min(shellCount, displayMax());
     }
 
+    /** Count leading (top) shell candidates — they are stored contiguously. */
+    private int countLeadingShell() {
+        return countLeadingShell(mData.getIsShell());
+    }
+
+    private int countLeadingShell(@NonNull ArrayList<Boolean> isShell) {
+        int shellCount = 0;
+        for (boolean s : isShell) {
+            if (s) shellCount++;
+            else break;
+        }
+        return shellCount;
+    }
+
     private boolean dividerShown() {
         return false;
     }
@@ -605,12 +594,8 @@ final class AutoCompletePopupManager {
         LinearLayout content = isShell ? mShellContent : mHistoryContent;
         PopupWindow popup = isShell ? mShellPopup : mHistoryPopup;
         if (popup == null || !popup.isShowing() || content == null) return false;
-        int shellCount = 0;
         ArrayList<Boolean> isShellList = mData.getIsShell();
-        for (boolean s : isShellList) {
-            if (s) shellCount++;
-            else break;
-        }
+        int shellCount = countLeadingShell(isShellList);
         final int n = displayCount(shellCount);
         final int shellN = displayShellCount(shellCount);
         int expected = 0;
