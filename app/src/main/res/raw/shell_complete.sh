@@ -34,7 +34,10 @@
 export LC_ALL=${LC_ALL:-C.UTF-8}
 export LANG=${LANG:-C.UTF-8}
 
-set -m 2>/dev/null                      # become process-group leader so Java killpg(-pid) hits only us
+# NOTE: no `set -m` here. Java starts this bash via `setsid` (see
+# ShellCompletionProvider.ensurePersistent), which makes bash the leader of its
+# own session/process group, so Java's killpg(-pid) already targets only our
+# process tree. `set -m` would be redundant.
 set +H 2>/dev/null                      # disable histexpand ('!' -> history)
 shopt -s extglob 2>/dev/null
 shopt -s nullglob dotglob 2>/dev/null
@@ -167,18 +170,17 @@ __file_fallback() {
 
 # ---- CMD: command names with type classification.
 __do_cmd() {
-  local __word=$1 __c __t __cat __n=0
+  local __word=$1 __c __n=0
+  # Exactly ONE fork (compgen -c). Per-candidate classification (alias/builtin/
+  # function) previously used `$(type -t ...)` — a command-substitution subshell
+  # that forked once PER CANDIDATE (hundreds of forks for `git <prefix>`). We
+  # drop it here: the Java side already treats a bare name (no "\tcat" suffix)
+  # as a COMMAND candidate, so classification is preserved for insertion. This
+  # keeps CMD at a single external process per completion request.
   while IFS= read -r __c; do
     [[ -z "$__c" ]] && continue
     [[ $__n -ge ${__MAX_CANDIDATES} ]] && break
-    __t=$(type -t "$__c" 2>/dev/null); __cat=0
-    case "$__t" in
-      alias)    __cat=1;;
-      builtin)  __cat=2;;
-      function) __cat=3;;
-      *)        __cat=0;;
-    esac
-    printf '%s\t%s\0' "$__c" "$__cat"
+    printf '%s\0' "$__c"
     __n=$((__n+1))
   done < <(compgen -c -- "$__word" 2>/dev/null)
   __emit_opts nospace nosort noquote
@@ -305,10 +307,23 @@ __do_compspec() {
       # purely via environment variables (set above), NOT via stdin. Redirect
       # the function's stdin from /dev/null so a stray `read` inside it cannot
       # swallow the dispatcher's request channel and hang until timeout.
+      # CRITICAL: the `exec 0</dev/null` MUST run inside a subshell. A bare
+      # `exec 0</dev/null` in this (parent) process permanently closes the
+      # dispatcher's stdin — the main `while read -r __req` loop below would then
+      # get EOF and the whole persistent process would exit after the first -F
+      # compspec (e.g. git). A subshell scopes the redirect to the function call.
+      # The subshell isolates the `exec 0</dev/null` redirect but also isolates
+      # the COMPREPLY array the -F function populates — array assignments made in
+      # a subshell are NOT visible to this parent. Emit COMPREPLY from inside the
+      # subshell (one entry per NUL-terminated field) and read it back into the
+      # parent's COMPREPLY so the emit loop below still sees the candidates.
       COMP_LINE="$__line"; COMP_POINT=${#__line}
       __termux_tokenize "$__line" "$COMP_POINT"
-      exec 0</dev/null
-      "$__func" 2>/dev/null
+      local __reply
+      while IFS= read -r -d '' __reply; do
+        COMPREPLY+=("$__reply")
+      done < <( exec 0</dev/null; "$__func" 2>/dev/null
+                for __c in "${COMPREPLY[@]}"; do printf '%s\0' "$__c"; done )
       __opts=""
     else
       local __rest=${__spec#complete }
@@ -364,7 +379,9 @@ while IFS= read -r __req; do
   IFS=$'\x01' read -r __type __word __cwd __line <<<"$__req"
   case "$__type" in
     CMD)      __do_cmd "$__word" ;;
-    PATH|REDIR) __file_fallback "$__word" "$__cwd" ;;
+    # REDIR is handled identically to PATH (plain file/dir fallback); Java now
+    # sends PATH for both scenarios, so no separate REDIR arm is needed here.
+    PATH)     __file_fallback "$__word" "$__cwd" ;;
     VAR)      __do_var "$__word" ;;
     SIGNAL)   __do_signal "$__word" ;;
     COMPSPEC) __do_compspec "$__word" "$__cwd" "$__line" ;;

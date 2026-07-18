@@ -60,8 +60,33 @@ public class ShellCompletionProvider {
     private static final int TIMEOUT_CIRCUIT_THRESHOLD = 3;
     private static final long TIMEOUT_CIRCUIT_MS = 10_000;
 
-    /** Timeout for a single bash completion subprocess. */
+    /**
+     * Fallback timeout for a single bash completion subprocess (unknown TYPE).
+     * TYPE-specific overrides live in {@link #TIMEOUT_MS_BY_TYPE}; this is only
+     * used when a TYPE has no explicit entry.
+     */
     private static final long TIMEOUT_MS = 1500;
+
+    /**
+     * Per-TYPE timeout for a single bash completion subprocess. DIFF fast local
+     * compgen ranges (CMD/PATH/VAR/SIGNAL) get a tight 800ms budget;
+     * COMPSPEC runs user-supplied {@code -F} completers which legitimately read
+     * the network / invoke hooks and are objectly slower, so it gets 3000ms to
+     * avoid tripping the circuit-breaker on an honest-but-slow compspec. The
+     * circuit-breaker counter still only increments on a HARD timeout (null from
+     * queryPersistent), so a slower-than-800ms-but-under-3000ms COMPSPEC never
+     * accrues a strike.
+     */
+    private static final java.util.Map<String, Long> TIMEOUT_MS_BY_TYPE;
+    static {
+        java.util.Map<String, Long> m = new java.util.HashMap<>(8);
+        m.put("CMD", 800L);
+        m.put("PATH", 800L);
+        m.put("VAR", 800L);
+        m.put("SIGNAL", 800L);
+        m.put("COMPSPEC", 3000L);
+        TIMEOUT_MS_BY_TYPE = java.util.Collections.unmodifiableMap(m);
+    }
 
     /** Staleness bound for the per-word cache (covers mid-session PATH/alias changes). */
     private static final long CACHE_TTL_MS = 20_000;
@@ -707,17 +732,49 @@ public class ShellCompletionProvider {
     }
 
     /**
-     * Classify the word slot being completed into one of the {@link Scenario}
-     * scripts. This is the single source of truth for *which* bash template to
-     * run, replacing the previous monolithic slow-path branch tree. It mirrors
-     * the context discriminator used by the cache key ({@link #contextPrefix})
-     * so the chosen script aligns with the cached completion domain.
-     *
-     * <p>Plain (non-path / non-variable / non-command) text that matches no
-     * scenario completes as {@link Scenario#COMPSPEC} and returns no candidates
-     * when there is no matching compspec, so ordinary text produces an empty
-     * result rather than spurious command suggestions.
+     * Classify the word slot into a {@link Scenario}. Single source of truth for
+     * the bash wire TYPE; mirrors the cache-key discriminator ({@link #contextPrefix})
+     * so the chosen script aligns with the cached domain. Plain text with no
+     * compspec falls back to {@link Scenario#COMPSPEC} (empty result).
      */
+    /** True when {@code prev} is a redirection operator forcing a filename context. */
+    private static boolean isRedirection(@NonNull String prev) {
+        switch (prev) {
+            case ">": case ">>": case "<": case "<<": case "<<<":
+            case "&>": case "&>>":
+                return true;
+            default:
+                return PATTERN_REDIR_FD.matcher(prev).matches();
+        }
+    }
+
+    /** True when {@code token} is a {@code NAME=value} assignment. */
+    private static boolean isAssignment(@NonNull String token) {
+        return token.indexOf('=') > 0 && PATTERN_NAME_ASSIGN.matcher(token).matches();
+    }
+
+    /** True when {@code prev} is a command separator / control keyword. */
+    private static boolean isCommandSeparator(@NonNull String prev) {
+        switch (prev) {
+            case ";": case "|": case "&":
+            case "&&": case "||": case "|&":
+            case "(": case ")": case "{":
+            case "<(": case ">(": case "&>(":
+                return true;
+            default:
+                return prev.equals("time") || prev.equals("coproc") || prev.equals("do")
+                        || prev.equals("then") || prev.equals("else") || prev.equals("elif")
+                        || prev.startsWith("<(") || prev.startsWith(">(") || prev.startsWith("&>(");
+        }
+    }
+
+    /** True when {@code w} uses remote-path syntax (host:/path, scheme://…). */
+    private static boolean looksRemote(@NonNull String w) {
+        return PATTERN_REMOTE_HOSTCOLON.matcher(w).matches()
+                || PATTERN_REMOTE_USERHOST.matcher(w).matches()
+                || w.contains("://");
+    }
+
     @NonNull
     static Scenario classifyScenario(@NonNull String[] words, int cword) {
         String lastWord = (words.length > 0) ? words[cword] : "";
@@ -753,24 +810,16 @@ public class ShellCompletionProvider {
         }
 
         // Redirection operators force a FILENAME context.
-        switch (prev) {
-            case ">": case ">>": case "<": case "<<": case "<<<":
-            case "&>": case "&>>":
-                return Scenario.REDIRECTION;
-            default:
-                if (PATTERN_REDIR_FD.matcher(prev).matches()) return Scenario.REDIRECTION;
+        if (isRedirection(prev)) {
+            return Scenario.REDIRECTION;
         }
 
         // A first word that is already a filesystem path (absolute, ~/tilde,
         // ./relative, or contains a slash — including a quoted path with a
         // space like 'my notes'/su) must be file-completed, NOT treated as a
         // command name (S8b/S10). Hoist the path-literal test above the
-        // command-name return so these route to PATH. Compute the remote check
-        // inline here to avoid moving the later 'looksRemote' declaration.
-        boolean firstWordLooksRemote = PATTERN_REMOTE_HOSTCOLON.matcher(lastWord).matches()
-                || PATTERN_REMOTE_USERHOST.matcher(lastWord).matches()
-                || lastWord.contains("://");
-        if (!firstWordLooksRemote && (lastWord.startsWith("/") || lastWord.startsWith("~")
+        // command-name return so these route to PATH.
+        if (!looksRemote(lastWord) && (lastWord.startsWith("/") || lastWord.startsWith("~")
                 || lastWord.startsWith(".")
                 || (lastWord.indexOf('/') >= 0)
                 || ((lastWord.startsWith("'") || lastWord.startsWith("\""))
@@ -786,21 +835,7 @@ public class ShellCompletionProvider {
         if (cword == 0) return Scenario.COMMAND_NAME;
 
         // Command context after a separator / keyword / process substitution.
-        // Note: the Java splitCommandLine tokenizer does NOT honour bash's
-        // COMP_WORDBREAKS, so process-substitution forms arrive glued to the
-        // following word (e.g. ">(git"). Match with startsWith to be robust.
-        if (prev.equals(";") || prev.equals("|") || prev.equals("&")
-                || prev.equals("&&") || prev.equals("||") || prev.equals("|&")
-                || prev.equals("(") || prev.equals(")") || prev.equals("{")
-                || prev.equals("<(") || prev.equals(">(") || prev.equals("&>(")
-                || prev.startsWith("<(") || prev.startsWith(">(") || prev.startsWith("&>(")) {
-            return Scenario.COMMAND_CONTEXT;
-        }
-        if (prev.equals("time") || prev.equals("coproc") || prev.equals("do")
-                || prev.equals("then") || prev.equals("else") || prev.equals("elif")) {
-            return Scenario.COMMAND_CONTEXT;
-        }
-        if (prev.indexOf('=') > 0 && PATTERN_NAME_ASSIGN.matcher(prev).matches()) {
+        if (isCommandSeparator(prev) || isAssignment(prev)) {
             return Scenario.COMMAND_CONTEXT;
         }
 
@@ -837,7 +872,7 @@ public class ShellCompletionProvider {
 
         // A bare word in the word-list after `in` (for/case/select) is a path,
         // not a command (S1b). The slash-prefixed case is already caught by the
-        // PATH-literal check below; this handles the bare (non-slash) word.
+        // PATH-literal check above; this handles the bare (non-slash) word.
         if (prev.equals("in") && PATTERN_LOOP_KW.matcher(cmd).matches()) {
             return Scenario.PATH;
         }
@@ -860,10 +895,7 @@ public class ShellCompletionProvider {
         // + "hom" and a LOCAL path "host:/hom" resolves to nothing. Such tokens
         // belong to the command's real compspec (e.g. rsync) which understands
         // remote syntax (S14).
-        boolean looksRemote = PATTERN_REMOTE_HOSTCOLON.matcher(lastWord).matches()
-                || PATTERN_REMOTE_USERHOST.matcher(lastWord).matches()
-                || lastWord.contains("://");
-        if (!looksRemote && (lastWord.startsWith("/") || lastWord.startsWith("~")
+        if (!looksRemote(lastWord) && (lastWord.startsWith("/") || lastWord.startsWith("~")
                 || lastWord.startsWith(".") || lastWord.indexOf('/') >= 0
                 || ((lastWord.startsWith("\"") || lastWord.startsWith("'"))
                     && (lastWord.indexOf('*') >= 0 || lastWord.indexOf('?') >= 0
@@ -966,13 +998,13 @@ public class ShellCompletionProvider {
 
     /**
      * Map the classified scenario to the persistent-dispatcher wire TYPE token.
-     * This is the request selector fed to the single long-lived bash process
-     * (see {@code res/raw/shell_complete.sh}). It replaces the old
-     * per-scenario-script selection: instead of returning a bash script to spawn,
-     * it returns the one-word TYPE that tells the dispatcher which single compgen
-     * / glob to run.
+     * This is the one-word selector fed to the single long-lived bash process
+     * (see {@code res/raw/shell_complete.sh}); it tells the dispatcher which
+     * single compgen / glob to run. REDIRECTION and PATH share the wire TYPE
+     * {@code PATH} (the dispatcher emits one {@code compgen -G}), but the cache
+     * key still distinguishes them via the {@code "F"} context discriminator.
      *
-     * @return the wire TYPE ({@code CMD/PATH/REDIR/VAR/SIGNAL/COMPSPEC}), or
+     * @return the wire TYPE ({@code CMD/PATH/VAR/SIGNAL/COMPSPEC}), or
      *         {@code null} for scenarios that are never completable
      *         (HISTORY_EXPANSION / ARRAY_INDEX) — the caller treats {@code null}
      *         as EMPTY (no request, no cache).
@@ -985,9 +1017,8 @@ public class ShellCompletionProvider {
             case COMMAND_CONTEXT:
                 return "CMD";
             case PATH:
-                return "PATH";
             case REDIRECTION:
-                return "REDIR";
+                return "PATH";
             case VARIABLE:
                 return "VAR";
             case SIGNAL_JOB:
@@ -1010,7 +1041,7 @@ public class ShellCompletionProvider {
      *
      * <p>The seam signature is retained (tests override it to count fetches).
      * Here {@code script} carries the wire TYPE token
-     * ({@code CMD/PATH/REDIR/VAR/SIGNAL/COMPSPEC}) produced by
+     * ({@code CMD/PATH/VAR/SIGNAL/COMPSPEC}) produced by
      * {@link #buildCompletionScript}, and {@code currentWord} is the raw token
      * being completed. All TYPE-specific token shaping (VAR {@code $}/{@code ${}}
      * sigil strip + re-wrap, SIGNAL {@code -}/{@code SIG} mapping, PATH
@@ -1035,8 +1066,7 @@ public class ShellCompletionProvider {
         boolean signalDash = false;     // SIGNAL: candidate re-prefixed with '-'
 
         switch (type) {
-            case "PATH":
-            case "REDIR": {
+            case "PATH": {
                 // NAME=value assignment: complete the VALUE against the filesystem,
                 // re-prepend VAR= to each candidate so the UI inserts the full token.
                 if (PATTERN_NAME_ASSIGN.matcher(word).matches()) {
@@ -1193,7 +1223,11 @@ public class ShellCompletionProvider {
             reader.setDaemon(true);
             reader.start();
 
-            long deadline = System.currentTimeMillis() + TIMEOUT_MS;
+            // Pick the timeout for the requested TYPE; fall back to TIMEOUT_MS for
+            // unknown types. COMPSPEC's 3000ms budget lets slow (network/hook)
+            // user completers finish without a hard timeout.
+            long typeTimeout = TIMEOUT_MS_BY_TYPE.getOrDefault(type, TIMEOUT_MS);
+            long deadline = System.currentTimeMillis() + typeTimeout;
             synchronized (done) {
                 while (!completed[0] && !eof[0]) {
                     long wait = deadline - System.currentTimeMillis();
@@ -1342,24 +1376,16 @@ public class ShellCompletionProvider {
         }
     }
 
-    /** Tear down the persistent dispatcher (on death, timeout or shutdown). */
+    /**
+     * Tear down the persistent dispatcher: snapshot the live process/stream
+     * references, null the fields synchronously, and defer the actual close/kill
+     * to a daemon reaper so this call never blocks on a wedged child (preserving
+     * the 1500ms timeout budget). Keeps the materialized dispatcher script alive
+     * so a later {@code ensurePersistent()} reuses it instead of re-creating the
+     * temp file on every timeout/circuit restart.
+     */
     private void stopPersistent() {
         synchronized (mProcLock) {
-        // Snapshot the live references and NULL the fields synchronously so a
-        // concurrent/next queryPersistent()/ensurePersistent() immediately sees a
-        // torn-down dispatcher and never touches a half-closed stream. The actual
-        // stream closes AND the process kill are deferred to a daemon reaper so
-        // this call returns without blocking. The reaper operates on the SNAPSHOT
-        // captured here (local vars), never on the (now-null) fields, so even if a
-        // concurrent enable()/queryPersistent() spins up a brand-new process right
-        // after we null the fields, the old process is still killed and not leaked.
-        //
-        // This is load-bearing: closing the stdin/stdout of a wedged child (e.g. a
-        // fake-bash that `sleep 30`) can BLOCK until the child actually exits in
-        // some Process implementations (Robolectric's shadow in particular waits
-        // for the process to terminate before the close() of its pipes returns).
-        // Doing the close inline would make queryPersistent() hang for the FULL
-        // child duration, defeating the entire 1500ms timeout budget.
         final java.io.Closeable in = mPersistentIn;
         final java.io.Closeable out = mPersistentOut;
         final Thread errDrain = mPersistentErrDrain;
@@ -1368,8 +1394,6 @@ public class ShellCompletionProvider {
         mPersistentOut = null;
         mPersistentErrDrain = null;
         mPersistent = null;
-        if (mScriptFile != null && mScriptFile.exists()) mScriptFile.delete();
-        mScriptFile = null;
         if (p == null && in == null && out == null) return;
         Thread reaper = new Thread(() -> {
             closeQuietly(in);
@@ -1387,9 +1411,11 @@ public class ShellCompletionProvider {
         }
     }
 
-    /** Release the persistent process (call on provider disposal / session end). */
+    /** Release the persistent process and the materialized dispatcher script. */
     public void shutdown() {
         stopPersistent();
+        if (mScriptFile != null && mScriptFile.exists()) mScriptFile.delete();
+        mScriptFile = null;
     }
 
     /**
@@ -1504,49 +1530,15 @@ public class ShellCompletionProvider {
         if (cword <= 0) return "C";
         String prev = words[cword - 1];
         if (prev.isEmpty()) return "A";
-        switch (prev) {
-            case ";":
-            case "|":
-            case "&":
-            case "&&":
-            case "||":
-            case "|&":
-            case "(":
-            case ")":
-            case "{":
-            case "time":
-            case "coproc":
-            case "do":
-            case "then":
-            case "else":
-            case "elif":
-                return "C";
-            // Redirection operators force a FILENAME context for the next word.
-            // Must match shell_complete_slow.sh (__force_file=1) or the cache key
-            // ("F") would collide with a genuine command context ("C") and serve
-            // stale file candidates where commands are expected (e.g. "cmd >" vs
-            // "cmd &" share the same key when mislabeled "C").
-            case ">":
-            case ">>":
-            case "<":
-            case "<<":
-            case "<<<":
-            case "&>":
-            case "&>>":
-                return "F";
-            // Process substitution forces a COMMAND context for the inner word.
-            case "<(":
-            case ">(":
-            case "&>(":
-                return "C";
-            default:
-                // NAME= assignment begins a command context.
-                if (prev.indexOf('=') > 0
-                        && PATTERN_NAME_ASSIGN.matcher(prev).matches()) return "C";
-                // Numeric-fd redirection (e.g. 2>, 1>>) also forces a filename context.
-                if (PATTERN_REDIR_FD.matcher(prev).matches()) return "F";
-                return "A";
-        }
+        // Redirection operators force a FILENAME context for the next word.
+        // Must match shell_complete_slow.sh (__force_file=1) or the cache key
+        // ("F") would collide with a genuine command context ("C") and serve
+        // stale file candidates where commands are expected (e.g. "cmd >" vs
+        // "cmd &" share the same key when mislabeled "C").
+        if (isRedirection(prev)) return "F";
+        // Command context after a separator / keyword / assignment.
+        if (isCommandSeparator(prev) || isAssignment(prev)) return "C";
+        return "A";
     }
 
     /**
