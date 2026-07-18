@@ -174,6 +174,9 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
     private boolean mSuppressAutoComplete;
     /** Suppress auto-complete popup during an active swipe-to-select gesture. */
     private boolean mSwipeSuppressed;
+    /** Force a full rescan (Path A) on the next update — set after a swipe commits
+     *  arbitrary text, which the incremental additive filter cannot handle. */
+    private boolean mForceFullRescan;
 
     /** Reusable scratch set to avoid per-keystroke HashSet allocations in the hot path. */
     private final HashSet<String> mSeenSet = new HashSet<>();
@@ -283,7 +286,7 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
         // cannot accidentally clear a swipe's suppression and vice-versa.
         mSwipeHandler = new AutoCompleteSwipeHandler(mContext,
                 () -> mInputField,
-                this::updateAutoCompleteSuggestions,
+                this::refreshAfterSwipe,
                 () -> setSwipeSuppress(true),
                 () -> setSwipeSuppress(false));
         attachInputListeners();
@@ -533,6 +536,18 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
      * already call repositionAutoCompletePopup() separately.  The dispatcher here always
      * receives a text-change event.
      */
+
+    /**
+     * Called after a swipe-to-select gesture commits arbitrary text into the input
+     * field. The incremental additive filter cannot handle the resulting text (it is
+     * not a pure prefix extension of the pre-swipe line), so we force a full rescan
+     * on the next dispatch and run it off the touch path (the caller posts this).
+     */
+    private void refreshAfterSwipe() {
+        mForceFullRescan = true;
+        updateAutoCompleteSuggestions();
+    }
+
     private void updateAutoCompleteSuggestions() {
         if (mIsInvalidState) {
             if (BuildConfig.DEBUG) trace("ACC", "updateAutoCompleteSuggestions SKIP mIsInvalidState=true");
@@ -619,6 +634,12 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
                 && TextUtils.regionMatches(text, 0, prevText, 0, prevText.length())
                 && !mCurrentSuggestions.isEmpty()) {
             additive = true; // чистое добавление символов в конец
+        }
+        // После свайпа текст меняется произвольно (не чистое дописывание префикса),
+        // поэтому инкрементальный фильтр неприменим — принудительно полный rescAN.
+        if (mForceFullRescan) {
+            additive = false;
+            mForceFullRescan = false;
         }
         if (BuildConfig.DEBUG) trace("ACC", "prev=\"" + prevText + "\" before="
                 + mAutoCompleteChangeBefore + " count=" + mAutoCompleteChangeCount
