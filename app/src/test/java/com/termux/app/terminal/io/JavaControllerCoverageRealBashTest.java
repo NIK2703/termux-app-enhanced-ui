@@ -264,7 +264,7 @@ public class JavaControllerCoverageRealBashTest {
     @Test
     @SuppressWarnings("unchecked")
     public void middleCandidate_splitsHeadTail() throws Exception {
-        java.lang.reflect.Method m = AutoCompleteController.class.getDeclaredMethod(
+        java.lang.reflect.Method m = AutoCompleteTextRenderer.class.getDeclaredMethod(
                 "middleCandidate", String.class, int.class);
         m.setAccessible(true);
         assertEquals("ab…yz", m.invoke(null, "abcdefghijklmnopqrstuvwxyz", 4));
@@ -278,7 +278,7 @@ public class JavaControllerCoverageRealBashTest {
     @Test
     @SuppressWarnings("unchecked")
     public void wordStartOffset_boundaries() throws Exception {
-        java.lang.reflect.Method m = AutoCompleteController.class.getDeclaredMethod(
+        java.lang.reflect.Method m = AutoCompleteTextRenderer.class.getDeclaredMethod(
                 "wordStartOffset", String.class);
         m.setAccessible(true);
         assertEquals(0, m.invoke(null, "git"));
@@ -294,12 +294,15 @@ public class JavaControllerCoverageRealBashTest {
     @Test
     @SuppressWarnings("unchecked")
     public void computePopupWidth_withinBounds() throws Exception {
-        java.lang.reflect.Method m = AutoCompleteController.class.getDeclaredMethod(
+        java.lang.reflect.Field pmField = AutoCompleteController.class.getDeclaredField("mPopupManager");
+        pmField.setAccessible(true);
+        Object popupManager = pmField.get(mController);
+        java.lang.reflect.Method m = AutoCompletePopupManager.class.getDeclaredMethod(
                 "computePopupWidth", int.class);
         m.setAccessible(true);
         int fieldWidth = 1000;
         mInput.setWidth(fieldWidth);
-        int w = (int) m.invoke(mController, fieldWidth);
+        int w = (int) m.invoke(popupManager, fieldWidth);
         int min = mContext.getResources().getDimensionPixelSize(
                 com.termux.R.dimen.autocomplete_popup_min_width);
         assertTrue("popup width >= min width", w >= min);
@@ -333,8 +336,7 @@ public class JavaControllerCoverageRealBashTest {
     @Test
     @SuppressWarnings("unchecked")
     public void maxCount_truncatesDisplayedSuggestions() throws Exception {
-        java.lang.reflect.Method dc = AutoCompleteController.class.getDeclaredMethod("displayCount");
-        dc.setAccessible(true);
+        int dc = mController.debugDisplayCount();
 
         setMaxCount(3);
         List<String> hist = new ArrayList<>();
@@ -347,7 +349,7 @@ public class JavaControllerCoverageRealBashTest {
         mController.onTextChanged();
 
         // Рендерится не более maxCount (displayCount капает хранимый список по mDisplayMax).
-        int rendered = (int) dc.invoke(mController);
+        int rendered = dc;
         assertTrue("displayCount capped at maxCount=3, got " + rendered, rendered <= 3);
         assertTrue("all 8 stored matches retained for Path B filtering",
                 mController.debugSuggestions().size() == 8);

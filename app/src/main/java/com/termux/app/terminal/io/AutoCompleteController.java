@@ -1,6 +1,5 @@
 package com.termux.app.terminal.io;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -16,8 +15,6 @@ import android.text.Editable;
 import android.text.Layout;
 import android.text.Spannable;
 import android.text.SpannableString;
-import android.text.StaticLayout;
-import android.text.TextPaint;
 import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
@@ -66,7 +63,7 @@ import com.termux.app.terminal.io.ShellCompletionProvider;
  * ({@link #onTextChanged()}, {@link #dismiss()}, {@link #isShowing()},
  * {@link #addToMessageHistory(String)}, {@link #loadSuggestions()}, …).
  */
-public final class AutoCompleteController {
+public final class AutoCompleteController implements AutoCompleteDataProvider {
 
     private static final String LOG_TAG = "AutoCompleteController";
 
@@ -130,17 +127,16 @@ public final class AutoCompleteController {
     // window is anchored ABOVE the history window (both float above the input
     // field); each is its own PopupWindow so they can be positioned/shown/dismissed
     // independently. There is no in-window divider anymore.
-    /** Popup window showing the shell (bash) completion candidates, above history. */
-    @Nullable private PopupWindow mShellPopup;
-    /** Popup window showing the message-history candidates, below the shell window. */
-    @Nullable private PopupWindow mHistoryPopup;
+    //
+    // Ownership split: this controller owns the SUGGESTION DATA and the
+    // fetch/merge/input pipeline; {@link AutoCompletePopupManager} owns the two
+    // popup windows and all of their rendering/positioning.
     /** Current list of suggestion strings being displayed (shell completions first, then history). */
     private final java.util.ArrayList<String> mCurrentSuggestions = new java.util.ArrayList<>();
     /**
      * Parallel to {@link #mCurrentSuggestions}: {@code true} at index i means the
      * i-th suggestion came from the shell (bash) completion provider rather than
-     * message history. Used to place a divider between the two groups and to keep
-     * the shell group at the top of the popup.
+     * message history.
      */
     private final java.util.ArrayList<Boolean> mCurrentIsShell = new java.util.ArrayList<>();
     /**
@@ -157,7 +153,7 @@ public final class AutoCompleteController {
      */
     private final java.util.ArrayList<ShellCompletionProvider.ShellCandidate> mCurrentShellMeta =
             new java.util.ArrayList<>();
-    /** Number of leading shell-completion entries in {@link #mCurrentSuggestions} (the divider sits after them). */
+    /** Number of leading shell-completion entries in {@link #mCurrentSuggestions}. */
     private int mShellSuggestionCount = 0;
     /**
      * Maximum number of suggestions to RENDER in the popup (the user setting
@@ -168,8 +164,6 @@ public final class AutoCompleteController {
     private int mDisplayMax = 4;
     /** Suppress auto-complete popup during programmatic text changes (suggestion tap, etc.). */
     private boolean mSuppressAutoComplete;
-    /** Global layout listener on the input field, used to reposition the auto-complete popup. */
-    @Nullable private android.view.ViewTreeObserver.OnGlobalLayoutListener mSuggestionsLayoutListener;
 
     // ── Incremental auto-complete optimization fields ──
     /** Previous text tracked before a TextWatcher change, for additive-change detection. */
@@ -182,28 +176,12 @@ public final class AutoCompleteController {
     private int mAutoCompleteChangeCount;
     /** Last text prefix used to build mCurrentSuggestions. */
     private String mLastAppliedPrefix = "";
-    /** LinearLayout content inside the shell popup, for in-place view updates. */
-    @Nullable private LinearLayout mShellContent;
-    /** LinearLayout content inside the history popup, for in-place view updates. */
-    @Nullable private LinearLayout mHistoryContent;
-    /** Cached version at the time the current popup was built (compared against the controller's history version). */
+
+    /** History version captured the last time the suggestion set was rebuilt. */
     private int mLastBuiltHistoryVersion = -1;
-    /** Last explicit width passed to popup.update() (shared by both windows; avoid -1 on API 21-22). */
-    private int mLastPopupWidth = 0;
-    /** Last explicit height passed to the history popup.update(). */
-    private int mLastPopupHeight = 0;
-    /** Last X position passed to the history popup.update(). */
-    private int mLastPopupX = 0;
-    /** Last Y position passed to the history popup.update(). */
-    private int mLastPopupY = 0;
-    /** Last explicit height of the shell popup (used to stack it above the history popup). */
-    private int mShellPopupHeight = 0;
-    /** Last X position of the shell popup. */
-    private int mShellPopupX = 0;
-    /** Last Y position of the shell popup (above the history popup). */
-    private int mShellPopupY = 0;
-    /** Vertical gap (px) between the shell window (above) and the history window (below). */
-    private int mPopupGapPx = 0;
+
+    /** Owns and renders the two suggestion popup windows. */
+    @NonNull private final AutoCompletePopupManager mPopupManager;
 
     // ── Swipe-to-select gesture on suggestion items ──
     /**
@@ -323,10 +301,44 @@ public final class AutoCompleteController {
         mPopupMinYPx = res.getDimensionPixelSize(R.dimen.autocomplete_popup_min_y);
         mPopupContentAlpha = res.getFraction(R.fraction.autocomplete_popup_content_alpha, 1, 1);
         mPopupShadowAlpha = res.getFraction(R.fraction.autocomplete_popup_shadow_alpha, 1, 1);
-        // Small gap between the two stacked popup windows (shell above, history below).
-        mPopupGapPx = (int) (4 * res.getDisplayMetrics().density);
+        // Build the popup-window manager, handing it the pre-read resource dimensions.
+        mPopupManager = new AutoCompletePopupManager(context, this, colorSchemeManager,
+                mPopupCornerRadiusPx, mPopupElevationPx,
+                mPopupItemPadHPx, mPopupItemPadVPx,
+                mPopupMinWidthPx, mPopupWidthMarginPx,
+                mPopupWidthFraction, mPopupXOffsetPx,
+                mPopupEdgeMarginPx, mPopupYOffsetPx,
+                mPopupMinYPx, mPopupContentAlpha, mPopupShadowAlpha);
         syncShellCompletionEnabled();
         attachInputListeners();
+    }
+
+    // ── AutoCompleteDataProvider: expose suggestion data + callbacks to the popup manager ──
+
+    @Override @NonNull public ArrayList<String> getSuggestions() { return mCurrentSuggestions; }
+    @Override @NonNull public ArrayList<Boolean> getIsShell() { return mCurrentIsShell; }
+    @Override @NonNull public ArrayList<ShellCompletionProvider.CandidateType> getShellTypes() { return mCurrentShellType; }
+    @Override @NonNull public ArrayList<ShellCompletionProvider.ShellCandidate> getShellMeta() { return mCurrentShellMeta; }
+    @Override public int getShellSuggestionCount() { return mShellSuggestionCount; }
+    @Override public int getDisplayMax() { return mDisplayMax; }
+    @Override @Nullable public EditText getInputField() { return mInputField; }
+    @Override @NonNull public TermuxColorSchemeManager getColorSchemeManager() { return mColorSchemeManager; }
+    @Override @Nullable public Window getWindow() { return getWindowInternal(); }
+    @Override @NonNull public TextView buildSuggestionTextView(@NonNull String suggestion, @NonNull String input, boolean isShell) {
+        return buildSuggestionTextViewInternal(suggestion, input, isShell);
+    }
+    @Override public int getHistoryVersion() { return mMessageHistoryCtrl.getHistoryVersion(); }
+    @Override public void onSuggestionDismissed() {
+        // Clear the suggestion data the controller owns, and reset the fetch state so
+        // a dismissed popup can't be resurrected by a late async result.
+        mCurrentSuggestions.clear();
+        mCurrentIsShell.clear();
+        mCurrentShellType.clear();
+        mCurrentShellMeta.clear();
+        mShellSuggestionCount = 0;
+        mShellGen.incrementAndGet();
+        mShellDebounceHandler.removeCallbacksAndMessages(null);
+        mLastAppliedPrefix = "";
     }
 
     // ── Wiring callbacks (optional) ───────────────────
@@ -431,6 +443,11 @@ public final class AutoCompleteController {
         return mShellSuggestionCount;
     }
 
+    /** Test-only: total number of suggestions that will be rendered (capped by maxCount). */
+    int debugDisplayCount() {
+        return Math.min(mCurrentSuggestions.size(), mDisplayMax);
+    }
+
     /** Test-only: directly invoke the merge routine (no async fetch). */
     void debugMergeShellCandidates(@NonNull ShellCompletionProvider.CompletionResult result,
                                   @NonNull String text) {
@@ -493,8 +510,7 @@ public final class AutoCompleteController {
 
     /** Whether either the shell or the history suggestion window is currently showing. */
     public boolean isShowing() {
-        return (mShellPopup != null && mShellPopup.isShowing())
-                || (mHistoryPopup != null && mHistoryPopup.isShowing());
+        return mPopupManager.isShowing();
     }
 
     /** Load suggestions for the current directory (delegates to the history controller). */
@@ -538,19 +554,9 @@ public final class AutoCompleteController {
     }
 
     @Nullable
-    private Window getWindow() {
+    private Window getWindowInternal() {
         if (mContext instanceof Activity) return ((Activity) mContext).getWindow();
         return null;
-    }
-
-    /**
-     * Compute the popup width from the input field width: inset by the horizontal
-     * margin, then shrink by {@code autocomplete_popup_width_fraction} so the popup
-     * is shorter horizontally than the full field. Never below the minimum width.
-     */
-    private int computePopupWidth(int fieldWidth) {
-        int avail = fieldWidth - mPopupWidthMarginPx;
-        return Math.max(mPopupMinWidthPx, (int) (avail * mPopupWidthFraction));
     }
 
     /**
@@ -938,7 +944,7 @@ public final class AutoCompleteController {
         }
     }
 
-    /** Path separator set used by {@link #wordStartOffset} to find word boundaries. */
+    /** Path separator set used by {@link AutoCompleteTextRenderer#wordStartOffset} to find word boundaries. */
     private static final String WORD_SEPARATORS = " /";  // space + slash
 
     /**
@@ -1018,139 +1024,6 @@ public final class AutoCompleteController {
         }
     }
 
-    private static int wordStartOffset(@NonNull String s) {
-        int i = s.length();
-        // Skip trailing separators so a space at the end of the typed text
-        // (e.g. "hello ") is treated as "still finishing word 0", not as a
-        // boundary into an empty next word.
-        while (i > 0) {
-            char c = s.charAt(i - 1);
-            if (c != ' ' && c != '/') break;
-            i--;
-        }
-        while (i > 0) {
-            char c = s.charAt(i - 1);
-            if (c == ' ' || c == '/') return i;
-            i--;
-        }
-        return 0;
-    }
-
-    /**
-     * Build the display {@link SpannableString} for an auto-complete
-     * suggestion. Applies the word-based leading truncation (the {@code "... "}
-     * prefix added when the match starts mid-word) and, when the result would
-     * exceed {@code maxLines} lines, manually truncates it and appends a trailing
-     * {@code '…'}.
-     *
-     * <p>Why manual truncation instead of {@code TextView.setEllipsize(END)}:
-     * on Android (API 21-28 in particular) {@code ellipsize=end} is only reliably
-     * honored for <b>single-line</b> text. With {@code setMaxLines(n)} where
-     * {@code n > 1} the framework routes to {@code StaticLayout} but the trailing
-     * ellipsis on the last line is unreliable and frequently never appears. We
-     * therefore measure and cut the text ourselves so the {@code '…'} is
-     * guaranteed for long suggestions/messages regardless of OS version. The
-     * matched input prefix is rendered in BOLD on top of the (possibly truncated)
-     * display text.
-     *
-     * @param availWidth available text width in px (popup width minus padding);
-     *                   pass {@code 0} to skip truncation (e.g. not yet laid out).
-     */
-    @NonNull
-    private SpannableString buildSuggestionSpannable(@NonNull String suggestion,
-            @NonNull String input, int availWidth, @NonNull TextPaint paint, boolean isShell) {
-        // Shell candidates are matched against the last word of the line (the token
-        // bash completed); history against the whole line. The bold highlight must
-        // cover the exact matched token.
-        String matchStr = isShell ? lastWordOf(input) : input;
-        int wordStart = Math.min(wordStartOffset(matchStr), suggestion.length());
-        int boldLen = matchStr.length() - wordStart;
-        boolean hasLastWord = boldLen > 0;
-        String prefix = (wordStart > 0) ? "... " : "";
-        int prefixLen = prefix.length();
-        String displayText = (prefixLen > 0) ? prefix + suggestion.substring(wordStart) : suggestion;
-
-        if (availWidth > 0) {
-            displayText = truncateToLines(displayText, availWidth, paint, 2, false);
-        }
-
-        SpannableString ss = new SpannableString(displayText);
-        int spanEnd = Math.min(prefixLen + boldLen, displayText.length());
-        if (hasLastWord && spanEnd > prefixLen
-                && suggestion.regionMatches(true, 0, matchStr, 0, matchStr.length())) {
-            ss.setSpan(new StyleSpan(Typeface.BOLD),
-                    prefixLen, spanEnd, SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
-        }
-        return ss;
-    }
-
-    /**
-     * Truncate {@code text} so it fits within {@code maxLines} lines of width
-     * {@code availWidth}. Returns the original text unchanged if it already fits.
-     * Otherwise keeps the start (when {@code middle} is false) and appends a
-     * single {@code '…'}, or keeps the start and end and replaces the dropped
-     * middle with a {@code '…'} (when {@code middle} is true, for paths).
-     */
-    @NonNull
-    private static String truncateToLines(@NonNull String text, int availWidth,
-            @NonNull TextPaint paint, int maxLines, boolean middle) {
-        if (text.length() == 0 || fitsLines(text, availWidth, paint, maxLines)) {
-            return text;
-        }
-        if (!middle) {
-            int lo = 0, hi = text.length();
-            while (lo < hi) {
-                int mid = (lo + hi + 1) / 2;
-                if (fitsLines(text.substring(0, mid) + "…", availWidth, paint, maxLines)) {
-                    lo = mid;
-                } else {
-                    hi = mid - 1;
-                }
-            }
-            return text.substring(0, lo) + "…";
-        }
-        int lo = 0, hi = text.length();
-        while (lo < hi) {
-            int mid = (lo + hi + 1) / 2;
-            String cand = middleCandidate(text, mid);
-            if (fitsLines(cand, availWidth, paint, maxLines)) {
-                lo = mid;
-            } else {
-                hi = mid - 1;
-            }
-        }
-        return middleCandidate(text, lo);
-    }
-
-    @NonNull
-    private static String middleCandidate(@NonNull String text, int keep) {
-        int head = keep / 2;
-        int tail = keep - head;
-        if (head > text.length()) head = text.length();
-        if (tail > text.length() - head) tail = text.length() - head;
-        if (tail < 0) tail = 0;
-        return text.substring(0, head) + "…" + text.substring(text.length() - tail);
-    }
-
-    /** True when {@code text} lays out to at most {@code maxLines} lines of {@code availWidth}. */
-    @SuppressLint("DeprecatedApi")
-    private static boolean fitsLines(@NonNull String text, int availWidth,
-            @NonNull TextPaint paint, int maxLines) {
-        StaticLayout layout;
-        if (Build.VERSION.SDK_INT >= 23) {
-            layout = StaticLayout.Builder.obtain(
-                    text, 0, text.length(), paint, availWidth)
-                    .setMaxLines(maxLines)
-                    .setEllipsize(null)
-                    .build();
-        } else {
-            layout = new StaticLayout(
-                    text, paint, availWidth,
-                    Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
-        }
-        return layout.getLineCount() <= maxLines;
-    }
-
     /**
      * (Optimize auto-complete: three-path dispatch, additive filtering, history version guard)
      * Path B (optimized): update bold spans on the existing popup content when the
@@ -1163,46 +1036,12 @@ public final class AutoCompleteController {
      * <p>With two separate windows this refreshes BOTH the shell window and the
      * history window in their own view walks.
      */
-    private void updateBoldSpansOnly(@NonNull String newText) {
-        updateBoldSpansInWindow(mShellPopup, mShellContent, newText, true);
-        updateBoldSpansInWindow(mHistoryPopup, mHistoryContent, newText, false);
-    }
-
-    /** Refresh bold spans for one window's content (shell or history). */
-    private void updateBoldSpansInWindow(@Nullable PopupWindow popup,
-                                         @Nullable LinearLayout content,
-                                         @NonNull String newText, boolean isShell) {
-        if (popup == null || !popup.isShowing() || content == null) return;
-        final int n = displayCount();
-        final int startIdx = isShell ? 0 : mShellSuggestionCount;
-        Logger.logInfo(LOG_TAG, "[autocomplete] updateBoldSpansOnly("
-                + (isShell ? "shell" : "history") + ") views=" + content.getChildCount());
-        int rendered = 0;
-        int viewIdx = 0;
-        for (int i = startIdx; i < mCurrentSuggestions.size() && rendered < n; i++) {
-            if (i < mCurrentIsShell.size() && (mCurrentIsShell.get(i) != isShell)) continue;
-            TextView tv = textViewAt(content, viewIdx++);
-            if (tv == null) break;
-            String suggestion = mCurrentSuggestions.get(i);
-            applyBoldSpan(tv, suggestion, newText, isShell);
-            rendered++;
-        }
-    }
-
-    /** Returns the i-th TextView child of {@code content}, or null if it's not a TextView. */
-    @Nullable
-    private static TextView textViewAt(@NonNull LinearLayout content, int i) {
-        if (i < 0 || i >= content.getChildCount()) return null;
-        View child = content.getChildAt(i);
-        return (child instanceof TextView) ? (TextView) child : null;
-    }
-
     /** Apply (or rebuild) the bold-span for a single suggestion row. */
     private void applyBoldSpan(@NonNull TextView tv, @NonNull String suggestion,
             @NonNull String newText, boolean isShell) {
         String matchStr = isShell ? lastWordOf(newText) : newText;
         final int inputLen = matchStr.length();
-        final int wordStart = Math.min(wordStartOffset(matchStr), suggestion.length());
+        final int wordStart = Math.min(AutoCompleteTextRenderer.wordStartOffset(matchStr), suggestion.length());
         final int boldLen = inputLen - wordStart;
         final boolean hasLastWord = boldLen > 0;
         final String prefix = (wordStart > 0) ? "... " : "";
@@ -1220,7 +1059,7 @@ public final class AutoCompleteController {
             // crossing a space or / boundary). Re-measure and re-truncate too
             // so the trailing '…' stays correct for long suggestions.
             int availWidth = tv.getWidth() - tv.getPaddingLeft() - tv.getPaddingRight();
-            SpannableString ss = buildSuggestionSpannable(
+            SpannableString ss = AutoCompleteTextRenderer.buildSuggestionSpannable(
                     suggestion, newText, Math.max(0, availWidth), tv.getPaint(), isShell);
             tv.setText(ss, TextView.BufferType.SPANNABLE);
         } else {
@@ -1241,49 +1080,30 @@ public final class AutoCompleteController {
     /**
      * Path B: update the existing popups in-place after an additive text change.
      *
-     * Removes non-matching views from each window's content, recalculates
-     * bold-spans for survivors, top-ups with new views if history had more
-     * matches, then measures and resizes both windows (shell stacked above
-     * history).
+     * <p>The controller first top-ups the suggestion list from history (data
+     * concern), then hands off to {@link AutoCompletePopupManager} which rebuilds
+     * the per-window content, refreshes bold spans and resizes/positions the two
+     * windows (shell stacked above history).
      */
     private void updatePopupContent(@NonNull String newText, @NonNull EditText inputField) {
-        boolean shellShowing = mShellPopup != null && mShellPopup.isShowing();
-        boolean historyShowing = mHistoryPopup != null && mHistoryPopup.isShowing();
-        if (!shellShowing && !historyShowing) {
-            showAutoCompletePopup(inputField);
-            return;
-        }
-        // If only one of the two windows is currently showing but the merged set
-        // needs BOTH (e.g. history was already up and a shell result just arrived),
-        // (re)build via showAutoCompletePopup which adds whichever window is missing.
-        final int shellN = displayShellCount();
-        final int historyN = displayCount() - shellN;
-        if ((shellN > 0 && !shellShowing) || (historyN > 0 && !historyShowing)) {
-            showAutoCompletePopup(inputField);
-            return;
-        }
-
-        // NOTE: mCurrentSuggestions is already filtered (by Path B's
-        // filterSuggestionsByPrefix, or by mergeShellCandidates which inserts
-        // prefix-matched shell entries with correct isShell flags). Re-filtering
-        // here would be a redundant O(n) scan, so we only recompute the leading
-        // shell count.
+        // mCurrentSuggestions is already filtered (by Path B's filterSuggestionsByPrefix,
+        // or by mergeShellCandidates). Recompute the leading shell count, then top-up
+        // from history if the rendered set still has room (history appended after shell).
         mShellSuggestionCount = 0;
         for (boolean isShell : mCurrentIsShell) {
             if (isShell) mShellSuggestionCount++;
             else break;
         }
 
-        // Top-up from history if the rendered set still has room (history items
-        // are always appended after the shell group).
         int maxCount = mPrefs.getInt("suggestions_max_count", 4);
         if (maxCount < 0) maxCount = 0;
         if (maxCount > 10) maxCount = 10;
         mDisplayMax = maxCount;
-        if (displayCount() < maxCount) {
+        int rendered = Math.min(maxCount, mCurrentSuggestions.size());
+        if (rendered < maxCount) {
             final int storeCap = Math.max(maxCount, 512);
             for (String msg : mMessageHistoryCtrl.getHistoryList()) {
-                if (displayCount() >= maxCount) break;
+                if (rendered >= maxCount) break;
                 if (mCurrentSuggestions.size() >= storeCap) break;
                 if (!mCurrentSuggestions.contains(msg)
                         && msg.length() > newText.length()
@@ -1291,68 +1111,12 @@ public final class AutoCompleteController {
                         && !msg.equals(newText)) {
                     mCurrentSuggestions.add(msg);
                     mCurrentIsShell.add(Boolean.FALSE);
+                    rendered++;
                 }
             }
         }
 
-        // Per-window content-change detection (shell window vs history window).
-        boolean shellChanged = contentChangedForWindow(true);
-        boolean historyChanged = contentChangedForWindow(false);
-
-        if (shellChanged && mShellContent != null) rebuildShellViews(mShellContent, newText);
-        if (historyChanged && mHistoryContent != null) rebuildHistoryViews(mHistoryContent, newText);
-
-        Logger.logInfo(LOG_TAG, "[autocomplete] updatePopupContent shellChanged=" + shellChanged
-                + " historyChanged=" + historyChanged
-                + " suggestions=" + mCurrentSuggestions.size());
-
-        // Fast path: no structural change — only update bold-spans in-place, skip measure/update
-        if (!shellChanged && !historyChanged) {
-            Logger.logInfo(LOG_TAG, "[autocomplete] → FAST PATH (bold-spans only)");
-            updateBoldSpansOnly(newText);
-            mLastAppliedPrefix = newText;
-            applyPopupGeometry(inputField);
-            return;
-        }
-
-        // Structural change — measure, resize. (Bold spans were already applied by
-        // rebuildXxxViews via buildSuggestionSpannable, so no extra pass.)
-        Logger.logInfo(LOG_TAG, "[autocomplete] → STRUCTURAL CHANGE (measure+update)");
-
-        mLastAppliedPrefix = newText;
-        applyPopupGeometry(inputField);
-    }
-
-    /** True when the visible set for one window (shell or history) differs from its current views. */
-    private boolean contentChangedForWindow(boolean isShell) {
-        LinearLayout content = isShell ? mShellContent : mHistoryContent;
-        PopupWindow popup = isShell ? mShellPopup : mHistoryPopup;
-        if (popup == null || !popup.isShowing() || content == null) return false;
-        final int n = displayCount();
-        final int shellN = displayShellCount();
-        // Count rendered views for this window from mCurrentSuggestions.
-        int expected = 0;
-        if (isShell) {
-            expected = Math.min(shellN, n);
-        } else {
-            for (int i = mShellSuggestionCount; i < mCurrentSuggestions.size() && expected < n; i++) {
-                if (i < mCurrentIsShell.size() && mCurrentIsShell.get(i)) continue;
-                expected++;
-            }
-        }
-        if (content.getChildCount() != expected) return true;
-        int rendered = 0;
-        int viewIdx = 0;
-        int startIdx = isShell ? 0 : mShellSuggestionCount;
-        for (int i = startIdx; i < mCurrentSuggestions.size() && rendered < n; i++) {
-            if (i < mCurrentIsShell.size() && (mCurrentIsShell.get(i) != isShell)) continue;
-            TextView tv = textViewAt(content, viewIdx++);
-            if (tv == null || !tv.getText().toString().equals(mCurrentSuggestions.get(i))) {
-                return true;
-            }
-            rendered++;
-        }
-        return false;
+        mPopupManager.update(newText, inputField);
     }
 
     /**
@@ -1360,10 +1124,6 @@ public final class AutoCompleteController {
      * even though {@link #mCurrentSuggestions} may store more candidates for
      * Path B local filtering.
      */
-    private int displayCount() {
-        return Math.min(mCurrentSuggestions.size(), mDisplayMax);
-    }
-
     // ── Package-private debug hooks for unit tests ──
     // (debugSuggestions / debugIsShell / debugShellCount are declared earlier.)
 
@@ -1391,77 +1151,8 @@ public final class AutoCompleteController {
         }
     }
 
-    /** Whether the rendered window should show the shell/history divider.
-     *  With two separate popup windows there is no in-window divider. */
-    private boolean dividerShown() {
-        return false;
-    }
-
-    /** Expected number of popup children for a single (shell OR history) window. */
-    private int expectedChildCount() {
-        return displayCount();
-    }
-
-    /**
-     * Number of leading shell-completion entries to render. Capped at the display
-     * limit, but when the shell group overflows the display AND history matches
-     * exist, we reserve one slot for history so the user never loses their
-     * message-history recall entirely. The divider sits after this many rendered
-     * shell items, but only if at least one history item is also rendered below it.
-     */
-    private int displayShellCount() {
-        int historyCount = mCurrentSuggestions.size() - mShellSuggestionCount;
-        if (historyCount > 0 && mShellSuggestionCount > mDisplayMax) {
-            return Math.max(0, mDisplayMax - 1);
-        }
-        return Math.min(mShellSuggestionCount, mDisplayMax);
-    }
-
-    /**
-     * Rebuild the SHELL popup content from the leading shell-completion group of
-     * {@link #mCurrentSuggestions} (the first {@link #displayShellCount()}
-     * rendered entries that are flagged isShell). The two windows are now
-     * separate, so there is no divider — only shell candidates live here.
-     * Only the first {@link #displayCount()} suggestions are rendered total
-     * across both windows; the rest remain stored for Path B filtering.
-     */
-    private void rebuildShellViews(@NonNull LinearLayout content, @NonNull String input) {
-        content.removeAllViews();
-        final int n = displayCount();
-        final int shellN = displayShellCount();
-        int rendered = 0;
-        for (int i = 0; i < shellN && rendered < n; i++, rendered++) {
-            String suggestion = mCurrentSuggestions.get(i);
-            TextView tv = buildSuggestionTextView(suggestion, input, true);
-            content.addView(tv, new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT));
-        }
-    }
-
-    /**
-     * Rebuild the HISTORY popup content from the history group of
-     * {@link #mCurrentSuggestions} (entries stored after the shell group, flagged
-     * isShell == false). The two windows are now separate, so there is no
-     * divider — only history candidates live here.
-     */
-    private void rebuildHistoryViews(@NonNull LinearLayout content, @NonNull String input) {
-        content.removeAllViews();
-        final int n = displayCount();
-        int rendered = 0;
-        for (int i = mShellSuggestionCount;
-                i < mCurrentSuggestions.size() && rendered < n; i++, rendered++) {
-            if (i < mCurrentIsShell.size() && mCurrentIsShell.get(i)) continue; // skip shell dup
-            String suggestion = mCurrentSuggestions.get(i);
-            TextView tv = buildSuggestionTextView(suggestion, input, false);
-            content.addView(tv, new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT));
-        }
-    }
-
     /** Build a single suggestion TextView (reusable helper). */
-    private TextView buildSuggestionTextView(@NonNull String suggestion, @NonNull String input, boolean isShell) {
+    private TextView buildSuggestionTextViewInternal(@NonNull String suggestion, @NonNull String input, boolean isShell) {
         int padH = mPopupItemPadHPx;
         int padV = mPopupItemPadVPx;
         TextView tv = new TextView(mContext);
@@ -1473,12 +1164,12 @@ public final class AutoCompleteController {
         // Available text width = popup width minus horizontal padding. Mirrors the
         // width the popup is sized to in showAutoCompletePopup (sumWidth).
         int fieldWidth = mInputField != null ? mInputField.getWidth() : 0;
-        int popupWidth = computePopupWidth(fieldWidth);
+        int popupWidth = mPopupManager.computePopupWidth(fieldWidth);
         int availWidth = Math.max(0, popupWidth - 2 * padH);
 
         // Word-based leading truncation + manual trailing '…' (TextView's
         // setEllipsize(END) is unreliable for maxLines>1 on API 21-28).
-        SpannableString ss = buildSuggestionSpannable(
+        SpannableString ss = AutoCompleteTextRenderer.buildSuggestionSpannable(
                 suggestion, input, availWidth, tv.getPaint(), isShell);
         // Shell rows: a type marker (alias '~' / function '*') tinted with the
         // cursor colour, and a monospace face. The marker is appended AFTER the
@@ -1495,7 +1186,7 @@ public final class AutoCompleteController {
                 ss = new SpannableString(ss.toString() + marker);
                 // Re-apply the bold span over the original suggestion portion only.
                 String matchStr = lastWordOf(input);
-                int wordStart = Math.min(wordStartOffset(matchStr), suggestion.length());
+                int wordStart = Math.min(AutoCompleteTextRenderer.wordStartOffset(matchStr), suggestion.length());
                 int boldLen = matchStr.length() - wordStart;
                 if (boldLen > 0 && wordStart + boldLen <= len) {
                     ss.setSpan(new StyleSpan(Typeface.BOLD),
@@ -1971,219 +1662,8 @@ public final class AutoCompleteController {
         mSwipeNeedsLeadingSpace = false;
     }
 
-    /**
-     * Calculate the X position for the popup at the input caret.
-     * Reusable helper shared by showAutoCompletePopup, updatePopupContent and reposition.
-     */
-    private int calcPopupX(@NonNull EditText inputField, int popupWidth) {
-        int cursorPos = inputField.getSelectionStart();
-        Layout layout = inputField.getLayout();
-        float cursorX = 0;
-        if (layout != null && cursorPos >= 0) {
-            cursorX = layout.getPrimaryHorizontal(cursorPos);
-        }
-        int[] loc = new int[2];
-        inputField.getLocationInWindow(loc);
-        // Subtract the horizontal scroll offset so the popup tracks the visible
-        // caret when the EditText content is scrolled horizontally.
-        int popupX = loc[0] + (int) cursorX - inputField.getScrollX() + mPopupXOffsetPx;
-        int displayWidth = mContext.getResources().getDisplayMetrics().widthPixels;
-        if (popupX + popupWidth > displayWidth - mPopupEdgeMarginPx) {
-            popupX = displayWidth - popupWidth - mPopupEdgeMarginPx;
-        }
-        if (popupX < mPopupEdgeMarginPx) popupX = mPopupEdgeMarginPx;
-        return popupX;
-    }
-
-    /**
-     * Calculate the Y position for the popup (above the caret, fallback below).
-     */
-    private int calcPopupY(@NonNull EditText inputField, int popupHeight, int popupWidth) {
-        int cursorPos = inputField.getSelectionStart();
-        Layout layout = inputField.getLayout();
-        float cursorY = 0;
-        if (layout != null && cursorPos >= 0) {
-            cursorY = layout.getLineTop(layout.getLineForOffset(cursorPos));
-        }
-        int[] loc = new int[2];
-        inputField.getLocationInWindow(loc);
-        // Subtract the vertical scroll offset so the popup tracks the visible
-        // caret when the EditText content is scrolled vertically. Without this
-        // the popup stays pinned to the layout's top line and drifts away from
-        // the caret as the field is scrolled.
-        int popupY = loc[1] + (int) cursorY - inputField.getScrollY() - popupHeight - mPopupYOffsetPx;
-        if (popupY < mPopupMinYPx) {
-            popupY = loc[1] + (int) cursorY - inputField.getScrollY() + mPopupEdgeMarginPx;
-        }
-        return popupY;
-    }
-
     private void showAutoCompletePopup(@NonNull EditText inputField) {
-        Logger.logInfo(LOG_TAG, "[autocomplete] showAutoCompletePopup suggestions="
-                + mCurrentSuggestions.size());
-
-        final String input = inputField.getText().toString();
-        mShellSuggestionCount = 0;
-        for (boolean isShell : mCurrentIsShell) {
-            if (isShell) mShellSuggestionCount++;
-            else break;
-        }
-        final int shellN = displayShellCount();
-        final int historyN = displayCount() - shellN;
-        final boolean hasShell = shellN > 0;
-        final boolean hasHistory = historyN > 0;
-
-        // Fast path: reuse the existing windows in-place when the visible set is
-        // unchanged (avoid dismiss→show flicker). Mirrors the old single-window
-        // reuse guard, applied per-window.
-        boolean shellReuse = mShellPopup != null && mShellPopup.isShowing()
-                && mShellContent != null && mShellContent.getParent() != null;
-        boolean historyReuse = mHistoryPopup != null && mHistoryPopup.isShowing()
-                && mHistoryContent != null && mHistoryContent.getParent() != null;
-
-        if ((!hasShell || (shellReuse && !contentChangedForWindow(true)))
-                && (!hasHistory || (historyReuse && !contentChangedForWindow(false)))) {
-            // Identical suggestions in both windows: refresh bold spans only.
-            Logger.logInfo(LOG_TAG, "[autocomplete] popup reuse FAST PATH (bold-spans only)");
-            updateBoldSpansOnly(input);
-            mLastBuiltHistoryVersion = mMessageHistoryCtrl.getHistoryVersion();
-            mLastAppliedPrefix = input;
-            applyPopupGeometry(inputField);
-            return;
-        }
-
-        // Tear down whichever windows are stale/empty before rebuilding.
-        if (!hasShell && mShellPopup != null) { try { mShellPopup.dismiss(); } catch (Exception ignored) {} mShellPopup = null; mShellContent = null; }
-        if (!hasHistory && mHistoryPopup != null) { try { mHistoryPopup.dismiss(); } catch (Exception ignored) {} mHistoryPopup = null; mHistoryContent = null; }
-
-        if (hasShell) {
-            if (shellReuse && mShellContent != null) {
-                mShellContent.setScrollY(0);
-                rebuildShellViews(mShellContent, input);
-            } else {
-                if (mShellPopup != null) { try { mShellPopup.dismiss(); } catch (Exception ignored) {} mShellPopup = null; }
-                mShellContent = new LinearLayout(mContext);
-                mShellContent.setOrientation(LinearLayout.VERTICAL);
-                mShellContent.setBackgroundColor(Color.TRANSPARENT);
-                rebuildShellViews(mShellContent, input);
-                mShellPopup = buildPopupWindow(mShellContent);
-                showPopupAtCaret(mShellPopup, inputField);
-            }
-        }
-        if (hasHistory) {
-            if (historyReuse && mHistoryContent != null) {
-                mHistoryContent.setScrollY(0);
-                rebuildHistoryViews(mHistoryContent, input);
-            } else {
-                if (mHistoryPopup != null) { try { mHistoryPopup.dismiss(); } catch (Exception ignored) {} mHistoryPopup = null; }
-                mHistoryContent = new LinearLayout(mContext);
-                mHistoryContent.setOrientation(LinearLayout.VERTICAL);
-                mHistoryContent.setBackgroundColor(Color.TRANSPARENT);
-                rebuildHistoryViews(mHistoryContent, input);
-                mHistoryPopup = buildPopupWindow(mHistoryContent);
-                showPopupAtCaret(mHistoryPopup, inputField);
-            }
-        }
-
-        mLastBuiltHistoryVersion = mMessageHistoryCtrl.getHistoryVersion();
-        mLastAppliedPrefix = input;
-        Logger.logInfo(LOG_TAG, "[autocomplete] popup built (shell=" + hasShell
-                + " history=" + hasHistory + ")");
-        applyPopupGeometry(inputField);
-
-        // Install the global layout listener once (covers both windows).
-        Window window = getWindow();
-        if (window != null && mSuggestionsLayoutListener == null) {
-            mSuggestionsLayoutListener = () -> repositionAutoCompletePopup();
-            window.getDecorView().getViewTreeObserver().addOnGlobalLayoutListener(mSuggestionsLayoutListener);
-        }
-    }
-
-    /** Show a freshly-built popup at a provisional caret-anchored position; geometry is finalized by applyPopupGeometry(). */
-    private void showPopupAtCaret(@NonNull PopupWindow popup, @NonNull EditText inputField) {
-        int w = computePopupWidth(inputField.getWidth());
-        int h = 0;
-        if (popup.getContentView() instanceof ScrollView) {
-            View child = ((ScrollView) popup.getContentView()).getChildAt(0);
-            if (child != null) h = child.getMeasuredHeight();
-        }
-        int x = calcPopupX(inputField, w);
-        int y = calcPopupY(inputField, h, w);
-        try {
-            popup.showAtLocation(inputField, Gravity.NO_GRAVITY, x, y);
-        } catch (Exception e) {
-            Logger.logStackTraceWithMessage(LOG_TAG, "Failed to show auto-complete popup", e);
-        }
-    }
-
-    /**
-     * Build a fully-configured, non-focusable, touchable {@link PopupWindow} around
-     * the given content {@link LinearLayout}. Both the shell window and the history
-     * window are created through this single helper so they are VISUALLY IDENTICAL
-     * (same background, corner radius, elevation, alpha, sizing strategy). The only
-     * difference between the two windows is their position (shell stacked above
-     * history) and their content.
-     */
-    @NonNull
-    private PopupWindow buildPopupWindow(@NonNull LinearLayout content) {
-        int sumWidth = computePopupWidth(mInputField != null ? mInputField.getWidth() : 0);
-
-        ScrollView scroll = new ScrollView(mContext);
-        scroll.setVerticalScrollBarEnabled(false);
-        scroll.addView(content, new android.view.ViewGroup.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                android.view.ViewGroup.LayoutParams.WRAP_CONTENT));
-        // Clip children to the popup's rounded corners so highlights near the
-        // edges don't spill outside the rounded shape. Guard against 0 dims.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            scroll.setOutlineProvider(new ViewOutlineProvider() {
-                @Override
-                public void getOutline(View view, Outline outline) {
-                    int w = view.getWidth();
-                    int h = view.getHeight();
-                    if (w > 0 && h > 0) {
-                        outline.setRoundRect(0, 0, w, h, mPopupCornerRadiusPx);
-                    }
-                }
-            });
-            scroll.setClipToOutline(true);
-        }
-        // 10% visual transparency on the content (not the background drawable, so the
-        // elevation shadow outline stays valid).
-        scroll.setAlpha(mPopupContentAlpha);
-
-        content.measure(
-                View.MeasureSpec.makeMeasureSpec(sumWidth, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
-
-        // focusable=false is the key: a non-focusable PopupWindow stays touchable
-        // (user can tap a suggestion) WITHOUT stealing window focus from the
-        // EditText, so the IME stays up and the text panel stays open.
-        PopupWindow popup = new PopupWindow(scroll, sumWidth,
-                android.view.ViewGroup.LayoutParams.WRAP_CONTENT, false);
-        popup.setElevation(mPopupElevationPx);
-        GradientDrawable popupBgDrawable = new GradientDrawable() {
-            @Override
-            public void getOutline(@NonNull Outline outline) {
-                super.getOutline(outline);
-                if (!outline.isEmpty() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    outline.setAlpha(mPopupShadowAlpha);
-                }
-            }
-        };
-        popupBgDrawable.setShape(GradientDrawable.RECTANGLE);
-        popupBgDrawable.setCornerRadius(mPopupCornerRadiusPx);
-        popupBgDrawable.setColor(mColorSchemeManager.getHistoryPopupBg()); // opaque for getOutline
-        popup.setBackgroundDrawable(popupBgDrawable);
-        popup.setClippingEnabled(true);
-        popup.setTouchable(true);
-        popup.setFocusable(false);
-        popup.setOnDismissListener(() -> {
-            // We manage two windows; clear the matching reference on dismiss.
-            if (popup == mShellPopup) { mShellPopup = null; mShellContent = null; }
-            else if (popup == mHistoryPopup) { mHistoryPopup = null; mHistoryContent = null; }
-        });
-        return popup;
+        mPopupManager.show(inputField);
     }
 
     /** Reposition the auto-complete popups at the current caret position. */
@@ -2210,132 +1690,12 @@ public final class AutoCompleteController {
         applyPopupGeometry(inputField);
     }
 
-    /**
-     * Unified popup positioning for BOTH windows. The history window is placed
-     * above the caret (as before); the shell window is stacked ABOVE the history
-     * window (its bottom edge sits {@code mPopupGapPx} above the history window's
-     * top). Calls {@code PopupWindow.update()} only when geometry actually changed.
-     */
     private void applyPopupGeometry(@NonNull EditText inputField) {
-        if (!isShowing()) {
-            Logger.logInfo(LOG_TAG, "[autocomplete] applyPopupGeometry skip (no window showing)");
-            return;
-        }
-        Layout layout = inputField.getLayout();
-        if (layout == null) {
-            Logger.logInfo(LOG_TAG, "[autocomplete] applyPopupGeometry skip (layout null) — retrying");
-            inputField.post(() -> applyPopupGeometry(inputField));
-            return;
-        }
-        int w = mLastPopupWidth > 0 ? mLastPopupWidth : computePopupWidth(inputField.getWidth());
-        if (w <= 0) {
-            Logger.logInfo(LOG_TAG, "[autocomplete] applyPopupGeometry skip (w=" + w + ")");
-            return;
-        }
-
-        // Measure each visible window's content height (cheap; content already laid out).
-        int historyH = 0;
-        if (mHistoryPopup != null && mHistoryPopup.isShowing() && mHistoryContent != null) {
-            mHistoryContent.measure(
-                    View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY),
-                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
-            historyH = mHistoryContent.getMeasuredHeight();
-        }
-        int shellH = 0;
-        if (mShellPopup != null && mShellPopup.isShowing() && mShellContent != null) {
-            mShellContent.measure(
-                    View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY),
-                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
-            shellH = mShellContent.getMeasuredHeight();
-        }
-
-        // History window: above the caret (the original behaviour).
-        int historyX = calcPopupX(inputField, w);
-        int historyY = calcPopupY(inputField, historyH, w);
-
-        // Shell window: stacked ABOVE the history window (with a small gap).
-        int shellX = historyX;
-        int shellY = historyY - shellH - (shellH > 0 && historyH > 0 ? mPopupGapPx : 0);
-        // If the shell window would go off the top of the screen, clamp it just
-        // above the history window anyway (it can't go higher than the screen).
-        if (shellY < mPopupMinYPx) shellY = Math.max(mPopupMinYPx, historyY - shellH);
-
-        // Apply history window geometry.
-        if (mHistoryPopup != null && mHistoryPopup.isShowing()) {
-            mLastPopupWidth = w;
-            if (historyX != mLastPopupX || historyY != mLastPopupY || historyH != mLastPopupHeight) {
-                mHistoryPopup.update(historyX, historyY, w, historyH);
-                mLastPopupX = historyX;
-                mLastPopupY = historyY;
-                mLastPopupHeight = historyH;
-            }
-        }
-        // Apply shell window geometry.
-        if (mShellPopup != null && mShellPopup.isShowing()) {
-            mLastPopupWidth = w;
-            if (shellX != mShellPopupX || shellY != mShellPopupY || shellH != mShellPopupHeight) {
-                mShellPopup.update(shellX, shellY, w, shellH);
-                mShellPopupX = shellX;
-                mShellPopupY = shellY;
-                mShellPopupHeight = shellH;
-            }
-        }
+        mPopupManager.applyGeometry(inputField);
     }
 
     private void dismissAutoCompleteSuggestions() {
-        // Guard against redundant calls (e.g. afterTextChanged firing repeatedly on
-        // a clear). When nothing is pending to clean up, skip the diagnostic log and
-        // the rest of the teardown so we don't emit repeated noise.
-        if (mShellPopup == null && mHistoryPopup == null && mCurrentSuggestions.isEmpty()) {
-            return;
-        }
-        // Cancel any in-flight swipe-to-select gesture: its target row is going
-        // away. resetSwipeState() also drops the suppression guard and restores
-        // the parent touch-interception flag.
-        if (mSwipeEngaged) {
-            resetSwipeState();
-        }
-        Logger.logInfo(LOG_TAG, "[autocomplete] dismiss (shell=" + (mShellPopup != null)
-                + " history=" + (mHistoryPopup != null)
-                + " suggestions=" + mCurrentSuggestions.size() + ")");
-        if (mShellPopup != null) {
-            try { mShellPopup.dismiss(); } catch (Exception ignored) {}
-            mShellPopup = null;
-        }
-        if (mHistoryPopup != null) {
-            try { mHistoryPopup.dismiss(); } catch (Exception ignored) {}
-            mHistoryPopup = null;
-        }
-        mCurrentSuggestions.clear();
-        mCurrentIsShell.clear();
-        mCurrentShellType.clear();
-        mCurrentShellMeta.clear();
-        mShellSuggestionCount = 0;
-        // Invalidate any in-flight async shell fetch so its result can't resurrect
-        // a dismissed popup or clobber the next word's suggestions.
-        mShellGen.incrementAndGet();
-        mShellDebounceHandler.removeCallbacksAndMessages(null);
-        mShellContent = null;
-        mHistoryContent = null;
-        mLastAppliedPrefix = "";
-        mLastPopupX = 0;
-        mLastPopupY = 0;
-        mShellPopupX = 0;
-        mShellPopupY = 0;
-        // NOTE: we intentionally do NOT clear the shell per-word cache here. The
-        // provider caches candidates per (word-slot, cwd, prefix), so a dismissed
-        // popup that is later rebuilt for the same word reuses the cached list
-        // instead of re-spawning bash. The cache is invalidated automatically by a
-        // different cword/cwd or a divergent prefix (e.g. backspace+retype), and is
-        // explicitly cleared on session/cwd change (setCwdProvider) and toggle-off.
-        if (mSuggestionsLayoutListener != null) {
-            final android.view.View decor = (mContext instanceof Activity)
-                    ? ((Activity) mContext).getWindow().getDecorView() : null;
-            if (decor != null) {
-                decor.getViewTreeObserver().removeOnGlobalLayoutListener(mSuggestionsLayoutListener);
-            }
-            mSuggestionsLayoutListener = null;
-        }
+        mPopupManager.dismiss();
     }
 
     // ── Additional test-only accessors (package-private) ──
@@ -2388,32 +1748,32 @@ public final class AutoCompleteController {
 
     /** Test-only: the shell (bash) completion window, or null when not shown. */
     @Nullable PopupWindow debugShellPopup() {
-        return mShellPopup;
+        return mPopupManager.debugShellPopup();
     }
 
     /** Test-only: the message-history window, or null when not shown. */
     @Nullable PopupWindow debugHistoryPopup() {
-        return mHistoryPopup;
+        return mPopupManager.debugHistoryPopup();
     }
 
     /** Test-only: the shell window's LinearLayout content. */
     @Nullable LinearLayout debugShellContent() {
-        return mShellContent;
+        return mPopupManager.debugShellContent();
     }
 
     /** Test-only: the history window's LinearLayout content. */
     @Nullable LinearLayout debugHistoryContent() {
-        return mHistoryContent;
+        return mPopupManager.debugHistoryContent();
     }
 
     /** Test-only: last computed Y of the shell window (above the history window). */
     int debugGetShellY() {
-        return mShellPopupY;
+        return mPopupManager.debugGetShellY();
     }
 
     /** Test-only: last computed Y of the history window. */
     int debugGetHistoryY() {
-        return mLastPopupY;
+        return mPopupManager.debugGetHistoryY();
     }
 
     /** Test-only: directly (re)compute popup geometry for the current input field. */
