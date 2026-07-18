@@ -1,0 +1,1051 @@
+package com.termux.app.terminal.io.autocomplete;
+
+import android.text.TextUtils;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import com.termux.shared.termux.TermuxConstants;
+import com.termux.shared.logger.Logger;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import android.content.Context;
+import android.os.Build;
+
+import java.io.Closeable;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Locale;
+
+import java.util.Collections;
+import java.util.regex.Pattern;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+/**
+ * Provides command/argument auto-complete candidates by delegating to the user's
+ * shell (bash) programmable completion. This is OPTIONAL and OFF by default; the
+ * bash binary at {@link TermuxConstants#TERMUX_BIN_PREFIX_DIR_PATH}/bash is used,
+ * and if it is not installed the provider degrades to an empty result.
+ */
+public class ShellCompletionProvider {
+
+    private static final String LOG_TAG = "ShellCompletionProvider";
+
+    /**
+     * Cap applied INSIDE bash before transmitting. For the FIRST typed character
+     * of a word we want EVERY available candidate (the caller filters locally
+     * afterwards), so this is intentionally very large. The Java-side
+     * {@link ShellCompletionParsing#MAX_CACHED_CANDIDATES} is the ultimate memory
+     * backstop.
+     */
+    private static final int MAX_BASH_CANDIDATES = 100_000;
+
+    /** Above this command-line length we skip the bash subprocess entirely. */
+    private static final int MAX_COMMANDLINE_LENGTH = 4096;
+
+    /**
+     * Consecutive timeout counter (per provider instance). After enough
+     * timeouts for distinct word slots we briefly suppress bash so a hung /
+     * network-dependent compspec cannot storm the CPU with doomed subprocesses.
+     */
+    private AtomicInteger mConsecutiveTimeouts = new AtomicInteger(0);
+    private volatile long mShellSuppressedUntil = 0;
+    private static final int TIMEOUT_CIRCUIT_THRESHOLD = 3;
+    private static final long TIMEOUT_CIRCUIT_MS = 10_000;
+
+    /**
+     * Fallback timeout for a single bash completion subprocess (unknown TYPE).
+     * TYPE-specific overrides live in {@link #TIMEOUT_MS_BY_TYPE}; this is only
+     * used when a TYPE has no explicit entry.
+     */
+    private static final long TIMEOUT_MS = 1500;
+
+    /**
+     * Per-TYPE timeout for a single bash completion subprocess. DIFF fast local
+     * compgen ranges (CMD/PATH/VAR/SIGNAL) get a tight 800ms budget;
+     * COMPSPEC runs user-supplied {@code -F} completers which legitimately read
+     * the network / invoke hooks and are objectly slower, so it gets 3000ms to
+     * avoid tripping the circuit-breaker on an honest-but-slow compspec. The
+     * circuit-breaker counter still only increments on a HARD timeout (null from
+     * queryPersistent), so a slower-than-800ms-but-under-3000ms COMPSPEC never
+     * accrues a strike.
+     */
+    private static final java.util.Map<String, Long> TIMEOUT_MS_BY_TYPE;
+    static {
+        java.util.Map<String, Long> m = new java.util.HashMap<>(8);
+        m.put("CMD", 800L);
+        m.put("PATH", 800L);
+        m.put("VAR", 800L);
+        m.put("SIGNAL", 800L);
+        m.put("COMPSPEC", 3000L);
+        TIMEOUT_MS_BY_TYPE = java.util.Collections.unmodifiableMap(m);
+    }
+
+    /** Staleness bound for the per-word cache (covers mid-session PATH/alias changes). */
+    private static final long CACHE_TTL_MS = 20_000;
+
+    /** Coarse category of a completion candidate, used for rendering/insertion. */
+    public enum CandidateType {
+        /** A command / builtin / function / alias name (compgen -c path). */
+        COMMAND,
+        /** A regular file (from a filename-completion context). */
+        FILE,
+        /** A directory (from a filename-completion context). */
+        DIRECTORY,
+        /** An option/flag token (starts with '-'); usually no trailing space. */
+        OPTION,
+        /** A user-defined alias. */
+        ALIAS,
+        /** A user-defined shell function. */
+        FUNCTION,
+        /** Unknown / generic (treated conservatively). */
+        UNKNOWN
+    }
+
+    /** A single completion candidate with its resolved type and source flags. */
+    public static final class ShellCandidate {
+        /** Clean completable token (no trailing decoration). */
+        @NonNull public final String value;
+        /** Coarse category. */
+        @NonNull public final CandidateType type;
+        /** True if the resolved compspec treats matches as filenames (append '/' to dirs). */
+        public final boolean isFilename;
+        /** Do NOT append a trailing space after a unique completion (-o nospace). */
+        public final boolean noSpace;
+        /** Preserve generation order; never alphabetize (-o nosort). */
+        public final boolean noSort;
+        /** Do NOT quote the candidate even when it contains shell metacharacters (-o noquote). */
+        public final boolean noQuote;
+
+        public ShellCandidate(@NonNull String value, @NonNull CandidateType type,
+                              boolean isFilename, boolean noSpace, boolean noSort, boolean noQuote) {
+            this.value = value;
+            this.type = type;
+            this.isFilename = isFilename;
+            this.noSpace = noSpace;
+            this.noSort = noSort;
+            this.noQuote = noQuote;
+        }
+    }
+
+    /**
+     * Result of a completion query: the candidates plus the effective completion
+     * options for the resolved compspec.
+     */
+    public static final class CompletionResult {
+        @NonNull public final List<ShellCandidate> candidates;
+        public final boolean isFilename;
+        public final boolean noSpace;
+        public final boolean noSort;
+
+        public CompletionResult(@NonNull List<ShellCandidate> candidates,
+                                boolean isFilename, boolean noSpace, boolean noSort) {
+            this.candidates = candidates;
+            this.isFilename = isFilename;
+            this.noSpace = noSpace;
+            this.noSort = noSort;
+        }
+
+        /** Convenience: empty result (e.g. bash unavailable or timed out). */
+        public static final CompletionResult EMPTY =
+                new CompletionResult(Collections.emptyList(), false, false, false);
+
+        /** Build a per-candidate result: every candidate copies the batch flags. */
+        @NonNull
+        static CompletionResult of(@NonNull List<ShellCandidate> candidates,
+                                   boolean isFilename, boolean noSpace, boolean noSort, boolean noQuote) {
+            List<ShellCandidate> tagged = new ArrayList<>(candidates.size());
+            for (ShellCandidate c : candidates) {
+                tagged.add(new ShellCandidate(c.value, c.type, c.isFilename,
+                        noSpace || c.noSpace, noSort || c.noSort, noQuote || c.noQuote));
+            }
+            return new CompletionResult(tagged, isFilename, noSpace, noSort);
+        }
+    }
+
+    private final File mBashExecutable;
+
+    /** Android context used to load the bash completion dispatcher from raw resources. */
+    @Nullable private final Context mContext;
+
+    /** Field delimiter for the persistent-process wire protocol (TYPE\x01WORD\x01CWD\x01LINE). */
+    private static final char REQ_SEP = '\u0001';
+    /** End-of-response marker line the dispatcher prints after each request. */
+    private static final String END_MARKER = "__END__";
+
+    /** The single long-lived bash dispatcher process (lazy-started). */
+    @Nullable private Process mPersistent;
+    @Nullable private java.io.BufferedWriter mPersistentIn;
+    @Nullable private Thread mPersistentErrDrain;
+    /** Temp file the dispatcher script is materialized to (once), reused for restarts. */
+    @Nullable private File mScriptFile;
+    /** Serializes write-request / read-response so concurrent callers can't interleave. */
+    private final Object mProcLock = new Object();
+
+    /**
+     * Per-word completion cache. We fetch bash completion ONCE for the word slot
+     * currently being typed (keyed by word index + working directory) and then
+     * serve every subsequent character of the same word from this cache, letting
+     * the caller (AutoCompleteController's Path B) narrow the list locally. This
+     * avoids spawning a bash subprocess on every keystroke while still giving
+     * live, per-character filtering.
+     *
+     * <p>The key does NOT include the typed prefix: bash is queried with the full
+     * current prefix, so the cached list already contains every candidate
+     * matching that prefix. Keying by the prefix would make a backspace+retype
+     * return the narrower stale list and drop valid candidates.
+     */
+    @Nullable private String mCacheKey;
+    @Nullable private String mCachePrefix;
+    @Nullable private List<ShellCandidate> mCachedCandidates;
+    private long mCacheTimestamp;
+    private boolean mCacheIsFilename;
+    private boolean mCacheNoSpace;
+    private boolean mCacheNoSort;
+    private boolean mCacheNoQuote;
+
+    /** Guards all mCache* accesses (UI clearCache vs background complete()). */
+    private final Object mCacheLock = new Object();
+
+    /** Bumped on any change to the shell environment (cwd switch, enable/disable,
+     *  session switch) so cached results are invalidated instantly instead of
+     *  waiting for the TTL. */
+    private final java.util.concurrent.atomic.AtomicInteger mEnvVersion =
+            new java.util.concurrent.atomic.AtomicInteger();
+
+    public ShellCompletionProvider() {
+        this(null, new File(TermuxConstants.TERMUX_BIN_PREFIX_DIR_PATH, "bash"));
+    }
+
+    public ShellCompletionProvider(@Nullable Context context) {
+        this(context, new File(TermuxConstants.TERMUX_BIN_PREFIX_DIR_PATH, "bash"));
+    }
+
+    public ShellCompletionProvider(@Nullable Context context, @NonNull File bashExecutable) {
+        mContext = context;
+        mBashExecutable = bashExecutable;
+    }
+
+    /**
+     * Load a raw resource String (the bash script template) exactly once and
+     * cache it. Falls back to {@code null} if the resource is unavailable.
+     */
+    @Nullable
+    private String loadRawResource(@NonNull String resName) {
+        if (mContext == null) return loadRawResourceFromFile(resName);
+        try {
+            int id = mContext.getResources().getIdentifier(resName, "raw", mContext.getPackageName());
+            if (id == 0) return null;
+            try (java.io.InputStream in = mContext.getResources().openRawResource(id);
+                 java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream()) {
+                byte[] buf = new byte[4096];
+                int r;
+                while ((r = in.read(buf)) != -1) bos.write(buf, 0, r);
+                return new String(bos.toByteArray(), StandardCharsets.UTF_8);
+            }
+        } catch (Exception e) {
+            Logger.logStackTraceWithMessage(LOG_TAG, "failed to load raw resource " + resName, e);
+            return null;
+        }
+    }
+
+    /**
+     * Fallback used only when constructed with a {@code null} Context (e.g. unit
+     * tests that drive the real bash subprocess but have no Android Resources).
+     * Reads the raw template directly from the filesystem. The base directory is
+     * taken from the {@code termux.rawres.dir} system property and defaults to the
+     * conventional {@code app/src/main/res/raw} location. Production code always
+     * supplies a non-null Context, so this path is never taken at runtime.
+     */
+    @Nullable
+    private static String loadRawResourceFromFile(@NonNull String resName) {
+        try {
+            String dir = System.getProperty("termux.rawres.dir");
+            if (dir == null || dir.isEmpty()) {
+                dir = "app/src/main/res/raw";
+            }
+            File f = new File(dir, resName + ".sh");
+            if (!f.isFile()) return null;
+            try (java.io.InputStream in = new java.io.FileInputStream(f);
+                 java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream()) {
+                byte[] buf = new byte[4096];
+                int r;
+                while ((r = in.read(buf)) != -1) bos.write(buf, 0, r);
+                return new String(bos.toByteArray(), StandardCharsets.UTF_8);
+            }
+        } catch (Exception e) {
+            Logger.logStackTraceWithMessage(LOG_TAG, "failed to load raw resource from file " + resName, e);
+            return null;
+        }
+    }
+
+    /**
+     * Materialize the persistent dispatcher script to a stable temp file (once)
+     * and return it. The script is loaded from the {@code shell_complete} raw
+     * resource. Returns {@code null} if the resource is unavailable.
+     */
+    @Nullable
+    private synchronized File dispatcherScriptFile() {
+        if (mScriptFile != null && mScriptFile.isFile()) return mScriptFile;
+        String script = loadRawResource("shell_complete");
+        if (script == null) return null;
+        try {
+            File dir = (mContext != null) ? mContext.getCacheDir()
+                    : new File(System.getProperty("java.io.tmpdir", "/data/data/com.termux/files/usr/tmp"));
+            if (dir != null && !dir.isDirectory()) dir.mkdirs();
+            File f = File.createTempFile("shell_complete", ".sh", dir);
+            try (java.io.OutputStream os = new java.io.FileOutputStream(f)) {
+                os.write(script.getBytes(StandardCharsets.UTF_8));
+            }
+            mScriptFile = f;
+            return f;
+        } catch (Exception e) {
+            Logger.logStackTraceWithMessage(LOG_TAG, "failed to materialize dispatcher script", e);
+            return null;
+        }
+    }
+
+    /** Returns true if the configured shell binary exists and can be used. */
+    public boolean isAvailable() {
+        return mBashExecutable.isFile() && mBashExecutable.canExecute();
+    }
+
+    /** Invalidate all cached completions (call after cwd/session/setting changes). */
+    public void bumpEnvironmentVersion() {
+        mEnvVersion.incrementAndGet();
+        mConsecutiveTimeouts.set(0);
+        mShellSuppressedUntil = 0;
+    }
+
+    /** Returns the current environment version (package-private for cache tests). */
+    int getEnvVersion() {
+        return mEnvVersion.get();
+    }
+
+    /**
+     * Whether a cache entry stamped at {@code timestamp} is still fresh at
+     * {@code now} under the {@link #CACHE_TTL_MS} staleness bound. Package-private
+     * so the unit tests can exercise the TTL without populating the real cache.
+     */
+    static boolean isCacheFresh(long timestamp, long now) {
+        return (now - timestamp) < CACHE_TTL_MS;
+    }
+
+    /** Drop any cached completion results (e.g. on session switch or when disabled). */
+    public void clearCache() {
+        synchronized (mCacheLock) {
+            mCacheKey = null;
+            mCachePrefix = null;
+            mCachedCandidates = null;
+            mCacheTimestamp = 0;
+            mCacheIsFilename = false;
+            mCacheNoSpace = false;
+            mCacheNoSort = false;
+            mCacheNoQuote = false;
+        }
+    }
+
+    /**
+     * Compute completion candidates for the last word of {@code commandLine}.
+     *
+     * <p>The result is cached per word slot: the first time a given word (identified
+     * by its index in the line, within a given cwd) is requested, bash is queried
+     * once with the full current prefix; later requests for the same word (as more
+     * characters are typed, or after a backspace+retype) reuse the cached list,
+     * which already contains every candidate for that word slot. The caller filters
+     * the cached list locally for the exact prefix.
+     *
+     * @param commandLine the partial command line (e.g. {@code "git che"} or
+     *                    {@code "ls /data/da"}). May be empty.
+     * @param cwd         the working directory to run completion in (affects
+     *                    file/path completions). May be null.
+     * @param cursor      the cursor offset within commandLine (0-based). Used to
+     *                    set COMP_POINT so mid-line editing completes the word
+     *                    under the caret, not always the last word.
+     * @return a result with candidate completion strings (possibly empty). Order is
+     *         preserved as returned by the shell.
+     */
+    @NonNull
+    public CompletionResult complete(@NonNull String commandLine, @Nullable String cwd, int cursor) {
+        if (!isAvailable() || TextUtils.isEmpty(commandLine)) {
+            return CompletionResult.EMPTY;
+        }
+
+        // Circuit-breaker: after several consecutive timeouts, stop spawning bash
+        // for a short window so a hung/network compspec cannot storm the CPU.
+        long now0 = System.currentTimeMillis();
+        if (now0 < mShellSuppressedUntil) {
+            return CompletionResult.EMPTY;
+        }
+
+        // Very long lines (e.g. a pasted script) are never usefully completable and
+        // would force an expensive bash tokenization that blows the timeout budget.
+        // Skip the subprocess entirely and fall back to history-only.
+        if (commandLine.length() > MAX_COMMANDLINE_LENGTH) {
+            return CompletionResult.EMPTY;
+        }
+
+        // Tokenize the line the same way bash would split words. We keep it simple:
+        // split on unquoted whitespace. Quoted segments are kept intact.
+        String[] words = ShellCompletionParsing.splitCommandLine(commandLine);
+        int cword = Math.max(0, words.length - 1); // index of the word being completed
+        String lastWord = (words.length > 0) ? words[cword] : "";
+        // The token immediately before the word being completed. When this is a
+        // command separator or control keyword, an empty last word means the user
+        // is about to type a NEW command name, so we must not short-circuit below.
+        String prevToken = (words.length >= 2) ? words[words.length - 2] : "";
+        // Bash's tokenizer strips a single layer of surrounding quotes, so the
+        // candidates it returns are unquoted. Strip the same quotes here so the
+        // cache key, the prefix match and the merge all agree with bash (S8/S13).
+        // We keep the raw word for passing to bash ($3) where the COMP_WORDS
+        // tokenizer re-derives the unquoted form itself.
+        String lastWordStripped = ShellCompletionParsing.stripOuterQuotes(lastWord);
+
+        // Defer the fetch until the user has typed at least one real character of the
+        // word being completed. A trailing space (e.g. "git ") yields an empty last
+        // word; querying bash then would spawn a subprocess (compgen -f over the whole
+        // cwd) and dump every file on a keystroke that added no word content. We return
+        // nothing here and let the caller show history only; the real fetch happens on
+        // the first typed character, satisfying "fetch once on first char".
+        // Exception (S2): if the previous token is a command separator/control
+        // keyword, an empty last word means a new command name is expected, so
+        // proceed to classifyScenario (which returns COMMAND_CONTEXT/COMMAND_NAME).
+        if (lastWord.isEmpty() && !"C".equals(ShellCompletionParsing.contextPrefix(words, cword))) {
+            return CompletionResult.EMPTY;
+        }
+
+        // Stable per-word-slot cache key. For cword==0 (command name) the key omits
+        // cwd — command names are cwd-independent, so a `cd` must NOT invalidate the
+        // cached command universe (the dominant, every-keystroke case). For cword>0
+        // the COMMAND word (words[0]) is folded in so two different commands at the
+        // same slot/cwd (e.g. "ssh host1 ls /" vs "scp host1 /") never share a cached
+        // candidate set. The context discriminator ('C'/'A'/'F') prevents a collision
+        // between a command-context slot and an argument-context slot that share the
+        // same Java word index. COMP_WORDBREAKS_KEY is a compile-time constant that
+        // never changes, so it is intentionally omitted from the key.
+        // Classify ONCE here and reuse the result for both the key and the script.
+        Scenario scenario = ShellCompletionParsing.classifyScenario(words, cword);
+        if (scenario == Scenario.HISTORY_EXPANSION || scenario == Scenario.ARRAY_INDEX) {
+            return CompletionResult.EMPTY;
+        }
+        String key = ShellCompletionParsing.buildCacheKey(scenario, words, cword, cwd, mEnvVersion.get());
+
+        long now = System.currentTimeMillis();
+        synchronized (mCacheLock) {
+            if (mCacheKey != null && mCacheKey.equals(key) && mCachedCandidates != null
+                    && mCachePrefix != null) {
+                // Cache HIT for the same word slot. We serve the FULL cached candidate
+                // set whenever the requested prefix is consistent with the prefix the
+                // cache was built for: either the user typed MORE characters of the same
+                // word (lastWord extends mCachePrefix) OR deleted some (mCachePrefix
+                // extends lastWord). In both cases every cached candidate still starts
+                // with the requested lastWord, so local filtering stays correct.
+                //
+                // Crucially we do NOT require the TTL to be fresh here: while the user is
+                // still typing the SAME word we must filter locally and never re-query
+                // bash, even if more than CACHE_TTL_MS elapsed between keystrokes. Only a
+                // DIFFERENT word slot (key mismatch) or a diverging prefix (neither extends
+                // the other) falls through to a fresh bash fetch, which itself refreshes
+                // the whole universe for the new word.
+                if (lastWordStripped.startsWith(mCachePrefix) || mCachePrefix.startsWith(lastWordStripped)) {
+                    return CompletionResult.of(mCachedCandidates, mCacheIsFilename,
+                            mCacheNoSpace, mCacheNoSort, mCacheNoQuote);
+                }
+            }
+        }
+
+        // COMP_POINT is the byte offset of the cursor into COMP_LINE. For ASCII
+        // command lines this equals the char offset; convert to UTF-8 bytes so a
+        // cursor inside a multibyte token still lands correctly.
+        String compLine = commandLine;
+        int compPoint = ShellCompletionParsing.utf8ByteLength(commandLine, cursor);
+        String currentWord = (words.length > 0) ? words[cword] : "";
+
+        String script = buildCompletionScript(scenario, words, cword, compLine, compPoint);
+        if (script == null) {
+            // Template failed to load (resource missing) — do not cache.
+            return CompletionResult.EMPTY;
+        }
+
+        BashResult bash = runBash(script, cwd, compLine, compPoint, currentWord);
+        if (bash == null || bash.candidates == null) {
+            // Timed out / errored: do not cache the empty result (so a later, faster
+            // attempt for the same word can still succeed). Track consecutive
+            // failures to trip the circuit-breaker against a persistently-hung
+            // compspec. Only a HARD timeout (bash == null from queryPersistent)
+            // counts; a slow-but-valid response is never penalized.
+            if (bash == null) {
+                if (mConsecutiveTimeouts.incrementAndGet() >= TIMEOUT_CIRCUIT_THRESHOLD) {
+                    mShellSuppressedUntil = System.currentTimeMillis() + TIMEOUT_CIRCUIT_MS;
+                }
+            }
+            return CompletionResult.EMPTY;
+        }
+        mConsecutiveTimeouts.set(0);
+
+        List<ShellCandidate> candidates = bash.candidates;
+
+        // Cache the normalized bash output keyed by this word slot, including the
+        // resolved completion options so a cache-hit replays the same flags.
+        synchronized (mCacheLock) {
+            mCacheKey = key;
+            mCachePrefix = lastWordStripped;
+            mCachedCandidates = candidates;
+            mCacheTimestamp = now;
+            mCacheIsFilename = bash.isFilename;
+            mCacheNoSpace = bash.noSpace;
+            mCacheNoSort = bash.noSort;
+            mCacheNoQuote = bash.noQuote;
+        }
+
+        Logger.logInfo(LOG_TAG, "complete(\"" + commandLine + "\") -> " + candidates.size()
+                + " candidates (fresh fetch)");
+        return CompletionResult.of(candidates, bash.isFilename, bash.noSpace, bash.noSort, bash.noQuote);
+    }
+
+    /** Result of a single bash run: candidates plus the side-channel completion options. */
+    protected static class BashResult {
+        @Nullable final List<ShellCandidate> candidates;
+        final boolean isFilename;
+        final boolean noSpace;
+        final boolean noSort;
+        final boolean noQuote;
+
+        BashResult(@Nullable List<ShellCandidate> candidates, boolean isFilename,
+                   boolean noSpace, boolean noSort, boolean noQuote) {
+            this.candidates = candidates;
+            this.isFilename = isFilename;
+            this.noSpace = noSpace;
+            this.noSort = noSort;
+            this.noQuote = noQuote;
+        }
+    }
+
+    /**
+     * Per-scenario completion scripts. Each maps to a dedicated raw-resource
+     * template so the branching is explicit and the bash logic for every usage
+     * scenario lives in its own file (see res/raw/shell_complete_*.sh).
+     */
+    enum Scenario {
+        /** First word — command name (compgen -c). */
+        COMMAND_NAME,
+        /** Argument/option of a command with a real programmable compspec. */
+        COMPSPEC,
+        /** Filesystem path / file / directory (incl. ~, quoted, trailing slash). */
+        PATH,
+        /** Redirection operator (>, <, 2>> …) — filename context "F". */
+        REDIRECTION,
+        /** Command context after a separator / keyword / process substitution. */
+        COMMAND_CONTEXT,
+        /** $VAR / ${VAR} / export-unset-… variable name. */
+        VARIABLE,
+        /** kill/trap signal (-) or job (%) completion. */
+        SIGNAL_JOB,
+        /** Bash history expansion (e.g. "!git") — not a completable token (S12). */
+        HISTORY_EXPANSION,
+        /** Array subscript (e.g. "${ARR[") — not a bare variable name (S14). */
+        ARRAY_INDEX
+    }
+
+
+    /**
+     * Public instance wrapper delegating to {@link ShellCompletionParsing#classify}
+     * so callers (e.g. {@code AutoCompleteController}) can ask the provider for
+     * the scenario of a raw command line without reaching into statics. Single
+     * source of truth — no logic re-implemented here.
+     */
+    public Scenario classifyLine(@NonNull String commandLine) {
+        return ShellCompletionParsing.classify(commandLine);
+    }
+
+    // ── Forwarding statics: the pure parsing/classification helpers now live in
+    //    ShellCompletionParsing. These thin delegates keep the public/test API
+    //    ({@code ShellCompletionProvider.lastWordOf}, {@code .splitCommandLine}, …)
+    //    stable. ──
+
+    @NonNull
+    static String lastWordOf(@NonNull String line) {
+        return ShellCompletionParsing.lastWordOf(line);
+    }
+
+    @NonNull
+    static String stripOuterQuotes(@NonNull String s) {
+        return ShellCompletionParsing.stripOuterQuotes(s);
+    }
+
+    @NonNull
+    static String dequoteLikeBash(@NonNull String s) {
+        return ShellCompletionParsing.dequoteLikeBash(s);
+    }
+
+    @NonNull
+    static String[] splitCommandLine(@NonNull String line) {
+        return ShellCompletionParsing.splitCommandLine(line);
+    }
+
+    @NonNull
+    static ShellCompletionProvider.Scenario classifyScenario(@NonNull String[] words, int cword) {
+        return ShellCompletionParsing.classifyScenario(words, cword);
+    }
+
+    @NonNull
+    static ShellCompletionProvider.Scenario classify(@NonNull String commandLine) {
+        return ShellCompletionParsing.classify(commandLine);
+    }
+
+    @NonNull
+    static List<ShellCandidate> debugNormalizeCandidates(@NonNull List<String> raw,
+                                                         @Nullable String cwd) {
+        return ShellCompletionParsing.normalizeCandidates(raw, cwd);
+    }
+
+    @NonNull
+    static String expandHome(@NonNull String path) {
+        return ShellCompletionParsing.expandHome(path);
+    }
+
+    /**
+     * Build the per-word-slot cache key for the given parameters. Package-private
+     * (and static) so the unit tests can verify the cache-key construction — in
+     * particular that command-name slots (cword==0) omit the cwd while argument
+     * slots (cword>0) include it, and that the environment version is folded into
+     * the key — WITHOUT invoking {@link #complete(String, String, int)} (which
+     * spawns bash).
+     *
+     * <p>The key layout mirrors {@code complete()}'s key construction exactly:
+     * {@code cword \0 context \0 cmdWord \0 cwdPart \0 scenario \0 envVersion}.
+     *
+     * @param words   the tokenized command line (as from {@link #splitCommandLine}).
+     * @param cword   index of the word being completed.
+     * @param cwd     the working directory (affects file/path completions).
+     * @param envVersion the current environment version (from {@code mEnvVersion}).
+     */
+    static String cacheKeyFor(@NonNull String[] words, int cword,
+                               @Nullable String cwd, int envVersion) {
+        return ShellCompletionParsing.cacheKeyFor(words, cword, cwd, envVersion);
+    }
+
+    /** Convenience wrapper used by tests to build a cache key from a raw command line. */
+    static String cacheKeyForLine(@NonNull String commandLine,
+                                  @Nullable String cwd, int envVersion) {
+        return ShellCompletionParsing.cacheKeyForLine(commandLine, cwd, envVersion);
+    }
+
+    /** Map the classified scenario to the persistent-dispatcher wire TYPE token. */
+    @Nullable
+    private String buildCompletionScript(@NonNull Scenario scenario, @NonNull String[] words,
+                                         int cword, @NonNull String compLine, int compPoint) {
+        return ShellCompletionParsing.buildCompletionScript(scenario, words, cword, compLine, compPoint);
+    }
+
+    /**
+     * Issue ONE completion request to the persistent bash dispatcher and collect
+     * its NUL-delimited candidates. Returns {@code null} on timeout/error so the
+     * caller does NOT cache the (empty) result. Completion options
+     * ({@code -o filenames/nospace/nosort/noquote}) are parsed from the
+     * side-channel {@code __COMPOPTS:...} record the dispatcher emits.
+     *
+     * <p>The seam signature is retained (tests override it to count fetches).
+     * Here {@code script} carries the wire TYPE token
+     * ({@code CMD/PATH/VAR/SIGNAL/COMPSPEC}) produced by
+     * {@link #buildCompletionScript}, and {@code currentWord} is the raw token
+     * being completed. All TYPE-specific token shaping (VAR {@code $}/{@code ${}}
+     * sigil strip + re-wrap, SIGNAL {@code -}/{@code SIG} mapping, PATH
+     * {@code NAME=} assignment strip + re-prepend, COMPSPEC wrapper-skip) happens
+     * here in Java — the dispatcher runs exactly one compgen/glob per request.
+     */
+    @Nullable
+    protected BashResult runBash(@NonNull String script, @Nullable String cwd,
+                                 @NonNull String compLine, int compPoint, @NonNull String currentWord) {
+        String type = script;
+
+        // ── TYPE-specific request shaping (moved out of bash). ──
+        // Strip surrounding quotes exactly ONCE for every type (bash's tokenizer
+        // strips a single quote layer before producing candidates), so the
+        // dispatcher receives the same unquoted token bash would glob against
+        // (S8/S13). The assignment/var/signal shaping below then operates on this
+        // already-stripped word.
+        String word = ShellCompletionParsing.stripOuterQuotes(currentWord);
+        String assignPrefix = null;     // PATH: re-prepended to every candidate
+        String varSigil = null;         // VAR: '$' + optional '{'
+        String varClose = "";           // VAR: '}' when ${...
+        boolean signalDash = false;     // SIGNAL: candidate re-prefixed with '-'
+
+        switch (type) {
+            case "PATH": {
+                // NAME=value assignment: complete the VALUE against the filesystem,
+                // re-prepend VAR= to each candidate so the UI inserts the full token.
+                if (ShellCompletionParsing.PATTERN_NAME_ASSIGN.matcher(word).matches()) {
+                    int eq = word.indexOf('=');
+                    assignPrefix = word.substring(0, eq + 1);
+                    word = word.substring(eq + 1);
+                }
+                break;
+            }
+            case "VAR": {
+                // $VAR / ${VAR}: strip the sigil for compgen -v, remember it to
+                // re-wrap each emitted candidate.
+                if (word.startsWith("$")) {
+                    varSigil = "$";
+                    String bare = word.substring(1);
+                    if (bare.startsWith("{")) { varSigil = "${"; varClose = "}"; bare = bare.substring(1); }
+                    word = bare;
+                }
+                break;
+            }
+            case "SIGNAL": {
+                // kill/trap -SIGNAL: map "-USR1"/"-HUP" onto "SIGUSR1"/"SIGHUP"
+                // for compgen -A signal; re-prepend '-' to each name on return.
+                if (word.startsWith("-")) {
+                    signalDash = true;
+                    String sig = word.substring(1);
+                    if (!sig.startsWith("SIG")) sig = "SIG" + sig;
+                    word = sig;
+                } else {
+                    // "%job" and other forms are not supported by the fast path.
+                    word = "";
+                }
+                break;
+            }
+            case "COMPSPEC":
+                // No Java-side word shaping: the bash dispatcher resolves the real
+                // command (through wrappers/assignments) and detects a leading
+                // wrapper for the command-name fallback from the full COMP_LINE.
+                break;
+            default:
+                break;
+        }
+
+        // ── Persistent request/response, guarded so callers never interleave. ──
+        List<String> raw = new ArrayList<>();
+        boolean[] flags = new boolean[4]; // isFilename, noSpace, noSort, noQuote
+        // COMPSPEC must receive the FULL command line so the bash dispatcher can
+        // (a) resolve the real command through its own wrapper/assignment loop and
+        // (b) detect a leading wrapper (sudo/env/xargs/…) for the command-name
+        // fallback — exactly as the original compspec template did via
+        // `cmd="${1%% *}"`. Rewriting the line to `<resolvedCmd> <word>` dropped the
+        // wrapper token, breaking the `sudo gi`/`env gi`/`xargs gi` fallback (S9).
+        String responseLine = compLine;
+        byte[] out = queryPersistent(type, word, cwd, responseLine);
+        if (out == null) {
+            return null;
+        }
+        ShellCompletionParsing.parseNulRecords(out, raw, flags);
+
+        // ── TYPE-specific candidate re-shaping (moved out of bash). ──
+        if (varSigil != null) {
+            List<String> wrapped = new ArrayList<>(raw.size());
+            for (String r : raw) wrapped.add(varSigil + r + varClose);
+            raw = wrapped;
+        } else if (signalDash) {
+            List<String> wrapped = new ArrayList<>(raw.size());
+            for (String r : raw) wrapped.add("-" + r);
+            raw = wrapped;
+        } else if (assignPrefix != null) {
+            List<String> wrapped = new ArrayList<>(raw.size());
+            for (String r : raw) wrapped.add(assignPrefix + r);
+            raw = wrapped;
+        }
+
+        return new BashResult(ShellCompletionParsing.normalizeCandidates(raw, cwd),
+                flags[0], flags[1], flags[2], flags[3]);
+    }
+
+    /**
+     * Send one request to the persistent dispatcher and read its response up to
+     * the {@code __END__} marker. Returns the raw NUL-delimited response bytes,
+     * or {@code null} on timeout/error. On timeout it first attempts a graceful
+     * drain (read the still-pending {@code __END__} without killing the process);
+     * if that fails the process is restarted so a wedged compspec cannot poison
+     * every future request.
+     */
+    @Nullable
+    private byte[] queryPersistent(@NonNull String type, @NonNull String word,
+                                   @Nullable String cwd, @NonNull String line) {
+        synchronized (mProcLock) {
+            if (!ensurePersistent()) return null;
+
+            final java.io.BufferedWriter in = mPersistentIn;
+            final Process proc = mPersistent;
+            if (in == null || proc == null) return null;
+            final java.io.InputStream rawOut = proc.getInputStream();
+
+            // Write the request. COMP_LINE is sent ONLY for COMPSPEC (3 fields for
+            // everything else) — keeps the wire minimal since bash reads COMP_LINE
+            // solely on the COMPSPEC path.
+            try {
+                writeRequest(in, type, word, cwd, "COMPSPEC".equals(type) ? line : null);
+            } catch (IOException e) {
+                stopPersistent();
+                return null;
+            }
+
+            // Read the response on a bounded side thread, byte-for-byte, so we
+            // avoid the readLine() -> String -> getBytes() round-trip and the
+            // giant intermediate String. We scan for the bare "__END__" marker
+            // (a full line of its own) and accumulate raw bytes until we see it.
+            final java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+            final Object done = new Object();
+            final boolean[] completed = {false};
+            final boolean[] eof = {false};
+            Thread reader = new Thread(() -> {
+                try {
+                    byte[] buf = new byte[8192];
+                    int r;
+                    // Rolling 8-byte ring of the trailing bytes so we can detect the
+                    // full "\n__END__\n" marker without buffering the whole response.
+                    byte[] ring = new byte[8];
+                    int ringLen = 0;
+                    while ((r = rawOut.read(buf)) != -1) {
+                        for (int k = 0; k < r; k++) {
+                            byte b = buf[k];
+                            bos.write(b);
+                            if (ringLen < 8) {
+                                ring[ringLen++] = b;
+                            } else {
+                                // Shift left one and append (ring of exactly 8).
+                                System.arraycopy(ring, 1, ring, 0, 7);
+                                ring[7] = b;
+                            }
+                            if (ringLen == 8 && ring[0] == '\n'
+                                    && ring[1] == '_' && ring[2] == '_' && ring[3] == 'E'
+                                    && ring[4] == 'N' && ring[5] == 'D' && ring[6] == '_'
+                                    && ring[7] == '_') {
+                                // Drop the trailing "\n__END__\n" from the payload.
+                                byte[] full = bos.toByteArray();
+                                int drop = Math.min(full.length, 8);
+                                bos.reset();
+                                bos.write(full, 0, full.length - drop);
+                                synchronized (done) { completed[0] = true; done.notifyAll(); }
+                                return;
+                            }
+                        }
+                    }
+                    synchronized (done) { eof[0] = true; done.notifyAll(); }
+                } catch (IOException ignored) {
+                    synchronized (done) { eof[0] = true; done.notifyAll(); }
+                }
+            }, "shell-completion-read");
+            reader.setDaemon(true);
+            reader.start();
+
+            // Pick the timeout for the requested TYPE; fall back to TIMEOUT_MS for
+            // unknown types. COMPSPEC's 3000ms budget lets slow (network/hook)
+            // user completers finish without a hard timeout.
+            long typeTimeout = TIMEOUT_MS_BY_TYPE.getOrDefault(type, TIMEOUT_MS);
+            long deadline = System.currentTimeMillis() + typeTimeout;
+            synchronized (done) {
+                while (!completed[0] && !eof[0]) {
+                    long wait = deadline - System.currentTimeMillis();
+                    if (wait <= 0) break;
+                    try { done.wait(wait); } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+            }
+
+            if (completed[0]) {
+                // Raw NUL-delimited bytes; parseNulRecords splits on '\0' and skips
+                // a stray trailing '\n' that may remain before the marker.
+                return bos.toByteArray();
+            }
+            if (eof[0]) {
+                // Process died mid-response — restart for the next call.
+                stopPersistent();
+                byte[] partial = bos.toByteArray();
+                return partial.length > 0 ? partial : null;
+            }
+
+            // Timeout: the dispatcher is wedged on this request. We cannot safely
+            // resume mid-response (the pending __END__ would corrupt the NEXT
+            // read), so restart the process. The reader thread is daemon and will
+            // exit when the stream closes.
+            stopPersistent();
+            return null;
+        }
+    }
+
+    /**
+     * Write one request line to the persistent dispatcher. For COMPSPEC the full
+     * {@code line} (COMP_LINE) is included as a 4th field; for all other TYPEs it
+     * is {@code null} and only 3 fields (TYPE \x01 WORD \x01 CWD) are written.
+     * Request fields are sanitized so our separator / newline cannot corrupt the
+     * single-line wire format.
+     */
+    private static void writeRequest(@NonNull java.io.BufferedWriter in,
+                                     @NonNull String type, @NonNull String word,
+                                     @Nullable String cwd, @Nullable String line)
+            throws IOException {
+        StringBuilder req = new StringBuilder();
+        req.append(ShellCompletionParsing.sanitizeField(type)).append(REQ_SEP)
+           .append(ShellCompletionParsing.sanitizeField(word)).append(REQ_SEP)
+           .append(ShellCompletionParsing.sanitizeField(cwd == null ? "" : cwd));
+        if (line != null) {
+            req.append(REQ_SEP).append(ShellCompletionParsing.sanitizeField(line));
+        }
+        req.append('\n');
+        in.write(req.toString());
+        in.flush();
+    }
+
+    /** Lazily (re)start the persistent dispatcher. Returns false if unavailable. */
+    private boolean ensurePersistent() {
+        if (mPersistent != null && mPersistent.isAlive()
+                && mPersistentIn != null) {
+            return true;
+        }
+        stopPersistent();
+        File scriptFile = dispatcherScriptFile();
+        if (scriptFile == null) {
+            return false;
+        }
+        try {
+            // setsid makes bash the leader of its own session/process group.
+            // This is more reliable than relying on `set -m` inside a non-interactive
+            // script, and guarantees killProcessGroup(-pid) hits ONLY the bash tree.
+            ProcessBuilder pb = new ProcessBuilder(
+                    "setsid", mBashExecutable.getAbsolutePath(), "--norc", "--noprofile",
+                    scriptFile.getAbsolutePath());
+            String inheritedPath = pb.environment().get("PATH");
+            String termuxPath = TermuxConstants.TERMUX_BIN_PREFIX_DIR_PATH
+                    + ":/system/bin:/system/xbin";
+            pb.environment().put("PATH",
+                    (inheritedPath == null || inheritedPath.isEmpty())
+                            ? termuxPath : termuxPath + ":" + inheritedPath);
+            pb.environment().putIfAbsent("TERMUX_PREFIX", TermuxConstants.TERMUX_PREFIX_DIR_PATH);
+            pb.environment().putIfAbsent("LANG", "C.UTF-8");
+            pb.environment().putIfAbsent("LC_ALL", "C.UTF-8");
+            String home = System.getenv("HOME");
+            if (home != null) pb.environment().putIfAbsent("HOME", home);
+            pb.environment().put("__MAX_CANDIDATES", Integer.toString(MAX_BASH_CANDIDATES));
+            pb.redirectErrorStream(false);
+            Process p = pb.start();
+            mPersistent = p;
+            mPersistentIn = new java.io.BufferedWriter(
+                    new java.io.OutputStreamWriter(p.getOutputStream(), StandardCharsets.UTF_8));
+            final java.io.InputStream err = p.getErrorStream();
+            Thread drain = new Thread(() -> {
+                try (BufferedReader er = new BufferedReader(
+                        new InputStreamReader(err, StandardCharsets.UTF_8))) {
+                    while (er.readLine() != null) { /* discard */ }
+                } catch (IOException ignored) { }
+            }, "shell-completion-persist-stderr");
+            drain.setDaemon(true);
+            drain.start();
+            mPersistentErrDrain = drain;
+            return true;
+        } catch (IOException e) {
+            stopPersistent();
+            return false;
+        }
+    }
+
+    /**
+     * Tear down the persistent dispatcher: snapshot the live process/stream
+     * references, null the fields synchronously, and defer the actual close/kill
+     * to a daemon reaper so this call never blocks on a wedged child (preserving
+     * the 1500ms timeout budget). Keeps the materialized dispatcher script alive
+     * so a later {@code ensurePersistent()} reuses it instead of re-creating the
+     * temp file on every timeout/circuit restart.
+     */
+    private void stopPersistent() {
+        synchronized (mProcLock) {
+        final java.io.Closeable in = mPersistentIn;
+        final Thread errDrain = mPersistentErrDrain;
+        final Process p = mPersistent;
+        mPersistentIn = null;
+        mPersistentErrDrain = null;
+        mPersistent = null;
+        if (p == null && in == null) return;
+        Thread reaper = new Thread(() -> {
+            closeQuietly(in);
+            if (p != null) {
+                try { killProcessGroup(p); } catch (Throwable ignored) { }
+                try { p.destroyForcibly(); } catch (Throwable ignored) { }
+            }
+            if (errDrain != null && errDrain.isAlive()) {
+                try { errDrain.interrupt(); } catch (Throwable ignored) { }
+            }
+        }, "shell-completion-reaper");
+        reaper.setDaemon(true);
+        reaper.start();
+        }
+    }
+
+    /** Release the persistent process and the materialized dispatcher script. */
+    public void shutdown() {
+        stopPersistent();
+        if (mScriptFile != null && mScriptFile.exists()) mScriptFile.delete();
+        mScriptFile = null;
+    }
+
+    /**
+     * Reap the whole process group of {@code process} (bash + any -F/-C completer
+     * children it forked). The templates ALSO install a bash-side {@code trap ...
+     * EXIT} that SIGKILLs their own process group, but a {@code destroyForcibly()}
+     * (SIGKILL) on bash does NOT run that EXIT trap, so orphaned completer
+     * children would survive without this call. We SIGKILL the group directly via
+     * {@code Os.killpg} (available API 21+, which is our minSdk) and fall back to
+     * the trap/destroyForcibly path when it is unavailable.
+     */
+    private static void killProcessGroup(@NonNull Process process) {
+        try {
+            // Os.killpg is API 21+; Process.getPid() is API 26+. Use reflection for
+            // both so the code links on the project's minSdk and stays safe.
+            @SuppressWarnings("JavaReflectionMemberAccess")
+            java.lang.reflect.Method getPid = Process.class.getMethod("getPid");
+            @SuppressWarnings("JavaReflectionMemberAccess")
+            java.lang.reflect.Method killpg = android.system.Os.class.getMethod(
+                    "killpg", int.class, int.class);
+            int pid = (int) getPid.invoke(process);
+            if (pid > 0) {
+                // Negative pid targets the process group (bash set -m made it the
+                // leader of its own group). SIGKILL = 9.
+                killpg.invoke(null, -pid, 9);
+            }
+        } catch (Throwable ignored) {
+            // Os/killpg/getPid unavailable or denied (SELinux) — rely on the bash
+            // EXIT trap + destroyForcibly() as the fallback reaper.
+        }
+    }
+
+    private static void closeQuietly(@Nullable java.io.Closeable c) {
+        if (c == null) return;
+        try { c.close(); } catch (IOException ignored) { }
+    }
+
+
+    /**
+     * Test-only wrapper exposing {@link #parseNulRecords} so unit tests can verify
+     * the NUL-delimited byte-buffer parsing (including the {@code __COMPOPTS:}
+     * side-channel that decodes {@code filenames/nospace/nosort/noquote}) without
+     * spawning a subprocess.
+     */
+    @Nullable
+    BashResult debugParseBashOutput(@NonNull byte[] out, @Nullable String cwd) {
+        List<String> raw = new ArrayList<>();
+        boolean[] flags = new boolean[4];
+        ShellCompletionParsing.parseNulRecords(out, raw, flags);
+        return new BashResult(ShellCompletionParsing.normalizeCandidates(raw, cwd),
+                flags[0], flags[1], flags[2], flags[3]);
+    }
+
+    /**
+     * Test-only: force the cache timestamp into the distant past so the TTL would
+     * be considered expired. Lets tests assert that a compatible-prefix cache HIT
+     * while typing the SAME word still serves locally (TTL ignored) instead of
+     * re-spawning bash after a long pause between keystrokes. This is exactly the
+     * "first letter fetches all, later letters filter locally" guarantee.
+     */
+    void debugExpireCacheTimestamp() {
+        synchronized (mCacheLock) { mCacheTimestamp = 0; }
+    }
+}

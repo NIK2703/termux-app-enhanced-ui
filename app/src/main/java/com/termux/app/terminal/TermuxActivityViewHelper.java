@@ -19,7 +19,7 @@ import com.termux.R;
 import com.termux.app.TermuxActivity;
 import com.termux.app.activities.HelpActivity;
 import com.termux.app.activities.SettingsActivity;
-import com.termux.app.terminal.io.DirectoryHistoryPopupController;
+import com.termux.app.terminal.io.autocomplete.DirectoryHistoryPopupController;
 import com.termux.shared.activity.ActivityUtils;
 import com.termux.shared.activity.media.AppCompatActivityUtils;
 import com.termux.shared.termux.interact.TextInputDialogUtils;

@@ -74,11 +74,11 @@ import com.termux.app.terminal.TermuxActivityBroadcastManager;
 import com.termux.app.terminal.TermuxDialogs;
 import com.termux.app.terminal.TermuxActivityPopupController;
 import com.termux.app.terminal.io.TextInputPanelController;
-import com.termux.app.terminal.io.AutoCompleteController;
-import com.termux.app.terminal.io.DirectoryHistoryController;
-import com.termux.app.terminal.io.DirectoryHistoryPopupController;
+import com.termux.app.terminal.io.autocomplete.AutoCompleteController;
+import com.termux.app.terminal.io.autocomplete.DirectoryHistoryController;
+import com.termux.app.terminal.io.autocomplete.DirectoryHistoryPopupController;
 import com.termux.app.terminal.io.TextInputSessionStateManager;
-import com.termux.app.terminal.io.MessageHistoryController;
+import com.termux.app.terminal.io.autocomplete.MessageHistoryController;
 import com.termux.app.terminal.io.TextInputSessionStateManager;
 import com.termux.app.terminal.io.FullScreenWorkAround;
 import com.termux.shared.termux.extrakeys.ExtraKeysView;
@@ -1694,6 +1694,7 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
      */
     public void recomputeUIColors() {
         mColorSchemeManager.recompute(getPreferences());
+        if (mAutoCompleteCtrl != null) mAutoCompleteCtrl.refreshInputSyntaxHighlighting();
     }
 
     /** @return Cached panel/button background colour. */
@@ -2414,6 +2415,7 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         // Cache all UI colours from the (now-updated) COLOR_SCHEME so every consumer reads
         // fresh values without computing them on the fly.
         mColorSchemeManager.recompute(getPreferences());
+        if (mAutoCompleteCtrl != null) mAutoCompleteCtrl.refreshInputSyntaxHighlighting();
 
         if (mTermuxTerminalViewClient != null)
             mTermuxTerminalViewClient.onReloadActivityStyling();

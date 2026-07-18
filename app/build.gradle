@@ -162,6 +162,7 @@ android {
             includeAndroidResources = true
             all {
                 maxParallelForks = 1
+                maxHeapSize = "2048m"
 
                 // Robolectric 4.10 on JDK 17 needs these modules opened so its
                 // shadows (ActivityThread, etc.) can reflect into JDK internals;

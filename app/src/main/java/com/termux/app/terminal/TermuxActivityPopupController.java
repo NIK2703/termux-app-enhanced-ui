@@ -29,7 +29,7 @@ import androidx.annotation.Nullable;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.termux.R;
-import com.termux.app.terminal.io.MessageHistoryController;
+import com.termux.app.terminal.io.autocomplete.MessageHistoryController;
 import com.termux.shared.data.DataUtils;
 import com.termux.app.TermuxActivityUtils;
 import com.termux.shared.termux.extrakeys.ColorSchemeUtils;
