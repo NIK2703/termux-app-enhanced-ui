@@ -404,7 +404,7 @@ public class JavaProviderCoverageRealBashTest {
     private static int readConsecutiveTimeouts(ShellCompletionProvider p) throws Exception {
         Field f = ShellCompletionProvider.class.getDeclaredField("mConsecutiveTimeouts");
         f.setAccessible(true);
-        return (int) f.get(p);
+        return ((java.util.concurrent.atomic.AtomicInteger) f.get(p)).get();
     }
 
     private static void resetCircuitBreaker(ShellCompletionProvider p) throws Exception {
@@ -413,7 +413,7 @@ public class JavaProviderCoverageRealBashTest {
         f1.set(p, 0L);
         Field f2 = ShellCompletionProvider.class.getDeclaredField("mConsecutiveTimeouts");
         f2.setAccessible(true);
-        f2.set(p, 0);
+        f2.set(p, new java.util.concurrent.atomic.AtomicInteger(0));
     }
 
     private static String invokeExpandHome(String path) throws Exception {

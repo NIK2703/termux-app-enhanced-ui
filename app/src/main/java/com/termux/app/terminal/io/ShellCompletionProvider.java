@@ -10,7 +10,6 @@ import com.termux.shared.logger.Logger;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import android.content.Context;
@@ -18,9 +17,7 @@ import android.os.Build;
 
 import java.io.Closeable;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.Locale;
 
 import java.util.Collections;
@@ -33,62 +30,22 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Provides command/argument auto-complete candidates by delegating to the user's
- * shell (bash) programmable completion.
- *
- * <p>Rather than re-implementing per-command completion logic, we ask bash itself
- * to complete a partial command line. Bash exposes its completion machinery
- * through a set of variables that a completion function reads
- * ({@code COMP_WORDS}, {@code COMP_CWORD}, {@code COMP_LINE}, {@code COMP_POINT})
- * and writes its candidates to the {@code COMPREPLY} array. By sourcing the
- * system bash-completion helpers and invoking the appropriate completion
- * function with those variables populated, we obtain exactly the same candidates
- * the user would see if they pressed TAB in a real interactive bash session.
- *
- * <p>Each candidate is returned as a {@link ShellCandidate} carrying a coarse
- * type (command / file / directory / option / alias) and the effective
- * completion options ({@code -o filenames}, {@code -o nospace}, {@code -o nosort})
- * so the UI can replicate readline's insertion/rendering semantics. The result is
- * the list of candidate completions for the last (partial) word of
- * {@code commandLine}, which the caller can merge with its own suggestions.
- *
- * <p>This is OPTIONAL and OFF by default. The bash binary at
- * {@link TermuxConstants#TERMUX_BIN_PREFIX_DIR_PATH}/bash is used; if it is not
- * installed the provider degrades to an empty result.
+ * shell (bash) programmable completion. This is OPTIONAL and OFF by default; the
+ * bash binary at {@link TermuxConstants#TERMUX_BIN_PREFIX_DIR_PATH}/bash is used,
+ * and if it is not installed the provider degrades to an empty result.
  */
 public class ShellCompletionProvider {
 
     private static final String LOG_TAG = "ShellCompletionProvider";
-
-    /** Same persistent trace file as AutoCompleteController, for the bash-side path. */
-    private static final File TRACE_FILE =
-            new File("/storage/emulated/0/Download/termux/autocomplete_log.txt");
-    private static final AtomicInteger TRACE_SEQ = new AtomicInteger();
-    private static volatile boolean sTraceFileOkay = true;
-
-    private static final boolean TRACE_ENABLED = false;
-
-    private static void trace(@NonNull String tag, @NonNull String msg) {
-        if (!TRACE_ENABLED) return;
-        Logger.logInfo(LOG_TAG, msg);
-        if (!sTraceFileOkay) return;
-        try {
-            StringBuilder sb = new StringBuilder();
-            sb.append(new SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.US).format(new Date()));
-            sb.append(" #").append(String.format(Locale.US, "%05d", TRACE_SEQ.incrementAndGet()));
-            sb.append(" [").append(tag).append("] ").append(msg).append("\n");
-            try (FileWriter fw = new FileWriter(TRACE_FILE, true)) {
-                fw.write(sb.toString());
-            }
-        } catch (Throwable t) {
-            sTraceFileOkay = false;
-        }
-    }
 
     /** Max candidates we ever keep/parse (defensive bound on memory / popup size). */
     private static final int MAX_CACHED_CANDIDATES = 4000;
 
     /** Cap applied INSIDE bash before sorting/transmitting (perf + UX bound). */
     private static final int MAX_BASH_CANDIDATES = 300;
+
+    /** Max stat() syscalls per fresh fetch (per-candidate type inference cap). */
+    private static final int STAT_BUDGET = 200;
 
     /** Above this command-line length we skip the bash subprocess entirely. */
     private static final int MAX_COMMANDLINE_LENGTH = 4096;
@@ -98,8 +55,8 @@ public class ShellCompletionProvider {
      * timeouts for distinct word slots we briefly suppress bash so a hung /
      * network-dependent compspec cannot storm the CPU with doomed subprocesses.
      */
-    private int mConsecutiveTimeouts = 0;
-    private long mShellSuppressedUntil = 0;
+    private AtomicInteger mConsecutiveTimeouts = new AtomicInteger(0);
+    private volatile long mShellSuppressedUntil = 0;
     private static final int TIMEOUT_CIRCUIT_THRESHOLD = 3;
     private static final long TIMEOUT_CIRCUIT_MS = 10_000;
 
@@ -125,7 +82,7 @@ public class ShellCompletionProvider {
             new HashSet<>(java.util.Arrays.asList(
                     "if", "then", "else", "elif", "fi", "for", "while", "until", "do",
                     "done", "case", "esac", "in", "function", "select", "time", "{", "}",
-                    "[[", "]]", "!", "coproc", "[[", "]]")));
+                    "[[", "]]", "!", "coproc")));
 
     /** Coarse category of a completion candidate, used for rendering/insertion. */
     public enum CandidateType {
@@ -364,7 +321,6 @@ public class ShellCompletionProvider {
             try (java.io.OutputStream os = new java.io.FileOutputStream(f)) {
                 os.write(script.getBytes(StandardCharsets.UTF_8));
             }
-            f.deleteOnExit();
             mScriptFile = f;
             return f;
         } catch (Exception e) {
@@ -381,6 +337,8 @@ public class ShellCompletionProvider {
     /** Invalidate all cached completions (call after cwd/session/setting changes). */
     public void bumpEnvironmentVersion() {
         mEnvVersion.incrementAndGet();
+        mConsecutiveTimeouts.set(0);
+        mShellSuppressedUntil = 0;
     }
 
     /** Returns the current environment version (package-private for cache tests). */
@@ -434,9 +392,6 @@ public class ShellCompletionProvider {
     @NonNull
     public CompletionResult complete(@NonNull String commandLine, @Nullable String cwd, int cursor) {
         if (!isAvailable() || TextUtils.isEmpty(commandLine)) {
-            trace("COMP", "complete(\"" + commandLine + "\") -> EMPTY early (isAvailable="
-                    + isAvailable() + " empty=" + TextUtils.isEmpty(commandLine)
-                    + " bash=" + (mBashExecutable == null ? "null" : mBashExecutable.getAbsolutePath()) + ")");
             return CompletionResult.EMPTY;
         }
 
@@ -479,7 +434,7 @@ public class ShellCompletionProvider {
         // Exception (S2): if the previous token is a command separator/control
         // keyword, an empty last word means a new command name is expected, so
         // proceed to classifyScenario (which returns COMMAND_CONTEXT/COMMAND_NAME).
-        if (lastWord.isEmpty() && !isCommandSeparator(prevToken)) {
+        if (lastWord.isEmpty() && !"C".equals(contextPrefix(words, cword))) {
             return CompletionResult.EMPTY;
         }
 
@@ -495,15 +450,9 @@ public class ShellCompletionProvider {
         // Classify ONCE here and reuse the result for both the key and the script.
         Scenario scenario = classifyScenario(words, cword);
         if (scenario == Scenario.HISTORY_EXPANSION || scenario == Scenario.ARRAY_INDEX) {
-            trace("COMP", "complete(\"" + commandLine + "\") -> EMPTY (scenario=" + scenario + ")");
             return CompletionResult.EMPTY;
         }
         String key = buildCacheKey(scenario, words, cword, cwd, mEnvVersion.get());
-
-        trace("COMP", "complete(\"" + commandLine + "\") cword=" + cword
-                + " lastWord=\"" + lastWord + "\" prevToken=\"" + prevToken
-                + " scenario=" + scenario + " cached="
-                + (mCacheKey != null && mCacheKey.equals(key)));
 
         long now = System.currentTimeMillis();
         synchronized (mCacheLock) {
@@ -517,8 +466,6 @@ public class ShellCompletionProvider {
                 // backspaced to a shorter prefix and retyped a DIFFERENT character, neither
                 // holds and the cache is stale → fall through to a fresh bash fetch.
                 if (lastWordStripped.startsWith(mCachePrefix) || mCachePrefix.startsWith(lastWordStripped)) {
-                    trace("COMP", "complete(\"" + commandLine + "\") -> CACHE HIT ("
-                            + mCachedCandidates.size() + " cached)");
                     return CompletionResult.of(mCachedCandidates, mCacheIsFilename,
                             mCacheNoSpace, mCacheNoSort, mCacheNoQuote);
                 }
@@ -543,21 +490,16 @@ public class ShellCompletionProvider {
             // Timed out / errored: do not cache the empty result (so a later, faster
             // attempt for the same word can still succeed). Track consecutive
             // failures to trip the circuit-breaker against a persistently-hung
-            // compspec.
-            trace("COMP", "complete(\"" + commandLine + "\") -> bash returned "
-                    + (bash == null ? "null (TIMEOUT/circuit-breaker)" : "null candidates")
-                    + " consecutiveTimeouts=" + mConsecutiveTimeouts);
+            // compspec. Only a HARD timeout (bash == null from queryPersistent)
+            // counts; a slow-but-valid response is never penalized.
             if (bash == null) {
-                if (++mConsecutiveTimeouts >= TIMEOUT_CIRCUIT_THRESHOLD) {
+                if (mConsecutiveTimeouts.incrementAndGet() >= TIMEOUT_CIRCUIT_THRESHOLD) {
                     mShellSuppressedUntil = System.currentTimeMillis() + TIMEOUT_CIRCUIT_MS;
-                    trace("COMP", "circuit-breaker TRIPPED until " + mShellSuppressedUntil);
                 }
             }
             return CompletionResult.EMPTY;
         }
-        mConsecutiveTimeouts = 0;
-        trace("COMP", "complete(\"" + commandLine + "\") -> bash OK candidates="
-                + bash.candidates.size());
+        mConsecutiveTimeouts.set(0);
 
         List<ShellCandidate> candidates = bash.candidates;
 
@@ -613,6 +555,9 @@ public class ShellCompletionProvider {
                                                             @Nullable String cwd) {
         List<ShellCandidate> out = new ArrayList<>(raw.size());
         java.util.Set<String> seen = new java.util.HashSet<>();
+        // Cap stat() syscalls per fresh fetch; only the first K real paths are
+        // stat-ed. Declared-type / option tokens skip the budget entirely.
+        AtomicInteger statBudget = new AtomicInteger(STAT_BUDGET);
         for (String c : raw) {
             if (c.isEmpty()) continue;
 
@@ -658,8 +603,15 @@ public class ShellCompletionProvider {
             // and didn't declare a type, infer FILE vs DIRECTORY by stat-ing the
             // path. This is a robust catch-all for `-F` compspecs that return bare
             // names. Handles leading '~' and absolute paths.
+            //
+            // To keep a fresh fetch cheap under thousands of candidates, we cap the
+            // number of stat() syscalls: only the first STAT_BUDGET candidates are
+            // stat-ed; the rest keep the coarse COMMAND type. Declared-type tokens
+            // and option tokens (`-`) never need a stat.
             if (!s.endsWith("/") && declared == null && cwd != null
-                    && !s.startsWith("-") && !s.startsWith("$")) {
+                    && !s.startsWith("-") && !s.startsWith("$")
+                    && statBudget.get() > 0) {
+                statBudget.decrementAndGet();
                 try {
                     String path = expandHome(s);
                     File f = path.startsWith("/") ? new File(path)
@@ -941,6 +893,16 @@ public class ShellCompletionProvider {
     }
 
     /**
+     * Public instance wrapper delegating to {@link #classify(String)} so callers
+     * (e.g. {@code AutoCompleteController}) can ask the provider for the scenario
+     * of a raw command line without reaching into package-private statics. Single
+     * source of truth — no logic re-implemented here.
+     */
+    public Scenario classifyLine(@NonNull String commandLine) {
+        return classify(commandLine);
+    }
+
+    /**
      * Build the per-word-slot cache key for the given parameters. Package-private
      * (and static) so the unit tests can verify the cache-key construction — in
      * particular that command-name slots (cword==0) omit the cwd while argument
@@ -1130,7 +1092,6 @@ public class ShellCompletionProvider {
         String responseLine = compLine;
         byte[] out = queryPersistent(type, word, cwd, responseLine);
         if (out == null) {
-            trace("BASH", "persistent query TIMEOUT/error (type=" + type + ")");
             return null;
         }
         parseNulRecords(out, raw, flags);
@@ -1179,7 +1140,6 @@ public class ShellCompletionProvider {
             try {
                 writeRequest(in, type, word, cwd, "COMPSPEC".equals(type) ? line : null);
             } catch (IOException e) {
-                trace("BASH", "persistent write failed; restarting");
                 stopPersistent();
                 return null;
             }
@@ -1196,25 +1156,25 @@ public class ShellCompletionProvider {
                 try {
                     byte[] buf = new byte[8192];
                     int r;
-                    // Rolling buffer of the trailing bytes so we can detect an
-                    // entire "\n__END__\n" line without buffering whole response.
-                    java.io.ByteArrayOutputStream tail = new java.io.ByteArrayOutputStream();
+                    // Rolling 8-byte ring of the trailing bytes so we can detect the
+                    // full "\n__END__\n" marker without buffering the whole response.
+                    byte[] ring = new byte[8];
+                    int ringLen = 0;
                     while ((r = rawOut.read(buf)) != -1) {
                         for (int k = 0; k < r; k++) {
                             byte b = buf[k];
                             bos.write(b);
-                            tail.write(b);
-                            // Keep at most the length of "\n__END__\n" (8 bytes) in tail.
-                            byte[] t = tail.toByteArray();
-                            if (t.length > 8) {
-                                tail.reset();
-                                tail.write(t, t.length - 8, 8);
+                            if (ringLen < 8) {
+                                ring[ringLen++] = b;
+                            } else {
+                                // Shift left one and append (ring of exactly 8).
+                                System.arraycopy(ring, 1, ring, 0, 7);
+                                ring[7] = b;
                             }
-                            byte[] tt = tail.toByteArray();
-                            if (tt.length >= 8 && tt[0] == '\n'
-                                    && tt[1] == '_' && tt[2] == '_' && tt[3] == 'E'
-                                    && tt[4] == 'N' && tt[5] == 'D' && tt[6] == '_'
-                                    && tt[7] == '_') {
+                            if (ringLen == 8 && ring[0] == '\n'
+                                    && ring[1] == '_' && ring[2] == '_' && ring[3] == 'E'
+                                    && ring[4] == 'N' && ring[5] == 'D' && ring[6] == '_'
+                                    && ring[7] == '_') {
                                 // Drop the trailing "\n__END__\n" from the payload.
                                 byte[] full = bos.toByteArray();
                                 int drop = Math.min(full.length, 8);
@@ -1252,7 +1212,6 @@ public class ShellCompletionProvider {
             }
             if (eof[0]) {
                 // Process died mid-response — restart for the next call.
-                trace("BASH", "persistent EOF mid-response; restarting");
                 stopPersistent();
                 byte[] partial = bos.toByteArray();
                 return partial.length > 0 ? partial : null;
@@ -1262,7 +1221,6 @@ public class ShellCompletionProvider {
             // resume mid-response (the pending __END__ would corrupt the NEXT
             // read), so restart the process. The reader thread is daemon and will
             // exit when the stream closes.
-            trace("BASH", "persistent query timeout (> " + TIMEOUT_MS + "ms); restarting");
             stopPersistent();
             return null;
         }
@@ -1339,12 +1297,14 @@ public class ShellCompletionProvider {
         stopPersistent();
         File scriptFile = dispatcherScriptFile();
         if (scriptFile == null) {
-            trace("BASH", "dispatcher script unavailable");
             return false;
         }
         try {
+            // setsid makes bash the leader of its own session/process group.
+            // This is more reliable than relying on `set -m` inside a non-interactive
+            // script, and guarantees killProcessGroup(-pid) hits ONLY the bash tree.
             ProcessBuilder pb = new ProcessBuilder(
-                    mBashExecutable.getAbsolutePath(), "--norc", "--noprofile",
+                    "setsid", mBashExecutable.getAbsolutePath(), "--norc", "--noprofile",
                     scriptFile.getAbsolutePath());
             String inheritedPath = pb.environment().get("PATH");
             String termuxPath = TermuxConstants.TERMUX_BIN_PREFIX_DIR_PATH
@@ -1377,7 +1337,6 @@ public class ShellCompletionProvider {
             mPersistentErrDrain = drain;
             return true;
         } catch (IOException e) {
-            trace("BASH", "failed to start persistent bash: " + e.getMessage());
             stopPersistent();
             return false;
         }
@@ -1385,11 +1344,15 @@ public class ShellCompletionProvider {
 
     /** Tear down the persistent dispatcher (on death, timeout or shutdown). */
     private void stopPersistent() {
+        synchronized (mProcLock) {
         // Snapshot the live references and NULL the fields synchronously so a
         // concurrent/next queryPersistent()/ensurePersistent() immediately sees a
         // torn-down dispatcher and never touches a half-closed stream. The actual
         // stream closes AND the process kill are deferred to a daemon reaper so
-        // this call returns without blocking.
+        // this call returns without blocking. The reaper operates on the SNAPSHOT
+        // captured here (local vars), never on the (now-null) fields, so even if a
+        // concurrent enable()/queryPersistent() spins up a brand-new process right
+        // after we null the fields, the old process is still killed and not leaked.
         //
         // This is load-bearing: closing the stdin/stdout of a wedged child (e.g. a
         // fake-bash that `sleep 30`) can BLOCK until the child actually exits in
@@ -1421,15 +1384,12 @@ public class ShellCompletionProvider {
         }, "shell-completion-reaper");
         reaper.setDaemon(true);
         reaper.start();
+        }
     }
 
     /** Release the persistent process (call on provider disposal / session end). */
     public void shutdown() {
-        synchronized (mProcLock) {
-            stopPersistent();
-            if (mScriptFile != null && mScriptFile.exists()) mScriptFile.delete();
-            mScriptFile = null;
-        }
+        stopPersistent();
     }
 
     /**
@@ -1540,32 +1500,6 @@ public class ShellCompletionProvider {
      * cache entry for different completion domains.
      */
     @NonNull
-    /**
-     * True when {@code t} is a command separator or control keyword after which a
-     * new command name is expected (so an empty last word should still be
-     * classified rather than short-circuited to EMPTY). See S2.
-     */
-    private static boolean isCommandSeparator(String t) {
-        if (t == null) return false;
-        switch (t) {
-            case ";":
-            case "|":
-            case "&":
-            case "&&":
-            case "||":
-            case "|&":
-            case "then":
-            case "do":
-            case "else":
-            case "elif":
-            case "(":
-            case ")":
-                return true;
-            default:
-                return false;
-        }
-    }
-
     private static String contextPrefix(@NonNull String[] words, int cword) {
         if (cword <= 0) return "C";
         String prev = words[cword - 1];

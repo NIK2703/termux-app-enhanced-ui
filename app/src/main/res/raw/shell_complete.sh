@@ -51,6 +51,10 @@ if [[ -z ${COMP_WORDBREAKS:-} ]]; then
   COMP_WORDBREAKS=$' \t\n'"'"'()<>;|&=:@~'
 fi
 
+# Word-break predicate, hoisted to script scope so it is defined ONCE, not
+# re-declared inside __termux_tokenize on every completion request.
+__is_wb() { [[ "${COMP_WORDBREAKS:-$' \t\n'"'"'()<>;|&=:@~'}" == *"$1"* ]]; }
+
 # ---- Readline-faithful tokenizer: split COMP_LINE into COMP_WORDS / COMP_CWORD
 # honoring quotes, escaped whitespace AND COMP_WORDBREAKS. Ported behaviourally
 # from the old shell_complete_common.sh so a -F completer sees the exact
@@ -59,7 +63,6 @@ __termux_tokenize() {
   local line=$1 point=$2
   COMP_WORDS=(); COMP_CWORD=0
   local WB=${COMP_WORDBREAKS:-$' \t\n"'"'"'()<>;|&=:@~'}
-  __is_wb() { [[ "$WB" == *"$1"* ]]; }
   local i=0 n=${#line} inq=0 indq=0 tok=""
   while (( i < n )); do
     local c=${line:i:1}
@@ -114,7 +117,8 @@ declare -A __HOME_CACHE=()
 __home_of() {
   local __u=$1 __h
   [[ -n ${__HOME_CACHE[$__u]+x} ]] && { printf '%s' "${__HOME_CACHE[$__u]}"; return; }
-  __h=$(getent passwd "$__u" 2>/dev/null | cut -d: -f6)
+  __h=$(getent passwd "$__u" 2>/dev/null)
+  [[ -n $__h ]] && { IFS=: read -r _ _ _ _ _ __h _ <<<"$__h"; } || __h=""
   __HOME_CACHE[$__u]=${__h:-}
   printf '%s' "${__HOME_CACHE[$__u]}"
 }
@@ -161,7 +165,7 @@ __file_fallback() {
   done < <(compgen -G "$__glob" 2>/dev/null)
 }
 
-# ---- CMD / CMDCTX: command names with type classification.
+# ---- CMD: command names with type classification.
 __do_cmd() {
   local __word=$1 __c __t __cat __n=0
   while IFS= read -r __c; do
@@ -297,8 +301,13 @@ __do_compspec() {
     if [[ -n $__func ]] && type -t "$__func" >/dev/null 2>&1; then
       # Populate the vars a -F completer reads with readline-faithful
       # tokenization so the compspec computes the same context bash would.
+      # NOTE: COMP_WORDS / COMP_LINE / COMP_POINT are passed to the function
+      # purely via environment variables (set above), NOT via stdin. Redirect
+      # the function's stdin from /dev/null so a stray `read` inside it cannot
+      # swallow the dispatcher's request channel and hang until timeout.
       COMP_LINE="$__line"; COMP_POINT=${#__line}
       __termux_tokenize "$__line" "$COMP_POINT"
+      exec 0</dev/null
       "$__func" 2>/dev/null
       __opts=""
     else
@@ -338,7 +347,7 @@ __do_compspec() {
         /*|~*|.*|*/*) ;;
         *[!A-Za-z0-9_.,+-]*) ;;
         *=*) ;;
-        *) COMPREPLY=($(compgen -c -- "$__word" 2>/dev/null | head -n "${__MAX_CANDIDATES}")) ;;
+        *) COMPREPLY=($(compgen -c -- "$__word" 2>/dev/null)) ;;
       esac
     fi
   fi

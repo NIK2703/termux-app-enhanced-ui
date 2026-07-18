@@ -742,28 +742,23 @@ public final class AutoCompleteController {
      */
     boolean historyCoversPrefix(@NonNull String text) {
         if (text.isEmpty()) return false;
-        if (text.indexOf('/') >= 0) return false; // likely a path — bash needed
-        // NOTE: the authoritative path/flag classification lives in
-        // ShellCompletionProvider.classifyScenario(); the heuristics below are a
-        // cheap pre-check to avoid starving bash, not a re-implementation of it.
+        if (mShellCompletionProvider == null) return false;
         if (mShellFetchInFlight.get()) return false; // don't starve a pending fetch
-        // Don't starve the shell when the word being completed is a subcommand or
-        // a flag: "git st" should still surface "git stash" even if history holds
-        // "git status" x3, and "-col" should complete to "--color". Only skip bash
-        // for a plain command-name re-run (first word, no leading '-'), which is
-        // the dominant "re-run last command" win.
-        String lw = lastWordOf(text);
-        if (lw.indexOf(' ') >= 0) return false;   // multi-token arg -> bash needed
-        if (lw.startsWith("-")) return false;     // flag completion -> bash needed
-        // (mirrors ShellCompletionProvider.classifyScenario's OPTION/SIGNAL handling)
-        // Only skip bash when the typed word IS a whole command already present
-        // in history (re-run-last-command case). A bare PREFIX must still reach
-        // bash so e.g. `git` surfaces `git`/`gitk` and `git st` surfaces
+        // Delegate ALL scenario classification to the provider (single source of
+        // truth) — no manual path/flag heuristics here. Only COMMAND_NAME re-runs
+        // (the typed text IS the whole command and it already appears in history)
+        // are covered by history; every other scenario needs bash.
+        ShellCompletionProvider.Scenario scenario = mShellCompletionProvider.classifyLine(text);
+        if (scenario != ShellCompletionProvider.Scenario.COMMAND_NAME) return false;
+        // COMMAND_NAME: only skip bash when the typed command already exists
+        // verbatim in history (re-run-last-command win). A bare PREFIX must still
+        // reach bash so e.g. `git` surfaces `git`/`gitk` and `git st` surfaces
         // `git stash` — otherwise shell completion appears dead for common
         // commands whose prefix occurs >=3 times in history.
-        if (!lw.equals(text)) return false; // not the first/only word -> arg context
+        String cmd = lastWordOf(text);
+        if (!cmd.equals(text)) return false; // not the first/only word -> arg context
         for (String msg : mMessageHistoryCtrl.getHistoryList()) {
-            if (msg.equals(lw)) return true;
+            if (msg.equals(cmd)) return true;
         }
         return false;
     }
