@@ -268,18 +268,16 @@ public class JavaEdgeParseRealBashTest {
                 mProvider.complete(line, mHome.getAbsolutePath(), line.length());
         assertNotNull(r);
         assertNotNull(r.candidates);
-        // Жёсткий верхний предел нормализации (MAX_CACHED_CANDIDATES = 4000) и
-        // мягкий лимит bash-стороны (__MAX_CANDIDATES = 300) — проверяем, что
-        // мы не вернули все 1500 и не вышли за жёсткий предел.
-        assertTrue("candidate count (" + r.candidates.size() + ") must be <= 4000 hard cap",
-                r.candidates.size() <= 4000);
+        // Жёсткий верхний предел нормализации (MAX_CACHED_CANDIDATES = 100000).
+        assertTrue("candidate count (" + r.candidates.size() + ") must be <= 100000 hard cap",
+                r.candidates.size() <= 100_000);
         // Список не должен быть пустым (реальные файлы есть).
         assertFalse("must find at least some of the 1500 files", r.candidates.isEmpty());
-        // В реальном запуске bash ограничивает ~300; убеждаемся, что лимит
-        // сработал (иначе вернулись бы все 1500).
-        assertTrue("bash-side cap (~300) should keep count well below " + N
-                        + " but got " + r.candidates.size(),
-                r.candidates.size() < N);
+        // Новое поведение: на первой букве слова bash возвращает ВСЕ кандидаты
+        // (старый лимит ~300 снят), поэтому все N файлов должны вернуться.
+        assertTrue("all " + N + " files should be returned (bash cap removed), got "
+                        + r.candidates.size(),
+                r.candidates.size() >= N);
     }
 
     @Test

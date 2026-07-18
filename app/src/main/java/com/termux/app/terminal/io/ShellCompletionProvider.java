@@ -38,11 +38,23 @@ public class ShellCompletionProvider {
 
     private static final String LOG_TAG = "ShellCompletionProvider";
 
-    /** Max candidates we ever keep/parse (defensive bound on memory / popup size). */
-    private static final int MAX_CACHED_CANDIDATES = 4000;
+    /**
+     * Max candidates we ever keep/parse (defensive memory backstop). Set very
+     * high on purpose: the design fetches ALL candidates for the FIRST typed
+     * character of a word and then filters locally for every subsequent
+     * character, so the cache must be allowed to hold the entire universe for
+     * that word slot. The real cost bound is the popup render limit
+     * (suggestions_max_count), not this number.
+     */
+    private static final int MAX_CACHED_CANDIDATES = 100_000;
 
-    /** Cap applied INSIDE bash before sorting/transmitting (perf + UX bound). */
-    private static final int MAX_BASH_CANDIDATES = 300;
+    /**
+     * Cap applied INSIDE bash before transmitting. For the FIRST typed character
+     * of a word we want EVERY available candidate (the caller filters locally
+     * afterwards), so this is intentionally very large. The Java-side
+     * {@link #MAX_CACHED_CANDIDATES} is the ultimate memory backstop.
+     */
+    private static final int MAX_BASH_CANDIDATES = 100_000;
 
     /** Max stat() syscalls per fresh fetch (per-candidate type inference cap). */
     private static final int STAT_BUDGET = 200;
@@ -481,14 +493,20 @@ public class ShellCompletionProvider {
         long now = System.currentTimeMillis();
         synchronized (mCacheLock) {
             if (mCacheKey != null && mCacheKey.equals(key) && mCachedCandidates != null
-                    && mCachePrefix != null && (now - mCacheTimestamp) < CACHE_TTL_MS) {
-                // Serve the cache only when the requested prefix is consistent with the
-                // prefix the cache was built for: either the user typed MORE characters of
-                // the same word (lastWord extends mCachePrefix) OR deleted some (mCachePrefix
-                // extends lastWord). In both cases every cached candidate still starts with
-                // the requested lastWord, so local filtering stays correct. If the user
-                // backspaced to a shorter prefix and retyped a DIFFERENT character, neither
-                // holds and the cache is stale → fall through to a fresh bash fetch.
+                    && mCachePrefix != null) {
+                // Cache HIT for the same word slot. We serve the FULL cached candidate
+                // set whenever the requested prefix is consistent with the prefix the
+                // cache was built for: either the user typed MORE characters of the same
+                // word (lastWord extends mCachePrefix) OR deleted some (mCachePrefix
+                // extends lastWord). In both cases every cached candidate still starts
+                // with the requested lastWord, so local filtering stays correct.
+                //
+                // Crucially we do NOT require the TTL to be fresh here: while the user is
+                // still typing the SAME word we must filter locally and never re-query
+                // bash, even if more than CACHE_TTL_MS elapsed between keystrokes. Only a
+                // DIFFERENT word slot (key mismatch) or a diverging prefix (neither extends
+                // the other) falls through to a fresh bash fetch, which itself refreshes
+                // the whole universe for the new word.
                 if (lastWordStripped.startsWith(mCachePrefix) || mCachePrefix.startsWith(lastWordStripped)) {
                     return CompletionResult.of(mCachedCandidates, mCacheIsFilename,
                             mCacheNoSpace, mCacheNoSort, mCacheNoQuote);
@@ -1610,5 +1628,16 @@ public class ShellCompletionProvider {
         parseNulRecords(out, raw, flags);
         return new BashResult(normalizeCandidates(raw, cwd),
                 flags[0], flags[1], flags[2], flags[3]);
+    }
+
+    /**
+     * Test-only: force the cache timestamp into the distant past so the TTL would
+     * be considered expired. Lets tests assert that a compatible-prefix cache HIT
+     * while typing the SAME word still serves locally (TTL ignored) instead of
+     * re-spawning bash after a long pause between keystrokes. This is exactly the
+     * "first letter fetches all, later letters filter locally" guarantee.
+     */
+    void debugExpireCacheTimestamp() {
+        synchronized (mCacheLock) { mCacheTimestamp = 0; }
     }
 }

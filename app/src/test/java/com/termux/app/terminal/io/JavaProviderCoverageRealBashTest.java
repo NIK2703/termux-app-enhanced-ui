@@ -348,15 +348,15 @@ public class JavaProviderCoverageRealBashTest {
 
     @Test
     public void normalize_hardCapRespected() {
-        // Более MAX_CACHED_CANDIDATES (4000) сырых записей → список обрезается.
+        // Более MAX_CACHED_CANDIDATES (100000) сырых записей → список обрезается.
         List<String> raw = new ArrayList<>();
-        for (int i = 0; i < 5000; i++) raw.add("c" + i);
+        for (int i = 0; i < 120_000; i++) raw.add("c" + i);
         List<ShellCompletionProvider.ShellCandidate> cands =
                 ShellCompletionProvider.debugNormalizeCandidates(raw, null);
         assertNotNull(cands);
-        assertTrue("hard cap 4000 must not be exceeded, got " + cands.size(),
-                cands.size() <= 4000);
-        assertEquals("exact cap hit", 4000, cands.size());
+        assertTrue("hard cap 100000 must not be exceeded, got " + cands.size(),
+                cands.size() <= 100_000);
+        assertEquals("exact cap hit", 100_000, cands.size());
     }
 
     @Test
