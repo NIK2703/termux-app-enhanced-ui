@@ -188,34 +188,10 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
      * Horizontal swipe on a suggestion row progressively appends the next
      * word(s) of that suggestion into a live text selection in the input field.
      * Swipe right adds words, swipe left removes them; the selection is dropped
-     * (committed) when the finger is lifted. State is per-gesture and reset in
-     * {@link #resetSwipeState()}.
+     * (committed) when the finger is lifted. All per-gesture state lives in the
+     * handler.
      */
-    private int mSwipeTouchSlop = -1;
-    /** Raw X at ACTION_DOWN, used to compute horizontal displacement. */
-    private float mSwipeStartX;
-    /** Raw Y at ACTION_DOWN, used to require the gesture stays horizontal-dominant. */
-    private float mSwipeStartY;
-    /** True once horizontal movement exceeded the touch slop (swipe engaged). */
-    private boolean mSwipeEngaged;
-    /** Words remaining to be inserted from the swiped suggestion (in order). */
-    @Nullable private String[] mSwipeWords;
-    /** Text kept before any swipe-added words (the user's already-typed prefix / base). */
-    @Nullable private String mSwipeBaseText;
-    /** Whether a leading space is needed before the first appended word. */
-    private boolean mSwipeNeedsLeadingSpace;
-    /** Selection anchor (start) — stays fixed while the selection end grows/shrinks. */
-    private int mSwipeAnchorStart;
-    /** Number of words currently appended to the selection. */
-    private int mSwipeWordsAdded;
-    /** Horizontal pixels of finger travel that add/remove one word. */
-    private int mSwipeUnitWidthPx;
-    /** Suggestion string the current gesture started on (matched by tag, not index). */
-    @Nullable private String mSwipeSuggestion;
-    /** Parent whose touch-interception we disabled while engaged, so we can restore it. */
-    @Nullable private android.view.ViewParent mSwipeDisallowParent;
-    /** Suggestion row held in the pressed state during the swipe, cleared on end. */
-    @Nullable private View mSwipePressedView;
+    @NonNull private final AutoCompleteSwipeHandler mSwipeHandler;
 
     // ── Auto-complete popup dimensions (read once from resources) ──
     private final int mPopupCornerRadiusPx;
@@ -309,6 +285,13 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
                 mPopupWidthFraction, mPopupXOffsetPx,
                 mPopupEdgeMarginPx, mPopupYOffsetPx,
                 mPopupMinYPx, mPopupContentAlpha, mPopupShadowAlpha);
+        // Swipe-to-select gesture handler: needs the live input field (it may be
+        // swapped by tests) plus callbacks to refresh suggestions and to clear the
+        // auto-complete suppression guard on gesture end.
+        mSwipeHandler = new AutoCompleteSwipeHandler(mContext,
+                () -> mInputField,
+                this::updateAutoCompleteSuggestions,
+                () -> mSuppressAutoComplete = false);
         syncShellCompletionEnabled();
         attachInputListeners();
     }
@@ -1242,7 +1225,7 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
             dismissAutoCompleteSuggestions();
             mMessageHistoryDismissListener.run();
         });
-        tv.setOnTouchListener(this::onSuggestionSwipeTouch);
+        tv.setOnTouchListener(mSwipeHandler::onTouch);
         return tv;
     }
 
@@ -1318,7 +1301,7 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
                     // dirs are filenames: quote stems that contain metacharacters,
                     // then ensure the trailing '/' sits OUTSIDE any quotes.
                     if (meta.isFilename && !meta.noQuote) {
-                        insert = quoteIfNeeded(insert);
+                        insert = AutoCompleteQuoting.quoteIfNeeded(insert);
                     }
                     if (!insert.endsWith("/")) insert += "/";
                     addSpace = false;
@@ -1326,7 +1309,7 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
                 case FILE:
                     // files are filenames: quote only if the stem has metachars.
                     if (meta.isFilename && !meta.noQuote) {
-                        insert = quoteIfNeeded(insert);
+                        insert = AutoCompleteQuoting.quoteIfNeeded(insert);
                     }
                     addSpace = !meta.noSpace;
                     break;
@@ -1345,7 +1328,7 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
                     // contains a shell metacharacter (e.g. a function "my cmd") must
                     // still be quoted so it inserts as one token, not two.
                     if (!meta.noQuote) {
-                        insert = quoteIfNeeded(insert);
+                        insert = AutoCompleteQuoting.quoteIfNeeded(insert);
                     }
                     addSpace = !meta.noSpace;
                     break;
@@ -1359,307 +1342,6 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
         String newText = text.substring(0, replaceStart) + insert + text.substring(replaceEnd);
         mInputField.setText(newText);
         mInputField.setSelection(replaceStart + insert.length());
-    }
-
-    /**
-     * Single-quote a candidate when it contains shell metacharacters and is not
-     * already quoted. Embedded single-quotes are escaped as {@code '\''}. Commands,
-     * options and already-quoted strings are returned unchanged. This mirrors how
-     * readline inserts a completion that contains characters special to the shell.
-     */
-    @NonNull
-    private static String quoteIfNeeded(@NonNull String s) {
-        if (s.isEmpty()) return s;
-        // Already a fully-quoted token -> leave untouched.
-        if (isAlreadyQuoted(s)) return s;
-        // A leading '~' (or '~user') must keep its tilde UNQUOTED so bash performs
-        // tilde expansion; only the remainder (which may contain spaces) is quoted.
-        // e.g. ~/My Documents -> ~/My\ Documents, ~bob/My Docs -> ~bob/My\ Docs.
-        if (s.charAt(0) == '~') {
-            int slash = s.indexOf('/');
-            String tildePart = (slash < 0) ? s : s.substring(0, slash);
-            String rest = (slash < 0) ? "" : s.substring(slash);
-            if (needsQuoting(rest)) {
-                return tildePart + quoteHard(rest);
-            }
-            return s;
-        }
-        if (needsQuoting(s)) {
-            return quoteHard(s);
-        }
-        return s;
-    }
-
-    /** True if {@code s} contains a shell metacharacter that warrants quoting. */
-    private static boolean needsQuoting(@NonNull String s) {
-        for (int i = 0; i < s.length(); i++) {
-            if (" \t()&;|<>*?[]{}'\"$`\\".indexOf(s.charAt(i)) >= 0) return true;
-        }
-        return false;
-    }
-
-    /** Wrap {@code s} in single quotes, escaping embedded single quotes POSIX-style. */
-    private static String quoteHard(@NonNull String s) {
-        return "'" + s.replace("'", "'\\''") + "'";
-    }
-
-    /**
-     * True if {@code s} is already a complete, balanced, shell-valid quoted token
-     * and must NOT be re-quoted. We only accept a token that is fully surrounded
-     * by a matching open+close quote; we do NOT treat a token that merely
-     * *contains* a stray quote (e.g. a real filename {@code it's}) as "done",
-     * because that would leave an unescaped metacharacter in the command line.
-     */
-    private static boolean isAlreadyQuoted(@NonNull String s) {
-        int n = s.length();
-        if (n < 2) return false;
-        char first = s.charAt(0);
-        char last = s.charAt(n - 1);
-        return (first == '\'' && last == '\'') || (first == '"' && last == '"');
-    }
-
-    /**
-     * Touch handler implementing the swipe-to-select gesture on a suggestion row.
-     *
-     * <p>While the finger is down and moving horizontally past the touch slop,
-     * each {@link #mSwipeUnitWidthPx} of rightward travel appends the next word
-     * of the suggestion into a live selection in {@link #mInputField}; leftward
-     * travel removes previously-added words. The selection is highlighted while
-     * the finger is down and collapsed (committed) on release. A pure tap never
-     * engages the swipe and falls through to the item's {@code OnClickListener}
-     * (tap-to-insert), because we return {@code false} until the slop is crossed.
-     */
-    private boolean onSuggestionSwipeTouch(@NonNull View v, @NonNull MotionEvent event) {
-        if (mInputField == null) return false;
-
-        switch (event.getActionMasked()) {
-            case MotionEvent.ACTION_DOWN: {
-                mSwipeStartX = event.getRawX();
-                mSwipeStartY = event.getRawY();
-                mSwipeEngaged = false;
-                mSwipeWordsAdded = 0;
-
-                if (mSwipeTouchSlop < 0) {
-                    mSwipeTouchSlop = android.view.ViewConfiguration.get(mContext).getScaledTouchSlop();
-                }
-                // ~24dp of travel per word — a light, responsive swipe.
-                float density = mContext.getResources().getDisplayMetrics().density;
-                mSwipeUnitWidthPx = Math.max(1, (int) (24 * density));
-
-                Object tag = v.getTag();
-                mSwipeSuggestion = (tag instanceof String) ? (String) tag : null;
-                if (mSwipeSuggestion == null) return false;
-
-                // The words to insert are the suggestion's remainder past the
-                // already-typed prefix, so we never re-append what's already there.
-                String base = mInputField.getText() != null ? mInputField.getText().toString() : "";
-                mSwipeBaseText = base;
-                boolean isPrefixMatch = !base.isEmpty()
-                        && mSwipeSuggestion.length() >= base.length()
-                        && mSwipeSuggestion.regionMatches(true, 0, base, 0, base.length());
-                String remainder = computeRemainder(mSwipeSuggestion, base);
-                mSwipeWords = splitShellWords(remainder);
-                // Add a leading space before the first word only when the first
-                // word starts a NEW token: i.e. the suggestion is NOT a prefix
-                // continuation of what's typed (so the word doesn't complete a
-                // half-typed token) AND the base doesn't already end in a
-                // separator (space or '/').
-                mSwipeNeedsLeadingSpace = !isPrefixMatch
-                        && !base.isEmpty()
-                        && !isWordSeparator(base.charAt(base.length() - 1));
-                mSwipeAnchorStart = base.length();
-                // Not consumed yet: allow a tap to become a click.
-                return false;
-            }
-
-            case MotionEvent.ACTION_MOVE: {
-                if (mSwipeWords == null || mSwipeWords.length == 0) {
-                    // Single-word (or empty-remainder) suggestion: nothing to add.
-                    return mSwipeEngaged;
-                }
-                float dx = event.getRawX() - mSwipeStartX;
-                float dy = event.getRawY() - mSwipeStartY;
-                if (!mSwipeEngaged) {
-                    if (Math.abs(dx) <= mSwipeTouchSlop) return false;
-                    // Ignore vertical-dominant drags so the popup can still scroll
-                    // (and diagonal scroll gestures aren't hijacked as word swipes).
-                    if (Math.abs(dy) > Math.abs(dx)) return false;
-                    // Engage swipe mode and stop the popup ScrollView from stealing
-                    // the gesture. Keep the row in the pressed state so it shows the
-                    // exact same highlight as a tap for the whole duration of the swipe.
-                    mSwipeEngaged = true;
-                    v.setPressed(true);
-                    v.cancelLongPress();
-                    mSwipePressedView = v;
-                    mSwipeDisallowParent = v.getParent();
-                    if (mSwipeDisallowParent != null) {
-                        mSwipeDisallowParent.requestDisallowInterceptTouchEvent(true);
-                    }
-                    mSuppressAutoComplete = true;
-                    // The selection highlight only renders while the field is focused.
-                    if (!mInputField.isFocused()) mInputField.requestFocus();
-                }
-                int target = (int) (dx / mSwipeUnitWidthPx);
-                if (target < 0) target = 0;
-                if (target > mSwipeWords.length) target = mSwipeWords.length;
-                if (target != mSwipeWordsAdded) {
-                    applyWordSelection(target);
-                    mSwipeWordsAdded = target;
-                }
-                return true;
-            }
-
-            case MotionEvent.ACTION_UP: {
-                boolean wasEngaged = mSwipeEngaged;
-                if (wasEngaged) {
-                    // Finger lifted intentionally: collapse the selection to its
-                    // end = commit the appended words.
-                    int end = mInputField.getSelectionEnd();
-                    if (end < 0) end = mInputField.length();
-                    mInputField.setSelection(end, end);
-                }
-                resetSwipeState();
-                if (wasEngaged) {
-                    // The field text changed during the swipe (which was suppressed):
-                    // refresh the auto-complete popup for the newly committed text.
-                    updateAutoCompleteSuggestions();
-                }
-                // If engaged we consumed the gesture (suppress the click); otherwise
-                // return false so a pure tap still triggers tap-to-insert.
-                return wasEngaged;
-            }
-
-            case MotionEvent.ACTION_CANCEL: {
-                boolean wasEngaged = mSwipeEngaged;
-                if (wasEngaged) {
-                    // Gesture cancelled (not a real lift): revert to the untouched
-                    // base text so no words are left committed.
-                    applyWordSelection(0);
-                    int end = mInputField.length();
-                    mInputField.setSelection(end, end);
-                }
-                resetSwipeState();
-                if (wasEngaged) {
-                    updateAutoCompleteSuggestions();
-                }
-                return wasEngaged;
-            }
-
-            default:
-                return mSwipeEngaged;
-        }
-    }
-
-    /**
-     * Returns the portion of {@code suggestion} that still needs to be inserted
-     * given the already-typed {@code base}. If the suggestion starts with the
-     * base (case-insensitively, matching the popup's own prefix logic), only the
-     * tail is returned; otherwise the whole suggestion is returned.
-     */
-    @NonNull
-    private static String computeRemainder(@NonNull String suggestion, @NonNull String base) {
-        if (!base.isEmpty()
-                && suggestion.length() >= base.length()
-                && suggestion.regionMatches(true, 0, base, 0, base.length())) {
-            return suggestion.substring(base.length());
-        }
-        return suggestion;
-    }
-
-    /**
-     * Split a remainder into "words" delimited by {@link #WORD_SEPARATORS}
-     * (space and '/'), keeping each word's <b>trailing</b> separator so the
-     * original spacing/path structure is restored exactly when re-appended.
-     * A leading run of separators is folded into the first word's prefix.
-     *
-     * <p>Example: {@code "usr/bin/env"} → {@code ["usr/", "bin/", "env"]}
-     * (no trailing separator fabricated for the last word);
-     * {@code " commit -m"} → {@code [" commit ", "-m"]}.
-     */
-    @NonNull
-    private static String[] splitShellWords(@NonNull String s) {
-        if (s.isEmpty()) return new String[0];
-        java.util.ArrayList<String> out = new java.util.ArrayList<>();
-        int i = 0;
-        int n = s.length();
-        // Fold any leading separators into the prefix of the first token so that
-        // the boundary between the base text and the first word is preserved.
-        int leadStart = i;
-        while (i < n && isWordSeparator(s.charAt(i))) i++;
-        String lead = s.substring(leadStart, i);
-        while (i < n) {
-            int wordStart = i;
-            while (i < n && !isWordSeparator(s.charAt(i))) i++;
-            // Include the run of trailing separators that actually followed this
-            // word in the original suggestion (e.g. '/' for paths, one or more
-            // spaces for arguments). Nothing is added if the word ended the
-            // string, so a separator that wasn't in the original is never fabricated.
-            while (i < n && isWordSeparator(s.charAt(i))) i++;
-            String token = s.substring(wordStart, i);
-            if (!lead.isEmpty()) {
-                token = lead + token;
-                lead = "";
-            }
-            out.add(token);
-        }
-        // A remainder consisting only of separators (rare) still yields the lead.
-        if (!lead.isEmpty()) out.add(lead);
-        return out.toArray(new String[0]);
-    }
-
-    /** True if {@code c} is one of {@link #WORD_SEPARATORS} (space or '/'). */
-    private static boolean isWordSeparator(char c) {
-        return c == ' ' || c == '/';
-    }
-
-    /**
-     * Rebuild the input field so that exactly {@code n} of {@link #mSwipeWords}
-     * are appended after {@link #mSwipeBaseText}, then select the appended range.
-     * Deterministic (recomputed from scratch each call) so rapid direction
-     * reversals stay correct.
-     */
-    private void applyWordSelection(int n) {
-        if (mInputField == null || mSwipeWords == null || mSwipeBaseText == null) return;
-        StringBuilder sb = new StringBuilder(mSwipeBaseText);
-        for (int i = 0; i < n; i++) {
-            // A leading space is inserted before the first word only when it
-            // begins a new token and the base doesn't already end in a separator.
-            if (i == 0 && mSwipeNeedsLeadingSpace) sb.append(' ');
-            // Each token already carries its own trailing separator (space or '/')
-            // captured from the suggestion, so path/argument structure is restored
-            // exactly and the text stays ready for the next token.
-            sb.append(mSwipeWords[i]);
-        }
-        String newText = sb.toString();
-        mInputField.setText(newText);
-        int end = newText.length();
-        int start = Math.min(mSwipeAnchorStart, end);
-        mInputField.setSelection(start, end);
-    }
-
-    /**
-     * Clear all per-gesture swipe state. Always lifts the auto-complete
-     * suppression guard and the parent touch-interception block so neither can
-     * leak past the end of a gesture regardless of which exit path ran.
-     */
-    private void resetSwipeState() {
-        if (mSwipePressedView != null) {
-            mSwipePressedView.setPressed(false);
-            mSwipePressedView = null;
-        }
-        if (mSwipeDisallowParent != null) {
-            mSwipeDisallowParent.requestDisallowInterceptTouchEvent(false);
-            mSwipeDisallowParent = null;
-        }
-        if (mSwipeEngaged) {
-            mSuppressAutoComplete = false;
-        }
-        mSwipeEngaged = false;
-        mSwipeWords = null;
-        mSwipeBaseText = null;
-        mSwipeSuggestion = null;
-        mSwipeWordsAdded = 0;
-        mSwipeNeedsLeadingSpace = false;
     }
 
     private void showAutoCompletePopup(@NonNull EditText inputField) {
