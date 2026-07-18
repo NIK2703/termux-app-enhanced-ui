@@ -1694,7 +1694,6 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
      */
     public void recomputeUIColors() {
         mColorSchemeManager.recompute(getPreferences());
-        if (mAutoCompleteCtrl != null) mAutoCompleteCtrl.refreshInputSyntaxHighlighting();
     }
 
     /** @return Cached panel/button background colour. */
@@ -2233,8 +2232,12 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
      * @param visible true to show, false to hide
      */
     public void setTextInputVisible(boolean visible) {
-        // Dismiss auto-complete suggestions when hiding the panel
-        if (!visible) dismissAutoCompleteSuggestions();
+        // Dismiss auto-complete suggestions when hiding the panel. Use the
+        // controller's dismiss() (not the raw popup dismiss) so any in-progress
+        // swipe-gesture suppression guard is also cleared and auto-complete is
+        // not left permanently disabled.
+        if (!visible && mAutoCompleteCtrl != null) mAutoCompleteCtrl.dismiss();
+        else if (!visible) dismissAutoCompleteSuggestions();
 
         View textInputContainer = findViewById(R.id.terminal_toolbar_text_input_container);
         if (textInputContainer != null) {
@@ -2408,14 +2411,9 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         if (mTermuxTerminalSessionActivityClient != null)
             mTermuxTerminalSessionActivityClient.onReloadActivityStyling();
 
-        // Reflect a changed shell-completion toggle without a full restart.
-        if (mAutoCompleteCtrl != null)
-            mAutoCompleteCtrl.syncShellCompletionEnabled();
-
         // Cache all UI colours from the (now-updated) COLOR_SCHEME so every consumer reads
         // fresh values without computing them on the fly.
         mColorSchemeManager.recompute(getPreferences());
-        if (mAutoCompleteCtrl != null) mAutoCompleteCtrl.refreshInputSyntaxHighlighting();
 
         if (mTermuxTerminalViewClient != null)
             mTermuxTerminalViewClient.onReloadActivityStyling();

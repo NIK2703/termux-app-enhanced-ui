@@ -395,6 +395,4 @@
     <!-- Text input auto-complete -->
     <string name="suggestions_max_count_title">Max suggestions</string>
     <string name="suggestions_max_count_summary">Auto-complete suggestions from message history (1–10)</string>
-    <string name="shell_completion_enabled_title">Shell command completion</string>
-    <string name="shell_completion_enabled_summary">Also suggest commands from the system shell (bash) programmable completion</string>
 </resources>

@@ -375,6 +375,4 @@
     <!-- Text input auto-complete -->
     <string name="suggestions_max_count_title">Макс. подсказок</string>
     <string name="suggestions_max_count_summary">Автодополнение из истории сообщений (1–10)</string>
-    <string name="shell_completion_enabled_title">Автодополнение команд оболочки</string>
-    <string name="shell_completion_enabled_summary">Также предлагать команды из программируемого автодополнения оболочки (bash)</string>
 </resources>

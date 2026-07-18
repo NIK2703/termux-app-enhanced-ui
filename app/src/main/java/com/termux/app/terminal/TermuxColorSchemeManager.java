@@ -31,14 +31,6 @@ public final class TermuxColorSchemeManager {
     private int mHistoryPopupSepColor = 0;
     private int mHistoryHighlightFill = 0;
 
-    // --- Bash syntax-highlight token colours ---
-    private int mTokenCommand = 0;
-    private int mTokenPath = 0;
-    private int mTokenVariable = 0;
-    private int mTokenOption = 0;
-    private int mTokenQuoted = 0;
-    private int mTokenOperator = 0;
-
     /**
      * (Re)compute ALL cached colours from the scheme and panel alpha percentages.
      *
@@ -79,44 +71,6 @@ public final class TermuxColorSchemeManager {
         mHistoryHighlightFill = mIsSchemeLight
                 ? Color.argb(26, 0, 0, 0)
                 : Color.argb(26, 255, 255, 255);
-
-        // Bash syntax-highlight token colours. Derived from the ACTIVE Termux
-        // Styling colour scheme's own ANSI palette (the same 16-colour terminal
-        // palette the user picks in Termux:Styling), so they follow the selected
-        // scheme for both light and dark themes and never clash with it.
-        //
-        // For a light background we use the normal (0-7) ANSI colours (dark,
-        // legible on light); for a dark background we use the bright (8-15)
-        // variants (vivid on black). Each role maps to a distinct palette slot:
-        //   command -> green, path -> blue, variable -> red, option -> yellow,
-        //   quoted -> cyan, operator -> magenta.
-        int base = mIsSchemeLight ? 0 : 8; // 0 = normal, 8 = bright
-        mTokenCommand  = schemeAnsi(base + 2);  // green
-        mTokenPath     = schemeAnsi(base + 4);  // blue
-        mTokenVariable = schemeAnsi(base + 1);  // red
-        mTokenOption   = schemeAnsi(base + 3);  // yellow
-        mTokenQuoted   = schemeAnsi(base + 6);  // cyan
-        mTokenOperator = schemeAnsi(base + 5);  // magenta
-    }
-
-    /**
-     * Resolve an ANSI palette colour (0-15) from the currently applied Termux
-     * Styling colour scheme. Falls back to a neutral grey if the scheme is unset.
-     */
-    private static int schemeAnsi(int index) {
-        if (index < 0 || index > 15) return Color.GRAY;
-        try {
-            int[] palette = TerminalColors.COLOR_SCHEME.mDefaultColors;
-            // A palette slot of 0 means the scheme has not been initialised yet
-            // (no Termux:Styling scheme loaded) — fall back to a neutral grey so
-            // highlighting never paints with a transparent/black colour.
-            if (palette != null && index < palette.length && palette[index] != 0) {
-                return palette[index];
-            }
-        } catch (Exception ignored) {
-            // Scheme not yet initialised — fall through to fallback.
-        }
-        return Color.GRAY;
     }
 
     // --- Getters ---
@@ -147,21 +101,6 @@ public final class TermuxColorSchemeManager {
 
     /** @return Cached highlight fill for the history popup item under the finger. */
     public int getHistoryHighlightFill() { return mHistoryHighlightFill; }
-
-    // --- Bash syntax-highlight token colours ---
-
-    /** @return Cached colour for a recognised command name. */
-    public int getTokenCommand() { return mTokenCommand; }
-    /** @return Cached colour for a path / directory token. */
-    public int getTokenPath() { return mTokenPath; }
-    /** @return Cached colour for a variable expansion ({@code $VAR}, {@code ${VAR}}). */
-    public int getTokenVariable() { return mTokenVariable; }
-    /** @return Cached colour for an option / flag ({@code -x}, {@code --long}). */
-    public int getTokenOption() { return mTokenOption; }
-    /** @return Cached colour for a quoted string. */
-    public int getTokenQuoted() { return mTokenQuoted; }
-    /** @return Cached colour for an operator / redirection ({@code |}, {@code >}, {@code &&}). */
-    public int getTokenOperator() { return mTokenOperator; }
 
     // --- Static utility ---
 

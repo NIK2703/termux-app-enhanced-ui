@@ -84,7 +84,7 @@ final class AutoCompleteTextRenderer {
         // Shell candidates are matched against the last word of the line (the token
         // bash completed); history against the whole line. The bold highlight must
         // cover the exact matched token.
-        String matchStr = isShell ? ShellCompletionProvider.lastWordOf(input) : input;
+        String matchStr = isShell ? AutoCompleteController.lastWordOf(input) : input;
         int wordStart = Math.min(wordStartOffset(matchStr), suggestion.length());
         int boldLen = matchStr.length() - wordStart;
         boolean hasLastWord = boldLen > 0;

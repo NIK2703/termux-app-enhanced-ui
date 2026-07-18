@@ -17,11 +17,10 @@ import java.util.ArrayList;
  * enforces the responsibility split:
  *
  * <ul>
- *   <li>{@code AutoCompleteController} — owns the suggestion data, the fetch/merge
- *       pipeline, input handling and candidate insertion;</li>
- *   <li>{@code AutoCompletePopupManager} — owns the TWO popup windows (build,
- *       show, position, dismiss, per-window content rebuild & bold-span refresh);</li>
- *   <li>{@code AutoCompleteTextRenderer} — pure string/Spannable shaping.</li>
+ *   <li>{@code AutoCompleteController} — owns the suggestion data, input handling
+ *       and candidate insertion;</li>
+ *   <li>{@code AutoCompletePopupManager} — owns the history popup window (build,
+ *       show, position, dismiss, content rebuild & bold-span refresh);</li>
  * </ul>
  */
 interface AutoCompleteDataProvider {
@@ -31,15 +30,6 @@ interface AutoCompleteDataProvider {
 
     /** Parallel isShell flags for {@link #getSuggestions()}. */
     @NonNull ArrayList<Boolean> getIsShell();
-
-    /** Parallel shell candidate types (null for history entries). */
-    @NonNull ArrayList<ShellCompletionProvider.CandidateType> getShellTypes();
-
-    /** Parallel shell candidate metadata (null for history entries). */
-    @NonNull ArrayList<ShellCompletionProvider.ShellCandidate> getShellMeta();
-
-    /** Number of leading shell-completion entries in the suggestion list. */
-    int getShellSuggestionCount();
 
     /** Max number of suggestions to RENDER (user setting). */
     int getDisplayMax();
@@ -61,4 +51,7 @@ interface AutoCompleteDataProvider {
 
     /** Callback run when the popup is dismissed by a suggestion tap. */
     void onSuggestionDismissed();
+
+    /** True while a swipe-to-select gesture is in progress (popup must survive). */
+    boolean isSwipeActive();
 }

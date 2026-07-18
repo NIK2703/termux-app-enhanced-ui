@@ -59,17 +59,31 @@ final class AutoCompleteSwipeHandler {
     @NonNull private final Context mContext;
     @NonNull private final Supplier<EditText> mInputFieldSupplier;
     @NonNull private final Runnable mRefreshCallback;
-    /** Back-reference to clear the controller's auto-complete suppression guard. */
+    /** Back-reference to set the controller's swipe auto-complete suppression guard (on engage). */
+    @NonNull private final Runnable mSetSuppress;
+    /** Back-reference to clear the controller's swipe auto-complete suppression guard (on end). */
     @NonNull private final Runnable mClearSuppress;
 
     AutoCompleteSwipeHandler(@NonNull Context context,
                              @NonNull Supplier<EditText> inputFieldSupplier,
                              @NonNull Runnable refreshCallback,
+                             @NonNull Runnable setSuppress,
                              @NonNull Runnable clearSuppress) {
         mContext = context;
         mInputFieldSupplier = inputFieldSupplier;
         mRefreshCallback = refreshCallback;
+        mSetSuppress = setSuppress;
         mClearSuppress = clearSuppress;
+    }
+
+    /** True while the gesture has crossed the touch slop and is in swipe mode. */
+    boolean isEngaged() {
+        return mSwipeEngaged;
+    }
+
+    /** Force-clear all per-gesture state (used when focus is lost / popup dismissed externally). */
+    void resetIfEngaged() {
+        if (mSwipeEngaged) resetSwipeState();
     }
 
     @Nullable
@@ -137,6 +151,11 @@ final class AutoCompleteSwipeHandler {
                     // the gesture. Keep the row in the pressed state so it shows the
                     // exact same highlight as a tap for the whole duration of the swipe.
                     mSwipeEngaged = true;
+                    // Suppress auto-complete during the gesture so the programmatic
+                    // text edits (applyWordSelection) don't dismiss/refresh the popup
+                    // behind the swipe. Set AFTER mSwipeEngaged so the two can't
+                    // desync (engaged=true always implies suppress=true here).
+                    mSetSuppress.run();
                     v.setPressed(true);
                     v.cancelLongPress();
                     mSwipePressedView = v;
@@ -287,28 +306,31 @@ final class AutoCompleteSwipeHandler {
     }
 
     /**
-     * Clear all per-gesture swipe state. Always lifts the auto-complete
-     * suppression guard (via {@link #mClearSuppress}) and the parent
-     * touch-interception block so neither can leak past the end of a gesture
-     * regardless of which exit path ran.
+     * Clear all per-gesture swipe state. Lifts the auto-complete suppression guard
+     * and the parent touch-interception block UNCONDITIONALLY (wrapped in
+     * try/finally) so neither can leak past the end of a gesture, regardless of
+     * which exit path ran (UP / CANCEL / forced reset on focus loss).
      */
     void resetSwipeState() {
-        if (mSwipePressedView != null) {
-            mSwipePressedView.setPressed(false);
-            mSwipePressedView = null;
-        }
-        if (mSwipeDisallowParent != null) {
-            mSwipeDisallowParent.requestDisallowInterceptTouchEvent(false);
-            mSwipeDisallowParent = null;
-        }
-        if (mSwipeEngaged) {
+        try {
+            if (mSwipePressedView != null) {
+                mSwipePressedView.setPressed(false);
+                mSwipePressedView = null;
+            }
+            if (mSwipeDisallowParent != null) {
+                mSwipeDisallowParent.requestDisallowInterceptTouchEvent(false);
+                mSwipeDisallowParent = null;
+            }
+        } finally {
+            // Always lift the suppress guard, even if the view bookkeeping above
+            // threw — otherwise auto-complete would be permanently disabled.
             mClearSuppress.run();
+            mSwipeEngaged = false;
+            mSwipeWords = null;
+            mSwipeBaseText = null;
+            mSwipeSuggestion = null;
+            mSwipeWordsAdded = 0;
+            mSwipeNeedsLeadingSpace = false;
         }
-        mSwipeEngaged = false;
-        mSwipeWords = null;
-        mSwipeBaseText = null;
-        mSwipeSuggestion = null;
-        mSwipeWordsAdded = 0;
-        mSwipeNeedsLeadingSpace = false;
     }
 }

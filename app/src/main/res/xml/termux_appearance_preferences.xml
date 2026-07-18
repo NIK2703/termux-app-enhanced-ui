@@ -77,13 +77,6 @@
             app:showSeekBarValue="true"
             app:iconSpaceReserved="false" />
 
-        <SwitchPreferenceCompat
-            app:key="shell_completion_enabled"
-            app:title="@string/shell_completion_enabled_title"
-            app:summary="@string/shell_completion_enabled_summary"
-            app:defaultValue="false"
-            app:iconSpaceReserved="false" />
-
     </PreferenceCategory>
 
 </PreferenceScreen>
