@@ -224,7 +224,6 @@ public class ShellCompletionProvider {
     /** The single long-lived bash dispatcher process (lazy-started). */
     @Nullable private Process mPersistent;
     @Nullable private java.io.BufferedWriter mPersistentIn;
-    @Nullable private java.io.BufferedReader mPersistentOut;
     @Nullable private Thread mPersistentErrDrain;
     /** Temp file the dispatcher script is materialized to (once), reused for restarts. */
     @Nullable private File mScriptFile;
@@ -1325,7 +1324,7 @@ public class ShellCompletionProvider {
     /** Lazily (re)start the persistent dispatcher. Returns false if unavailable. */
     private boolean ensurePersistent() {
         if (mPersistent != null && mPersistent.isAlive()
-                && mPersistentIn != null && mPersistentOut != null) {
+                && mPersistentIn != null) {
             return true;
         }
         stopPersistent();
@@ -1357,8 +1356,6 @@ public class ShellCompletionProvider {
             mPersistent = p;
             mPersistentIn = new java.io.BufferedWriter(
                     new java.io.OutputStreamWriter(p.getOutputStream(), StandardCharsets.UTF_8));
-            mPersistentOut = new BufferedReader(
-                    new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8));
             final java.io.InputStream err = p.getErrorStream();
             Thread drain = new Thread(() -> {
                 try (BufferedReader er = new BufferedReader(
@@ -1387,17 +1384,14 @@ public class ShellCompletionProvider {
     private void stopPersistent() {
         synchronized (mProcLock) {
         final java.io.Closeable in = mPersistentIn;
-        final java.io.Closeable out = mPersistentOut;
         final Thread errDrain = mPersistentErrDrain;
         final Process p = mPersistent;
         mPersistentIn = null;
-        mPersistentOut = null;
         mPersistentErrDrain = null;
         mPersistent = null;
-        if (p == null && in == null && out == null) return;
+        if (p == null && in == null) return;
         Thread reaper = new Thread(() -> {
             closeQuietly(in);
-            closeQuietly(out);
             if (p != null) {
                 try { killProcessGroup(p); } catch (Throwable ignored) { }
                 try { p.destroyForcibly(); } catch (Throwable ignored) { }
