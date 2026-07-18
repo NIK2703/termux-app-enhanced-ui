@@ -2,6 +2,7 @@ package com.termux.app.terminal.io.autocomplete;
 
 import android.content.Context;
 import android.graphics.Typeface;
+import android.text.Editable;
 import android.os.Vibrator;
 import android.view.MotionEvent;
 import android.view.View;
@@ -53,6 +54,8 @@ final class AutoCompleteSwipeHandler {
     private float mSwipeStartY;
     /** True once the gesture has crossed the touch slop and is in swipe mode. */
     private boolean mSwipeEngaged;
+    /** Whether a finger is currently pressed on a suggestion row (DOWN without UP/CANCEL). */
+    private boolean mSwipePointerDown = false;
     /** Cached touch slop (first access). */
     private int mSwipeTouchSlop = -1;
 
@@ -81,6 +84,11 @@ final class AutoCompleteSwipeHandler {
         return mSwipeEngaged;
     }
 
+    /** True while a finger is pressed on a suggestion row (no UP/CANCEL yet). */
+    boolean isPointerDown() {
+        return mSwipePointerDown;
+    }
+
     /** Force-clear all per-gesture state (used when focus is lost / popup dismissed externally). */
     void resetIfEngaged() {
         if (mSwipeEngaged) resetSwipeState();
@@ -95,8 +103,14 @@ final class AutoCompleteSwipeHandler {
         final EditText inputField = field();
         if (inputField == null) return false;
 
-        switch (event.getActionMasked()) {
+        final int action = event.getActionMasked();
+        try {
+        switch (action) {
             case MotionEvent.ACTION_DOWN: {
+                // Guard against a stale engaged state if a previous gesture's
+                // UP/CANCEL was never delivered (e.g. app backgrounded mid-swipe).
+                if (mSwipeEngaged) resetSwipeState();
+                mSwipePointerDown = true;
                 mSwipeStartX = event.getRawX();
                 mSwipeStartY = event.getRawY();
                 mSwipeEngaged = false;
@@ -185,11 +199,17 @@ final class AutoCompleteSwipeHandler {
                     if (end < 0) end = inputField.length();
                     inputField.setSelection(end, end);
                 }
-                resetSwipeState();
                 if (wasEngaged) {
-                    // The field text changed during the swipe (which was suppressed):
-                    // refresh the auto-complete popup for the newly committed text.
-                    mRefreshCallback.run();
+                    // НЕ вызываем тяжёлый refresh синхронно из onTouch: пересчёт
+                    // попапа (showAtLocation/rebuild/views) реентерабельно из
+                    // обработчика тача падает. Снимаем гвард подавления и
+                    // обновляем попап на следующем шаге looper'а, УЖЕ ПОСЛЕ
+                    // завершения жеста (finally ниже корректно сбросит состояние).
+                    final EditText f = inputField;
+                    f.post(() -> {
+                        mClearSuppress.run();
+                        mRefreshCallback.run();
+                    });
                 }
                 // If engaged we consumed the gesture (suppress the click); otherwise
                 // return false so a pure tap still triggers tap-to-insert.
@@ -205,15 +225,28 @@ final class AutoCompleteSwipeHandler {
                     int end = inputField.length();
                     inputField.setSelection(end, end);
                 }
-                resetSwipeState();
                 if (wasEngaged) {
-                    mRefreshCallback.run();
+                    final EditText f = inputField;
+                    f.post(() -> {
+                        mClearSuppress.run();
+                        mRefreshCallback.run();
+                    });
                 }
                 return wasEngaged;
             }
 
             default:
                 return mSwipeEngaged;
+        }
+        } finally {
+            // Guarantee the per-gesture state is torn down (and the auto-complete
+            // suppress guard lifted) on UP/CANCEL even if a branch threw. Without
+            // this, a missing UP/CANCEL or an exception would leave mSwipeSuppressed
+            // stuck true and silence auto-complete on every subsequent keystroke.
+            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                mSwipePointerDown = false;
+                resetSwipeState();
+            }
         }
     }
 
@@ -299,7 +332,8 @@ final class AutoCompleteSwipeHandler {
             sb.append(mSwipeWords[i]);
         }
         String newText = sb.toString();
-        inputField.setText(newText);
+        Editable ed = inputField.getText();
+        ed.replace(0, ed.length(), newText);
         int end = newText.length();
         int start = Math.min(mSwipeAnchorStart, end);
         inputField.setSelection(start, end);

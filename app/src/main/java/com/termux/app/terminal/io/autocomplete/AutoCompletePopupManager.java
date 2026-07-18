@@ -7,6 +7,7 @@ import android.graphics.Outline;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.text.Layout;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
@@ -22,6 +23,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.termux.R;
+import com.termux.BuildConfig;
 import com.termux.app.terminal.TermuxColorSchemeManager;
 import com.termux.shared.logger.Logger;
 
@@ -59,12 +61,29 @@ final class AutoCompletePopupManager {
     // ── Popup window state (owned here, not in the controller) ──
     @Nullable private PopupWindow mHistoryPopup;
     @Nullable private LinearLayout mHistoryContent;
-    @Nullable private android.view.ViewTreeObserver.OnGlobalLayoutListener mSuggestionsLayoutListener;
+    /**
+     * Layout-change listener attached to the INPUT FIELD (not the decor view), so a
+     * reposition is only triggered when the input field's own layout changes — not
+     * on every Activity-wide layout pass (which caused a redundant second reposition
+     * and visible jitter).
+     */
+    @Nullable private View.OnLayoutChangeListener mSuggestionsLayoutListener;
+    /** The view the layout listener is registered on, so we can unregister the exact same view. */
+    @Nullable private View mLayoutListenerTarget;
 
     private int mLastPopupWidth = 0;
     private int mLastPopupHeight = 0;
     private int mLastPopupX = 0;
     private int mLastPopupY = 0;
+
+    // Reused scratch array for getLocationInWindow in the hot positioning path
+    // (every keystroke) — avoids a new int[2] allocation per call.
+    private final int[] mTmpLoc = new int[2];
+
+    // Reused BOLD span instance — avoids a new StyleSpan allocation on every
+    // character typed (applyBoldSpan runs on each visible line per keystroke).
+    private static final android.text.style.StyleSpan BOLD_SPAN =
+            new android.text.style.StyleSpan(android.graphics.Typeface.BOLD);
 
     private int mLastBuiltHistoryVersion = -1;
     @Nullable private String mLastAppliedPrefix = "";
@@ -142,15 +161,19 @@ final class AutoCompletePopupManager {
     }
 
     private int calcPopupX(@NonNull EditText inputField, int popupWidth) {
+        int[] loc = mTmpLoc;
+        inputField.getLocationInWindow(loc);
+        return calcPopupX(inputField, popupWidth, loc[0], loc[1]);
+    }
+
+    private int calcPopupX(@NonNull EditText inputField, int popupWidth, int locX, int locY) {
         int cursorPos = inputField.getSelectionStart();
         Layout layout = inputField.getLayout();
         float cursorX = 0;
         if (layout != null && cursorPos >= 0) {
             cursorX = layout.getPrimaryHorizontal(cursorPos);
         }
-        int[] loc = new int[2];
-        inputField.getLocationInWindow(loc);
-        int popupX = loc[0] + (int) cursorX - inputField.getScrollX() + mPopupXOffsetPx;
+        int popupX = locX + (int) cursorX - inputField.getScrollX() + mPopupXOffsetPx;
         int displayWidth = mContext.getResources().getDisplayMetrics().widthPixels;
         if (popupX + popupWidth > displayWidth - mPopupEdgeMarginPx) {
             popupX = displayWidth - popupWidth - mPopupEdgeMarginPx;
@@ -160,17 +183,24 @@ final class AutoCompletePopupManager {
     }
 
     private int calcPopupY(@NonNull EditText inputField, int popupHeight, int popupWidth) {
+        int[] loc = mTmpLoc;
+        inputField.getLocationInWindow(loc);
+        return calcPopupY(inputField, popupHeight, popupWidth, loc[0], loc[1]);
+    }
+
+    private int calcPopupY(@NonNull EditText inputField, int popupHeight, int popupWidth, int locX, int locY) {
         int cursorPos = inputField.getSelectionStart();
         Layout layout = inputField.getLayout();
         float cursorY = 0;
         if (layout != null && cursorPos >= 0) {
             cursorY = layout.getLineTop(layout.getLineForOffset(cursorPos));
         }
-        int[] loc = new int[2];
-        inputField.getLocationInWindow(loc);
-        int popupY = loc[1] + (int) cursorY - inputField.getScrollY() - popupHeight - mPopupYOffsetPx;
+        // Привязываем popup к каретке: он появляется ВЫШЕ строки каретки в поле
+        // ввода. Если выше нет места (попадает выше допустимого минимума),
+        // показываем НИЖЕ строки каретки — чтобы не перекрывать саму каретку.
+        int popupY = locY + (int) cursorY - inputField.getScrollY() - popupHeight - mPopupYOffsetPx;
         if (popupY < mPopupMinYPx) {
-            popupY = loc[1] + (int) cursorY - inputField.getScrollY() + mPopupEdgeMarginPx;
+            popupY = locY + (int) cursorY - inputField.getScrollY() + mPopupEdgeMarginPx;
         }
         return popupY;
     }
@@ -178,8 +208,10 @@ final class AutoCompletePopupManager {
     // ── Show / build ──
 
     private void showAutoCompletePopup(@NonNull EditText inputField) {
-        Logger.logInfo(LOG_TAG, "[autocomplete] showAutoCompletePopup suggestions="
-                + mData.getSuggestions().size());
+        if (BuildConfig.DEBUG) {
+            Logger.logInfo(LOG_TAG, "[autocomplete] showAutoCompletePopup suggestions="
+                    + mData.getSuggestions().size());
+        }
 
         final String input = inputField.getText().toString();
         int historyN = mData.getSuggestions().size();
@@ -189,7 +221,9 @@ final class AutoCompletePopupManager {
                 && mHistoryContent != null && mHistoryContent.getParent() != null;
 
         if (!hasHistory || (historyReuse && !contentChangedForWindow())) {
-            Logger.logInfo(LOG_TAG, "[autocomplete] popup reuse FAST PATH (bold-spans only)");
+            if (BuildConfig.DEBUG) {
+                Logger.logInfo(LOG_TAG, "[autocomplete] popup reuse FAST PATH (bold-spans only)");
+            }
             updateBoldSpansOnly(input);
             mLastBuiltHistoryVersion = mData.getHistoryVersion();
             mLastAppliedPrefix = input;
@@ -201,8 +235,9 @@ final class AutoCompletePopupManager {
 
         if (hasHistory) {
             if (historyReuse && mHistoryContent != null) {
-                mHistoryContent.setScrollY(0);
+                final int savedScroll = mHistoryContent.getScrollY();
                 rebuildHistoryViews(mHistoryContent, input);
+                mHistoryContent.setScrollY(savedScroll);
             } else {
                 if (mHistoryPopup != null) { try { mHistoryPopup.dismiss(); } catch (Exception ignored) {} mHistoryPopup = null; }
                 mHistoryContent = new LinearLayout(mContext);
@@ -216,13 +251,22 @@ final class AutoCompletePopupManager {
 
         mLastBuiltHistoryVersion = mData.getHistoryVersion();
         mLastAppliedPrefix = input;
-        Logger.logInfo(LOG_TAG, "[autocomplete] popup built (history=" + hasHistory + ")");
+        if (BuildConfig.DEBUG) {
+            Logger.logInfo(LOG_TAG, "[autocomplete] popup built (history=" + hasHistory + ")");
+        }
         applyPopupGeometry(inputField);
 
-        Window window = mData.getWindow();
-        if (window != null && mSuggestionsLayoutListener == null) {
-            mSuggestionsLayoutListener = this::repositionAutoCompletePopup;
-            window.getDecorView().getViewTreeObserver().addOnGlobalLayoutListener(mSuggestionsLayoutListener);
+        if (mSuggestionsLayoutListener == null) {
+            mSuggestionsLayoutListener =
+                    (v, l, t, r, b, ol, ot, or, ob) -> {
+                        // Geometry unchanged (size of the input field is the same) → no
+                        // reposition. This drops the redundant reposition on per-character
+                        // input where the text changes but the field's box does not.
+                        if (l == ol && t == ot && r == or && b == ob) return;
+                        repositionAutoCompletePopup();
+                    };
+            mLayoutListenerTarget = inputField;
+            inputField.addOnLayoutChangeListener(mSuggestionsLayoutListener);
         }
     }
 
@@ -233,8 +277,10 @@ final class AutoCompletePopupManager {
             View child = ((ScrollView) popup.getContentView()).getChildAt(0);
             if (child != null) h = child.getMeasuredHeight();
         }
-        int x = calcPopupX(inputField, w);
-        int y = calcPopupY(inputField, h, w);
+        int[] loc = mTmpLoc;
+        inputField.getLocationInWindow(loc);
+        int x = calcPopupX(inputField, w, loc[0], loc[1]);
+        int y = calcPopupY(inputField, h, w, loc[0], loc[1]);
         try {
             popup.showAtLocation(inputField, Gravity.NO_GRAVITY, x, y);
         } catch (Exception e) {
@@ -305,39 +351,48 @@ final class AutoCompletePopupManager {
         // gesture, which both fixes miss.
         if (mData.isSwipeActive()) return;
         EditText inputField = mData.getInputField();
-        if (inputField != null) {
+        // Do not dismiss while an IME composition is active: the caret can briefly
+        // sit inside the composing span even though the user is still typing.
+        if (inputField != null && !AutoCompleteController.hasComposingSpan(inputField)) {
             int caret = inputField.getSelectionStart();
-            String text = inputField.getText().toString();
-            if (caret < 0 || caret != text.length()) {
+            if (caret < 0 || caret != inputField.getText().length()) {
                 dismissAutoCompleteSuggestions();
                 return;
             }
         }
-        final EditText field = mContext instanceof Activity
-                ? ((Activity) mContext).findViewById(R.id.terminal_toolbar_text_input)
-                : inputField;
-        if (field == null) return;
-        Logger.logInfo(LOG_TAG, "[autocomplete] repositionAutoCompletePopup");
-        applyPopupGeometry(field);
+        if (inputField == null) return;
+        applyPopupGeometry(inputField);
     }
 
     private void applyPopupGeometry(@NonNull EditText inputField) {
         if (!isShowing()) {
-            Logger.logInfo(LOG_TAG, "[autocomplete] applyPopupGeometry skip (no window showing)");
+            if (BuildConfig.DEBUG) {
+                Logger.logInfo(LOG_TAG, "[autocomplete] applyPopupGeometry skip (no window showing)");
+            }
             return;
         }
         Layout layout = inputField.getLayout();
         if (layout == null) {
-            Logger.logInfo(LOG_TAG, "[autocomplete] applyPopupGeometry skip (layout null) — retrying");
+            if (BuildConfig.DEBUG) {
+                Logger.logInfo(LOG_TAG, "[autocomplete] applyPopupGeometry skip (layout null) — retrying");
+            }
             inputField.post(() -> applyPopupGeometry(inputField));
             return;
         }
         int w = mLastPopupWidth > 0 ? mLastPopupWidth : computePopupWidth(inputField.getWidth());
         if (w <= 0) {
-            Logger.logInfo(LOG_TAG, "[autocomplete] applyPopupGeometry skip (w=" + w + ")");
+            if (BuildConfig.DEBUG) {
+                Logger.logInfo(LOG_TAG, "[autocomplete] applyPopupGeometry skip (w=" + w + ")");
+            }
             return;
         }
 
+        int[] loc = mTmpLoc;
+        inputField.getLocationInWindow(loc);
+
+        // Сначала измеряем высоту содержимого, затем вычисляем Y с реальной
+        // высотой — иначе геом-гвард сравнивал бы Y, посчитанный с высотой 0,
+        // и рассинхронизировался бы с первичным показом.
         int historyH = 0;
         if (mHistoryPopup != null && mHistoryPopup.isShowing() && mHistoryContent != null) {
             mHistoryContent.measure(
@@ -346,17 +401,23 @@ final class AutoCompletePopupManager {
             historyH = mHistoryContent.getMeasuredHeight();
         }
 
-        int historyX = calcPopupX(inputField, w);
-        int historyY = calcPopupY(inputField, historyH, w);
+        int historyX = calcPopupX(inputField, w, loc[0], loc[1]);
+        int historyY = calcPopupY(inputField, historyH, w, loc[0], loc[1]);
+
+        // Geometry guard: if the popup's X/Y did not change, the caret did not
+        // visually move — skip the content measure entirely and avoid PopupWindow
+        // update jitter on every keystroke.
+        if (mHistoryPopup != null && mHistoryPopup.isShowing()
+                && historyX == mLastPopupX && historyY == mLastPopupY) {
+            return;
+        }
 
         if (mHistoryPopup != null && mHistoryPopup.isShowing()) {
             mLastPopupWidth = w;
-            if (historyX != mLastPopupX || historyY != mLastPopupY || historyH != mLastPopupHeight) {
-                mHistoryPopup.update(historyX, historyY, w, historyH);
-                mLastPopupX = historyX;
-                mLastPopupY = historyY;
-                mLastPopupHeight = historyH;
-            }
+            mHistoryPopup.update(historyX, historyY, w, historyH);
+            mLastPopupX = historyX;
+            mLastPopupY = historyY;
+            mLastPopupHeight = historyH;
         }
     }
 
@@ -376,9 +437,15 @@ final class AutoCompletePopupManager {
 
         boolean historyChanged = contentChangedForWindow();
 
-        if (historyChanged && mHistoryContent != null) rebuildHistoryViews(mHistoryContent, newText);
+        if (historyChanged && mHistoryContent != null) {
+            final int savedScroll = mHistoryContent.getScrollY();
+            rebuildHistoryViews(mHistoryContent, newText);
+            mHistoryContent.setScrollY(savedScroll);
+        }
 
-        Logger.logInfo(LOG_TAG, "[autocomplete] updatePopupContent historyChanged=" + historyChanged);
+        if (BuildConfig.DEBUG) {
+            Logger.logInfo(LOG_TAG, "[autocomplete] updatePopupContent historyChanged=" + historyChanged);
+        }
         mLastAppliedPrefix = newText;
         applyPopupGeometry(inputField);
     }
@@ -402,12 +469,22 @@ final class AutoCompletePopupManager {
         updateBoldSpansInWindow(mHistoryPopup, mHistoryContent, newText);
     }
 
+    /** Cheap refresh of bold spans only (no rebuild/dismiss) for the active popup. */
+    void updateBoldOnly(@NonNull String newText) {
+        updateBoldSpansOnly(newText);
+    }
+
     private void updateBoldSpansInWindow(@Nullable PopupWindow popup,
                                           @Nullable LinearLayout content,
                                           @NonNull String newText) {
         if (popup == null || !popup.isShowing() || content == null) return;
+        // Skip entirely if the prefix text did not change.
+        if (newText.equals(mLastAppliedPrefix)) return;
+        mLastAppliedPrefix = newText;
         final int n = displayCount();
-        Logger.logInfo(LOG_TAG, "[autocomplete] updateBoldSpansOnly(history) views=" + content.getChildCount());
+        if (BuildConfig.DEBUG) {
+            Logger.logInfo(LOG_TAG, "[autocomplete] updateBoldSpansOnly(history) views=" + content.getChildCount());
+        }
         int rendered = 0;
         int viewIdx = 0;
         for (int i = 0; i < mData.getSuggestions().size() && rendered < n; i++) {
@@ -434,23 +511,34 @@ final class AutoCompletePopupManager {
         final int prefixLen = prefix.length();
 
         int ws = Math.min(wordStart, suggestion.length());
-        String expectedDisplay = (prefixLen > 0)
-                ? prefix + suggestion.substring(ws)
-                : suggestion;
 
         CharSequence currentText = tv.getText();
-        if (!expectedDisplay.contentEquals(currentText)) {
+        // Лениво вычисляем ожидаемую строку отображения — только в ветке ребилда
+        // (редкий случай пересечения границы слова). Обычно currentText уже
+        // совпадает с suggestion и сравниваем это без конкатенации substring+prefix.
+        final int curLen = currentText.length();
+        final int sugLen = suggestion.length();
+        boolean displayMatches;
+        if (prefixLen == 0) {
+            displayMatches = (curLen == sugLen) && suggestion.contentEquals(currentText);
+        } else {
+            displayMatches = (curLen == prefixLen + (sugLen - ws))
+                    && prefix.contentEquals(currentText.subSequence(0, prefixLen))
+                    && TextUtils.regionMatches(suggestion, ws, currentText, prefixLen, sugLen - ws);
+        }
+        if (!displayMatches) {
             int availWidth = tv.getWidth() - tv.getPaddingLeft() - tv.getPaddingRight();
             android.text.SpannableString ss = AutoCompleteTextRenderer.buildSuggestionSpannable(
                     suggestion, newText, Math.max(0, availWidth), tv.getPaint(), false);
             tv.setText(ss, TextView.BufferType.SPANNABLE);
         } else {
+            // Единственный bold-span известен (BOLD_SPAN) — снимаем напрямую без
+            // getSpans()-аллокации массива на каждую строку каждого символа.
             android.text.Spannable sp = (android.text.Spannable) currentText;
-            android.text.style.StyleSpan[] old = sp.getSpans(0, sp.length(), android.text.style.StyleSpan.class);
-            for (android.text.style.StyleSpan s : old) sp.removeSpan(s);
+            sp.removeSpan(BOLD_SPAN);
             if (hasLastWord && prefixLen + boldLen <= sp.length()
                     && suggestion.regionMatches(true, 0, newText, 0, inputLen)) {
-                sp.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+                sp.setSpan(BOLD_SPAN,
                         prefixLen, prefixLen + boldLen,
                         android.text.SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
@@ -495,7 +583,9 @@ final class AutoCompletePopupManager {
         if (mHistoryPopup == null) {
             return;
         }
-        Logger.logInfo(LOG_TAG, "[autocomplete] dismiss (history=" + (mHistoryPopup != null) + ")");
+        if (BuildConfig.DEBUG) {
+            Logger.logInfo(LOG_TAG, "[autocomplete] dismiss (history=" + (mHistoryPopup != null) + ")");
+        }
         if (mHistoryPopup != null) {
             try { mHistoryPopup.dismiss(); } catch (Exception ignored) {}
             mHistoryPopup = null;
@@ -505,12 +595,11 @@ final class AutoCompletePopupManager {
         mLastPopupX = 0;
         mLastPopupY = 0;
         if (mSuggestionsLayoutListener != null) {
-            final android.view.View decor = (mContext instanceof Activity)
-                    ? ((Activity) mContext).getWindow().getDecorView() : null;
-            if (decor != null) {
-                decor.getViewTreeObserver().removeOnGlobalLayoutListener(mSuggestionsLayoutListener);
+            if (mLayoutListenerTarget != null) {
+                mLayoutListenerTarget.removeOnLayoutChangeListener(mSuggestionsLayoutListener);
             }
             mSuggestionsLayoutListener = null;
+            mLayoutListenerTarget = null;
         }
         // The controller owns the suggestion data; it clears its own lists and
         // resets the fetch state in onSuggestionDismissed().

@@ -1,6 +1,5 @@
 package com.termux.app.terminal.io.autocomplete;
 
-import android.annotation.SuppressLint;
 import android.graphics.Typeface;
 import android.os.Build;
 import android.text.Spannable;
@@ -9,6 +8,7 @@ import android.text.StaticLayout;
 import android.text.Layout;
 import android.text.TextPaint;
 import android.text.style.StyleSpan;
+import android.util.LruCache;
 
 import androidx.annotation.NonNull;
 
@@ -34,6 +34,19 @@ import androidx.annotation.NonNull;
 final class AutoCompleteTextRenderer {
 
     private AutoCompleteTextRenderer() {}
+
+    private static final StyleSpan BOLD_SPAN = new StyleSpan(Typeface.BOLD);
+
+    private static final int LAYOUT_CACHE_MAX = 512;
+    private static final LruCache<String, StaticLayout> sLayoutCache =
+            new LruCache<String, StaticLayout>(LAYOUT_CACHE_MAX) {
+                @Override protected int sizeOf(String key, StaticLayout value) {
+                    return value.getLineCount() + 1;
+                }
+            };
+    private static String layoutKey(@NonNull String text, int w, int maxLines) {
+        return text + "\u0000" + w + "\u0000" + maxLines;
+    }
 
     /**
      * Index of the start of the last whitespace/slash-delimited word in {@code s},
@@ -100,7 +113,7 @@ final class AutoCompleteTextRenderer {
         int spanEnd = Math.min(prefixLen + boldLen, displayText.length());
         if (hasLastWord && spanEnd > prefixLen
                 && suggestion.regionMatches(true, 0, matchStr, 0, matchStr.length())) {
-            ss.setSpan(new StyleSpan(Typeface.BOLD),
+            ss.setSpan(BOLD_SPAN,
                     prefixLen, spanEnd, SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
         return ss;
@@ -123,7 +136,7 @@ final class AutoCompleteTextRenderer {
             int lo = 0, hi = text.length();
             while (lo < hi) {
                 int mid = (lo + hi + 1) / 2;
-                if (fitsLines(text.substring(0, mid) + "…", availWidth, paint, maxLines)) {
+                if (fitsLines(text, 0, mid, true, availWidth, paint, maxLines)) {
                     lo = mid;
                 } else {
                     hi = mid - 1;
@@ -134,8 +147,7 @@ final class AutoCompleteTextRenderer {
         int lo = 0, hi = text.length();
         while (lo < hi) {
             int mid = (lo + hi + 1) / 2;
-            String cand = middleCandidate(text, mid);
-            if (fitsLines(cand, availWidth, paint, maxLines)) {
+            if (fitsLinesMiddle(text, mid, availWidth, paint, maxLines)) {
                 lo = mid;
             } else {
                 hi = mid - 1;
@@ -154,9 +166,51 @@ final class AutoCompleteTextRenderer {
         return text.substring(0, head) + "…" + text.substring(text.length() - tail);
     }
 
+    /** True when the (head + "…" + tail) middle candidate fits within {@code maxLines} lines. */
+    static boolean fitsLinesMiddle(@NonNull String text, int keep, int availWidth,
+            @NonNull TextPaint paint, int maxLines) {
+        int head = keep / 2;
+        int tail = keep - head;
+        if (head > text.length()) head = text.length();
+        if (tail > text.length() - head) tail = text.length() - head;
+        if (tail < 0) tail = 0;
+        int tailStart = text.length() - tail;
+        String key = layoutKey(text, 0, head, tailStart, text.length(), true, availWidth, maxLines);
+        StaticLayout layout = sLayoutCache.get(key);
+        if (layout == null) {
+            String slice = text.substring(0, head) + "…" + text.substring(tailStart);
+            layout = buildLayout(slice, availWidth, paint, maxLines);
+            sLayoutCache.put(key, layout);
+        }
+        return layout.getLineCount() <= maxLines;
+    }
+
     /** True when {@code text} lays out to at most {@code maxLines} lines of {@code availWidth}. */
-    @SuppressLint("DeprecatedApi")
     static boolean fitsLines(@NonNull String text, int availWidth,
+            @NonNull TextPaint paint, int maxLines) {
+        String key = layoutKey(text, availWidth, maxLines);
+        StaticLayout layout = sLayoutCache.get(key);
+        if (layout == null) {
+            layout = buildLayout(text, availWidth, paint, maxLines);
+            sLayoutCache.put(key, layout);
+        }
+        return layout.getLineCount() <= maxLines;
+    }
+
+    /** Slice-aware variant: builds layout only for [start, end) (+ "…" when {@code ellipsis}). */
+    static boolean fitsLines(@NonNull String text, int start, int end, boolean ellipsis,
+            int availWidth, @NonNull TextPaint paint, int maxLines) {
+        String key = layoutKey(text, start, end, end, end, ellipsis, availWidth, maxLines);
+        StaticLayout layout = sLayoutCache.get(key);
+        if (layout == null) {
+            String slice = (ellipsis ? text.substring(start, end) + "…" : text.substring(start, end));
+            layout = buildLayout(slice, availWidth, paint, maxLines);
+            sLayoutCache.put(key, layout);
+        }
+        return layout.getLineCount() <= maxLines;
+    }
+
+    private static StaticLayout buildLayout(@NonNull String text, int availWidth,
             @NonNull TextPaint paint, int maxLines) {
         StaticLayout layout;
         if (Build.VERSION.SDK_INT >= 23) {
@@ -170,6 +224,12 @@ final class AutoCompleteTextRenderer {
                     text, paint, availWidth,
                     Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
         }
-        return layout.getLineCount() <= maxLines;
+        return layout;
+    }
+
+    private static String layoutKey(@NonNull String text, int start, int end, int tailStart,
+            int tailEnd, boolean ellipsis, int w, int maxLines) {
+        return text + "\u0000" + start + "\u0000" + end + "\u0000" + tailStart + "\u0000"
+                + tailEnd + "\u0000" + ellipsis + "\u0000" + w + "\u0000" + maxLines;
     }
 }
