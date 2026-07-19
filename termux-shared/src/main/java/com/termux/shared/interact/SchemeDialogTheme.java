@@ -16,28 +16,15 @@ import com.termux.terminal.TerminalColors;
 import com.termux.terminal.TextStyle;
 
 /**
- * Wraps a {@link Context} so that any dialog (AlertDialog / MaterialAlertDialog) built from it is
- * coloured with the active Termux:Style colour scheme <b>from the first frame</b> — without the
- * post-show {@code OnShowListener} tint that causes a red/white flash.
- *
- * <p>This works by layering {@link R.style.ThemeOverlay_BaseDialog_Scheme} (whose colour attributes
- * reference {@code @color/scheme_dialog_*}) over the base context, and overriding {@link #getResources()}
- * so those placeholder colours resolve to the real scheme colours at runtime.</p>
+ * Wraps an activity {@link Context} so its whole UI is inflated with the active Termux:Style colour
+ * scheme <b>from the first frame</b> — by layering {@link R.style.ThemeOverlay_BaseActivity_Scheme}
+ * (whose colour attributes reference {@code @color/scheme_dialog_*}) over the base context, and
+ * overriding {@link #getResources()} so those placeholder colours resolve to the real scheme
+ * colours at runtime.
  */
 public final class SchemeDialogTheme {
 
     private SchemeDialogTheme() {}
-
-    /**
-     * @return A {@link Context} themed with the active colour scheme, suitable for passing to
-     *         {@code new AlertDialog.Builder(...)} / {@code new MaterialAlertDialogBuilder(...)}.
-     */
-    @NonNull
-    public static Context wrap(@NonNull Context context) {
-        int fg = ColorSchemeUtils.getSchemeForeground();
-        int bg = TerminalColors.COLOR_SCHEME.mDefaultColors[TextStyle.COLOR_INDEX_BACKGROUND];
-        return wrapWithStyle(context, R.style.ThemeOverlay_BaseDialog_Scheme, fg, bg);
-    }
 
     /**
      * Wrap an activity context so its WHOLE UI (toolbar, preferences, switches, the long-press
@@ -50,35 +37,6 @@ public final class SchemeDialogTheme {
         int fg = ColorSchemeUtils.getSchemeForeground();
         int bg = TerminalColors.COLOR_SCHEME.mDefaultColors[TextStyle.COLOR_INDEX_BACKGROUND];
         return new SchemeActivityContext(context, R.style.ThemeOverlay_BaseActivity_Scheme, fg, bg);
-    }
-
-    /** Build a dialog-scheme {@link ContextThemeWrapper}. */
-    private static Context wrapWithStyle(@NonNull Context base, int styleRes, int fg, int bg) {
-        return new SchemeContext(base, styleRes, fg, bg);
-    }
-
-    /** A {@link ContextThemeWrapper} that injects the scheme colours into {@code @color/scheme_dialog_*}. */
-    private static final class SchemeContext extends ContextThemeWrapper {
-
-        private final int mFg;
-        private final int mBg;
-        private final int mDivider;
-        private Resources mSchemeResources;
-
-        SchemeContext(@NonNull Context base, int styleRes, int fg, int bg) {
-            super(base, styleRes);
-            mFg = fg;
-            mBg = bg;
-            mDivider = blend(fg, bg, 0.3f);
-        }
-
-        @Override
-        public Resources getResources() {
-            if (mSchemeResources == null) {
-                mSchemeResources = new SchemeResources(super.getResources(), mFg, mBg, mDivider);
-            }
-            return mSchemeResources;
-        }
     }
 
     /**
@@ -234,20 +192,18 @@ public final class SchemeDialogTheme {
         }
     }
 
-    /** Linearly blend {@code from} -> {@code to} by {@code ratio} (0 = from, 1 = to), opaque. */
-    private static int blend(int from, int to, float ratio) {
-        int r = Math.round(android.graphics.Color.red(from) + (android.graphics.Color.red(to) - android.graphics.Color.red(from)) * ratio);
-        int g = Math.round(android.graphics.Color.green(from) + (android.graphics.Color.green(to) - android.graphics.Color.green(from)) * ratio);
-        int b = Math.round(android.graphics.Color.blue(from) + (android.graphics.Color.blue(to) - android.graphics.Color.blue(from)) * ratio);
-        return android.graphics.Color.rgb(r, g, b);
-    }
+        /** Linearly blend {@code from} -> {@code to} by {@code ratio} (0 = from, 1 = to), opaque. */
+        private static int blend(int from, int to, float ratio) {
+            int r = Math.round(android.graphics.Color.red(from) + (android.graphics.Color.red(to) - android.graphics.Color.red(from)) * ratio);
+            int g = Math.round(android.graphics.Color.green(from) + (android.graphics.Color.green(to) - android.graphics.Color.green(from)) * ratio);
+            int b = Math.round(android.graphics.Color.blue(from) + (android.graphics.Color.blue(to) - android.graphics.Color.blue(from)) * ratio);
+            return android.graphics.Color.rgb(r, g, b);
+        }
 
     /**
      * Apply the scheme background + title + navigation-icon colour to the activity's support
-     * toolbar, overriding the theme's red {@code colorPrimary}. Used by activities that cannot
-     * rely on the app-module {@code SettingsColorScheme} (e.g. shared {@code ReportActivity}).
-     * The status bar is made transparent so the toolbar background shows through, and its icon
-     * tint follows the scheme foreground.
+     * toolbar, overriding the theme's red {@code colorPrimary}. The status bar is made transparent
+     * so the toolbar background shows through, and its icon tint follows the scheme foreground.
      */
     public static void applyToToolbar(@NonNull android.app.Activity activity) {
         int fg = ColorSchemeUtils.getSchemeForeground();

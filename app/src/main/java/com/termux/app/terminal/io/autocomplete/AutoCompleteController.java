@@ -1048,28 +1048,38 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
     }
 
     /**
-     * Insert a chosen suggestion into the input field. For history items the whole
-     * line is inserted verbatim with no trailing decoration.
+     * Insert a chosen suggestion into the input field. The popup only ever shows a
+     * candidate that starts with the typed text (history: whole-line prefix; shell:
+     * last-word prefix), so we replace the maximal trailing substring of the typed
+     * text that is itself a prefix of the candidate. This unifies both cases and
+     * avoids duplicating the already-typed leading part — e.g. typing "git com"
+     * and picking "git commit -m" yields "git commit -m", not "git git commit -m".
      */
     private void insertCandidate(@NonNull String candidate) {
         if (mInputField == null) return;
         Editable editable = mInputField.getText();
         if (editable == null) return;
         String text = editable.toString();
-        String lastWord = lastWordOf(text);
-        int tailStart = text.length() - lastWord.length();
-        if (tailStart < 0) tailStart = 0;
+        int textLen = text.length();
 
-        // Respect a caret that is NOT at the end of the line: replace from the
-        // start of the last word up to the caret, and keep whatever follows the
-        // caret intact. When the caret is at/past the end we drop the whole tail.
         int caret = mInputField.getSelectionStart();
-        if (caret < 0) caret = text.length();
-        int replaceStart = tailStart;
-        int replaceEnd = text.length();
-        if (caret >= tailStart && caret < text.length()) {
-            replaceEnd = caret;
+        if (caret < 0 || caret > textLen) caret = textLen;
+        // When the caret sits inside the line, only the text BEFORE the caret can
+        // be the typed prefix we replace; anything after the caret is kept intact.
+        int caretPos = caret;
+
+        // Longest suffix of text[0..caretPos) that is a prefix of candidate.
+        int matchLen = 0;
+        int maxK = Math.min(caretPos, candidate.length());
+        for (int k = maxK; k >= 1; k--) {
+            if (text.regionMatches(caretPos - k, candidate, 0, k)) {
+                matchLen = k;
+                break;
+            }
         }
+
+        int replaceStart = caretPos - matchLen;
+        int replaceEnd = caretPos;
 
         String newText = text.substring(0, replaceStart) + candidate + text.substring(replaceEnd);
         mInputField.setText(newText);

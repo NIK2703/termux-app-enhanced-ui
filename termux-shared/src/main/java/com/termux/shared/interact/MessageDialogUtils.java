@@ -48,9 +48,7 @@ public class MessageDialogUtils {
                                     final DialogInterface.OnClickListener onNegativeButton,
                                     final DialogInterface.OnDismissListener onDismiss) {
 
-        // Use a standard Android AlertDialog (no custom layout), built from a scheme-themed
-        // context so it is coloured with the active Termux:Style scheme from the first frame.
-        AlertDialog.Builder builder = new AlertDialog.Builder(SchemeDialogTheme.wrap(context));
+        AlertDialog.Builder builder = new AlertDialog.Builder(context, androidx.appcompat.R.style.Theme_AppCompat_Light_Dialog);
         builder.setTitle(titleText);
         builder.setMessage(messageText);
 

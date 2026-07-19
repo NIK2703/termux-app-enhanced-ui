@@ -6,7 +6,6 @@ import com.termux.terminal.TerminalColors;
 import com.termux.terminal.TerminalColorScheme;
 import com.termux.terminal.TextStyle;
 import com.termux.shared.android.PackageUtils;
-import com.termux.shared.interact.SchemeDialogTheme;
 import com.termux.shared.logger.Logger;
 import com.termux.shared.termux.TermuxConstants;
 import com.termux.shared.termux.settings.properties.TermuxPropertyConstants;
@@ -228,9 +227,8 @@ public final class ColorSchemeUtils {
     public static void showColorSchemeDialog(Context context, boolean isNight, CharSequence title,
                                              CharSequence notInstalledMessage, Runnable onApplied) {
         final String[] schemes = listStylingColorSchemes(context);
-        Context dialogContext = SchemeDialogTheme.wrap(context);
         if (schemes == null) {
-            android.app.AlertDialog d = new android.app.AlertDialog.Builder(dialogContext)
+            android.app.AlertDialog d = new android.app.AlertDialog.Builder(context)
                 .setMessage(notInstalledMessage)
                 .setPositiveButton(android.R.string.ok, null)
                 .create();
@@ -242,7 +240,7 @@ public final class ColorSchemeUtils {
         for (int i = 0; i < schemes.length; i++)
             labels[i] = schemeDisplayName(schemes[i]);
 
-        android.app.AlertDialog d = new android.app.AlertDialog.Builder(dialogContext)
+        android.app.AlertDialog d = new android.app.AlertDialog.Builder(context)
             .setTitle(title)
             .setItems(labels, (dialog, which) -> {
                 persistSelection(isNight, schemes[which]);

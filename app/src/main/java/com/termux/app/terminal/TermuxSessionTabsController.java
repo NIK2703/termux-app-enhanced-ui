@@ -50,6 +50,9 @@ public class TermuxSessionTabsController {
     /** Whether the trailing placeholder page is currently present (for tab-strip blending). */
     private boolean mPlaceholderActive = false;
 
+    /** Animator that smoothly follows the active tab as its label changes. */
+    private android.animation.ValueAnimator mFollowAnim = null;
+
     public TermuxSessionTabsController(TermuxActivity activity) {
         this.mActivity = activity;
         this.mTabsContainer = activity.findViewById(R.id.session_tabs);
@@ -714,6 +717,55 @@ public class TermuxSessionTabsController {
     }
 
     /**
+     * Smoothly scroll (or jump, if {@code animate} is false) so the active tab is centred in the
+     * strip. This runs whenever the strip width changes (a tab added/removed, or its label grew/
+     * shrank), keeping the active tab centred as the layout settles. The target is clamped to the
+     * live HSV scroll range so it never overshoots; the move is skipped only when the target
+     * already equals the current scroll position (nothing to do).
+     */
+    public void ensureActiveTabVisible(boolean animate) {
+        if (mTabsContainer == null || mTabsScroll == null) return;
+        final int idx = mCurrentSessionIndex;
+        if (idx < 0 || idx >= mTabsContainer.getChildCount() - 1) return;
+        final View tabView = mTabsContainer.getChildAt(idx);
+        if (tabView == null) return;
+
+        final int scrollW = mTabsScroll.getWidth();
+        final int maxScroll = Math.max(0, mTabsContainer.getMeasuredWidth() - scrollW);
+        final int scrollX = mTabsScroll.getScrollX();
+
+        int target = tabView.getLeft() - scrollW / 2 + tabView.getWidth() / 2;
+        if (target < 0) target = 0;
+        if (target > maxScroll) target = maxScroll;
+
+        if (mFollowAnim != null) {
+            mFollowAnim.cancel();
+            mFollowAnim = null;
+        }
+        if (!animate || target == scrollX) {
+            mTabsScroll.scrollTo(target, 0);
+            return;
+        }
+        final int fromX = scrollX;
+        mFollowAnim = android.animation.ValueAnimator.ofInt(fromX, target);
+        mFollowAnim.setDuration(250);
+        mFollowAnim.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+        mFollowAnim.addUpdateListener(anim ->
+                mTabsScroll.scrollTo((int) anim.getAnimatedValue(), 0));
+        mFollowAnim.addListener(new android.animation.AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(android.animation.Animator animation) {
+                mFollowAnim = null;
+            }
+            @Override
+            public void onAnimationCancel(android.animation.Animator animation) {
+                mFollowAnim = null;
+            }
+        });
+        mFollowAnim.start();
+    }
+
+    /**
      * Re-apply the terminal color scheme to every existing tab view: text/close-icon color and a
      * translucent background matching the signal panel. Called from
      * {@code TermuxTerminalSessionActivityClient.applyPanelColors()} whenever the scheme changes.
@@ -816,7 +868,7 @@ public class TermuxSessionTabsController {
         // label is set (or via the fallback timer).
         if (mEndScrollActive) return;
         mEndScrollActive = false;
-        requestScroll(SCROLL_CENTRE, index);
+        ensureActiveTabVisible(true);
     }
 
     // ── Intermediate page-scroll support ──────────────────────────────────

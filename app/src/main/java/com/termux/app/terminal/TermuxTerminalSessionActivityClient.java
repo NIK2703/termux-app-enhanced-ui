@@ -33,7 +33,6 @@ import com.termux.shared.termux.settings.preferences.TermuxAppSharedPreferences;
 import com.termux.shared.termux.terminal.TermuxTerminalSessionClientBase;
 import com.termux.shared.termux.TermuxConstants;
 import com.termux.app.TermuxService;
-import com.termux.app.terminal.TermuxSchemeTheme;
 import com.termux.shared.termux.settings.properties.TermuxPropertyConstants;
 import com.termux.shared.theme.ThemeUtils;
 import com.termux.shared.theme.NightMode;
@@ -192,6 +191,13 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         }
 
         termuxSessionListNotifyUpdated();
+
+        // The active session's label changed (e.g. its OSC window title grew/shrank) — keep the
+        // active tab centred as its width changes, instead of leaving it clipped.
+        if (updatedSession == mActivity.getCurrentSession()) {
+            TermuxSessionTabsController tabs = mActivity.getTermuxSessionTabsController();
+            if (tabs != null) tabs.ensureActiveTabVisible(true);
+        }
     }
 
     /**
@@ -535,7 +541,7 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         if (service == null) return;
 
         if (service.getTermuxSessionsSize() >= MAX_SESSIONS) {
-            AlertDialog maxDialog = new AlertDialog.Builder(TermuxSchemeTheme.schemeContext(mActivity)).setTitle(R.string.title_max_terminals_reached).setMessage(R.string.msg_max_terminals_reached)
+            AlertDialog maxDialog = new AlertDialog.Builder(mActivity).setTitle(R.string.title_max_terminals_reached).setMessage(R.string.msg_max_terminals_reached)
                 .setPositiveButton(android.R.string.ok, null).create();
             maxDialog.show();
         } else {
@@ -628,7 +634,7 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         if (service == null) return;
 
         if (service.getTermuxSessionsSize() >= MAX_SESSIONS) {
-            AlertDialog maxDialog = new AlertDialog.Builder(TermuxSchemeTheme.schemeContext(mActivity)).setTitle(R.string.title_max_terminals_reached).setMessage(R.string.msg_max_terminals_reached)
+            AlertDialog maxDialog = new AlertDialog.Builder(mActivity).setTitle(R.string.title_max_terminals_reached).setMessage(R.string.msg_max_terminals_reached)
                 .setPositiveButton(android.R.string.ok, null).create();
             maxDialog.show();
             return;
@@ -948,17 +954,41 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
             extraKeys.setButtonColors(buttonText, buttonText, buttonBg, buttonActiveBg);
         }
 
-        // Session tabs panel buttons (new session / toggle text input) reuse the same
-        // translucent background + scheme foreground so they match the extra-keys panel.
+        // Session tabs panel buttons (new session / toggle text input): the fill is the
+        // terminal background overlaid with the inactive-element overlay (buttonBg) and the
+        // stroke is the terminal background overlaid with the active-element overlay
+        // (buttonActiveBg) — both composed by TermuxColorSchemeManager using the alpha
+        // percentages from settings. On top of those opaque colours the button itself is
+        // drawn at a fixed 50% opacity so it reads as a translucent control over the terminal.
+        int buttonStrokePx = Math.round(mActivity.getResources().getDimension(R.dimen.terminal_text_input_stroke));
+        // Compose an OPAQUE colour = terminal background overlaid with the inactive/active
+        // element tint at the SETTINGS overlay alpha (so moving the transparency sliders changes
+        // the element tint strength), then apply a flat 50% opacity on top of that opaque colour.
+        // NOTE: getButtonBg()/getButtonActiveBg() already carry the SETTINGS alpha baked in as
+        // transparency and are NOT composited onto the terminal background, so they cannot be
+        // re-alpha'd here. Instead rebuild the overlay at the settings alpha and composite it.
+        int buttonFillAlpha = 128; // 50%
+        TermuxAppSharedPreferences prefs = mActivity.getPreferences();
+        int overlayInactive = ColorSchemeUtils.getButtonBackground(isSchemeLight, prefs.getButtonBgInactiveAlpha());
+        int overlayActive = ColorSchemeUtils.getButtonActiveBackground(isSchemeLight, prefs.getButtonBgActiveAlpha());
+        int toggleButtonBg = withAlpha(
+                TermuxColorSchemeManager.compositeColors(mActivity.getColorSchemeManager().getSchemeBackground(), overlayInactive),
+                buttonFillAlpha);
+        int toggleButtonStroke = withAlpha(
+                TermuxColorSchemeManager.compositeColors(mActivity.getColorSchemeManager().getSchemeBackground(), overlayActive),
+                buttonFillAlpha);
         for (int id : new int[]{ R.id.new_session_tab_button, R.id.toggle_text_input_button }) {
             ImageButton btn = mActivity.findViewById(id);
             if (btn != null) {
                 android.graphics.drawable.GradientDrawable d =
                         new android.graphics.drawable.GradientDrawable();
                 d.setShape(android.graphics.drawable.GradientDrawable.OVAL);
-                d.setColor(buttonBg);
+                d.setColor(toggleButtonBg);
+                d.setStroke(buttonStrokePx, toggleButtonStroke);
                 btn.setBackground(d);
                 btn.setColorFilter(buttonText, android.graphics.PorterDuff.Mode.SRC_ATOP);
+                // Clear any foreground ring so the Drawable stroke above is the only border.
+                btn.setForeground(null);
             }
         }
 
@@ -1110,6 +1140,11 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         } catch (Exception e) {
             // Best-effort — silently ignore.
         }
+    }
+
+    /** Apply {@code alpha} (0–255) to the RGB of {@code color}. */
+    private static int withAlpha(int color, int alpha) {
+        return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color));
     }
 
 }

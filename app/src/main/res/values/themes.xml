@@ -51,8 +51,8 @@
 
         <!-- Left drawer. -->
         <item name="buttonBarButtonStyle">@style/TermuxActivity.Drawer.ButtonBarStyle.Light</item>
-        <item name="termuxActivityDrawerBackground">@color/white</item>
-        <item name="termuxActivityDrawerImageTint">@color/black</item>
+        <item name="termuxActivityDrawerBackground">@color/scheme_dialog_background</item>
+        <item name="termuxActivityDrawerImageTint">@color/scheme_dialog_foreground</item>
 
         <!-- Extra keys colors. -->
         <item name="extraKeysButtonTextColor">@color/black</item>

@@ -26,7 +26,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.termux.R;
 import com.termux.app.TermuxActivityUtils;
 import com.termux.app.terminal.TermuxColorSchemeManager;
-import com.termux.app.terminal.TermuxSchemeTheme;
 
 import java.util.ArrayList;
 
@@ -471,7 +470,7 @@ public final class MessageHistoryPopupController {
      * directories), Cancel. In global mode it stays as OK + Cancel.
      */
     private void confirmClearAllHistory() {
-        final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(TermuxSchemeTheme.schemeContext(mActivity))
+        final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(mActivity)
                 .setTitle(mActivity.getString(R.string.message_history_clear_question))
                 .setNegativeButton(android.R.string.cancel, null);
 

@@ -8,7 +8,6 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 
-import com.termux.app.activities.SettingsColorScheme;
 import com.termux.shared.interact.SchemeDialogTheme;
 
 /**
@@ -20,16 +19,6 @@ import com.termux.shared.interact.SchemeDialogTheme;
 public final class TermuxSchemeTheme {
 
     private TermuxSchemeTheme() {}
-
-    /**
-     * Wrap a base context so any dialog built from it is coloured with the active Termux:Style
-     * scheme from the first render (no post-show tint flash). Use this as the context for
-     * {@code AlertDialog.Builder} / {@code MaterialAlertDialogBuilder} instead of the raw activity.
-     */
-    @NonNull
-    public static Context schemeContext(@NonNull Context context) {
-        return SchemeDialogTheme.wrap(context);
-    }
 
     /** Recursively paint every TextView under {@code root} with {@code color}. */
     public static void tintViewTreeText(@NonNull View root, int color) {
@@ -47,7 +36,9 @@ public final class TermuxSchemeTheme {
     /** Build a single-colour pressed/selected selector for list highlights. */
     @NonNull
     public static android.graphics.drawable.StateListDrawable makeHighlightSelectorPublic(@NonNull TermuxColorSchemeManager csm) {
-        int highlight = SettingsColorScheme.withAlpha(csm.getSchemeForeground(), 0x26); // scheme fg @15%
+        int fg = csm.getSchemeForeground();
+        int highlight = android.graphics.Color.argb(0x26,
+                android.graphics.Color.red(fg), android.graphics.Color.green(fg), android.graphics.Color.blue(fg)); // scheme fg @15%
         return makeHighlightSelectorPublic(highlight);
     }
 

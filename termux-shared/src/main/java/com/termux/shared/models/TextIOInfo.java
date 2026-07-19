@@ -8,6 +8,7 @@ import androidx.annotation.NonNull;
 
 import com.termux.shared.activities.TextIOActivity;
 import com.termux.shared.data.DataUtils;
+import com.termux.shared.termux.extrakeys.ColorSchemeUtils;
 
 import java.io.Serializable;
 
@@ -64,8 +65,8 @@ public class TextIOInfo implements Serializable {
     private String mLabel;
     /** The text size of label. Defaults to 14sp. */
     private int mLabelSize = 14;
-    /** The text color of label. Defaults to {@link Color#BLACK}. */
-    private int mLabelColor = Color.BLACK;
+    /** The text color of label. Defaults to the active scheme foreground. */
+    private int mLabelColor = ColorSchemeUtils.getSchemeForeground();
     /** The {@link Typeface} family  of label. Defaults to "sans-serif". */
     private String mLabelTypeFaceFamily = "sans-serif";
     /** The {@link Typeface} style  of label. Defaults to {@link Typeface#BOLD}. */
@@ -81,8 +82,8 @@ public class TextIOInfo implements Serializable {
     private int mTextSize = 12;
     /** The text size for text. Defaults to {@link #TEXT_SIZE_LIMIT_IN_BYTES}. */
     private int mTextLengthLimit = TEXT_SIZE_LIMIT_IN_BYTES;
-    /** The text color of text. Defaults to {@link Color#BLACK}. */
-    private int mTextColor = Color.BLACK;
+    /** The text color of text. Defaults to the active scheme foreground. */
+    private int mTextColor = ColorSchemeUtils.getSchemeForeground();
     /** The {@link Typeface} family for text. Defaults to "sans-serif". */
     private String mTextTypeFaceFamily = "sans-serif";
     /** The {@link Typeface} style for text. Defaults to {@link Typeface#NORMAL}. */

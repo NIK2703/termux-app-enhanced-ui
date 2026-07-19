@@ -30,7 +30,6 @@ import androidx.annotation.Nullable;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.termux.R;
 import com.termux.app.TermuxActivity;
-import com.termux.app.terminal.TermuxSchemeTheme;
 import com.termux.app.terminal.io.autocomplete.MessageHistoryController;
 import com.termux.shared.data.DataUtils;
 import com.termux.app.TermuxActivityUtils;
@@ -501,7 +500,7 @@ public final class TermuxActivityPopupController {
      * directories), Cancel. In global mode it stays as OK + Cancel.
      */
     public void confirmClearAllHistory() {
-        final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(TermuxSchemeTheme.schemeContext(mContext))
+        final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(mContext)
                 .setTitle(mContext.getString(R.string.message_history_clear_question))
                 .setNegativeButton(android.R.string.cancel, null);
 
@@ -520,7 +519,7 @@ public final class TermuxActivityPopupController {
 
     /** "Clear message history..." item: ask for confirmation, then wipe all history. */
     private void confirmClearHistory() {
-        final MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(TermuxSchemeTheme.schemeContext(mContext));
+        final MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(mContext);
         b.setIcon(android.R.drawable.ic_dialog_alert);
         b.setTitle(mContext.getString(R.string.message_history_clear_dialog_title));
         String msg = (mMessageHistoryCtrl != null && mMessageHistoryCtrl.isPerDirectoryEnabled())

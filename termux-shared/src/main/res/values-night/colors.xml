@@ -21,4 +21,10 @@
     <color name="extra_keys_button_text">#ffffff</color>
     <color name="extra_keys_button_active_text">#80DEEA</color>
     <color name="extra_keys_button_active_background">#424242</color>
+
+    <!-- Dark-mode overrides for the *_light variants referenced by
+         Theme.TermuxActivity.DayNight.NoActionBar. Without these the night
+         fallback would be the light gray from values/colors.xml. -->
+    <color name="extra_keys_button_background_light">#121212</color>
+    <color name="extra_keys_button_active_background_light">#2a2a2a</color>
 </resources>

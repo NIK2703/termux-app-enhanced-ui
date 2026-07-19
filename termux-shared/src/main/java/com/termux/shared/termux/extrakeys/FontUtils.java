@@ -4,7 +4,6 @@ import android.content.Context;
 import android.graphics.Typeface;
 
 import com.termux.shared.android.PackageUtils;
-import com.termux.shared.interact.SchemeDialogTheme;
 import com.termux.shared.logger.Logger;
 import com.termux.shared.termux.TermuxConstants;
 import com.termux.terminal.TerminalColors;
@@ -105,9 +104,8 @@ public final class FontUtils {
                                       CharSequence notInstalledMessage,
                                       Runnable onApplied) {
         final String[] fonts = listStylingFonts(context);
-        Context dialogContext = SchemeDialogTheme.wrap(context);
         if (fonts == null) {
-            android.app.AlertDialog d = new android.app.AlertDialog.Builder(dialogContext)
+            android.app.AlertDialog d = new android.app.AlertDialog.Builder(context)
                 .setMessage(notInstalledMessage)
                 .setPositiveButton(android.R.string.ok, null)
                 .create();
@@ -119,7 +117,7 @@ public final class FontUtils {
         for (int i = 0; i < fonts.length; i++)
             labels[i] = fontDisplayName(fonts[i]);
 
-        android.app.AlertDialog d = new android.app.AlertDialog.Builder(dialogContext)
+        android.app.AlertDialog d = new android.app.AlertDialog.Builder(context)
             .setTitle("Select a font")
             .setItems(labels, (dialog, which) -> {
                 applyStylingFont(context, fonts[which]);

@@ -107,39 +107,6 @@
     <style name="ThemeOverlay.MessageDialog.DayNight" parent="ThemeOverlay.BaseDialog.DayNight"/>
 
     <!--
-      Scheme-driven dialog theme overlay. All colour attributes resolve to @color/scheme_dialog_*
-      which are overridden at runtime (SchemeDialogTheme) with the active Termux:Style scheme,
-      so dialogs render in the scheme from the first frame — no post-show tint required.
-    -->
-    <style name="ThemeOverlay.BaseDialog.Scheme" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
-        <item name="colorPrimary">@color/scheme_dialog_foreground</item>
-        <item name="colorPrimaryVariant">@color/scheme_dialog_foreground</item>
-        <item name="colorOnPrimary">@color/scheme_dialog_background</item>
-        <item name="colorSurface">@color/scheme_dialog_surface</item>
-        <item name="colorOnSurface">@color/scheme_dialog_on_surface</item>
-        <item name="android:colorBackground">@color/scheme_dialog_background</item>
-        <item name="android:textColorPrimary">@color/scheme_dialog_on_surface</item>
-        <item name="android:textColor">@color/scheme_dialog_on_surface</item>
-        <item name="colorAccent">@color/scheme_dialog_foreground</item>
-        <item name="android:colorAccent">@color/scheme_dialog_foreground</item>
-        <item name="android:textColorAlertDialogListItem">@color/scheme_dialog_on_surface</item>
-        <item name="android:listDivider">@color/scheme_dialog_divider</item>
-        <item name="alertDialogTheme">@style/ThemeOverlay.BaseDialog.Scheme.Alert</item>
-        <item name="materialAlertDialogTitlePanelStyle">@style/BaseDialog.Title.Panel</item>
-        <item name="materialAlertDialogBodyTextStyle">@style/BaseDialog.Message.Text.Light</item>
-    </style>
-
-    <!-- Framework (non-Material) AlertDialog variant: same scheme colours, used by the
-         Termux:Style picker dialogs which build android.app.AlertDialog directly. -->
-    <style name="ThemeOverlay.BaseDialog.Scheme.Alert" parent="ThemeOverlay.BaseDialog.Scheme">
-        <item name="android:colorBackground">@color/scheme_dialog_background</item>
-        <item name="android:textColorPrimary">@color/scheme_dialog_on_surface</item>
-        <item name="android:textColor">@color/scheme_dialog_on_surface</item>
-        <item name="android:textColorAlertDialogListItem">@color/scheme_dialog_on_surface</item>
-        <item name="android:listDivider">@color/scheme_dialog_divider</item>
-    </style>
-
-    <!--
       Scheme-driven ACTIVITY theme overlay. Applied on top of an activity's existing theme
       (via SchemeDialogTheme.wrapActivityTheme, which resolves @color/scheme_dialog_* to the live
       Termux:Style scheme at runtime) so the whole activity — toolbar, preference rows/category
@@ -156,10 +123,10 @@
 
         <!-- Window compositor draws these BEFORE any Java runs, so they MUST be scheme-mapped
              here too — otherwise the activity flashes white until applyToToolbar() runs. -->
-        <item name="android:windowBackground">@color/scheme_dialog_background</item>
-        <item name="android:statusBarColor">@color/scheme_dialog_background</item>
-        <item name="android:navigationBarColor">@color/scheme_dialog_background</item>
-        <item name="android:colorBackgroundFloating">@color/scheme_dialog_background</item>
+         <item name="android:windowBackground">@color/scheme_dialog_background</item>
+         <item name="android:statusBarColor">@color/scheme_dialog_background</item>
+         <item name="android:navigationBarColor">@color/scheme_dialog_background</item>
+         <item name="android:colorBackgroundFloating">@color/scheme_dialog_background</item>
         <item name="colorSurface">@color/scheme_dialog_surface</item>
         <item name="colorOnSurface">@color/scheme_dialog_on_surface</item>
         <item name="android:colorBackground">@color/scheme_dialog_background</item>
@@ -180,7 +147,15 @@
         <!-- Controls (switches, sliders, action-mode icons, ripples) born scheme. -->
         <item name="colorControlNormal">@color/scheme_dialog_foreground</item>
         <item name="colorControlActivated">@color/scheme_dialog_foreground</item>
+        <item name="android:colorControlNormal">@color/scheme_dialog_foreground</item>
+        <item name="android:colorControlActivated">@color/scheme_dialog_foreground</item>
         <item name="colorControlHighlight">@color/scheme_dialog_selector</item>
+
+        <!-- SwitchCompat off-state thumb must follow the scheme too — otherwise it keeps the
+             MaterialComponents *Light* base-theme default (black on a dark scheme, invisible).
+             The thumb shows the scheme surface so it contrasts with the scheme background; the
+             checked thumb/track use colorControlActivated (above) which is the scheme foreground. -->
+        <item name="colorSwitchThumbNormal">@color/scheme_dialog_surface</item>
 
         <!-- Long-press context menu + popup menus: built by the framework from the activity
              context, so drive their colours through the activity theme.

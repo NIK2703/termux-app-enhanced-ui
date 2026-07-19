@@ -34,7 +34,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import com.termux.app.TermuxActivity;
-import com.termux.app.terminal.TermuxSchemeTheme;
 
 import static com.termux.shared.termux.TermuxConstants.TERMUX_PREFIX_DIR;
 import static com.termux.shared.termux.TermuxConstants.TERMUX_PREFIX_DIR_PATH;
@@ -117,7 +116,7 @@ public final class TermuxInstaller {
             Logger.logInfo(LOG_TAG, "The termux prefix directory \"" + TERMUX_PREFIX_DIR_PATH + "\" does not exist but another file exists at its destination.");
         }
 
-        final ProgressDialog progress = ProgressDialog.show(TermuxSchemeTheme.schemeContext(activity), null, activity.getString(R.string.bootstrap_installer_body), true, false);
+        final ProgressDialog progress = ProgressDialog.show(activity, null, activity.getString(R.string.bootstrap_installer_body), true, false);
         new Thread() {
             @Override
             public void run() {
@@ -250,7 +249,7 @@ public final class TermuxInstaller {
 
         activity.runOnUiThread(() -> {
             try {
-                AlertDialog dialog = new AlertDialog.Builder(TermuxSchemeTheme.schemeContext(activity)).setTitle(R.string.bootstrap_error_title).setMessage(R.string.bootstrap_error_body)
+                AlertDialog dialog = new AlertDialog.Builder(activity).setTitle(R.string.bootstrap_error_title).setMessage(R.string.bootstrap_error_body)
                     .setNegativeButton(R.string.bootstrap_error_abort, (d, which) -> {
                         d.dismiss();
                         activity.finish();

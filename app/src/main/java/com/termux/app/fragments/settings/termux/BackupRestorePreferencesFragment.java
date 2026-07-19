@@ -17,7 +17,6 @@ import com.termux.app.fragments.settings.TermuxPreferenceFragmentBase;
 import com.termux.R;
 import com.termux.app.BackupProgressController;
 import com.termux.app.TermuxBackupService;
-import com.termux.app.terminal.TermuxSchemeTheme;
 
 import java.io.IOException;
 
@@ -50,7 +49,7 @@ public class BackupRestorePreferencesFragment extends TermuxPreferenceFragmentBa
             FragmentActivity activity = getActivity();
             if (activity == null) return true;
 
-            AlertDialog dialog = new AlertDialog.Builder(TermuxSchemeTheme.schemeContext(activity))
+            AlertDialog dialog = new AlertDialog.Builder(activity)
                 .setTitle(R.string.backup_restore_dialog_title)
                 .setMessage(R.string.backup_restore_warning_backup)
                 .setPositiveButton(android.R.string.ok, (d, which) -> startBackupFileChooser())
@@ -68,7 +67,7 @@ public class BackupRestorePreferencesFragment extends TermuxPreferenceFragmentBa
             FragmentActivity activity = getActivity();
             if (activity == null) return true;
 
-            AlertDialog dialog = new AlertDialog.Builder(TermuxSchemeTheme.schemeContext(activity))
+            AlertDialog dialog = new AlertDialog.Builder(activity)
                 .setTitle(R.string.backup_restore_dialog_title)
                 .setMessage(R.string.backup_restore_warning_restore)
                 .setPositiveButton(android.R.string.ok, (d, which) -> startRestoreFileChooser())

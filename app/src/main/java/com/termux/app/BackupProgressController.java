@@ -14,7 +14,6 @@ import androidx.fragment.app.FragmentActivity;
 import com.termux.R;
 import com.termux.app.TermuxBackupService;
 import com.termux.app.TermuxBackupUtils;
-import com.termux.app.terminal.TermuxSchemeTheme;
 import com.termux.shared.errors.Error;
 
 import java.lang.ref.WeakReference;
@@ -114,7 +113,7 @@ public final class BackupProgressController {
         FragmentActivity activity = mActivityRef.get();
         if (activity == null || activity.isFinishing()) return;
 
-        final ProgressDialog progress = new ProgressDialog(TermuxSchemeTheme.schemeContext(activity));
+        final ProgressDialog progress = new ProgressDialog(activity);
         progress.setTitle(activity.getString(titleRes));
         // Both backup and restore use a horizontal bar.
         // Backup: indeterminate throughout (tar stream, size unknown).

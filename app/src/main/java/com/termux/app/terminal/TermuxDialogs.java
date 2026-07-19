@@ -12,7 +12,6 @@ import com.termux.app.TermuxActivityUtils;
 import com.termux.shared.termux.extrakeys.ColorSchemeUtils;
 import com.termux.shared.termux.extrakeys.FontUtils;
 import com.termux.shared.theme.NightMode;
-import com.termux.app.terminal.TermuxSchemeTheme;
 import com.termux.shared.theme.ThemeUtils;
 import com.termux.terminal.TerminalSession;
 
@@ -44,7 +43,7 @@ public class TermuxDialogs {
     public void showConfirmClearAllHistory(boolean perDirectoryEnabled,
                                             @NonNull Runnable onConfirmCurrent,
                                             @NonNull Runnable onConfirmAll) {
-        final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(TermuxSchemeTheme.schemeContext(mActivity))
+        final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(mActivity)
                 .setTitle(mActivity.getString(R.string.message_history_clear_question))
                 .setNegativeButton(android.R.string.cancel, null);
 
@@ -77,7 +76,7 @@ public class TermuxDialogs {
      * @param onConfirm run when the user confirms clearing the history.
      */
     public void showConfirmClearHistory(boolean perDirectoryEnabled, @NonNull Runnable onConfirm) {
-        final MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(TermuxSchemeTheme.schemeContext(mActivity));
+        final MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(mActivity);
         b.setIcon(android.R.drawable.ic_dialog_alert);
         b.setTitle(mActivity.getString(R.string.message_history_clear_dialog_title));
         String msg = perDirectoryEnabled
@@ -109,7 +108,7 @@ public class TermuxDialogs {
     public void showKillSessionDialog(TerminalSession session, @NonNull Runnable onKill) {
         if (session == null) return;
 
-        final MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(TermuxSchemeTheme.schemeContext(mActivity));
+        final MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(mActivity);
         b.setIcon(android.R.drawable.ic_dialog_alert);
         b.setMessage(R.string.title_confirm_kill_process);
         b.setPositiveButton(android.R.string.yes, (dialog, id) -> {

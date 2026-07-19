@@ -64,7 +64,6 @@ import com.termux.shared.termux.TermuxConstants;
 import com.termux.shared.termux.TermuxConstants.TERMUX_APP.TERMUX_ACTIVITY;
 import com.termux.app.activities.HelpActivity;
 import com.termux.app.activities.SettingsActivity;
-import com.termux.app.activities.SettingsColorScheme;
 import com.termux.shared.termux.crash.TermuxCrashUtils;
 import com.termux.shared.termux.settings.preferences.TermuxAppSharedPreferences;
 import com.termux.app.terminal.TermuxSessionsListViewController;
@@ -1338,9 +1337,6 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
             // Set initial margin based on scrollbar state
             updateFloatingButtonMargin();
 
-            // Match the floating button stroke colour to the scrollbar thumb.
-            updateFloatingButtonStrokeColor();
-
             // Apply the configured tab panel position (top/bottom).
             applyTabPanelPosition();
 
@@ -1385,44 +1381,6 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
             params.rightMargin = targetMarginEnd;
             toggleButton.setLayoutParams(params);
         }
-
-        // Keep the stroke colour in sync with the scrollbar thumb each time the
-        // margin (and thus the terminal scheme) is recomputed.
-        updateFloatingButtonStrokeColor();
-    }
-
-    private static final float BUTTON_STROKE_WIDTH_DP = 0.5f;
-
-    /**
-     * Update the floating button's stroke color to match the terminal scrollbar
-     * thumb stroke color. Uses the same colour as {@link TerminalView#setScrollbarColors}
-     * receives for the active colour — which is the actual colour the scrollbar
-     * stroke is drawn with — sourced from {@link #getButtonActiveBg()}.
-     * <p/>
-     * The stroke is drawn as a transparent foreground ring (GradientDrawable with
-     * transparent fill, just a stroke) overlaid on the XML-defined background, so
-     * the fill colors (normal/selected) come from the theme via XML inflation and
-     * we only control the stroke programmatically.
-     */
-    private void updateFloatingButtonStrokeColor() {
-        ImageButton toggleButton = findViewById(R.id.toggle_text_input_button);
-        if (toggleButton == null) return;
-
-        // Scrollbar thumb stroke uses mScrollbarActiveColor which is set by
-        // TermuxTerminalSessionActivityClient.applyPanelColors():
-        //     tv.setScrollbarColors(buttonBg, buttonActiveBg);
-        // The second param (activeColor) is used for the thumb stroke at rest.
-        // getButtonActiveBg() returns the same pre-computed value via
-        // TermuxColorSchemeManager.
-        int strokeColor = getButtonActiveBg();
-        int strokeWidthPx = (int) (BUTTON_STROKE_WIDTH_DP * getResources().getDisplayMetrics().density + 0.5f);
-
-        GradientDrawable ring = new GradientDrawable();
-        ring.setShape(GradientDrawable.OVAL);
-        ring.setColor(0); // transparent fill — let the XML background show through
-        ring.setStroke(strokeWidthPx, strokeColor);
-
-        toggleButton.setForeground(ring);
     }
 
     /**

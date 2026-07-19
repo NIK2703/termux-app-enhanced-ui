@@ -19,7 +19,6 @@ import android.widget.Toast;
 
 import com.termux.R;
 import com.termux.app.TermuxActivity;
-import com.termux.app.terminal.TermuxSchemeTheme;
 import com.termux.shared.file.FileUtils;
 import com.termux.shared.interact.MessageDialogUtils;
 import com.termux.shared.interact.ShareUtils;
@@ -802,7 +801,7 @@ public class TermuxTerminalViewClient extends TermuxTerminalViewClientBase {
 
         LinkedHashSet<CharSequence> urlSet = TermuxUrlUtils.extractUrls(text);
         if (urlSet.isEmpty()) {
-            AlertDialog noneDialog = new AlertDialog.Builder(TermuxSchemeTheme.schemeContext(mActivity)).setMessage(R.string.title_select_url_none_found).create();
+            AlertDialog noneDialog = new AlertDialog.Builder(mActivity).setMessage(R.string.title_select_url_none_found).create();
             noneDialog.show();
             return;
         }
@@ -811,7 +810,7 @@ public class TermuxTerminalViewClient extends TermuxTerminalViewClientBase {
         Collections.reverse(Arrays.asList(urls)); // Latest first.
 
         // Click to copy url to clipboard:
-        final AlertDialog dialog = new AlertDialog.Builder(TermuxSchemeTheme.schemeContext(mActivity)).setItems(urls, (di, which) -> {
+        final AlertDialog dialog = new AlertDialog.Builder(mActivity).setItems(urls, (di, which) -> {
             String url = (String) urls[which];
             ShareUtils.copyTextToClipboard(mActivity, url, mActivity.getString(R.string.msg_select_url_copied_to_clipboard));
         }).setTitle(R.string.title_select_url_dialog).create();
