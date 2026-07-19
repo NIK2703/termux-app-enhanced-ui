@@ -175,11 +175,12 @@ public class TermuxSessionTabsController {
             requestScroll(SCROLL_CENTRE, currentSessionIndex);
             mBuilt = true;
         } else if (newCount > sessionCount) {
-            // A new tab was just added. The right-end scroll is NOT fired here: at this point the
-            // new session has no title yet, so its tab width is still growing. Instead it is armed
-            // via markPendingEndScrollSession() in the add path, and scrollStripToEnd() fires from
-            // onTitleChanged once the label (and thus the final width) is set — so the (+) button
-            // is fully revealed. This matches the right-swipe placeholder path exactly.
+            // A new tab was just added: scroll the strip to its absolute right end so the new tab
+            // AND the trailing (+) button are fully revealed. Both add paths (the (+) button tap and
+            // the right-swipe placeholder commit) funnel through here, so this single call covers
+            // them both. scrollStripToEnd() measures geometry only after the container is laid out
+            // (see runEndScroll), so it always reaches the true right edge — no under-scroll.
+            scrollStripToEnd();
         } else if (currentSessionIndex >= 0) {
             // No size change (e.g. a title-only refresh after the shell sets its window title via
             // OSC). If we are still in the sticky end-scroll from a just-added tab, do NOT recentre

@@ -597,10 +597,6 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
                 return;
             }
 
-            // Arm the right-end scroll: it fires from onTitleChanged once the new session's real
-            // title (and final tab width) is set, so the (+) button is fully revealed. Matches the
-            // right-swipe placeholder path exactly (commitPlaceholderToSession also arms this).
-            markPendingEndScrollSession(newTerminalSession);
             setCurrentSession(newTerminalSession);
         }
     }
@@ -648,8 +644,6 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         if (newTermuxSession == null) return;
 
         TerminalSession newTerminalSession = newTermuxSession.getTerminalSession();
-        // Arm the right-end scroll: fires from onTitleChanged once the final tab width is set.
-        markPendingEndScrollSession(newTerminalSession);
         setCurrentSession(newTerminalSession);
     }
 

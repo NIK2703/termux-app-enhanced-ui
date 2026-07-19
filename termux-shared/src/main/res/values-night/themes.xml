@@ -64,6 +64,9 @@
         <!-- Dialog title panel style. -->
         <item name="materialAlertDialogTitlePanelStyle">@style/BaseDialog.Title.Panel</item>
 
+        <!-- Dialog title text style: pinned white for night mode (see Light variant). -->
+        <item name="materialAlertDialogTitleTextStyle">@style/BaseDialog.Title.Text.Dark</item>
+
         <!-- Dialog message text style. -->
         <item name="materialAlertDialogBodyTextStyle">@style/BaseDialog.Message.Text.Dark</item>
     </style>

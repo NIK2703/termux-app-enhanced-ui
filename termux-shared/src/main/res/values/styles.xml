@@ -43,14 +43,34 @@
     </style>
 
     <!--
-     BaseDialog Message Text Dark materialAlertDialogBodyTextStyle.
-     https://github.com/material-components/material-components-android/blob/1.4.0/lib/java/com/google/android/material/dialog/res/layout/mtrl_alert_dialog.xml#L59
-     https://github.com/material-components/material-components-android/blob/1.4.0/lib/java/com/google/android/material/dialog/res/values/themes_base.xml#L133
-    -->
+      BaseDialog Message Text Dark materialAlertDialogBodyTextStyle.
+      https://github.com/material-components/material-components-android/blob/1.4.0/lib/java/com/google/android/material/dialog/res/layout/mtrl_alert_dialog.xml#L59
+      https://github.com/material-components/material-components-android/blob/1.4.0/lib/java/com/google/android/material/dialog/res/values/themes_base.xml#L133
+     -->
     <style name="BaseDialog.Message.Text.Dark" parent="@style/MaterialAlertDialog.MaterialComponents.Body.Text">
         <!-- Text color. -->
         <item name="android:textColorLink">@color/blue_link_light</item>
     </style>
+
+    <!--
+      BaseDialog Title Text Light materialAlertDialogTitleTextStyle.
+      The dialog title colour is normally derived from ?attr/colorOnSurface, which the
+      runtime Termux:Style scheme overlay (ThemeOverlay.BaseActivity.Scheme) remaps to a
+      white placeholder for light schemes — making the title white-on-white in light theme.
+      Pin it explicitly so the title always contrasts with the (light) dialog surface.
+     -->
+    <style name="BaseDialog.Title.Text.Light" parent="@style/MaterialAlertDialog.MaterialComponents.Title.Text">
+        <item name="android:textColor">@color/black</item>
+    </style>
+
+    <!--
+      BaseDialog Title Text Dark materialAlertDialogTitleTextStyle (see Light variant note).
+      Pin the title to white so it contrasts with the (dark) dialog surface in night mode.
+     -->
+    <style name="BaseDialog.Title.Text.Dark" parent="@style/MaterialAlertDialog.MaterialComponents.Title.Text">
+        <item name="android:textColor">@color/white</item>
+    </style>
+
 
 
 
