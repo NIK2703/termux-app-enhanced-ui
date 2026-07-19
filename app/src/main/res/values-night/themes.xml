@@ -9,4 +9,15 @@
     <style name="TermuxActivity.Dialog.Button" parent="@style/Widget.MaterialComponents.Button.TextButton">
         <item name="android:textColor">?attr/colorControlNormal</item>
     </style>
+
+    <!-- Night variant of the settings theme: the transparent status bar shows the dark header
+         colour through, so keep its icons/text light (white). The content background is pure
+         black instead of the default dark surface grey. -->
+    <style name="Theme.TermuxApp.Settings" parent="Theme.TermuxApp.DayNight.NoActionBar">
+        <item name="preferenceCategoryStyle">@style/Preference.Category.Settings</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">@color/black</item>
+        <item name="colorSurface">@color/black</item>
+        <item name="android:colorBackground">@color/black</item>
+    </style>
 </resources>

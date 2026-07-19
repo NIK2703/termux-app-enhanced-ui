@@ -59,4 +59,7 @@
     <!-- Markdown code-block background: scheme foreground at ~8% alpha (visible on both
          light and dark schemes, replacing the old fixed black overlay). -->
     <color name="scheme_dialog_code_block">#14000000</color>
+
+    <!-- Settings screen/section header background in light theme: 95% white + 5% black = #F2F2F2. -->
+    <color name="settings_header_background">#F2F2F2</color>
 </resources>

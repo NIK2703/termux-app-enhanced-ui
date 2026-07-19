@@ -597,6 +597,10 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
                 return;
             }
 
+            // Arm the right-end scroll: it fires from onTitleChanged once the new session's real
+            // title (and final tab width) is set, so the (+) button is fully revealed. Matches the
+            // right-swipe placeholder path exactly (commitPlaceholderToSession also arms this).
+            markPendingEndScrollSession(newTerminalSession);
             setCurrentSession(newTerminalSession);
         }
     }
@@ -644,6 +648,8 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         if (newTermuxSession == null) return;
 
         TerminalSession newTerminalSession = newTermuxSession.getTerminalSession();
+        // Arm the right-end scroll: fires from onTitleChanged once the final tab width is set.
+        markPendingEndScrollSession(newTerminalSession);
         setCurrentSession(newTerminalSession);
     }
 
@@ -969,27 +975,53 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         // re-alpha'd here. Instead rebuild the overlay at the settings alpha and composite it.
         int buttonFillAlpha = 128; // 50%
         TermuxAppSharedPreferences prefs = mActivity.getPreferences();
-        int overlayInactive = ColorSchemeUtils.getButtonBackground(isSchemeLight, prefs.getButtonBgInactiveAlpha());
-        int overlayActive = ColorSchemeUtils.getButtonActiveBackground(isSchemeLight, prefs.getButtonBgActiveAlpha());
+        // Double the settings overlay alpha so that, after the flat 50% opacity is applied on
+        // top below, the resulting visible strength matches the original (no-50%-overlay) look.
+        int overlayInactive = ColorSchemeUtils.getButtonBackground(isSchemeLight, Math.min(100, prefs.getButtonBgInactiveAlpha() * 2));
+        int overlayActive = ColorSchemeUtils.getButtonActiveBackground(isSchemeLight, Math.min(100, prefs.getButtonBgActiveAlpha() * 2));
         int toggleButtonBg = withAlpha(
                 TermuxColorSchemeManager.compositeColors(mActivity.getColorSchemeManager().getSchemeBackground(), overlayInactive),
                 buttonFillAlpha);
         int toggleButtonStroke = withAlpha(
                 TermuxColorSchemeManager.compositeColors(mActivity.getColorSchemeManager().getSchemeBackground(), overlayActive),
                 buttonFillAlpha);
-        for (int id : new int[]{ R.id.new_session_tab_button, R.id.toggle_text_input_button }) {
-            ImageButton btn = mActivity.findViewById(id);
-            if (btn != null) {
-                android.graphics.drawable.GradientDrawable d =
-                        new android.graphics.drawable.GradientDrawable();
-                d.setShape(android.graphics.drawable.GradientDrawable.OVAL);
-                d.setColor(toggleButtonBg);
-                d.setStroke(buttonStrokePx, toggleButtonStroke);
-                btn.setBackground(d);
-                btn.setColorFilter(buttonText, android.graphics.PorterDuff.Mode.SRC_ATOP);
-                // Clear any foreground ring so the Drawable stroke above is the only border.
-                btn.setForeground(null);
-            }
+        // Plain tab button (new session): normal fill + stroke.
+        ImageButton newSessionBtn = mActivity.findViewById(R.id.new_session_tab_button);
+        if (newSessionBtn != null) {
+            android.graphics.drawable.GradientDrawable d =
+                    new android.graphics.drawable.GradientDrawable();
+            d.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+            d.setColor(toggleButtonBg);
+            d.setStroke(buttonStrokePx, toggleButtonStroke);
+            newSessionBtn.setBackground(d);
+            newSessionBtn.setColorFilter(buttonText, android.graphics.PorterDuff.Mode.SRC_ATOP);
+            newSessionBtn.setForeground(null);
+        }
+
+        // Toggle text-input button: on press, fill + stroke both become the stroke colour.
+        ImageButton toggleBtn = mActivity.findViewById(R.id.toggle_text_input_button);
+        if (toggleBtn != null) {
+            android.graphics.drawable.GradientDrawable normalState =
+                    new android.graphics.drawable.GradientDrawable();
+            normalState.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+            normalState.setColor(toggleButtonBg);
+            normalState.setStroke(buttonStrokePx, toggleButtonStroke);
+
+            android.graphics.drawable.GradientDrawable pressedState =
+                    new android.graphics.drawable.GradientDrawable();
+            pressedState.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+            pressedState.setColor(toggleButtonStroke);
+            pressedState.setStroke(buttonStrokePx, toggleButtonStroke);
+
+            android.graphics.drawable.StateListDrawable states =
+                    new android.graphics.drawable.StateListDrawable();
+            states.addState(new int[]{ android.R.attr.state_pressed }, pressedState);
+            states.addState(new int[]{ android.R.attr.state_focused }, pressedState);
+            states.addState(new int[]{}, normalState);
+
+            toggleBtn.setBackground(states);
+            toggleBtn.setColorFilter(buttonText, android.graphics.PorterDuff.Mode.SRC_ATOP);
+            toggleBtn.setForeground(null);
         }
 
         // Session tabs themselves: translucent background (selected = active tone) + scheme fg.

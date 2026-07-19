@@ -2,6 +2,11 @@ package com.termux.shared.termux.extrakeys;
 
 import android.content.Context;
 import android.graphics.Typeface;
+import android.view.ContextThemeWrapper;
+
+import androidx.appcompat.app.AlertDialog;
+
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import com.termux.shared.android.PackageUtils;
 import com.termux.shared.logger.Logger;
@@ -104,8 +109,9 @@ public final class FontUtils {
                                       CharSequence notInstalledMessage,
                                       Runnable onApplied) {
         final String[] fonts = listStylingFonts(context);
+        final Context dialogContext = new ContextThemeWrapper(context, com.termux.shared.R.style.ThemeOverlay_BaseDialog_DayNight);
         if (fonts == null) {
-            android.app.AlertDialog d = new android.app.AlertDialog.Builder(context)
+            AlertDialog d = new MaterialAlertDialogBuilder(dialogContext)
                 .setMessage(notInstalledMessage)
                 .setPositiveButton(android.R.string.ok, null)
                 .create();
@@ -117,7 +123,7 @@ public final class FontUtils {
         for (int i = 0; i < fonts.length; i++)
             labels[i] = fontDisplayName(fonts[i]);
 
-        android.app.AlertDialog d = new android.app.AlertDialog.Builder(context)
+        AlertDialog d = new MaterialAlertDialogBuilder(dialogContext)
             .setTitle("Select a font")
             .setItems(labels, (dialog, which) -> {
                 applyStylingFont(context, fonts[which]);

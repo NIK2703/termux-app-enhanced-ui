@@ -1283,10 +1283,12 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
                         // the touch slop (and the drag is more vertical than sideways).
                         if (!mPopupCtrl.isHistoryPopupShowing()
                                 && dy < -touchSlop && Math.abs(dy) > Math.abs(dx)) {
-                            v.setPressed(false);
                             mPopupCtrl.showMessageHistoryPopup(v);
                         }
                         if (mPopupCtrl.isHistoryPopupShowing()) {
+                            // Keep the button visually active (filled with the stroke colour)
+                            // while the finger is still held, even though it has left the button.
+                            v.setPressed(true);
                             mPopupCtrl.updateHistoryHighlight(event.getRawX(), event.getRawY());
                         }
                         return true;

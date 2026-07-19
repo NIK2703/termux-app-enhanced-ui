@@ -104,20 +104,4 @@
             app:iconSpaceReserved="false" />
 
     </PreferenceCategory>
-
-    <PreferenceCategory
-        app:title="@string/language_category_title"
-        app:iconSpaceReserved="false">
-
-        <ListPreference
-            app:key="locale_override"
-            app:title="@string/locale_override_title"
-            app:summary="@string/locale_override_summary"
-            app:entries="@array/locale_override_entries"
-            app:entryValues="@array/locale_override_values"
-            app:defaultValue="system"
-            app:iconSpaceReserved="false" />
-
-    </PreferenceCategory>
-
 </PreferenceScreen>

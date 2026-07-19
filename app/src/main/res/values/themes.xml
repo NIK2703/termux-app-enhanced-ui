@@ -14,6 +14,19 @@
     <!-- TermuxApp DayNight NoActionBar theme. -->
     <style name="Theme.TermuxApp.DayNight.NoActionBar" parent="Theme.BaseActivity.DayNight.NoActionBar"/>
 
+    <!-- Settings screen theme: section (category) subtitles use the same slightly-different
+         background as the header so they do not blend into the content. -->
+    <style name="Theme.TermuxApp.Settings" parent="Theme.TermuxApp.DayNight.NoActionBar">
+        <item name="preferenceCategoryStyle">@style/Preference.Category.Settings</item>
+        <!-- Status bar is transparent (see SettingsActivity) so the header colour shows through;
+             keep its icons/text dark (black) on the light header background. -->
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <style name="Preference.Category.Settings" parent="Preference.Category">
+        <item name="android:layout">@layout/preference_category_settings</item>
+    </style>
+
     <!-- Fully transparent theme for BackupDialogActivity: it hosts only the progress dialog and
          must not obscure (or replace) whatever screen is currently visible underneath. -->
     <style name="Theme.TermuxApp.Transparent" parent="Theme.TermuxApp.DayNight.NoActionBar">

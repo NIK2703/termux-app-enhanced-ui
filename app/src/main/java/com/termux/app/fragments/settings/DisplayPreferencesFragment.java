@@ -16,7 +16,6 @@ import androidx.preference.SwitchPreferenceCompat;
 
 import com.termux.R;
 import com.termux.app.TermuxActivity;
-import com.termux.app.TermuxLocaleUtils;
 import com.termux.shared.logger.Logger;
 import com.termux.shared.termux.TermuxConstants;
 import com.termux.shared.termux.extrakeys.ColorSchemeUtils;
@@ -75,18 +74,6 @@ public class DisplayPreferencesFragment extends TermuxPreferenceFragmentBase {
                 if (activity != null) {
                     activity.recreate();
                 }
-                return true;
-            });
-        }
-
-        // --- App language ---
-        final ListPreference localePref = findPreference("locale_override");
-        if (localePref != null) {
-            localePref.setPersistent(false);
-            localePref.setValue(TermuxLocaleUtils.getLocaleOverride());
-
-            localePref.setOnPreferenceChangeListener((preference, newValue) -> {
-                TermuxLocaleUtils.applyLocale((String) newValue);
                 return true;
             });
         }

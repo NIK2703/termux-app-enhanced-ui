@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Translucent overlay no longer used; header colour is defined in termux-shared. -->
+</resources>

@@ -3,13 +3,16 @@ package com.termux.app.activities;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.Environment;
+import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.preference.ListPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 
 import com.termux.R;
+import com.termux.app.TermuxLocaleUtils;
 import com.termux.app.fragments.settings.DisplayPreferencesFragment;
 import com.termux.shared.activities.ReportActivity;
 import com.termux.shared.file.FileUtils;
@@ -50,6 +53,28 @@ public class SettingsActivity extends AppCompatActivity {
 
         AppCompatActivityUtils.setToolbar(this, com.termux.shared.R.id.toolbar);
         AppCompatActivityUtils.setShowBackButtonInActionBar(this, true);
+
+        // Give the settings header a slightly different background from the content so it does
+        // not blend in, and make the status bar transparent so the header colour shows through.
+        int headerColor = getResources().getColor(com.termux.shared.R.color.settings_header_background, getTheme());
+        View header = findViewById(com.termux.shared.R.id.toolbar_container);
+        if (header != null) {
+            header.setBackgroundColor(headerColor);
+            header.setFitsSystemWindows(true);
+        }
+        // The Toolbar child has its own opaque ?attr/colorSurface background that paints over the
+        // container, so it must be tinted too or the header colour never shows.
+        View toolbar = findViewById(com.termux.shared.R.id.toolbar);
+        if (toolbar != null) {
+            toolbar.setBackgroundColor(headerColor);
+        }
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            android.view.Window window = getWindow();
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+            // Match the status bar colour to the settings header so it reads as one continuous bar.
+            window.setStatusBarColor(headerColor);
+        }
     }
 
     @Override
@@ -75,6 +100,7 @@ public class SettingsActivity extends AppCompatActivity {
                     configureTermuxWidgetPreference(context);
                     configureAboutPreference(context);
                     configureDonatePreference(context);
+                    configureLocalePreference();
                 }
             }.start();
         }
@@ -166,6 +192,17 @@ public class SettingsActivity extends AppCompatActivity {
 
                 donatePreference.setOnPreferenceClickListener(preference -> {
                     ShareUtils.openUrl(context, TermuxConstants.TERMUX_DONATE_URL);
+                    return true;
+                });
+            }
+        }
+
+        private void configureLocalePreference() {
+            final ListPreference localePref = findPreference("locale_override");
+            if (localePref != null) {
+                localePref.setValue(TermuxLocaleUtils.getLocaleOverride());
+                localePref.setOnPreferenceChangeListener((preference, newValue) -> {
+                    TermuxLocaleUtils.applyLocale((String) newValue);
                     return true;
                 });
             }
