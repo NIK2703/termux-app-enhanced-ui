@@ -10,9 +10,10 @@ import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 
 import com.termux.R;
-import com.termux.app.fragments.settings.TermuxPreferencesFragment;
+import com.termux.app.fragments.settings.DisplayPreferencesFragment;
 import com.termux.shared.activities.ReportActivity;
 import com.termux.shared.file.FileUtils;
+import com.termux.shared.interact.SchemeDialogTheme;
 import com.termux.shared.models.ReportInfo;
 import com.termux.app.models.UserAction;
 import com.termux.shared.interact.ShareUtils;
@@ -30,21 +31,38 @@ import com.termux.shared.theme.NightMode;
 public class SettingsActivity extends AppCompatActivity {
 
     @Override
+    protected void attachBaseContext(@NonNull Context base) {
+        // Inflate the whole settings screen (toolbar, preference rows, category headers, popups)
+        // in the active Termux:Style scheme from the first frame — no post-layout repaint.
+        super.attachBaseContext(SchemeDialogTheme.wrapActivityTheme(base));
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         AppCompatActivityUtils.setNightMode(this, NightMode.getAppNightMode().getName(), true);
 
+        int[] schemeColors = SettingsColorScheme.resolveSchemeColors(this);
+        int schemeBg = schemeColors[0];
+        int headerBg = schemeColors[2];
+        boolean isLight = schemeColors[3] == 1;
+        int schemeFg = schemeColors[1];
+
         setContentView(R.layout.activity_settings);
         if (savedInstanceState == null) {
             getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.settings, new RootPreferencesFragment())
-                .commit();
+                    .beginTransaction()
+                    .replace(R.id.settings, new RootPreferencesFragment())
+                    .commit();
         }
 
+        // setToolbar (setSupportActionBar) must run before applyToActivity, otherwise the toolbar
+        // title TextView does not yet exist and its colour would stay the theme accent (red).
         AppCompatActivityUtils.setToolbar(this, com.termux.shared.R.id.toolbar);
         AppCompatActivityUtils.setShowBackButtonInActionBar(this, true);
+
+        SettingsColorScheme.applyToActivity(this, schemeBg, headerBg, schemeFg, isLight);
     }
 
     @Override

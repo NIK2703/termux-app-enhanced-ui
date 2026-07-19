@@ -25,6 +25,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import com.termux.shared.interact.ShareUtils;
+import com.termux.shared.interact.SchemeDialogTheme;
 import com.termux.shared.logger.Logger;
 import com.termux.shared.R;
 import com.termux.shared.models.TextIOInfo;
@@ -59,6 +60,11 @@ public class TextIOActivity extends AppCompatActivity {
     private static final String LOG_TAG = "TextIOActivity";
 
     @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(SchemeDialogTheme.wrapActivityTheme(newBase));
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Logger.logVerbose(LOG_TAG, "onCreate");
@@ -76,6 +82,9 @@ public class TextIOActivity extends AppCompatActivity {
         if (toolbar != null) {
             setSupportActionBar(toolbar);
         }
+
+        // Colour the toolbar + status bar with the active Termux:Style scheme (no red leak).
+        SchemeDialogTheme.applyToToolbar(this);
 
         mBundle = null;
         Intent intent = getIntent();

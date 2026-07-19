@@ -50,7 +50,7 @@
                         android:src="@drawable/ic_add"
                         android:background="@drawable/session_tab_background"
                         android:contentDescription="@string/action_new_session"
-                        android:tint="@color/terminal_toolbar_icon_tint"
+                        android:tint="?attr/colorOnSurface"
                         android:scaleType="center" />
 
                 </LinearLayout>
@@ -124,8 +124,7 @@
                         android:gravity="top|start"
                         android:importantForAutofill="no"
                         android:textSize="@dimen/text_input_text_size"
-                        android:textColor="@color/terminal_toolbar_text_color"
-                        android:textColorHighlight="@color/grey_400"
+                        android:textColor="?attr/colorOnSurface"
                         android:textCursorDrawable="@null"
                         android:background="@android:color/transparent"
                         tools:ignore="LabelFor" />
@@ -152,7 +151,7 @@
             android:src="@drawable/ic_keyboard_show"
             android:background="@drawable/floating_button_background"
             android:contentDescription="@string/action_toggle_text_input"
-            android:tint="@color/terminal_toolbar_icon_tint"
+            android:tint="?attr/colorOnSurface"
             android:scaleType="centerInside"
             android:padding="12dp" />
 

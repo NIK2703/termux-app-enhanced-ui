@@ -24,6 +24,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.termux.R;
 import com.termux.app.TermuxActivityUtils;
 import com.termux.app.terminal.TermuxColorSchemeManager;
+import com.termux.app.terminal.TermuxSchemeTheme;
 import com.termux.shared.logger.Logger;
 
 import java.util.ArrayList;
@@ -451,7 +452,7 @@ public final class DirectoryHistoryPopupController {
 
     /** "CLEAR HISTORY…" item: confirm, then wipe the whole directory history. */
     public void confirmClear() {
-        final MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(mContext, R.style.ThemeOverlay_TermuxActivity_Dialog);
+        final MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(TermuxSchemeTheme.schemeContext(mContext));
         b.setTitle(mContext.getString(R.string.directory_history_clear_dialog_title));
         b.setMessage(mContext.getString(R.string.directory_history_clear_confirm));
         b.setPositiveButton(android.R.string.yes, (dialog, id) -> {
@@ -459,7 +460,8 @@ public final class DirectoryHistoryPopupController {
             mCallback.onClearAllDirectories();
         });
         b.setNegativeButton(android.R.string.no, null);
-        b.show();
+        androidx.appcompat.app.AlertDialog dialog = b.create();
+        dialog.show();
     }
 
     private int dpToPx(int dp) {

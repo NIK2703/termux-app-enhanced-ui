@@ -1,12 +1,12 @@
 package com.termux.shared.termux.extrakeys;
 
 import android.content.Context;
-import android.graphics.Color;
 
 import com.termux.terminal.TerminalColors;
 import com.termux.terminal.TerminalColorScheme;
 import com.termux.terminal.TextStyle;
 import com.termux.shared.android.PackageUtils;
+import com.termux.shared.interact.SchemeDialogTheme;
 import com.termux.shared.logger.Logger;
 import com.termux.shared.termux.TermuxConstants;
 import com.termux.shared.termux.settings.properties.TermuxPropertyConstants;
@@ -228,11 +228,13 @@ public final class ColorSchemeUtils {
     public static void showColorSchemeDialog(Context context, boolean isNight, CharSequence title,
                                              CharSequence notInstalledMessage, Runnable onApplied) {
         final String[] schemes = listStylingColorSchemes(context);
+        Context dialogContext = SchemeDialogTheme.wrap(context);
         if (schemes == null) {
-            new android.app.AlertDialog.Builder(context)
+            android.app.AlertDialog d = new android.app.AlertDialog.Builder(dialogContext)
                 .setMessage(notInstalledMessage)
                 .setPositiveButton(android.R.string.ok, null)
-                .show();
+                .create();
+            d.show();
             return;
         }
 
@@ -240,14 +242,15 @@ public final class ColorSchemeUtils {
         for (int i = 0; i < schemes.length; i++)
             labels[i] = schemeDisplayName(schemes[i]);
 
-        new android.app.AlertDialog.Builder(context)
+        android.app.AlertDialog d = new android.app.AlertDialog.Builder(dialogContext)
             .setTitle(title)
             .setItems(labels, (dialog, which) -> {
                 persistSelection(isNight, schemes[which]);
                 applyStylingScheme(context, isNight, schemes[which]);
                 if (onApplied != null) onApplied.run();
             })
-            .show();
+            .create();
+        d.show();
     }
 
     /** Persist the selected scheme file name for the given theme into termux.properties. */

@@ -10,6 +10,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 
@@ -28,6 +29,11 @@ public class TextSelectionCursorController implements CursorController {
 
     private final int mHandleHeight;
     private int mSelX1 = -1, mSelX2 = -1, mSelY1 = -1, mSelY2 = -1;
+
+    // Scheme colours for the ActionMode (text-selection CAB) bar, pushed in from the host app
+    // so this module stays decoupled from com.termux.app.
+    private int mActionModeBgColor = 0;
+    private int mActionModeTextColor = 0;
 
     private ActionMode mActionMode;
     public final int ACTION_COPY = 1;
@@ -113,6 +119,12 @@ public class TextSelectionCursorController implements CursorController {
         mEndHandle.setHandleColor(color);
     }
 
+    /** Set the scheme colours used to tint the ActionMode CAB bar and its title text. */
+    public void setActionModeColors(int bgColor, int textColor) {
+        mActionModeBgColor = bgColor;
+        mActionModeTextColor = textColor;
+    }
+
     public void setActionModeCallBacks() {
         final ActionMode.Callback callback = new ActionMode.Callback() {
             @Override
@@ -123,6 +135,14 @@ public class TextSelectionCursorController implements CursorController {
                 menu.add(Menu.NONE, ACTION_COPY, Menu.NONE, R.string.copy_text).setShowAsAction(show);
                 menu.add(Menu.NONE, ACTION_PASTE, Menu.NONE, R.string.paste_text).setEnabled(clipboard != null && clipboard.hasPrimaryClip()).setShowAsAction(show);
                 menu.add(Menu.NONE, ACTION_MORE, Menu.NONE, R.string.text_selection_more);
+
+                // Tint the ActionMode CAB bar + title to follow the active Termux:Style scheme.
+                android.view.View cab = mode.getCustomView();
+                if (cab != null) {
+                    if (mActionModeBgColor != 0) cab.setBackgroundColor(mActionModeBgColor);
+                    TextView tv = cab.findViewById(android.R.id.title);
+                    if (tv != null && mActionModeTextColor != 0) tv.setTextColor(mActionModeTextColor);
+                }
                 return true;
             }
 

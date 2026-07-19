@@ -1,6 +1,8 @@
 package com.termux.shared.termux.interact;
 
 import android.app.Activity;
+
+import com.termux.shared.interact.SchemeDialogTheme;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.text.Selection;
@@ -21,7 +23,8 @@ public final class TextInputDialogUtils {
                                  int neutralButtonText, final TextSetListener onNeutral,
                                  int negativeButtonText, final TextSetListener onNegative,
                                  final DialogInterface.OnDismissListener onDismiss) {
-        final EditText input = new EditText(activity);
+        final android.content.Context schemeCtx = SchemeDialogTheme.wrap(activity);
+        final EditText input = new EditText(schemeCtx);
         input.setSingleLine();
         if (initialText != null) {
             input.setText(initialText);
@@ -41,13 +44,13 @@ public final class TextInputDialogUtils {
         int paddingTopAndSides = Math.round(16 * dipInPixels);
         int paddingBottom = Math.round(24 * dipInPixels);
 
-        LinearLayout layout = new LinearLayout(activity);
+        LinearLayout layout = new LinearLayout(schemeCtx);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setLayoutParams(new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         layout.setPadding(paddingTopAndSides, paddingTopAndSides, paddingTopAndSides, paddingBottom);
         layout.addView(input);
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(activity)
+        AlertDialog.Builder builder = new AlertDialog.Builder(schemeCtx)
             .setTitle(titleText).setView(layout)
             .setPositiveButton(positiveButtonText, (d, whichButton) -> onPositive.onTextSet(input.getText().toString()));
 

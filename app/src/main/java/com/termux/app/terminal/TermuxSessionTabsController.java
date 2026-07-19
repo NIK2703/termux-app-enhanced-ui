@@ -7,6 +7,7 @@ import android.animation.ObjectAnimator;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.drawable.GradientDrawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -315,8 +316,7 @@ public class TermuxSessionTabsController {
 
             // Translucent background matching the signal panel.
             if (mSchemeApplied) {
-                tabView.setBackgroundTintList(ColorStateList.valueOf(
-                        isSelected ? mSchemeBgActive : mSchemeBg));
+                setTabBackground(tabView, isSelected ? mSchemeBgActive : mSchemeBg);
             }
 
             // Strike through for finished sessions.
@@ -484,8 +484,11 @@ public class TermuxSessionTabsController {
     private long mScrollSeq = 0;
     private long mScrollSeqPending = -1;
 
-    /** Pending global-layout listener used to measure the strip only after it is laid out. */
-    private android.view.ViewTreeObserver.OnGlobalLayoutListener mPendingEndLayoutListener = null;
+    /** Pending runnable that performs the end-scroll after the add animation settles. */
+    private Runnable mPendingEndScroll = null;
+
+    /** How long to wait for the new tab's width to finish growing before measuring the end. */
+    private static final long END_SCROLL_DELAY_MS = 50;
 
     private final Runnable mScrollRunnable = new Runnable() {
         @Override
@@ -507,8 +510,9 @@ public class TermuxSessionTabsController {
 
     /**
      * Scroll the strip to its absolute right end (newly-added tab + trailing (+) button fully
-     * revealed). The measurement is deferred to a global-layout listener so it runs ONLY after the
-     * container has actually been laid out at its new width.
+     * revealed). The measurement is deferred so it runs only AFTER the new tab has finished growing
+     * to its full width (a fixed delay covers the add animation) — by then the strip geometry is
+     * final and the right end is measurable.
      *
      * <p>CRITICAL: we do NOT use mTabsScroll.smoothScrollTo(). HorizontalScrollView re-clamps the
      * in-flight smooth scroll to its content width on EVERY frame, so if the content width SHRINKS
@@ -527,9 +531,9 @@ public class TermuxSessionTabsController {
             mEndScrollAnim.cancel();
             mEndScrollAnim = null;
         }
-        if (mPendingEndLayoutListener != null && mTabsContainer != null) {
-            mTabsContainer.getViewTreeObserver().removeOnGlobalLayoutListener(mPendingEndLayoutListener);
-            mPendingEndLayoutListener = null;
+        if (mPendingEndScroll != null && mTabsScroll != null) {
+            mTabsScroll.removeCallbacks(mPendingEndScroll);
+            mPendingEndScroll = null;
         }
     }
 
@@ -539,76 +543,46 @@ public class TermuxSessionTabsController {
         // Cancel any in-flight end-scroll (a newer request, or a re-entry) before starting fresh.
         cancelEndScroll();
 
-        // Record the width BEFORE the add so we only scroll once the container has actually grown
-        // to include the new tab (a layout pass may fire without the new width folded in yet).
-        final int widthBefore = mTabsContainer.getMeasuredWidth();
+        // Wait for the new tab's width animation to settle before measuring the right end.
+        mPendingEndScroll = new Runnable() {
+            @Override
+            public void run() {
+                mPendingEndScroll = null;
+                if (mTabsContainer == null || mTabsScroll == null) return;
 
-        final android.view.ViewTreeObserver.OnGlobalLayoutListener listener =
-                new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
-                    private int mRetries = 0;
+                // Authoritative scrollable extent: the HorizontalScrollView clamps scroll to
+                // [0, childMeasuredWidth - viewportWidth]. getMeasuredWidth() of the
+                // wrap_content container already includes the (+) button's marginEnd and the
+                // container padding, so this equals the true right end with nothing clipped.
+                final int childMeasuredW = mTabsContainer.getMeasuredWidth();
+                final int scrollW = mTabsScroll.getWidth();
+                final int maxScroll = Math.max(0, childMeasuredW - scrollW);
+
+                final int startX = mTabsScroll.getScrollX();
+                if (startX == maxScroll) {
+                    return;
+                }
+                // Self-driven scroll: we own the target, HSV's per-frame re-clamp is bypassed.
+                mEndScrollAnim = android.animation.ValueAnimator.ofInt(startX, maxScroll);
+                mEndScrollAnim.setDuration(250);
+                mEndScrollAnim.setInterpolator(
+                        new android.view.animation.AccelerateDecelerateInterpolator());
+                mEndScrollAnim.addUpdateListener(anim ->
+                        mTabsScroll.scrollTo((int) anim.getAnimatedValue(), 0));
+                mEndScrollAnim.addListener(new android.animation.AnimatorListenerAdapter() {
                     @Override
-                    public void onGlobalLayout() {
-                        if (mTabsContainer == null || mTabsScroll == null) {
-                            mTabsContainer.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                            mPendingEndLayoutListener = null;
-                            return;
-                        }
-                        final int newWidth = mTabsContainer.getMeasuredWidth();
-                        // Wait until the container has actually grown to include the new tab, but
-                        // bound the wait so a never-growing layout still eventually scrolls.
-                        if (newWidth <= widthBefore && mRetries < 6) {
-                            mRetries++;
-                            return;
-                        }
-                        mTabsContainer.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                        if (mPendingEndLayoutListener == this) mPendingEndLayoutListener = null;
-
-                        // Authoritative scrollable extent: the HorizontalScrollView clamps scroll to
-                        // [0, childMeasuredWidth - viewportWidth]. getMeasuredWidth() of the
-                        // wrap_content container already includes the (+) button's marginEnd and the
-                        // container padding, so this equals the true right end with nothing clipped.
-                        final int childMeasuredW = mTabsContainer.getMeasuredWidth();
-                        final int scrollW = mTabsScroll.getWidth();
-                        final int maxScroll = Math.max(0, childMeasuredW - scrollW);
-
-                        // Detach the CHANGING LayoutTransition so the content width cannot shrink
-                        // mid-animation (this was the source of the live re-clamp / short stop).
-                        // Restored in the animator's end/cancel callbacks.
-                        final android.animation.LayoutTransition saved =
-                                mTabsContainer.getLayoutTransition();
-                        mTabsContainer.setLayoutTransition(null);
-
-                        final int startX = mTabsScroll.getScrollX();
-                        if (startX == maxScroll) {
-                            mTabsContainer.setLayoutTransition(saved);
-                            return;
-                        }
-                        // Self-driven scroll: we own the target, HSV's per-frame re-clamp is bypassed.
-                        mEndScrollAnim = android.animation.ValueAnimator.ofInt(startX, maxScroll);
-                        mEndScrollAnim.setDuration(250);
-                        mEndScrollAnim.setInterpolator(
-                                new android.view.animation.AccelerateDecelerateInterpolator());
-                        mEndScrollAnim.addUpdateListener(anim ->
-                                mTabsScroll.scrollTo((int) anim.getAnimatedValue(), 0));
-                        mEndScrollAnim.addListener(new android.animation.AnimatorListenerAdapter() {
-                            @Override
-                            public void onAnimationEnd(android.animation.Animator animation) {
-                                mEndScrollAnim = null;
-                                if (mTabsContainer != null)
-                                    mTabsContainer.setLayoutTransition(saved);
-                            }
-                            @Override
-                            public void onAnimationCancel(android.animation.Animator animation) {
-                                mEndScrollAnim = null;
-                                if (mTabsContainer != null)
-                                    mTabsContainer.setLayoutTransition(saved);
-                            }
-                        });
-                        mEndScrollAnim.start();
+                    public void onAnimationEnd(android.animation.Animator animation) {
+                        mEndScrollAnim = null;
                     }
-                };
-        mPendingEndLayoutListener = listener;
-        mTabsContainer.getViewTreeObserver().addOnGlobalLayoutListener(listener);
+                    @Override
+                    public void onAnimationCancel(android.animation.Animator animation) {
+                        mEndScrollAnim = null;
+                    }
+                });
+                mEndScrollAnim.start();
+            }
+        };
+        mTabsScroll.postDelayed(mPendingEndScroll, END_SCROLL_DELAY_MS);
     }
 
     /** Queue a strip scroll. Single owner with a monotonic sequence so END always beats CENTRE. */
@@ -628,13 +602,13 @@ public class TermuxSessionTabsController {
         }
     }
 
-    /** Pending global-layout listener for the CENTRE scroll (measures only after layout). */
-    private android.view.ViewTreeObserver.OnGlobalLayoutListener mPendingCentreLayoutListener = null;
+    /** Pending runnable that performs the centre-scroll after the layout/width settles. */
+    private Runnable mPendingCentreScroll = null;
 
     private void cancelCentreScroll() {
-        if (mPendingCentreLayoutListener != null && mTabsContainer != null) {
-            mTabsContainer.getViewTreeObserver().removeOnGlobalLayoutListener(mPendingCentreLayoutListener);
-            mPendingCentreLayoutListener = null;
+        if (mPendingCentreScroll != null && mTabsScroll != null) {
+            mTabsScroll.removeCallbacks(mPendingCentreScroll);
+            mPendingCentreScroll = null;
         }
     }
 
@@ -656,61 +630,44 @@ public class TermuxSessionTabsController {
         final int idx = mPendingTabScrollIndex;
         if (idx < 0) return;
 
-        final android.view.ViewTreeObserver.OnGlobalLayoutListener listener =
-                new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
-                    private int mRetries = 0;
+        // Wait for the new tab's width animation to settle before measuring the target.
+        mPendingCentreScroll = new Runnable() {
+            @Override
+            public void run() {
+                mPendingCentreScroll = null;
+                if (mTabsContainer == null || mTabsScroll == null) return;
+                // A newer (higher-priority) request was issued after this runnable was queued: drop.
+                if (seq < mScrollSeq) return;
+                if (idx >= mTabsContainer.getChildCount() - 1) return;
+                final View tabView = mTabsContainer.getChildAt(idx);
+                if (tabView == null) return;
+                final int scrollW = mTabsScroll.getWidth();
+                final int maxScroll = Math.max(0,
+                        mTabsContainer.getMeasuredWidth() - scrollW);
+                int scrollX = tabView.getLeft() - scrollW / 2 + tabView.getWidth() / 2;
+                if (scrollX < 0) scrollX = 0;
+                if (scrollX > maxScroll) scrollX = maxScroll;
+                // Self-driven ValueAnimator writing a FIXED target is re-clamp-proof.
+                // This is the CENTRE equivalent of runEndScroll(): HorizontalScrollView.smoothScrollTo()
+                // re-clamps the in-flight animation to its (possibly changing) content width on
+                // every frame, so the strip could yank left mid-animation on cold start — "криво".
+                final int fromX = mTabsScroll.getScrollX();
+                if (fromX == scrollX) return;
+                final android.animation.ValueAnimator anim =
+                        android.animation.ValueAnimator.ofInt(fromX, scrollX);
+                anim.setDuration(220);
+                anim.setInterpolator(new android.view.animation.DecelerateInterpolator());
+                anim.addUpdateListener(new android.animation.ValueAnimator.AnimatorUpdateListener() {
                     @Override
-                    public void onGlobalLayout() {
-                        if (mTabsContainer == null || mTabsScroll == null) {
-                            cleanup();
-                            return;
-                        }
-                        // A newer (higher-priority) request was issued after this listener was queued: drop.
-                        if (seq < mScrollSeq) { cleanup(); return; }
-                        // Wait until the container holds the target tab and has a real (non-zero) width.
-                        // A layout pass may fire before the tab views are measured, leaving getLeft()==0.
-                        if ((mTabsContainer.getChildCount() - 1 <= idx
-                                || mTabsContainer.getMeasuredWidth() <= 0) && mRetries < 6) {
-                            mRetries++;
-                            return;
-                        }
-                        cleanup();
-                        if (idx >= mTabsContainer.getChildCount() - 1) return;
-                        final View tabView = mTabsContainer.getChildAt(idx);
-                        if (tabView == null) return;
-                        final int scrollW = mTabsScroll.getWidth();
-                        final int maxScroll = Math.max(0,
-                                mTabsContainer.getMeasuredWidth() - scrollW);
-                        int scrollX = tabView.getLeft() - scrollW / 2 + tabView.getWidth() / 2;
-                        if (scrollX < 0) scrollX = 0;
-                        if (scrollX > maxScroll) scrollX = maxScroll;
-                        // Self-driven ValueAnimator writing a FIXED target is re-clamp-proof.
-                        // This is the CENTRE equivalent of runEndScroll(): HorizontalScrollView.smoothScrollTo()
-                        // re-clamps the in-flight animation to its (possibly changing) content width on
-                        // every frame, so the strip could yank left mid-animation on cold start — "криво".
-                        final int fromX = mTabsScroll.getScrollX();
-                        if (fromX == scrollX) return;
-                        final android.animation.ValueAnimator anim =
-                                android.animation.ValueAnimator.ofInt(fromX, scrollX);
-                        anim.setDuration(220);
-                        anim.setInterpolator(new android.view.animation.DecelerateInterpolator());
-                        anim.addUpdateListener(new android.animation.ValueAnimator.AnimatorUpdateListener() {
-                            @Override
-                            public void onAnimationUpdate(android.animation.ValueAnimator animation) {
-                                if (mTabsScroll == null) return;
-                                mTabsScroll.scrollTo((Integer) animation.getAnimatedValue(), 0);
-                            }
-                        });
-                        anim.start();
+                    public void onAnimationUpdate(android.animation.ValueAnimator animation) {
+                        if (mTabsScroll == null) return;
+                        mTabsScroll.scrollTo((Integer) animation.getAnimatedValue(), 0);
                     }
-                    private void cleanup() {
-                        if (mTabsContainer != null)
-                            mTabsContainer.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                        if (mPendingCentreLayoutListener == this) mPendingCentreLayoutListener = null;
-                    }
-                };
-        mPendingCentreLayoutListener = listener;
-        mTabsContainer.getViewTreeObserver().addOnGlobalLayoutListener(listener);
+                });
+                anim.start();
+            }
+        };
+        mTabsScroll.postDelayed(mPendingCentreScroll, END_SCROLL_DELAY_MS);
     }
 
     /**
@@ -786,15 +743,14 @@ public class TermuxSessionTabsController {
             if (close != null) {
                 close.setColorFilter(textColor, android.graphics.PorterDuff.Mode.SRC_ATOP);
             }
-            tabView.setBackgroundTintList(ColorStateList.valueOf(
-                    tabView.isSelected() ? bgActive : bg));
+            setTabBackground(tabView, tabView.isSelected() ? bgActive : bg);
         }
 
         // Give the (+) add button (last child, excluded from the loop above) the normal scheme
         // background so it reads as a tab and blends correctly when the placeholder swipe reaches it.
         if (mSchemeApplied) {
             View addBtn = mTabsContainer.getChildAt(mTabsContainer.getChildCount() - 1);
-            if (addBtn != null) addBtn.setBackgroundTintList(ColorStateList.valueOf(bg));
+            if (addBtn != null) setTabBackground(addBtn, mSchemeBg);
         }
     }
 
@@ -835,8 +791,7 @@ public class TermuxSessionTabsController {
             // control background, the rest use the normal control background (same colors as the
             // other bottom-panel controls). Only once the scheme colors have been applied.
             if (mSchemeApplied) {
-                child.setBackgroundTintList(ColorStateList.valueOf(
-                        isSelected ? mSchemeBgActive : mSchemeBg));
+                setTabBackground(child, isSelected ? mSchemeBgActive : mSchemeBg);
             }
 
             ImageButton closeButton = child.findViewById(R.id.session_tab_close);
@@ -849,7 +804,7 @@ public class TermuxSessionTabsController {
         // overriding any blend left over from the placeholder swipe.
         if (mSchemeApplied) {
             View addBtn = mTabsContainer.getChildAt(mTabsContainer.getChildCount() - 1);
-            if (addBtn != null) addBtn.setBackgroundTintList(ColorStateList.valueOf(mSchemeBg));
+            if (addBtn != null) setTabBackground(addBtn, mSchemeBg);
         }
 
         mCurrentSessionIndex = index;
@@ -922,8 +877,8 @@ public class TermuxSessionTabsController {
         //    right tab fades from normal → active.
         int blendedLeft = blendColors(mSchemeBgActive, mSchemeBg, positionOffset);
         int blendedRight = blendColors(mSchemeBg, mSchemeBgActive, positionOffset);
-        leftTab.setBackgroundTintList(ColorStateList.valueOf(blendedLeft));
-        rightTab.setBackgroundTintList(ColorStateList.valueOf(blendedRight));
+        setTabBackground(leftTab, blendedLeft);
+        setTabBackground(rightTab, blendedRight);
 
         // 3. Show the close button on whichever tab the user is closer to.
         ImageButton leftClose = leftTab.findViewById(R.id.session_tab_close);
@@ -952,8 +907,7 @@ public class TermuxSessionTabsController {
             boolean isSelected = (i == currentIndex);
             child.setSelected(isSelected);
             if (mSchemeApplied) {
-                child.setBackgroundTintList(ColorStateList.valueOf(
-                        isSelected ? mSchemeBgActive : mSchemeBg));
+                setTabBackground(child, isSelected ? mSchemeBgActive : mSchemeBg);
             }
             ImageButton closeButton = child.findViewById(R.id.session_tab_close);
             if (closeButton != null) {
@@ -964,7 +918,7 @@ public class TermuxSessionTabsController {
         // Reset the (+) add button (last child) to the normal scheme bg after a cancelled swipe.
         if (mSchemeApplied) {
             View addBtn = mTabsContainer.getChildAt(mTabsContainer.getChildCount() - 1);
-            if (addBtn != null) addBtn.setBackgroundTintList(ColorStateList.valueOf(mSchemeBg));
+            if (addBtn != null) setTabBackground(addBtn, mSchemeBg);
         }
         mCurrentSessionIndex = currentIndex;
     }
@@ -976,6 +930,18 @@ public class TermuxSessionTabsController {
      * @param to    colour at ratio = 1.0
      * @param ratio blend factor in [0, 1]
      */
+    /**
+     * Set a rounded-rectangle background on a tab/view using the given scheme color,
+     * preserving the rounded shape (the previous {@code setBackgroundTintList} flattened it).
+     */
+    private void setTabBackground(View view, int color) {
+        GradientDrawable d = new GradientDrawable();
+        d.setShape(GradientDrawable.RECTANGLE);
+        d.setCornerRadius(mActivity.getResources().getDimension(R.dimen.terminal_tab_corner_radius));
+        d.setColor(color);
+        view.setBackground(d);
+    }
+
     private static int blendColors(int from, int to, float ratio) {
         int a = (int) (Color.alpha(from) * (1f - ratio) + Color.alpha(to) * ratio);
         int r = (int) (Color.red(from) * (1f - ratio) + Color.red(to) * ratio);

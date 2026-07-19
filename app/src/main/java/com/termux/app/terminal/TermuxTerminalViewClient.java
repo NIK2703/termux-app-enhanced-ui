@@ -19,6 +19,7 @@ import android.widget.Toast;
 
 import com.termux.R;
 import com.termux.app.TermuxActivity;
+import com.termux.app.terminal.TermuxSchemeTheme;
 import com.termux.shared.file.FileUtils;
 import com.termux.shared.interact.MessageDialogUtils;
 import com.termux.shared.interact.ShareUtils;
@@ -801,7 +802,8 @@ public class TermuxTerminalViewClient extends TermuxTerminalViewClientBase {
 
         LinkedHashSet<CharSequence> urlSet = TermuxUrlUtils.extractUrls(text);
         if (urlSet.isEmpty()) {
-            new AlertDialog.Builder(mActivity).setMessage(R.string.title_select_url_none_found).show();
+            AlertDialog noneDialog = new AlertDialog.Builder(TermuxSchemeTheme.schemeContext(mActivity)).setMessage(R.string.title_select_url_none_found).create();
+            noneDialog.show();
             return;
         }
 
@@ -809,7 +811,7 @@ public class TermuxTerminalViewClient extends TermuxTerminalViewClientBase {
         Collections.reverse(Arrays.asList(urls)); // Latest first.
 
         // Click to copy url to clipboard:
-        final AlertDialog dialog = new AlertDialog.Builder(mActivity).setItems(urls, (di, which) -> {
+        final AlertDialog dialog = new AlertDialog.Builder(TermuxSchemeTheme.schemeContext(mActivity)).setItems(urls, (di, which) -> {
             String url = (String) urls[which];
             ShareUtils.copyTextToClipboard(mActivity, url, mActivity.getString(R.string.msg_select_url_copied_to_clipboard));
         }).setTitle(R.string.title_select_url_dialog).create();
@@ -817,12 +819,14 @@ public class TermuxTerminalViewClient extends TermuxTerminalViewClientBase {
         // Long press to open URL:
         dialog.setOnShowListener(di -> {
             ListView lv = dialog.getListView(); // this is a ListView with your "buds" in it
-            lv.setOnItemLongClickListener((parent, view, position, id) -> {
-                dialog.dismiss();
-                String url = (String) urls[position];
-                ShareUtils.openUrl(mActivity, url);
-                return true;
-            });
+            if (lv != null) {
+                lv.setOnItemLongClickListener((parent, view, position, id) -> {
+                    dialog.dismiss();
+                    String url = (String) urls[position];
+                    ShareUtils.openUrl(mActivity, url);
+                    return true;
+                });
+            }
         });
 
         dialog.show();

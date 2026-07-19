@@ -1710,6 +1710,14 @@ public final class TerminalView extends View {
         getTextSelectionCursorController().setHandleColor(color);
     }
 
+    /**
+     * Tint the text-selection ActionMode CAB bar and its title text to {@code bgColor} /
+     * {@code textColor} so they match the active colour scheme.
+     */
+    public void setTextSelectionActionModeColors(int bgColor, int textColor) {
+        getTextSelectionCursorController().setActionModeColors(bgColor, textColor);
+    }
+
     /** Get the currently selected text if selecting. */
     public String getSelectedText() {
         if (isSelectingText() && mTextSelectionCursorController != null)

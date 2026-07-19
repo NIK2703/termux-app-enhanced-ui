@@ -16,7 +16,7 @@
         android:gravity="start|center_vertical"
         android:textSize="14sp"
         android:textStyle="bold"
-        android:textColor="@android:color/black"
+        android:textColor="?attr/colorOnSurface"
         android:visibility="invisible" />
 
     <View
@@ -24,7 +24,7 @@
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginHorizontal="@dimen/content_padding"
-        android:background="@android:color/darker_gray"
+        android:background="@color/scheme_dialog_divider"
         android:visibility="invisible" />
 
 
@@ -84,9 +84,9 @@
             android:paddingEnd="@dimen/content_padding_half"
             app:layout_constraintBottom_toBottomOf="parent"
             android:gravity="end|center_vertical"
-            android:textSize="12sp"
-            android:textColor="@android:color/black"
-            android:visibility="invisible" />
+        android:textSize="12sp"
+        android:textColor="?attr/colorOnSurface"
+        android:visibility="invisible" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

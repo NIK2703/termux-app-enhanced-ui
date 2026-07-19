@@ -25,6 +25,16 @@ public final class TermuxColorSchemeManager {
     private int mTextSelectionHighlightColor = 0;
     private boolean mIsSchemeLight = false;
 
+    // --- Raw scheme colours ---
+    private int mSchemeBackground = 0;
+    private int mSchemeForeground = 0;
+
+    // --- Derived surfaces ---
+    private int mHeaderBackground = 0;   // scheme bg + inactive overlay
+    private int mDividerColor = 0;       // scheme fg @ ~20%
+    private int mDialogBackground = 0;   // scheme bg (opaque)
+    private int mDialogTextColor = 0;    // scheme fg
+
     // --- Context-popup colours ---
     private int mHistoryPopupBg = 0;
     private int mHistoryTextColor = 0;
@@ -54,23 +64,36 @@ public final class TermuxColorSchemeManager {
     public void recompute(int inactivePct, int activePct) {
         mIsSchemeLight = ColorSchemeUtils.isTerminalSchemeLight();
 
+        // Raw scheme colours.
+        mSchemeBackground = TerminalColors.COLOR_SCHEME.mDefaultColors[TextStyle.COLOR_INDEX_BACKGROUND];
+        mSchemeForeground = ColorSchemeUtils.getSchemeForeground();
+
         // Panel button colours
         mButtonBg = ColorSchemeUtils.getButtonBackground(mIsSchemeLight, inactivePct);
         mButtonActiveBg = ColorSchemeUtils.getButtonActiveBackground(mIsSchemeLight, activePct);
-        mButtonText = ColorSchemeUtils.getSchemeForeground();
-        mTextSelectionHighlightColor = mIsSchemeLight
-                ? Color.argb(38, 0, 0, 0)        // light scheme -> black @15%
-                : Color.argb(38, 255, 255, 255); // dark scheme -> white @15%
+        mButtonText = mSchemeForeground;
+        // Text-selection highlight: scheme foreground tinted to ~15% alpha (scheme-consistent,
+        // not a hardcoded black/white).
+        mTextSelectionHighlightColor = withAlpha(mSchemeForeground, 38);
+
+        // Derived surfaces.
+        int inactiveOverlay = ColorSchemeUtils.getButtonBackground(mIsSchemeLight, inactivePct);
+        mHeaderBackground = compositeColors(mSchemeBackground, inactiveOverlay);
+        mDividerColor = withAlpha(mSchemeForeground, 0x33);
+        mDialogBackground = mSchemeBackground;
+        mDialogTextColor = mSchemeForeground;
 
         // Context-popup colours
-        int inactiveOverlay = ColorSchemeUtils.getButtonBackground(mIsSchemeLight, inactivePct);
-        int schemeBg = TerminalColors.COLOR_SCHEME.mDefaultColors[TextStyle.COLOR_INDEX_BACKGROUND];
-        mHistoryPopupBg = compositeColors(schemeBg, inactiveOverlay);
+        mHistoryPopupBg = compositeColors(mSchemeBackground, inactiveOverlay);
         mHistoryTextColor = mButtonText;
-        mHistoryPopupSepColor = (mHistoryTextColor & 0x00FFFFFF) | (0x3C << 24);
-        mHistoryHighlightFill = mIsSchemeLight
-                ? Color.argb(26, 0, 0, 0)
-                : Color.argb(26, 255, 255, 255);
+        mHistoryPopupSepColor = withAlpha(mHistoryTextColor, 0x3C);
+        // Highlight of the history popup item under the finger: scheme foreground @ ~15%.
+        mHistoryHighlightFill = withAlpha(mHistoryTextColor, 0x26);
+    }
+
+    /** Apply {@code alpha} (0–255) to the RGB of {@code color}, keeping the scheme hue. */
+    private static int withAlpha(int color, int alpha) {
+        return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color));
     }
 
     // --- Getters ---
@@ -89,6 +112,24 @@ public final class TermuxColorSchemeManager {
 
     /** @return Whether the current scheme is perceived as light. */
     public boolean isSchemeLight() { return mIsSchemeLight; }
+
+    /** @return Cached raw scheme background colour. */
+    public int getSchemeBackground() { return mSchemeBackground; }
+
+    /** @return Cached raw scheme foreground colour. */
+    public int getSchemeForeground() { return mSchemeForeground; }
+
+    /** @return Cached header background (scheme bg + inactive-element overlay). */
+    public int getHeaderBackground() { return mHeaderBackground; }
+
+    /** @return Cached divider colour (scheme foreground @ ~20% alpha). */
+    public int getDividerColor() { return mDividerColor; }
+
+    /** @return Cached dialog background colour (opaque scheme background). */
+    public int getDialogBackground() { return mDialogBackground; }
+
+    /** @return Cached dialog text colour (scheme foreground). */
+    public int getDialogTextColor() { return mDialogTextColor; }
 
     /** @return Cached context-popup background colour (scheme bg + inactive overlay). */
     public int getHistoryPopupBg() { return mHistoryPopupBg; }

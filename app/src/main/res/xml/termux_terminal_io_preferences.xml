@@ -1,41 +1,120 @@
-<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <PreferenceCategory
-        app:key="keyboard"
-        app:title="@string/termux_keyboard_header">
+        app:title="@string/extra_keys_category_title"
+        app:iconSpaceReserved="false">
+
+        <CheckBoxPreference
+            app:key="hide_extra_keys_with_keyboard"
+            app:defaultValue="true"
+            app:title="@string/hide_extra_keys_with_keyboard_title"
+            app:summary="@string/hide_extra_keys_with_keyboard_summary"
+            app:iconSpaceReserved="false" />
+
+        <EditTextPreference
+            app:key="extra-keys"
+            app:title="@string/extra_keys_layout_title"
+            app:summary="@string/extra_keys_layout_summary"
+            app:dialogTitle="@string/extra_keys_layout_title"
+            app:defaultValue='[["ESC","/",{"key": "-", "popup": "|"},"HOME","UP","END","PGUP"], ["TAB","CTRL","ALT","LEFT","DOWN","RIGHT","PGDN"]]'
+            app:iconSpaceReserved="false" />
+
+        <ListPreference
+            app:key="extra-keys-style"
+            app:defaultValue="default"
+            app:title="@string/extra_keys_style_title"
+            app:summary="@string/extra_keys_style_summary"
+            app:entries="@array/extra_keys_style_entries"
+            app:entryValues="@array/extra_keys_style_values"
+            app:iconSpaceReserved="false" />
 
         <SwitchPreferenceCompat
-            app:key="soft_keyboard_enabled"
-            app:summaryOff="@string/termux_soft_keyboard_enabled_off"
-            app:summaryOn="@string/termux_soft_keyboard_enabled_on"
-            app:title="@string/termux_soft_keyboard_enabled_title" />
+            app:key="extra-keys-text-all-caps"
+            app:defaultValue="true"
+            app:title="@string/extra_keys_text_all_caps_title"
+            app:summary="@string/extra_keys_text_all_caps_summary"
+            app:iconSpaceReserved="false" />
 
-        <SwitchPreferenceCompat
-            app:key="soft_keyboard_enabled_only_if_no_hardware"
-            app:summaryOff="@string/termux_soft_keyboard_enabled_only_if_no_hardware_off"
-            app:summaryOn="@string/termux_soft_keyboard_enabled_only_if_no_hardware_on"
-            app:title="@string/termux_soft_keyboard_enabled_only_if_no_hardware_title" />
+        <ListPreference
+            app:key="extra-keys-special-button-mode"
+            app:defaultValue="sticky"
+            app:title="@string/extra_keys_special_button_mode_title"
+            app:summary="@string/extra_keys_special_button_mode_summary"
+            app:entries="@array/extra_keys_special_button_mode_entries"
+            app:entryValues="@array/extra_keys_special_button_mode_values"
+            app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:title="@string/input_panel_title"
+        app:iconSpaceReserved="false">
 
         <SwitchPreferenceCompat
             app:key="text_input_enabled"
             app:defaultValue="true"
             app:title="@string/text_input_show_title"
             app:summaryOn="@string/text_input_show_summary_on"
-            app:summaryOff="@string/text_input_show_summary_off" />
+            app:summaryOff="@string/text_input_show_summary_off"
+            app:iconSpaceReserved="false" />
 
-        <ListPreference
-            app:key="tab_panel_position"
-            app:defaultValue="top"
-            app:title="@string/termux_tab_panel_position_title"
-            app:entries="@array/tab_panel_position_entries"
-            app:entryValues="@array/tab_panel_position_values" />
+        <SwitchPreferenceCompat
+            app:key="text_input_append_enter"
+            app:defaultValue="true"
+            app:title="@string/text_input_append_enter_title"
+            app:summary="@string/text_input_append_enter_summary"
+            app:iconSpaceReserved="false" />
 
-        <ListPreference
-            app:key="tab_height_mode"
-            app:defaultValue="single"
-            app:title="@string/termux_tab_height_mode_title"
-            app:entries="@array/tab_height_mode_entries"
-            app:entryValues="@array/tab_height_mode_values" />
+        <SwitchPreferenceCompat
+            app:key="text_input_hide_on_send"
+            app:defaultValue="true"
+            app:title="@string/text_input_hide_on_send_title"
+            app:summary="@string/text_input_hide_on_send_summary"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="per_directory_message_history"
+            app:title="@string/per_directory_message_history_title"
+            app:summary="@string/per_directory_message_history_summary"
+            app:defaultValue="false"
+            app:iconSpaceReserved="false" />
+
+        <SeekBarPreference
+            app:key="message_history_max"
+            app:title="@string/message_history_max_title"
+            app:defaultValue="20"
+            app:showSeekBarValue="true"
+            app:iconSpaceReserved="false" />
+
+        <SeekBarPreference
+            app:key="suggestions_max_count"
+            app:title="@string/suggestions_max_count_title"
+            app:summary="@string/suggestions_max_count_summary"
+            app:defaultValue="4"
+            android:max="10"
+            app:showSeekBarValue="true"
+            app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:title="@string/termux_keyboard_header"
+        app:iconSpaceReserved="false">
+
+        <SwitchPreferenceCompat
+            app:key="soft_keyboard_enabled"
+            app:summaryOff="@string/termux_soft_keyboard_enabled_off"
+            app:summaryOn="@string/termux_soft_keyboard_enabled_on"
+            app:title="@string/termux_soft_keyboard_enabled_title"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="soft_keyboard_enabled_only_if_no_hardware"
+            app:summaryOff="@string/termux_soft_keyboard_enabled_only_if_no_hardware_off"
+            app:summaryOn="@string/termux_soft_keyboard_enabled_only_if_no_hardware_on"
+            app:title="@string/termux_soft_keyboard_enabled_only_if_no_hardware_title"
+            app:iconSpaceReserved="false" />
 
     </PreferenceCategory>
 

@@ -1,0 +1,15 @@
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <Preference
+        app:key="backup_container"
+        app:title="@string/backup_preference_title"
+        app:summary="@string/backup_preference_summary"
+        app:iconSpaceReserved="false" />
+
+    <Preference
+        app:key="restore_container"
+        app:title="@string/restore_preference_title"
+        app:summary="@string/restore_preference_summary"
+        app:iconSpaceReserved="false" />
+
+</PreferenceScreen>

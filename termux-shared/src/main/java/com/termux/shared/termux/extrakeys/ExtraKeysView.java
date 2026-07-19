@@ -722,6 +722,7 @@ public final class ExtraKeysView extends GridLayout {
         button.setHeight(height);
         button.setBackgroundTintList(ColorStateList.valueOf(mButtonActiveBackgroundColor));
         mPopupWindow = new PopupWindow(this);
+        mPopupWindow.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(mButtonBackgroundColor));
         mPopupWindow.setWidth(LayoutParams.WRAP_CONTENT);
         mPopupWindow.setHeight(LayoutParams.WRAP_CONTENT);
         mPopupWindow.setContentView(button);

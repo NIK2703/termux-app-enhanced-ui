@@ -121,7 +121,12 @@ public final class TerminalRenderer {
                     currentCharIndex, charsForCodePoint);
                 final boolean fontWidthMismatch = Math.abs(measuredCodePointWidth / mFontWidth - codePointWcWidth) > 0.01;
 
-                if (style != lastRunStyle || insideCursor != lastRunInsideCursor || insideSelection != lastRunInsideSelection || fontWidthMismatch || lastRunFontWidthMismatch) {
+                // Break the run whenever the font-width-mismatch flag changes, AND additionally
+                // break on every mismatched code point so each such glyph is scaled individually
+                // rather than averaged with its neighbours. Averaging across a run is what makes
+                // some emoji get clipped (glyph wider than its cell) or squeezed (glyph narrower
+                // than its cell).
+                if (style != lastRunStyle || insideCursor != lastRunInsideCursor || insideSelection != lastRunInsideSelection || fontWidthMismatch || lastRunFontWidthMismatch || (fontWidthMismatch && lastRunFontWidthMismatch)) {
                     if (column == 0) {
                         // Skip first column as there is nothing to draw, just record the current style.
                     } else {

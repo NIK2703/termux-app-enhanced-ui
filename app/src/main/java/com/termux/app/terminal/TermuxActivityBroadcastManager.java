@@ -79,26 +79,22 @@ public class TermuxActivityBroadcastManager {
             String action = intent.getAction();
 
             if (ACTION_TEXT_INPUT_VISIBILITY_CHANGED.equals(action)) {
-                Logger.logDebug(LOG_TAG, "Received intent to change text input visibility");
                 boolean visible = intent.getBooleanExtra("visible", true);
                 termuxActivity.setTextInputVisible(visible);
                 return;
             }
 
             if (ACTION_TEXT_INPUT_ENABLED_CHANGED.equals(action)) {
-                Logger.logDebug(LOG_TAG, "Received intent to change text input enabled state");
                 termuxActivity.updateToggleTextInputButtonVisibility();
                 return;
             }
 
             if (ACTION_TAB_PANEL_POSITION_CHANGED.equals(action)) {
-                Logger.logDebug(LOG_TAG, "Received intent to change tab panel position");
                 termuxActivity.applyTabPanelPosition();
                 return;
             }
 
             if (ACTION_TAB_HEIGHT_MODE_CHANGED.equals(action)) {
-                Logger.logDebug(LOG_TAG, "Received intent to change tab height mode");
                 termuxActivity.applyTabHeightMode();
                 return;
             }
@@ -107,20 +103,17 @@ public class TermuxActivityBroadcastManager {
             action = intent.getAction();
 
             if (TERMUX_ACTIVITY.ACTION_REQUEST_PERMISSIONS.equals(action)) {
-                Logger.logDebug(LOG_TAG, "Received intent to request storage permissions");
                 termuxActivity.requestStoragePermission(false);
                 return;
             }
 
             if (TERMUX_ACTIVITY.ACTION_RELOAD_STYLE.equals(action)) {
-                Logger.logWarn(LOG_TAG, "THEME-DEBUG: received ACTION_RELOAD_STYLE, recreateActivity=" + intent.getBooleanExtra(TERMUX_ACTIVITY.EXTRA_RECREATE_ACTIVITY, true));
                 termuxActivity.reloadActivityStyling(intent.getBooleanExtra(TERMUX_ACTIVITY.EXTRA_RECREATE_ACTIVITY, true));
                 return;
             }
 
             switch (action) {
                 case TERMUX_ACTIVITY.ACTION_NOTIFY_APP_CRASH:
-                    Logger.logDebug(LOG_TAG, "Received intent to notify app crash");
                     TermuxCrashUtils.notifyAppCrashFromCrashLogFile(context, LOG_TAG);
                     return;
                 default:

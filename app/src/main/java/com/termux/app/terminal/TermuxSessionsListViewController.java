@@ -20,6 +20,7 @@ import androidx.core.content.ContextCompat;
 
 import com.termux.R;
 import com.termux.app.TermuxActivity;
+import com.termux.app.terminal.TermuxColorSchemeManager;
 import com.termux.shared.termux.shell.command.runner.terminal.TermuxSession;
 import com.termux.shared.theme.NightMode;
 import com.termux.shared.theme.ThemeUtils;
@@ -57,13 +58,12 @@ public class TermuxSessionsListViewController extends ArrayAdapter<TermuxSession
             return sessionRowView;
         }
 
-        boolean shouldEnableDarkTheme = ThemeUtils.shouldEnableDarkTheme(mActivity, NightMode.getAppNightMode().getName());
+        TermuxColorSchemeManager csm = mActivity.getColorSchemeManager();
 
-        if (shouldEnableDarkTheme) {
-            sessionTitleView.setBackground(
-                ContextCompat.getDrawable(mActivity, R.drawable.session_background_black_selected)
-            );
-        }
+        // Born scheme-coloured: the active row background follows the live scheme (a translucent
+        // overlay over the scheme background) in both light and dark modes, so the drawer list
+        // reads as one scheme band from the first frame.
+        sessionTitleView.setBackgroundColor(csm.getButtonActiveBg());
 
         String name = sessionAtRow.mSessionName;
         String sessionTitle = sessionAtRow.getTitle();
@@ -86,8 +86,9 @@ public class TermuxSessionsListViewController extends ArrayAdapter<TermuxSession
         } else {
             sessionTitleView.setPaintFlags(sessionTitleView.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
         }
-        int defaultColor = shouldEnableDarkTheme ? Color.WHITE : Color.BLACK;
-        int color = sessionRunning || sessionAtRow.getExitStatus() == 0 ? defaultColor : Color.RED;
+        int defaultColor = csm.getButtonText();
+        int errorColor = ContextCompat.getColor(mActivity, com.termux.shared.R.color.terminal_tab_text_error);
+        int color = sessionRunning || sessionAtRow.getExitStatus() == 0 ? defaultColor : errorColor;
         sessionTitleView.setTextColor(color);
         return sessionRowView;
     }

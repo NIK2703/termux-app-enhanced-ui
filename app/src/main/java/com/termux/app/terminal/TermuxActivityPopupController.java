@@ -29,6 +29,8 @@ import androidx.annotation.Nullable;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.termux.R;
+import com.termux.app.TermuxActivity;
+import com.termux.app.terminal.TermuxSchemeTheme;
 import com.termux.app.terminal.io.autocomplete.MessageHistoryController;
 import com.termux.shared.data.DataUtils;
 import com.termux.app.TermuxActivityUtils;
@@ -78,7 +80,7 @@ public final class TermuxActivityPopupController {
 
     // Dependencies injected by the host activity (mirrors TermuxActivity fields).
     @Nullable private MessageHistoryController mMessageHistoryCtrl = null;
-    @Nullable private TermuxColorSchemeManager mColorSchemeManager = null;
+    private final TermuxColorSchemeManager mColorSchemeManager;
 
     // Live popup state (mirrors TermuxActivity fields).
     private PopupWindow mHistoryPopup = null;
@@ -113,17 +115,15 @@ public final class TermuxActivityPopupController {
     private static final int MESSAGE_HISTORY_POPUP_MAX_HEIGHT_DP = 520;
     private static final int MESSAGE_HISTORY_POPUP_GAP_DP = 24;
 
-    public TermuxActivityPopupController(@NonNull Context context, @NonNull Host host) {
+    public TermuxActivityPopupController(@NonNull Context context, @NonNull Host host,
+                                          @NonNull TermuxColorSchemeManager colorSchemeManager) {
         mContext = context;
         mHost = host;
+        mColorSchemeManager = colorSchemeManager;
     }
 
     public void setMessageHistoryController(@Nullable MessageHistoryController controller) {
         mMessageHistoryCtrl = controller;
-    }
-
-    public void setColorSchemeManager(@Nullable TermuxColorSchemeManager manager) {
-        mColorSchemeManager = manager;
     }
 
     private int dpToPx(int dp) {
@@ -183,7 +183,7 @@ public final class TermuxActivityPopupController {
             tv.setText(mContext.getString(R.string.message_history_clear_all));
             tv.setGravity(Gravity.CENTER);
             tv.setAllCaps(true);
-            tv.setTextColor(mColorSchemeManager != null ? mColorSchemeManager.getHistoryTextColor() : Color.WHITE);
+            tv.setTextColor(mColorSchemeManager.getHistoryTextColor());
             tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
             tv.setTypeface(tv.getTypeface(), android.graphics.Typeface.BOLD);
             tv.setPadding(padH, padV, padH, padV);
@@ -196,11 +196,11 @@ public final class TermuxActivityPopupController {
 
             // Thin separator below the clear all row to visually group it.
             View sep = new View(mContext);
-            sep.setBackgroundColor(mColorSchemeManager != null ? mColorSchemeManager.getHistoryPopupSepColor() : Color.DKGRAY);
+            sep.setBackgroundColor(mColorSchemeManager.getHistoryPopupSepColor());
             content.addView(sep, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
         }
-        // Displayed order (ТЗ): newest at the BOTTOM (nearest the pencil button,
+        // Displayed order (spec): newest at the BOTTOM (nearest the pencil button,
         // first reached by a swipe-up), oldest at the top. A re-sent message moves
         // to index 0 (front) of mMessageHistoryCtrl.getHistoryList(), so iterate in REVERSE (end -> 0)
         // to fill the vertical layout top-to-bottom with the newest last (bottom).
@@ -213,7 +213,7 @@ public final class TermuxActivityPopupController {
                 tv.setText(message.replace("\n", " ").trim());
                 tv.setMaxLines(2);
                 tv.setEllipsize(TextUtils.TruncateAt.END);
-                tv.setTextColor(mColorSchemeManager != null ? mColorSchemeManager.getHistoryTextColor() : Color.WHITE);
+                tv.setTextColor(mColorSchemeManager.getHistoryTextColor());
                 tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
                 tv.setPadding(padH, padV, padH, padV);
                 tv.setClickable(true);
@@ -236,7 +236,7 @@ public final class TermuxActivityPopupController {
             tv.setText(mContext.getString(R.string.message_history_clear));
             tv.setGravity(Gravity.CENTER);
             tv.setAllCaps(true);
-            tv.setTextColor(mColorSchemeManager != null ? mColorSchemeManager.getHistoryTextColor() : Color.WHITE);
+            tv.setTextColor(mColorSchemeManager.getHistoryTextColor());
             tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
             tv.setTypeface(tv.getTypeface(), android.graphics.Typeface.BOLD);
             tv.setPadding(padH, padV, padH, padV);
@@ -252,7 +252,7 @@ public final class TermuxActivityPopupController {
             // when there IS a history list to separate it from.
             if (mMessageHistoryCtrl != null && !mMessageHistoryCtrl.getHistoryList().isEmpty()) {
                 View sepBottom = new View(mContext);
-                sepBottom.setBackgroundColor(mColorSchemeManager != null ? mColorSchemeManager.getHistoryPopupSepColor() : Color.DKGRAY);
+                sepBottom.setBackgroundColor(mColorSchemeManager.getHistoryPopupSepColor());
                 content.addView(sepBottom, content.getChildCount() - 1,
                         new LinearLayout.LayoutParams(
                                 ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
@@ -317,7 +317,7 @@ public final class TermuxActivityPopupController {
         };
         popupBgDrawable.setShape(GradientDrawable.RECTANGLE);
         popupBgDrawable.setCornerRadius(dpToPx(12));
-        popupBgDrawable.setColor(mColorSchemeManager != null ? mColorSchemeManager.getHistoryPopupBg() : Color.BLACK); // must be opaque for getOutline
+        popupBgDrawable.setColor(mColorSchemeManager.getHistoryPopupBg()); // must be opaque for getOutline
         mHistoryPopup.setBackgroundDrawable(popupBgDrawable);
         // 10% visual transparency on the content (not the background drawable, so the
         // elevation shadow outline stays valid).
@@ -409,7 +409,7 @@ public final class TermuxActivityPopupController {
             Object tag = tv.getTag();
             boolean active = tag instanceof Integer && (Integer) tag == mHistoryHighlightIndex;
             if (active) {
-                tv.setBackgroundColor(mColorSchemeManager != null ? mColorSchemeManager.getHistoryHighlightFill() : Color.TRANSPARENT);
+                tv.setBackgroundColor(mColorSchemeManager.getHistoryHighlightFill());
             } else {
                 tv.setBackgroundColor(Color.TRANSPARENT);
             }
@@ -501,7 +501,7 @@ public final class TermuxActivityPopupController {
      * directories), Cancel. In global mode it stays as OK + Cancel.
      */
     public void confirmClearAllHistory() {
-        final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(mContext, R.style.ThemeOverlay_TermuxActivity_Dialog)
+        final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(TermuxSchemeTheme.schemeContext(mContext))
                 .setTitle(mContext.getString(R.string.message_history_clear_question))
                 .setNegativeButton(android.R.string.cancel, null);
 
@@ -514,12 +514,13 @@ public final class TermuxActivityPopupController {
                     .setPositiveButton(android.R.string.ok, (d, w) -> clearAllHistory());
         }
 
-        builder.show();
+        androidx.appcompat.app.AlertDialog dialog = builder.create();
+        dialog.show();
     }
 
     /** "Clear message history..." item: ask for confirmation, then wipe all history. */
     private void confirmClearHistory() {
-        final MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(mContext, R.style.ThemeOverlay_TermuxActivity_Dialog);
+        final MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(TermuxSchemeTheme.schemeContext(mContext));
         b.setIcon(android.R.drawable.ic_dialog_alert);
         b.setTitle(mContext.getString(R.string.message_history_clear_dialog_title));
         String msg = (mMessageHistoryCtrl != null && mMessageHistoryCtrl.isPerDirectoryEnabled())
@@ -532,7 +533,8 @@ public final class TermuxActivityPopupController {
             showToast(mContext.getString(R.string.message_history_cleared), true);
         });
         b.setNegativeButton(android.R.string.no, null);
-        b.show();
+        androidx.appcompat.app.AlertDialog dialog = b.create();
+        dialog.show();
     }
 
     public void onBackPressed() {

@@ -200,11 +200,11 @@ final class AutoCompleteSwipeHandler {
                     inputField.setSelection(end, end);
                 }
                 if (wasEngaged) {
-                    // НЕ вызываем тяжёлый refresh синхронно из onTouch: пересчёт
-                    // попапа (showAtLocation/rebuild/views) реентерабельно из
-                    // обработчика тача падает. Снимаем гвард подавления и
-                    // обновляем попап на следующем шаге looper'а, УЖЕ ПОСЛЕ
-                    // завершения жеста (finally ниже корректно сбросит состояние).
+                    // Do NOT run the heavy refresh synchronously from onTouch: rebuilding
+                    // the popup (showAtLocation/rebuild/views) re-entrantly from the
+                    // touch handler crashes. Clear the suppression guard and update the
+                    // popup on the next looper step, AFTER the gesture has finished
+                    // (the finally below correctly resets the state).
                     final EditText f = inputField;
                     f.post(() -> {
                         mClearSuppress.run();

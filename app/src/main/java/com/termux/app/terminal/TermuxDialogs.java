@@ -12,6 +12,7 @@ import com.termux.app.TermuxActivityUtils;
 import com.termux.shared.termux.extrakeys.ColorSchemeUtils;
 import com.termux.shared.termux.extrakeys.FontUtils;
 import com.termux.shared.theme.NightMode;
+import com.termux.app.terminal.TermuxSchemeTheme;
 import com.termux.shared.theme.ThemeUtils;
 import com.termux.terminal.TerminalSession;
 
@@ -41,9 +42,9 @@ public class TermuxDialogs {
      * @param onConfirmAll run when the user confirms clearing all directories (per-directory mode only).
      */
     public void showConfirmClearAllHistory(boolean perDirectoryEnabled,
-                                           @NonNull Runnable onConfirmCurrent,
-                                           @NonNull Runnable onConfirmAll) {
-        final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(mActivity, R.style.ThemeOverlay_TermuxActivity_Dialog)
+                                            @NonNull Runnable onConfirmCurrent,
+                                            @NonNull Runnable onConfirmAll) {
+        final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(TermuxSchemeTheme.schemeContext(mActivity))
                 .setTitle(mActivity.getString(R.string.message_history_clear_question))
                 .setNegativeButton(android.R.string.cancel, null);
 
@@ -56,7 +57,8 @@ public class TermuxDialogs {
                     .setPositiveButton(android.R.string.ok, (d, w) -> onConfirmCurrent.run());
         }
 
-        builder.show();
+        androidx.appcompat.app.AlertDialog dialog = builder.create();
+        dialog.show();
     }
 
     /**
@@ -75,7 +77,7 @@ public class TermuxDialogs {
      * @param onConfirm run when the user confirms clearing the history.
      */
     public void showConfirmClearHistory(boolean perDirectoryEnabled, @NonNull Runnable onConfirm) {
-        final MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(mActivity, R.style.ThemeOverlay_TermuxActivity_Dialog);
+        final MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(TermuxSchemeTheme.schemeContext(mActivity));
         b.setIcon(android.R.drawable.ic_dialog_alert);
         b.setTitle(mActivity.getString(R.string.message_history_clear_dialog_title));
         String msg = perDirectoryEnabled
@@ -87,13 +89,12 @@ public class TermuxDialogs {
             onConfirm.run();
         });
         b.setNegativeButton(android.R.string.no, null);
-        b.show();
+        androidx.appcompat.app.AlertDialog dialog = b.create();
+        dialog.show();
     }
 
     /**
      * Convenience overload for {@link #showConfirmClearHistory(boolean, Runnable)}.
-     *
-     * @param onConfirm run when the user confirms clearing the history.
      */
     public void showConfirmClearHistory(@NonNull Runnable onConfirm) {
         showConfirmClearHistory(false, onConfirm);
@@ -108,7 +109,7 @@ public class TermuxDialogs {
     public void showKillSessionDialog(TerminalSession session, @NonNull Runnable onKill) {
         if (session == null) return;
 
-        final MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(mActivity, R.style.ThemeOverlay_TermuxActivity_Dialog);
+        final MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(TermuxSchemeTheme.schemeContext(mActivity));
         b.setIcon(android.R.drawable.ic_dialog_alert);
         b.setMessage(R.string.title_confirm_kill_process);
         b.setPositiveButton(android.R.string.yes, (dialog, id) -> {
@@ -117,7 +118,8 @@ public class TermuxDialogs {
             onKill.run();
         });
         b.setNegativeButton(android.R.string.no, null);
-        b.show();
+        androidx.appcompat.app.AlertDialog dialog = b.create();
+        dialog.show();
     }
 
     /**

@@ -128,6 +128,7 @@
     <string name="appearance_preferences_summary">Настройки внешнего вида приложения и прозрачности панели</string>
     <string name="theme_title">Тема</string>
     <string name="panel_transparency_title">Прозрачность панели</string>
+    <string name="appearance_category_title">Внешний вид</string>
 
     <string name="termux_preferences_title">&TERMUX_APP_NAME;</string>
     <string name="termux_preferences_summary">Настройки приложения &TERMUX_APP_NAME;</string>
@@ -234,7 +235,7 @@
     <string name="per_directory_message_history_summary">Вести отдельную историю сообщений для каждой рабочей папки. При выключении все сеансы используют одну общую историю.</string>
 
     <!-- Text input preferences -->
-    <string name="text_input_title">Ввод текста</string>
+    <string name="input_panel_title">Панель ввода</string>
     <string name="text_input_append_enter_title">Добавлять Enter при отправке</string>
     <string name="text_input_append_enter_summary">При отправке из поля ввода также отправлять перевод строки (Enter). Отключите, чтобы отправлять текст без завершающего переноса строки.</string>
 
@@ -373,6 +374,50 @@
     <string name="hide_extra_keys_with_keyboard_summary">Автоматически скрывать доп. кнопки при закрытии клавиатуры, показывать при открытии</string>
 
     <!-- Text input auto-complete -->
-    <string name="suggestions_max_count_title">Макс. подсказок</string>
+    <string name="suggestions_max_count_title">Максимум подсказок</string>
     <string name="suggestions_max_count_summary">Автодополнение из истории сообщений (1–10)</string>
+
+    <!-- Restructured settings: screen titles -->
+    <string name="language_category_title">Язык</string>
+    <string name="input_preferences_title">Ввод</string>
+    <string name="input_preferences_summary">Настройки ввода текста и клавиатуры</string>
+    <string name="extra_keys_preferences_title">Дополнительные клавиши</string>
+    <string name="extra_keys_preferences_summary">Настройки панели дополнительных клавиш</string>
+    <string name="display_preferences_title">Экран</string>
+    <string name="display_preferences_summary">Тема, язык, прозрачность панели, вид терминала, окно и вкладки</string>
+    <string name="sessions_history_preferences_title">Сессии</string>
+    <string name="sessions_history_preferences_summary">Настройки сессий, вкладок и истории</string>
+    <string name="backup_restore_preferences_title">Резервное копирование и восстановление</string>
+    <string name="backup_restore_preferences_summary">Создать или восстановить данные Termux</string>
+    <string name="diagnostics_preferences_title">Диагностика</string>
+    <string name="diagnostics_preferences_summary">Журналирование и уведомления об ошибках</string>
+    <string name="plugin_logging_category_title">Журналирование</string>
+    <string name="failure_notifications_category_title">Уведомления об ошибках</string>
+
+    <!-- Extra keys subsection -->
+    <string name="extra_keys_header">Дополнительные клавиши</string>
+    <string name="extra_keys_category_title">Дополнительные клавиши</string>
+    <string name="extra_keys_layout_title">Раскладка клавиш</string>
+    <string name="extra_keys_layout_summary">JSON-матрица, определяющая ряды дополнительных клавиш и их всплывающие значения.</string>
+    <string name="extra_keys_style_title">Стиль клавиш</string>
+    <string name="extra_keys_style_summary">Как отображаются специальные символы на клавишах.</string>
+    <string name="extra_keys_style_default">По умолчанию</string>
+    <string name="extra_keys_style_arrows_only">Только стрелки</string>
+    <string name="extra_keys_style_arrows_all">Все стрелки</string>
+    <string name="extra_keys_style_all">Все</string>
+    <string name="extra_keys_style_none">Нет</string>
+    <string name="extra_keys_text_all_caps_title">Текст заглавными</string>
+    <string name="extra_keys_text_all_caps_summary">Показывать подписи дополнительных клавиш в верхнем регистре.</string>
+    <string name="extra_keys_special_button_mode_title">Поведение спецклавиш</string>
+    <string name="extra_keys_special_button_mode_summary">Как модификаторы (CTRL, ALT, SHIFT, FN) реагируют на касание. Залипающий: нажмите для переключения, долгое нажатие — для блокировки. Удержание: активно только пока клавиша нажата.</string>
+    <string name="extra_keys_special_button_mode_sticky">Залипающий (переключение / блокировка)</string>
+    <string name="extra_keys_special_button_mode_hold">Удержание (пока нажата)</string>
+
+    <!-- Display subsections -->
+    <string name="view_category_title">Вид</string>
+    <string name="window_category_title">Окно</string>
+
+    <!-- History & Tabs subsections -->
+    <string name="history_category_title">История</string>
+    <string name="tabs_category_title">Вкладки</string>
 </resources>

@@ -79,9 +79,9 @@
       https://github.com/material-components/material-components-android/blob/1.4.0/lib/java/com/google/android/material/dialog/res/values/themes.xml#L70
      -->
     <style name="ThemeOverlay.BaseDialog.Light" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
-        <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/red_400</item>
-        <item name="colorPrimaryVariant">@color/red_800</item>
+        <!-- Primary brand color: intentionally NOT set to red. The Termux:Style colour scheme
+             is applied at runtime (TermuxSchemeTheme / MessageDialogUtils), so dialogs must not
+             carry a hardcoded red accent. -->
         <item name="colorOnPrimary">@color/white</item>
 
         <!-- Secondary brand color. -->
@@ -105,5 +105,133 @@
 
     <!-- BaseDialog extended classes DayNight themes. -->
     <style name="ThemeOverlay.MessageDialog.DayNight" parent="ThemeOverlay.BaseDialog.DayNight"/>
+
+    <!--
+      Scheme-driven dialog theme overlay. All colour attributes resolve to @color/scheme_dialog_*
+      which are overridden at runtime (SchemeDialogTheme) with the active Termux:Style scheme,
+      so dialogs render in the scheme from the first frame — no post-show tint required.
+    -->
+    <style name="ThemeOverlay.BaseDialog.Scheme" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="colorPrimary">@color/scheme_dialog_foreground</item>
+        <item name="colorPrimaryVariant">@color/scheme_dialog_foreground</item>
+        <item name="colorOnPrimary">@color/scheme_dialog_background</item>
+        <item name="colorSurface">@color/scheme_dialog_surface</item>
+        <item name="colorOnSurface">@color/scheme_dialog_on_surface</item>
+        <item name="android:colorBackground">@color/scheme_dialog_background</item>
+        <item name="android:textColorPrimary">@color/scheme_dialog_on_surface</item>
+        <item name="android:textColor">@color/scheme_dialog_on_surface</item>
+        <item name="colorAccent">@color/scheme_dialog_foreground</item>
+        <item name="android:colorAccent">@color/scheme_dialog_foreground</item>
+        <item name="android:textColorAlertDialogListItem">@color/scheme_dialog_on_surface</item>
+        <item name="android:listDivider">@color/scheme_dialog_divider</item>
+        <item name="alertDialogTheme">@style/ThemeOverlay.BaseDialog.Scheme.Alert</item>
+        <item name="materialAlertDialogTitlePanelStyle">@style/BaseDialog.Title.Panel</item>
+        <item name="materialAlertDialogBodyTextStyle">@style/BaseDialog.Message.Text.Light</item>
+    </style>
+
+    <!-- Framework (non-Material) AlertDialog variant: same scheme colours, used by the
+         Termux:Style picker dialogs which build android.app.AlertDialog directly. -->
+    <style name="ThemeOverlay.BaseDialog.Scheme.Alert" parent="ThemeOverlay.BaseDialog.Scheme">
+        <item name="android:colorBackground">@color/scheme_dialog_background</item>
+        <item name="android:textColorPrimary">@color/scheme_dialog_on_surface</item>
+        <item name="android:textColor">@color/scheme_dialog_on_surface</item>
+        <item name="android:textColorAlertDialogListItem">@color/scheme_dialog_on_surface</item>
+        <item name="android:listDivider">@color/scheme_dialog_divider</item>
+    </style>
+
+    <!--
+      Scheme-driven ACTIVITY theme overlay. Applied on top of an activity's existing theme
+      (via SchemeDialogTheme.wrapActivityTheme, which resolves @color/scheme_dialog_* to the live
+      Termux:Style scheme at runtime) so the whole activity — toolbar, preference rows/category
+      headers, switches, the long-press context menu popup — is inflated in the scheme from the
+      first frame. No post-layout repaint required, and colours stay correct as rows recycle/scroll.
+    -->
+    <style name="ThemeOverlay.BaseActivity.Scheme" parent="">
+        <item name="colorPrimary">@color/scheme_dialog_foreground</item>
+        <item name="colorPrimaryVariant">@color/scheme_dialog_foreground</item>
+        <item name="colorPrimaryDark">@color/scheme_dialog_background</item>
+        <item name="colorOnPrimary">@color/scheme_dialog_background</item>
+        <item name="colorAccent">@color/scheme_dialog_foreground</item>
+        <item name="android:colorAccent">@color/scheme_dialog_foreground</item>
+
+        <!-- Window compositor draws these BEFORE any Java runs, so they MUST be scheme-mapped
+             here too — otherwise the activity flashes white until applyToToolbar() runs. -->
+        <item name="android:windowBackground">@color/scheme_dialog_background</item>
+        <item name="android:statusBarColor">@color/scheme_dialog_background</item>
+        <item name="android:navigationBarColor">@color/scheme_dialog_background</item>
+        <item name="android:colorBackgroundFloating">@color/scheme_dialog_background</item>
+        <item name="colorSurface">@color/scheme_dialog_surface</item>
+        <item name="colorOnSurface">@color/scheme_dialog_on_surface</item>
+        <item name="android:colorBackground">@color/scheme_dialog_background</item>
+        <item name="android:textColorPrimary">@color/scheme_dialog_on_surface</item>
+        <item name="android:textColorSecondary">@color/scheme_dialog_on_surface</item>
+        <item name="android:textColor">@color/scheme_dialog_on_surface</item>
+        <item name="android:listDivider">@color/scheme_dialog_divider</item>
+
+        <!-- Extra-keys / session-tab / floating-button backgrounds resolve through these attrs.
+             The app theme pins them to fixed light grays, so the scheme overlay must remap them
+             to the live scheme (resolved at runtime by SchemeResources) — otherwise tabs/buttons
+             are born the wrong colour on frame 1. -->
+        <item name="extraKeysButtonBackgroundColor">@color/scheme_dialog_button_background</item>
+        <item name="extraKeysButtonActiveBackgroundColor">@color/scheme_dialog_button_active_background</item>
+        <item name="extraKeysButtonTextColor">@color/scheme_dialog_on_surface</item>
+        <item name="extraKeysButtonActiveTextColor">@color/scheme_dialog_on_surface</item>
+
+        <!-- Controls (switches, sliders, action-mode icons, ripples) born scheme. -->
+        <item name="colorControlNormal">@color/scheme_dialog_foreground</item>
+        <item name="colorControlActivated">@color/scheme_dialog_foreground</item>
+        <item name="colorControlHighlight">@color/scheme_dialog_selector</item>
+
+        <!-- Long-press context menu + popup menus: built by the framework from the activity
+             context, so drive their colours through the activity theme.
+             AppCompat 1.6.1 resolves the (non-android) popup attributes, NOT the
+             android:-prefixed framework ones, so both must be set. The menu ListView itself
+             reads android:divider + android:listSelector (not android:listDivider), so those
+             are set explicitly to make the popup born scheme-coloured with no repaint. -->
+        <item name="android:contextPopupMenuStyle">@style/BaseActivity.Scheme.ContextMenu</item>
+        <item name="android:popupMenuStyle">@style/BaseActivity.Scheme.PopupMenu</item>
+        <item name="android:listPopupWindowStyle">@style/BaseActivity.Scheme.ListPopup</item>
+        <item name="popupMenuStyle">@style/BaseActivity.Scheme.PopupMenu</item>
+        <item name="listPopupWindowStyle">@style/BaseActivity.Scheme.ListPopup</item>
+        <item name="actionModeStyle">@style/BaseActivity.Scheme.ActionMode</item>
+        <item name="actionModePopupWindowStyle">@style/BaseActivity.Scheme.ListPopup</item>
+    </style>
+
+    <style name="BaseActivity.Scheme.ActionMode" parent="Widget.AppCompat.ActionMode">
+        <item name="background">@color/scheme_dialog_background</item>
+        <item name="actionModeBackground">@color/scheme_dialog_background</item>
+        <item name="actionModeSplitBackground">@color/scheme_dialog_background</item>
+        <item name="titleTextStyle">@style/BaseActivity.Scheme.ActionMode.Title</item>
+        <item name="subtitleTextStyle">@style/BaseActivity.Scheme.ActionMode.Title</item>
+    </style>
+
+    <style name="BaseActivity.Scheme.ActionMode.Title" parent="TextAppearance.AppCompat.Widget.ActionMode.Title">
+        <item name="android:textColor">@color/scheme_dialog_on_surface</item>
+    </style>
+
+    <style name="BaseActivity.Scheme.ContextMenu" parent="Widget.MaterialComponents.PopupMenu.ContextMenu">
+        <item name="android:popupBackground">@color/scheme_dialog_background</item>
+        <item name="android:textColorPrimary">@color/scheme_dialog_on_surface</item>
+        <item name="android:textColor">@color/scheme_dialog_on_surface</item>
+        <item name="android:divider">@color/scheme_dialog_divider</item>
+        <item name="android:dividerHeight">1dp</item>
+        <item name="android:listDivider">@color/scheme_dialog_divider</item>
+        <item name="android:listSelector">@color/scheme_dialog_selector</item>
+    </style>
+
+    <style name="BaseActivity.Scheme.PopupMenu" parent="Widget.MaterialComponents.PopupMenu">
+        <item name="android:popupBackground">@color/scheme_dialog_background</item>
+        <item name="android:textColorPrimary">@color/scheme_dialog_on_surface</item>
+        <item name="android:textColor">@color/scheme_dialog_on_surface</item>
+        <item name="android:listSelector">@color/scheme_dialog_selector</item>
+    </style>
+
+    <style name="BaseActivity.Scheme.ListPopup" parent="Widget.MaterialComponents.PopupMenu.ListPopupWindow">
+        <item name="android:popupBackground">@color/scheme_dialog_background</item>
+        <item name="android:textColorPrimary">@color/scheme_dialog_on_surface</item>
+        <item name="android:divider">@color/scheme_dialog_divider</item>
+        <item name="android:listDivider">@color/scheme_dialog_divider</item>
+        <item name="android:listSelector">@color/scheme_dialog_selector</item>
+    </style>
 
 </resources>

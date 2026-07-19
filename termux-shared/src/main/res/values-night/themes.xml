@@ -48,9 +48,8 @@
       https://github.com/material-components/material-components-android/blob/1.4.0/lib/java/com/google/android/material/dialog/res/values/themes.xml#L70
      -->
     <style name="ThemeOverlay.BaseDialog.DayNight" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
-        <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/red_400</item>
-        <item name="colorPrimaryVariant">@color/red_800</item>
+        <!-- Primary brand color: intentionally NOT set to red. The Termux:Style colour scheme
+             is applied at runtime, so dialogs must not carry a hardcoded red accent. -->
         <item name="colorOnPrimary">@color/black</item>
 
         <!-- Secondary brand color. -->

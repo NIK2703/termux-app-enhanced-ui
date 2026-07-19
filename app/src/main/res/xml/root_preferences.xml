@@ -1,22 +1,39 @@
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <Preference
-        app:key="appearance"
-        app:title="@string/appearance_preferences_title"
-        app:summary="@string/appearance_preferences_summary"
-        app:fragment="com.termux.app.fragments.settings.AppearancePreferencesFragment"/>
+        app:key="display"
+        app:title="@string/display_preferences_title"
+        app:summary="@string/display_preferences_summary"
+        app:iconSpaceReserved="false"
+        app:fragment="com.termux.app.fragments.settings.DisplayPreferencesFragment"/>
 
     <Preference
-        app:key="termux"
-        app:title="@string/termux_preferences_title"
-        app:summary="@string/termux_preferences_summary"
-        app:fragment="com.termux.app.fragments.settings.TermuxPreferencesFragment"/>
+        app:key="input"
+        app:title="@string/input_preferences_title"
+        app:summary="@string/input_preferences_summary"
+        app:iconSpaceReserved="false"
+        app:fragment="com.termux.app.fragments.settings.termux.TerminalIOPreferencesFragment"/>
+
+    <Preference
+        app:key="backup_restore"
+        app:title="@string/backup_restore_preferences_title"
+        app:summary="@string/backup_restore_preferences_summary"
+        app:iconSpaceReserved="false"
+        app:fragment="com.termux.app.fragments.settings.termux.BackupRestorePreferencesFragment"/>
+
+    <Preference
+        app:key="diagnostics"
+        app:title="@string/diagnostics_preferences_title"
+        app:summary="@string/diagnostics_preferences_summary"
+        app:iconSpaceReserved="false"
+        app:fragment="com.termux.app.fragments.settings.termux.DebuggingPreferencesFragment"/>
 
     <Preference
         app:key="termux_api"
         app:title="@string/termux_api_preferences_title"
         app:summary="@string/termux_api_preferences_summary"
         app:isPreferenceVisible="false"
+        app:iconSpaceReserved="false"
         app:fragment="com.termux.app.fragments.settings.TermuxAPIPreferencesFragment"/>
 
     <Preference
@@ -24,6 +41,7 @@
         app:title="@string/termux_float_preferences_title"
         app:summary="@string/termux_float_preferences_summary"
         app:isPreferenceVisible="false"
+        app:iconSpaceReserved="false"
         app:fragment="com.termux.app.fragments.settings.TermuxFloatPreferencesFragment"/>
 
     <Preference
@@ -31,6 +49,7 @@
         app:title="@string/termux_tasker_preferences_title"
         app:summary="@string/termux_tasker_preferences_summary"
         app:isPreferenceVisible="false"
+        app:iconSpaceReserved="false"
         app:fragment="com.termux.app.fragments.settings.TermuxTaskerPreferencesFragment"/>
 
     <Preference
@@ -38,18 +57,21 @@
         app:title="@string/termux_widget_preferences_title"
         app:summary="@string/termux_widget_preferences_summary"
         app:isPreferenceVisible="false"
+        app:iconSpaceReserved="false"
         app:fragment="com.termux.app.fragments.settings.TermuxWidgetPreferencesFragment"/>
 
     <Preference
         app:key="about"
         app:title="@string/about_preference_title"
-        app:persistent="false"/>
+        app:persistent="false"
+        app:iconSpaceReserved="false"/>
     <!-- app:layout="@layout/preference_markdown_text" -->
 
     <Preference
         app:key="donate"
         app:title="@string/donate_preference_title"
         app:persistent="false"
-        app:isPreferenceVisible="false"/>
+        app:isPreferenceVisible="false"
+        app:iconSpaceReserved="false"/>
 
 </PreferenceScreen>

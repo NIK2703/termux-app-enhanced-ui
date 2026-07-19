@@ -1,0 +1,123 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory
+        app:title="@string/appearance_category_title"
+        app:iconSpaceReserved="false">
+
+        <ListPreference
+            app:key="theme_mode"
+            app:title="@string/theme_mode_title"
+            app:summary="@string/theme_mode_summary"
+            app:entries="@array/theme_mode_entries"
+            app:entryValues="@array/theme_mode_values"
+            app:defaultValue="system"
+            app:iconSpaceReserved="false" />
+
+        <Preference
+            app:key="color_scheme_light"
+            app:title="@string/color_scheme_light_title"
+            app:summary="@string/color_scheme_light_summary"
+            app:iconSpaceReserved="false" />
+
+        <Preference
+            app:key="color_scheme_dark"
+            app:title="@string/color_scheme_dark_title"
+            app:summary="@string/color_scheme_dark_summary"
+            app:iconSpaceReserved="false" />
+
+        <SeekBarPreference
+            app:key="button_bg_inactive_alpha"
+            app:title="@string/termux_button_bg_inactive_alpha_title"
+            app:defaultValue="5"
+            app:showSeekBarValue="true"
+            app:iconSpaceReserved="false" />
+
+        <SeekBarPreference
+            app:key="button_bg_active_alpha"
+            app:title="@string/termux_button_bg_active_alpha_title"
+            app:defaultValue="12"
+            app:showSeekBarValue="true"
+            app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory app:key="tabs" app:title="@string/tabs_category_title" app:iconSpaceReserved="false">
+        <ListPreference
+            app:key="tab_panel_position"
+            app:title="@string/termux_tab_panel_position_title"
+            app:entries="@array/tab_panel_position_entries"
+            app:entryValues="@array/tab_panel_position_values"
+            app:defaultValue="top"
+            app:iconSpaceReserved="false" />
+
+        <ListPreference
+            app:key="tab_height_mode"
+            app:title="@string/termux_tab_height_mode_title"
+            app:entries="@array/tab_height_mode_entries"
+            app:entryValues="@array/tab_height_mode_values"
+            app:defaultValue="single"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="swipe_rightmost_new_tab"
+            app:title="@string/swipe_rightmost_new_tab_title"
+            app:summary="@string/swipe_rightmost_new_tab_summary"
+            app:defaultValue="false"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="restore_sessions"
+            app:title="@string/restore_sessions_title"
+            app:summary="@string/restore_sessions_summary"
+            app:defaultValue="true"
+            app:iconSpaceReserved="false" />
+
+        <SeekBarPreference
+            app:key="directory_history_max"
+            app:title="@string/directory_history_max_title"
+            app:defaultValue="20"
+            app:showSeekBarValue="true"
+            app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:key="window"
+        app:title="@string/window_category_title"
+        app:iconSpaceReserved="false">
+
+        <SwitchPreferenceCompat
+            app:key="terminal_margin_adjustment"
+            app:summaryOff="@string/termux_terminal_view_terminal_margin_adjustment_off"
+            app:summaryOn="@string/termux_terminal_view_terminal_margin_adjustment_on"
+            app:title="@string/termux_terminal_view_terminal_margin_adjustment_title"
+            app:iconSpaceReserved="false" />
+
+        <ListPreference
+            app:key="screen_orientation"
+            app:title="@string/screen_orientation_title"
+            app:summary="@string/screen_orientation_summary"
+            app:entries="@array/screen_orientation_entries"
+            app:entryValues="@array/screen_orientation_values"
+            app:defaultValue="sensor"
+            app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:title="@string/language_category_title"
+        app:iconSpaceReserved="false">
+
+        <ListPreference
+            app:key="locale_override"
+            app:title="@string/locale_override_title"
+            app:summary="@string/locale_override_summary"
+            app:entries="@array/locale_override_entries"
+            app:entryValues="@array/locale_override_values"
+            app:defaultValue="system"
+            app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>

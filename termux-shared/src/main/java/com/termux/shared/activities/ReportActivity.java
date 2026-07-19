@@ -21,6 +21,7 @@ import com.termux.shared.activity.media.AppCompatActivityUtils;
 import com.termux.shared.data.DataUtils;
 import com.termux.shared.file.FileUtils;
 import com.termux.shared.file.filesystem.FileType;
+import com.termux.shared.interact.SchemeDialogTheme;
 import com.termux.shared.logger.Logger;
 import com.termux.shared.errors.Error;
 import com.termux.shared.termux.TermuxConstants;
@@ -70,6 +71,11 @@ public class ReportActivity extends AppCompatActivity {
     private static final String LOG_TAG = "ReportActivity";
 
     @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(SchemeDialogTheme.wrapActivityTheme(newBase));
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Logger.logVerbose(LOG_TAG, "onCreate");
@@ -82,6 +88,9 @@ public class ReportActivity extends AppCompatActivity {
         if (toolbar != null) {
             setSupportActionBar(toolbar);
         }
+
+        // Colour the toolbar + status bar with the active Termux:Style scheme (no red leak).
+        SchemeDialogTheme.applyToToolbar(this);
 
         mBundle = null;
         Intent intent = getIntent();

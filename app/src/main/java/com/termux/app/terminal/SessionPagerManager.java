@@ -104,8 +104,8 @@ public final class SessionPagerManager {
         // to suppress the stretch/bounce edge-effect animation on a horizontal drag.
         updatePagerUserInputEnabled();
         // Keep the neighbouring page bound so a horizontal swipe reveals the adjacent
-        // session LIVE (the original goal: "видно промежуточное листание между
-        // двумя соседними экранами"). With the default limit 0 the neighbour is
+        // session LIVE (the original goal: "see the intermediate paging between
+        // two adjacent screens"). With the default limit 0 the neighbour is
         // only created mid-drag and shows up empty, which reads as an abrupt snap.
         mTerminalPager.setOffscreenPageLimit(1);
 

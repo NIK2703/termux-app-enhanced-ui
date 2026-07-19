@@ -33,6 +33,7 @@ import com.termux.shared.termux.settings.preferences.TermuxAppSharedPreferences;
 import com.termux.shared.termux.terminal.TermuxTerminalSessionClientBase;
 import com.termux.shared.termux.TermuxConstants;
 import com.termux.app.TermuxService;
+import com.termux.app.terminal.TermuxSchemeTheme;
 import com.termux.shared.termux.settings.properties.TermuxPropertyConstants;
 import com.termux.shared.theme.ThemeUtils;
 import com.termux.shared.theme.NightMode;
@@ -534,8 +535,9 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         if (service == null) return;
 
         if (service.getTermuxSessionsSize() >= MAX_SESSIONS) {
-            new AlertDialog.Builder(mActivity).setTitle(R.string.title_max_terminals_reached).setMessage(R.string.msg_max_terminals_reached)
-                .setPositiveButton(android.R.string.ok, null).show();
+            AlertDialog maxDialog = new AlertDialog.Builder(TermuxSchemeTheme.schemeContext(mActivity)).setTitle(R.string.title_max_terminals_reached).setMessage(R.string.msg_max_terminals_reached)
+                .setPositiveButton(android.R.string.ok, null).create();
+            maxDialog.show();
         } else {
             TerminalSession currentSession = mActivity.getCurrentSession();
 
@@ -626,8 +628,9 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         if (service == null) return;
 
         if (service.getTermuxSessionsSize() >= MAX_SESSIONS) {
-            new AlertDialog.Builder(mActivity).setTitle(R.string.title_max_terminals_reached).setMessage(R.string.msg_max_terminals_reached)
-                .setPositiveButton(android.R.string.ok, null).show();
+            AlertDialog maxDialog = new AlertDialog.Builder(TermuxSchemeTheme.schemeContext(mActivity)).setTitle(R.string.title_max_terminals_reached).setMessage(R.string.msg_max_terminals_reached)
+                .setPositiveButton(android.R.string.ok, null).create();
+            maxDialog.show();
             return;
         }
 
@@ -879,6 +882,9 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
             // custom schemes and the theme-derived light/dark fallback).
             applyPanelColors(ColorSchemeUtils.isTerminalSchemeLight());
 
+            // Restyle the rest of the activity (window, status bar, open popups) from the scheme.
+            mActivity.applySchemeColors();
+
             // Reset the colors on the emulator the TerminalView is actually rendering. If the view
             // is not yet attached to a session (e.g. during activity recreation on a system
             // day/night switch, before attachSession()/updateSize() binds mEmulator), fall back to
@@ -947,7 +953,11 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         for (int id : new int[]{ R.id.new_session_tab_button, R.id.toggle_text_input_button }) {
             ImageButton btn = mActivity.findViewById(id);
             if (btn != null) {
-                btn.setBackgroundTintList(android.content.res.ColorStateList.valueOf(buttonBg));
+                android.graphics.drawable.GradientDrawable d =
+                        new android.graphics.drawable.GradientDrawable();
+                d.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+                d.setColor(buttonBg);
+                btn.setBackground(d);
                 btn.setColorFilter(buttonText, android.graphics.PorterDuff.Mode.SRC_ATOP);
             }
         }
@@ -985,6 +995,8 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
             // Terminal text-selection drag handles follow the scheme foreground, just like the
             // input-panel selection handles.
             tv.setTextSelectionHandleColor(buttonText);
+            // The ActionMode (text-selection CAB) bar + title also follow the scheme.
+            tv.setTextSelectionActionModeColors(buttonActiveBg, buttonText);
         }
 
         // Status bar follows the scheme lightness.

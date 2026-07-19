@@ -127,10 +127,30 @@
     <string name="appearance_preferences_title">Appearance</string>
     <string name="appearance_preferences_summary">Preferences for app appearance and panel transparency</string>
     <string name="theme_title">Theme</string>
+    <string name="language_category_title">Language</string>
     <string name="panel_transparency_title">Panel Transparency</string>
+    <string name="appearance_category_title">Appearance</string>
 
     <string name="termux_preferences_title">&TERMUX_APP_NAME;</string>
     <string name="termux_preferences_summary">Preferences for &TERMUX_APP_NAME; app</string>
+
+    <string name="input_preferences_title">Input</string>
+    <string name="input_preferences_summary">Preferences for text input and keyboard</string>
+
+    <string name="extra_keys_preferences_title">Extra Keys</string>
+    <string name="extra_keys_preferences_summary">Preferences for the extra keys bar</string>
+
+    <string name="display_preferences_title">Display</string>
+    <string name="display_preferences_summary">Theme, language, panel transparency, terminal view, window and tabs</string>
+
+    <string name="sessions_history_preferences_title">Sessions</string>
+    <string name="sessions_history_preferences_summary">Preferences for sessions, tabs and history</string>
+
+    <string name="backup_restore_preferences_title">Backup &amp; Restore</string>
+    <string name="backup_restore_preferences_summary">Back up or restore Termux data</string>
+
+    <string name="diagnostics_preferences_title">Diagnostics</string>
+    <string name="diagnostics_preferences_summary">Logging and failure notifications</string>
 
         <!-- Debugging Preferences -->
         <string name="termux_debugging_preferences_title">Debugging</string>
@@ -138,6 +158,10 @@
 
             <!-- Logging Category -->
             <string name="termux_logging_header">Logging</string>
+            <string name="plugin_logging_category_title">Logging</string>
+
+            <!-- Failure Notifications Category -->
+            <string name="failure_notifications_category_title">Failure Notifications</string>
 
                 <!-- Log Level -->
                 <string name="termux_log_level_title">Log Level</string>
@@ -188,6 +212,7 @@
 
                 <!-- Extra keys panel section -->
                 <string name="extra_keys_header">Extra keys</string>
+                <string name="extra_keys_category_title">Extra Keys</string>
                 <string name="extra_keys_layout_title">Keys layout</string>
                 <string name="extra_keys_layout_summary">JSON matrix defining the extra keys rows and their popups.</string>
                 <string name="extra_keys_style_title">Keys style</string>
@@ -213,6 +238,8 @@
 
             <!-- View Category -->
             <string name="termux_terminal_view_view_header">View</string>
+            <string name="view_category_title">View</string>
+            <string name="window_category_title">Window</string>
 
                 <!-- Button Background Inactive Alpha -->
                 <string name="termux_button_bg_inactive_alpha_title" formatted="false">Inactive element transparency</string>
@@ -257,6 +284,10 @@
     <string name="color_scheme_dark_title">Terminal Color Scheme (Dark Theme)</string>
     <string name="color_scheme_dark_summary">Color scheme applied when the app theme is dark</string>
 
+    <!-- S5 category titles -->
+    <string name="history_category_title">History</string>
+    <string name="tabs_category_title">Tabs</string>
+
     <!-- Message history preferences -->
     <string name="message_history_title">Message History</string>
     <string name="message_history_max_title">Max remembered messages</string>
@@ -264,7 +295,7 @@
     <string name="per_directory_message_history_summary">Keep a separate message history for each working directory. When off, all sessions share one global history.</string>
 
     <!-- Text input preferences -->
-    <string name="text_input_title">Text Input</string>
+    <string name="input_panel_title">Input Panel</string>
     <string name="text_input_append_enter_title">Append Enter on send</string>
     <string name="text_input_append_enter_summary">When sending from the input field, also submit the line (press Enter). Disable to send raw text without a trailing newline.</string>
 

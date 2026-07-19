@@ -13,7 +13,7 @@
         android:id="@+id/code_text_view"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="@color/background_markdown_code_block"
+        android:background="@color/scheme_dialog_code_block"
         android:fontFamily="monospace"
         android:lineSpacingExtra="2dip"
         android:paddingLeft="16dip"

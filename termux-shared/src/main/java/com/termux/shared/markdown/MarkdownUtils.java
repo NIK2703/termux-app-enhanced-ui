@@ -17,7 +17,6 @@ import androidx.core.content.ContextCompat;
 
 import com.google.common.base.Strings;
 import com.termux.shared.R;
-import com.termux.shared.theme.ThemeUtils;
 
 import org.commonmark.ext.gfm.strikethrough.Strikethrough;
 import org.commonmark.node.BlockQuote;
@@ -41,6 +40,20 @@ public class MarkdownUtils {
 
     public static final String backtick = "`";
     public static final Pattern backticksPattern = Pattern.compile("(" + backtick + "+)");
+
+    /**
+     * Resolve the inline-code background from the active Termux:Style scheme. The context is
+     * scheme-wrapped (SchemeDialogTheme), so {@code R.color.scheme_dialog_code_block} resolves to
+     * the live scheme foreground blended over background. Falls back to a translucent foreground
+     * tint if the scheme resource is unavailable.
+     */
+    private static int getSchemeCodeBlockColor(@NonNull Context context) {
+        try {
+            return ContextCompat.getColor(context, R.color.scheme_dialog_code_block);
+        } catch (Exception e) {
+            return ContextCompat.getColor(context, R.color.background_markdown_code_inline);
+        }
+    }
 
     /**
      * Get the markdown code {@link String} for a {@link String}. This ensures all backticks "`" are
@@ -157,14 +170,14 @@ public class MarkdownUtils {
 
                 @Override
                 public void configureSpansFactory(@NonNull MarkwonSpansFactory.Builder builder) {
-                    // Do not change color for night themes
-                    if (!ThemeUtils.isNightModeEnabled(context)) {
-                        builder
-                            // set color for inline code
-                            .setFactory(Code.class, (configuration, props) -> new Object[]{
-                                new BackgroundColorSpan(ContextCompat.getColor(context, R.color.background_markdown_code_inline)),
-                            });
-                    }
+                    // Inline code background follows the active Termux:Style scheme (resolved at
+                    // runtime through SchemeResources), so it is correct in both light and dark
+                    // schemes — no night-mode guard, no hardcoded black tint.
+                    final int inlineCodeBg = getSchemeCodeBlockColor(context);
+                    builder
+                        .setFactory(Code.class, (configuration, props) -> new Object[]{
+                            new BackgroundColorSpan(inlineCodeBg),
+                        });
                 }
             })
             .build();
@@ -187,7 +200,7 @@ public class MarkdownUtils {
                             .setFactory(Strikethrough.class, (configuration, props) -> new StrikethroughSpan())
                             // NB! notification does not handle background color
                             .setFactory(Code.class, (configuration, props) -> new Object[]{
-                                new BackgroundColorSpan(ContextCompat.getColor(context, R.color.background_markdown_code_inline)),
+                                new BackgroundColorSpan(getSchemeCodeBlockColor(context)),
                                 new TypefaceSpan("monospace"),
                                 new AbsoluteSizeSpan(48)
                             })

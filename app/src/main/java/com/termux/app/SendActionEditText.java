@@ -13,7 +13,7 @@ import android.widget.EditText;
  *
  * By default Android forces a newline key (and drops the IME action) for any
  * multi-line text field via {@link EditorInfo#IME_FLAG_NO_ENTER_ACTION}. We undo
- * that here so the keyboard presents an "Отправить" (send) button while the field
+ * that here so the keyboard presents a "Send" (Отправить) button while the field
  * keeps wrapping long lines and scrolling vertically when filled.
  */
 public class SendActionEditText extends EditText {

@@ -21,8 +21,9 @@
      https://github.com/material-components/material-components-android/blob/1.4.0/lib/java/com/google/android/material/dialog/res/values/themes.xml#L71
     -->
     <style name="BaseDialog.Title.Panel" parent="@style/MaterialAlertDialog.MaterialComponents.Title.Panel">
-        <!-- Title background. -->
-        <item name="android:background">@color/red_400</item>
+        <!-- No separate title background: the dialog follows the Termux:Style colour scheme
+             (background + title text are applied at runtime by TermuxSchemeTheme / MessageDialogUtils). -->
+        <item name="android:background">@android:color/transparent</item>
 
         <!-- Center Title. -->
         <item name="android:paddingTop">14dp</item>

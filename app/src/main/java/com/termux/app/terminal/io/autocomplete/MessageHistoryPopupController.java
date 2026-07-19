@@ -26,6 +26,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.termux.R;
 import com.termux.app.TermuxActivityUtils;
 import com.termux.app.terminal.TermuxColorSchemeManager;
+import com.termux.app.terminal.TermuxSchemeTheme;
 
 import java.util.ArrayList;
 
@@ -182,7 +183,7 @@ public final class MessageHistoryPopupController {
             content.addView(sep, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
         }
-        // Displayed order (ТЗ): newest at the BOTTOM (nearest the pencil button,
+        // Displayed order (spec): newest at the BOTTOM (nearest the pencil button,
         // first reached by a swipe-up), oldest at the top. A re-sent message moves
         // to index 0 (front) of mMessageHistoryCtrl.getHistoryList(), so iterate in REVERSE (end -> 0)
         // to fill the vertical layout top-to-bottom with the newest last (bottom).
@@ -398,7 +399,12 @@ public final class MessageHistoryPopupController {
             } else if (selected == MESSAGE_HISTORY_CLEAR_TAG) {
                 mCallback.onClearInputRequested();
             } else if (selected >= 0 && selected < mMessageHistoryCtrl.getHistoryList().size()) {
-                mCallback.onMessagePicked(mMessageHistoryCtrl.getHistoryList().get(selected));
+                final String picked = mMessageHistoryCtrl.getHistoryList().get(selected);
+                // On a tap-selection, promote the item to the front of history (index 0 =
+                // newest), so in the "newest at bottom" rendering it shows at the very
+                // bottom of the list on the next open.
+                mMessageHistoryCtrl.addToMessageHistory(picked, mCallback.getCurrentCwd());
+                mCallback.onMessagePicked(picked);
             }
         }
     }
@@ -465,7 +471,7 @@ public final class MessageHistoryPopupController {
      * directories), Cancel. In global mode it stays as OK + Cancel.
      */
     private void confirmClearAllHistory() {
-        final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(mActivity, R.style.ThemeOverlay_TermuxActivity_Dialog)
+        final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(TermuxSchemeTheme.schemeContext(mActivity))
                 .setTitle(mActivity.getString(R.string.message_history_clear_question))
                 .setNegativeButton(android.R.string.cancel, null);
 
@@ -478,7 +484,8 @@ public final class MessageHistoryPopupController {
                     .setPositiveButton(android.R.string.ok, (d, w) -> clearAllHistory());
         }
 
-        builder.show();
+        androidx.appcompat.app.AlertDialog dialog = builder.create();
+        dialog.show();
     }
 
     /** Wipe message history for ALL directories (per-directory mode only). */

@@ -30,6 +30,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
+import android.view.Window;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
 import android.view.WindowManager;
@@ -63,12 +64,14 @@ import com.termux.shared.termux.TermuxConstants;
 import com.termux.shared.termux.TermuxConstants.TERMUX_APP.TERMUX_ACTIVITY;
 import com.termux.app.activities.HelpActivity;
 import com.termux.app.activities.SettingsActivity;
+import com.termux.app.activities.SettingsColorScheme;
 import com.termux.shared.termux.crash.TermuxCrashUtils;
 import com.termux.shared.termux.settings.preferences.TermuxAppSharedPreferences;
 import com.termux.app.terminal.TermuxSessionsListViewController;
 import com.termux.app.terminal.TermuxSessionTabsController;
 import com.termux.app.terminal.TermuxTerminalViewClient;
 import com.termux.app.terminal.TermuxColorSchemeManager;
+import com.termux.app.terminal.TermuxSchemeTheme;
 import com.termux.app.terminal.TermuxActivityViewHelper;
 import com.termux.app.terminal.TermuxActivityBroadcastManager;
 import com.termux.app.terminal.TermuxDialogs;
@@ -399,6 +402,14 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
     private static final String LOG_TAG = "TermuxActivity";
 
     @Override
+    protected void attachBaseContext(android.content.Context base) {
+        // Inflate the whole terminal activity (toolbar, extra-keys, session tabs, and the
+        // framework long-press context menu popup) in the active Termux:Style scheme from the
+        // first frame — no post-layout repaint.
+        super.attachBaseContext(com.termux.shared.interact.SchemeDialogTheme.wrapActivityTheme(base));
+    }
+
+    @Override
     public void onCreate(Bundle savedInstanceState) {
         Logger.logDebug(LOG_TAG, "onCreate");
         mIsOnResumeAfterOnCreate = true;
@@ -466,9 +477,8 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         setMargins();
 
         mTextInputPanel = new TextInputPanelController(this, this, mTextInputState);
-        mPopupCtrl = new TermuxActivityPopupController(this, this);
+        mPopupCtrl = new TermuxActivityPopupController(this, this, mColorSchemeManager);
         mPopupCtrl.setMessageHistoryController(mMessageHistoryCtrl);
-        mPopupCtrl.setColorSchemeManager(mColorSchemeManager);
 
         mTermuxActivityRootView = findViewById(R.id.activity_termux_root_view);
         mTermuxActivityRootView.setActivity(this);
@@ -935,6 +945,16 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         if (mTermuxTerminalExtraKeys.getExtraKeysInfo() != null) {
             extraKeysView.reload(mTermuxTerminalExtraKeys.getExtraKeysInfo(), mTerminalToolbarDefaultHeight);
         }
+
+        // Push cached scheme colors to the freshly created extra-keys view so the panel is
+        // themed on the first frame, before the service connects and applyPanelColors() runs.
+        // On cold start the cache may be empty (service not connected yet), so seed it from
+        // preferences first to avoid a black/transparent flash of the extra-keys panel.
+        TermuxColorSchemeManager csm = getColorSchemeManager();
+        if (csm.getButtonBg() == 0) {
+            csm.recompute(getPreferences());
+        }
+        extraKeysView.setButtonColors(csm.getButtonText(), csm.getButtonText(), csm.getButtonBg(), csm.getButtonActiveBg());
 
         // Setup text input
         final EditText editText = findViewById(R.id.terminal_toolbar_text_input);
@@ -1696,6 +1716,37 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         mColorSchemeManager.recompute(getPreferences());
     }
 
+    /**
+     * Single apply-point for the Termux:Style colour scheme across every non-panel surface
+     * (window background, status-bar theme, and any open context menu). Called after every
+     * {@link #recomputeUIColors()} so a scheme or theme change restyles the whole activity at once.
+     * <p>
+     * The bottom panel / extra-keys / tabs are styled separately by
+     * {@code TermuxTerminalSessionActivityClient.applyPanelColors()}, which reads the same cached
+     * {@link TermuxColorSchemeManager} colours.
+     */
+    public void applySchemeColors() {
+        TermuxColorSchemeManager csm = mColorSchemeManager;
+        int schemeBg = csm.getSchemeBackground();
+        boolean isLight = csm.isSchemeLight();
+
+        // Window background follows the scheme; status-bar icons follow its lightness.
+        Window window = getWindow();
+        if (window != null) {
+            window.getDecorView().setBackgroundColor(schemeBg);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                int flags = window.getDecorView().getSystemUiVisibility();
+                if (isLight) {
+                    flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+                } else {
+                    flags &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+                }
+                window.getDecorView().setSystemUiVisibility(flags);
+            }
+        }
+    }
+
+
     /** @return Cached panel/button background colour. */
     public int getButtonBg() { return mColorSchemeManager.getButtonBg(); }
     /** @return Cached panel/button active background colour. */
@@ -1802,6 +1853,7 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
     @Override
     public void onCreateContextMenu(ContextMenu menu, View v, ContextMenuInfo menuInfo) {
         mPopupCtrl.onCreateContextMenu(menu, v, menuInfo);
+        tintContextMenu();
     }
 
     /** Hook system menu to show context menu instead. */
@@ -1816,6 +1868,155 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
     @Override
     public boolean onContextItemSelected(MenuItem item) {
         return mPopupCtrl.onContextItemSelected(item);
+    }
+
+    /**
+     * Ensure the long-press context menu follows the active Termux:Style colour scheme. The menu is
+     * a framework popup themed by the activity context, which now carries the scheme via
+     * {@code wrapActivityTheme} (see {@link #attachBaseContext}) — so it is inflated in the scheme
+     * from the first frame. This method is kept only as a last-resort safety net for paths the theme
+     * overlay does not reach (it runs synchronously, before the popup is drawn, so never repaints).
+     */
+    private void tintContextMenu() {
+        TermuxColorSchemeManager csm = mColorSchemeManager;
+        int schemeBg = csm.getSchemeBackground();
+        int schemeFg = csm.getSchemeForeground();
+        int dividerColor = csm.getDividerColor();
+        int dividerHeight = Math.max(1, Math.round(getResources().getDisplayMetrics().density));
+
+        View source = getTerminalView();
+        applyContextMenuTint(source, csm, schemeBg, schemeFg, dividerColor, dividerHeight);
+    }
+
+    /** Apply the scheme colours to the context-menu popup, with a graceful fallback path. */
+    private void applyContextMenuTint(@NonNull View source, @NonNull TermuxColorSchemeManager csm,
+                                      int schemeBg, int schemeFg, int dividerColor, int dividerHeight) {
+        android.widget.ListView listView = findContextMenuListView(source);
+        if (listView != null) {
+            tintContextMenuList(listView, schemeBg, schemeFg, dividerColor, dividerHeight, csm);
+            return;
+        }
+
+        // Fallback: paint whatever popup view we can resolve (covers AppCompat PopupWindow path).
+        View menuView = findContextMenuPopupView(source);
+        if (menuView instanceof android.widget.ListView) {
+            android.widget.ListView lv = (android.widget.ListView) menuView;
+            tintContextMenuList(lv, schemeBg, schemeFg, dividerColor, dividerHeight, csm);
+        } else if (menuView != null) {
+            menuView.setBackgroundColor(schemeBg);
+            TermuxSchemeTheme.tintViewTreeText(menuView, schemeFg);
+        }
+        // Last-resort fallback: set the popup window's background drawable directly.
+        setContextMenuPopupBackground(source, schemeBg);
+    }
+
+    /** Tint a context-menu {@link ListView}: background, divider, selector, and every item's text. */
+    private void tintContextMenuList(@NonNull android.widget.ListView listView, int schemeBg,
+                                     int schemeFg, int dividerColor, int dividerHeight,
+                                     @NonNull TermuxColorSchemeManager csm) {
+        listView.setBackgroundColor(schemeBg);
+        listView.setDivider(new android.graphics.drawable.ColorDrawable(dividerColor));
+        listView.setDividerHeight(dividerHeight);
+        listView.setSelector(TermuxSchemeTheme.makeHighlightSelectorPublic(csm));
+        // Tint both the whole tree and each visible item's title TextView explicitly (the menu
+        // item title lives in a TextView whose colour the theme may re-assert on bind).
+        TermuxSchemeTheme.tintViewTreeText(listView, schemeFg);
+        for (int i = 0; i < listView.getChildCount(); i++) {
+            View item = listView.getChildAt(i);
+            if (item == null) continue;
+            TextView title = item.findViewById(android.R.id.title);
+            if (title != null) title.setTextColor(schemeFg);
+            TermuxSchemeTheme.tintViewTreeText(item, schemeFg);
+        }
+    }
+
+    /**
+     * Locate the context-menu {@link android.widget.ListView} via reflection on the framework /
+     * AppCompat helper that {@link View#showContextMenu()} creates. Returns it, or {@code null} if it
+     * cannot be resolved on this Android version.
+     */
+    private static android.widget.ListView findContextMenuListView(@NonNull View source) {
+        Object helper = getContextMenuHelper(source);
+        if (helper == null) return null;
+        // Framework path: MenuDialogHelper.getDialog() -> AlertDialog list view.
+        try {
+            java.lang.reflect.Method getDialog = helper.getClass().getMethod("getDialog");
+            Object dialog = getDialog.invoke(helper);
+            if (dialog instanceof android.app.Dialog) {
+                android.view.View list = ((android.app.Dialog) dialog)
+                        .findViewById(android.R.id.list);
+                if (list instanceof android.widget.ListView) return (android.widget.ListView) list;
+            }
+        } catch (Exception ignored) {
+        }
+        // AppCompat path: MenuPopupHelper.mMenuView is the ListView.
+        try {
+            java.lang.reflect.Field menuViewField = helper.getClass().getDeclaredField("mMenuView");
+            menuViewField.setAccessible(true);
+            Object menuView = menuViewField.get(helper);
+            if (menuView instanceof android.widget.ListView) return (android.widget.ListView) menuView;
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    /**
+     * Locate the context-menu popup view via reflection on the framework / AppCompat helper that
+     * {@link View#showContextMenu()} creates. Returns the popup's root view, or {@code null} if it
+     * cannot be resolved on this Android version.
+     */
+    private static View findContextMenuPopupView(@NonNull View source) {
+        Object helper = getContextMenuHelper(source);
+        if (helper == null) return null;
+        // Framework path: MenuDialogHelper.getDialog() -> AlertDialog whose content view is the menu.
+        try {
+            java.lang.reflect.Method getDialog = helper.getClass().getMethod("getDialog");
+            Object dialog = getDialog.invoke(helper);
+            if (dialog instanceof android.app.Dialog) {
+                return ((android.app.Dialog) dialog).getWindow().getDecorView();
+            }
+        } catch (Exception ignored) {
+            // AppCompat may expose the popup window directly instead.
+        }
+        // AppCompat path: MenuPopupHelper.mPopup (PopupWindow) with mPopupView.
+        try {
+            java.lang.reflect.Field popupField = helper.getClass().getDeclaredField("mPopup");
+            popupField.setAccessible(true);
+            Object popupWindow = popupField.get(helper);
+            if (popupWindow instanceof android.widget.PopupWindow) {
+                return (View) ((android.widget.PopupWindow) popupWindow).getContentView();
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    /** Reflect the {@link View#showContextMenu()} helper ({@code mContextMenuHelper}) off a view. */
+    private static Object getContextMenuHelper(@NonNull View source) {
+        try {
+            java.lang.reflect.Field helperField = android.view.View.class
+                    .getDeclaredField("mContextMenuHelper");
+            helperField.setAccessible(true);
+            return helperField.get(source);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    /** Last-resort fallback: paint the popup window's background drawable directly. */
+    private static void setContextMenuPopupBackground(@NonNull View source, int schemeBg) {
+        Object helper = getContextMenuHelper(source);
+        if (helper == null) return;
+        try {
+            java.lang.reflect.Field popupField = helper.getClass().getDeclaredField("mPopup");
+            popupField.setAccessible(true);
+            Object popupWindow = popupField.get(helper);
+            if (popupWindow instanceof android.widget.PopupWindow) {
+                ((android.widget.PopupWindow) popupWindow)
+                        .setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(schemeBg));
+            }
+        } catch (Exception ignored) {
+        }
     }
 
     @Override
@@ -2414,6 +2615,9 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         // Cache all UI colours from the (now-updated) COLOR_SCHEME so every consumer reads
         // fresh values without computing them on the fly.
         mColorSchemeManager.recompute(getPreferences());
+
+        // Restyle the whole activity (window, status bar, open popups) from the new scheme.
+        applySchemeColors();
 
         if (mTermuxTerminalViewClient != null)
             mTermuxTerminalViewClient.onReloadActivityStyling();

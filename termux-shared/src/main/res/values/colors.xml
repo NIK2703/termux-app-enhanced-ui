@@ -41,4 +41,22 @@
 
     <color name="blue_link_light">#0969DA</color>
     <color name="blue_link_dark">#58A6FF</color>
+
+    <!-- Scheme-driven dialog colours. These are resolved at runtime (overridden by
+         SchemeDialogTheme) to the active Termux:Style colour scheme, so dialogs are
+         coloured correctly from the first frame without a post-show tint. -->
+    <color name="scheme_dialog_background">#FF000000</color>
+    <color name="scheme_dialog_surface">#FF000000</color>
+    <color name="scheme_dialog_foreground">#FFFFFFFF</color>
+    <color name="scheme_dialog_on_surface">#FFFFFFFF</color>
+    <color name="scheme_dialog_divider">#80FFFFFF</color>
+    <!-- Extra-keys / session-tab / floating-button backgrounds. Resolved at runtime to the
+         scheme-derived translucent button colours (SchemeDialogTheme). -->
+    <color name="scheme_dialog_button_background">#0D000000</color>
+    <color name="scheme_dialog_button_active_background">#1F000000</color>
+    <!-- Pressed/highlight selector for menu list rows: scheme foreground at ~25% alpha. -->
+    <color name="scheme_dialog_selector">#40000000</color>
+    <!-- Markdown code-block background: scheme foreground at ~8% alpha (visible on both
+         light and dark schemes, replacing the old fixed black overlay). -->
+    <color name="scheme_dialog_code_block">#14000000</color>
 </resources>

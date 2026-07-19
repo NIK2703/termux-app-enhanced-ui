@@ -23,7 +23,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.termux.R;
-import com.termux.BuildConfig;
 import com.termux.app.terminal.TermuxColorSchemeManager;
 import com.termux.shared.logger.Logger;
 
@@ -195,9 +194,9 @@ final class AutoCompletePopupManager {
         if (layout != null && cursorPos >= 0) {
             cursorY = layout.getLineTop(layout.getLineForOffset(cursorPos));
         }
-        // Привязываем popup к каретке: он появляется ВЫШЕ строки каретки в поле
-        // ввода. Если выше нет места (попадает выше допустимого минимума),
-        // показываем НИЖЕ строки каретки — чтобы не перекрывать саму каретку.
+        // Anchor the popup to the caret: it appears ABOVE the caret's line in the
+        // input field. If there is no room above (it would fall above the allowed
+        // minimum), show it BELOW the caret line instead — so it never covers the caret.
         int popupY = locY + (int) cursorY - inputField.getScrollY() - popupHeight - mPopupYOffsetPx;
         if (popupY < mPopupMinYPx) {
             popupY = locY + (int) cursorY - inputField.getScrollY() + mPopupEdgeMarginPx;
@@ -208,11 +207,6 @@ final class AutoCompletePopupManager {
     // ── Show / build ──
 
     private void showAutoCompletePopup(@NonNull EditText inputField) {
-        if (BuildConfig.DEBUG) {
-            Logger.logInfo(LOG_TAG, "[autocomplete] showAutoCompletePopup suggestions="
-                    + mData.getSuggestions().size());
-        }
-
         final String input = inputField.getText().toString();
         int historyN = mData.getSuggestions().size();
         final boolean hasHistory = historyN > 0;
@@ -221,9 +215,6 @@ final class AutoCompletePopupManager {
                 && mHistoryContent != null && mHistoryContent.getParent() != null;
 
         if (!hasHistory || (historyReuse && !contentChangedForWindow())) {
-            if (BuildConfig.DEBUG) {
-                Logger.logInfo(LOG_TAG, "[autocomplete] popup reuse FAST PATH (bold-spans only)");
-            }
             updateBoldSpansOnly(input);
             mLastBuiltHistoryVersion = mData.getHistoryVersion();
             mLastAppliedPrefix = input;
@@ -251,9 +242,6 @@ final class AutoCompletePopupManager {
 
         mLastBuiltHistoryVersion = mData.getHistoryVersion();
         mLastAppliedPrefix = input;
-        if (BuildConfig.DEBUG) {
-            Logger.logInfo(LOG_TAG, "[autocomplete] popup built (history=" + hasHistory + ")");
-        }
         applyPopupGeometry(inputField);
 
         if (mSuggestionsLayoutListener == null) {
@@ -366,33 +354,24 @@ final class AutoCompletePopupManager {
 
     private void applyPopupGeometry(@NonNull EditText inputField) {
         if (!isShowing()) {
-            if (BuildConfig.DEBUG) {
-                Logger.logInfo(LOG_TAG, "[autocomplete] applyPopupGeometry skip (no window showing)");
-            }
             return;
         }
         Layout layout = inputField.getLayout();
         if (layout == null) {
-            if (BuildConfig.DEBUG) {
-                Logger.logInfo(LOG_TAG, "[autocomplete] applyPopupGeometry skip (layout null) — retrying");
-            }
             inputField.post(() -> applyPopupGeometry(inputField));
             return;
         }
         int w = mLastPopupWidth > 0 ? mLastPopupWidth : computePopupWidth(inputField.getWidth());
         if (w <= 0) {
-            if (BuildConfig.DEBUG) {
-                Logger.logInfo(LOG_TAG, "[autocomplete] applyPopupGeometry skip (w=" + w + ")");
-            }
             return;
         }
 
         int[] loc = mTmpLoc;
         inputField.getLocationInWindow(loc);
 
-        // Сначала измеряем высоту содержимого, затем вычисляем Y с реальной
-        // высотой — иначе геом-гвард сравнивал бы Y, посчитанный с высотой 0,
-        // и рассинхронизировался бы с первичным показом.
+        // First measure the content height, then compute Y with the real height —
+        // otherwise the geometry guard would compare a Y computed with height 0 and
+        // desync from the initial show.
         int historyH = 0;
         if (mHistoryPopup != null && mHistoryPopup.isShowing() && mHistoryContent != null) {
             mHistoryContent.measure(
@@ -443,9 +422,6 @@ final class AutoCompletePopupManager {
             mHistoryContent.setScrollY(savedScroll);
         }
 
-        if (BuildConfig.DEBUG) {
-            Logger.logInfo(LOG_TAG, "[autocomplete] updatePopupContent historyChanged=" + historyChanged);
-        }
         mLastAppliedPrefix = newText;
         applyPopupGeometry(inputField);
     }
@@ -456,7 +432,10 @@ final class AutoCompletePopupManager {
         content.removeAllViews();
         final int n = displayCount();
         int rendered = 0;
-        for (int i = 0; i < mData.getSuggestions().size() && rendered < n; i++, rendered++) {
+        // Reversed rendering: oldest item on top, newest (history index 0) at the
+        // very bottom of the list. History entries are stored newest-first, so we
+        // walk from (n-1) down to 0.
+        for (int i = n - 1; i >= 0 && rendered < n; i--, rendered++) {
             String suggestion = mData.getSuggestions().get(i);
             TextView tv = mData.buildSuggestionTextView(suggestion, input, false);
             content.addView(tv, new LinearLayout.LayoutParams(
@@ -482,16 +461,14 @@ final class AutoCompletePopupManager {
         if (newText.equals(mLastAppliedPrefix)) return;
         mLastAppliedPrefix = newText;
         final int n = displayCount();
-        if (BuildConfig.DEBUG) {
-            Logger.logInfo(LOG_TAG, "[autocomplete] updateBoldSpansOnly(history) views=" + content.getChildCount());
-        }
         int rendered = 0;
         int viewIdx = 0;
-        for (int i = 0; i < mData.getSuggestions().size() && rendered < n; i++) {
+        // In sync with rebuildHistoryViews: the view at position viewIdx shows the
+        // history entry with index (n-1 - viewIdx), i.e. newest at the bottom.
+        for (int displayIdx = n - 1; displayIdx >= 0 && rendered < n; displayIdx--, rendered++) {
             TextView tv = textViewAt(content, viewIdx++);
             if (tv == null) break;
-            applyBoldSpan(tv, mData.getSuggestions().get(i), newText);
-            rendered++;
+            applyBoldSpan(tv, mData.getSuggestions().get(displayIdx), newText);
         }
     }
 
@@ -513,9 +490,9 @@ final class AutoCompletePopupManager {
         int ws = Math.min(wordStart, suggestion.length());
 
         CharSequence currentText = tv.getText();
-        // Лениво вычисляем ожидаемую строку отображения — только в ветке ребилда
-        // (редкий случай пересечения границы слова). Обычно currentText уже
-        // совпадает с suggestion и сравниваем это без конкатенации substring+prefix.
+        // Lazily compute the expected display string — only on the rebuild branch
+        // (rare case of crossing a word boundary). Normally currentText already
+        // equals suggestion, so we compare without concatenating substring+prefix.
         final int curLen = currentText.length();
         final int sugLen = suggestion.length();
         boolean displayMatches;
@@ -532,8 +509,8 @@ final class AutoCompletePopupManager {
                     suggestion, newText, Math.max(0, availWidth), tv.getPaint(), false);
             tv.setText(ss, TextView.BufferType.SPANNABLE);
         } else {
-            // Единственный bold-span известен (BOLD_SPAN) — снимаем напрямую без
-            // getSpans()-аллокации массива на каждую строку каждого символа.
+            // The only bold-span is known (BOLD_SPAN), so remove it directly
+            // without a getSpans() array allocation per line per character.
             android.text.Spannable sp = (android.text.Spannable) currentText;
             sp.removeSpan(BOLD_SPAN);
             if (hasLastWord && prefixLen + boldLen <= sp.length()
@@ -567,12 +544,13 @@ final class AutoCompletePopupManager {
         if (content.getChildCount() != Math.min(n, mData.getSuggestions().size())) return true;
         int rendered = 0;
         int viewIdx = 0;
-        for (int i = 0; i < mData.getSuggestions().size() && rendered < n; i++) {
+        // The view order is reversed relative to the history: view viewIdx maps to
+        // the history entry with index (n-1 - viewIdx).
+        for (int displayIdx = n - 1; displayIdx >= 0 && rendered < n; displayIdx--, rendered++) {
             TextView tv = textViewAt(content, viewIdx++);
             if (tv == null) break;
-            String expectedText = mData.getSuggestions().get(i);
+            String expectedText = mData.getSuggestions().get(displayIdx);
             if (!tv.getTag().equals(expectedText)) return true;
-            rendered++;
         }
         return false;
     }
@@ -582,9 +560,6 @@ final class AutoCompletePopupManager {
     private void dismissAutoCompleteSuggestions() {
         if (mHistoryPopup == null) {
             return;
-        }
-        if (BuildConfig.DEBUG) {
-            Logger.logInfo(LOG_TAG, "[autocomplete] dismiss (history=" + (mHistoryPopup != null) + ")");
         }
         if (mHistoryPopup != null) {
             try { mHistoryPopup.dismiss(); } catch (Exception ignored) {}
