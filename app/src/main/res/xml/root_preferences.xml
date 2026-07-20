@@ -15,6 +15,13 @@
         app:fragment="com.termux.app.fragments.settings.termux.TerminalIOPreferencesFragment"/>
 
     <Preference
+        app:key="terminal"
+        app:title="@string/terminal_preferences_title"
+        app:summary="@string/terminal_preferences_summary"
+        app:iconSpaceReserved="false"
+        app:fragment="com.termux.app.fragments.settings.termux.TerminalPreferencesFragment"/>
+
+    <Preference
         app:key="backup_restore"
         app:title="@string/backup_restore_preferences_title"
         app:summary="@string/backup_restore_preferences_summary"

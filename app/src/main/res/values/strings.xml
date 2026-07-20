@@ -438,4 +438,130 @@
     <!-- Text input auto-complete -->
     <string name="suggestions_max_count_title">Max suggestions</string>
     <string name="suggestions_max_count_summary">Auto-complete suggestions from message history (1–10)</string>
+
+    <!-- Terminal preferences -->
+    <string name="terminal_preferences_title">Terminal</string>
+    <string name="terminal_preferences_summary">Terminal view, key behaviour, screen and misc settings</string>
+
+    <string name="terminal_category_title">Terminal</string>
+    <string name="key_behaviour_category_title">Key behaviour</string>
+    <string name="screen_category_title">Screen</string>
+    <string name="shortcuts_category_title">Shortcuts</string>
+    <string name="misc_category_title">Misc</string>
+
+    <string name="security_category_title">Security</string>
+
+    <string name="sound_category_title">Sound &amp; notifications</string>
+
+    <string name="session_category_title">Session</string>
+
+    <string name="empty_value_summary">Not set</string>
+    <string name="shortcut_empty_summary">Not set (leave empty to disable)</string>
+
+    <string name="terminal_transcript_rows_title">Terminal transcript rows</string>
+    <string name="terminal_transcript_rows_summary">Number of rows kept in the scrollback transcript.</string>
+
+    <string name="delete_tmpdir_files_older_than_x_days_on_exit_title">Delete old TMPDIR files on exit</string>
+    <string name="delete_tmpdir_files_older_than_x_days_on_exit_summary">Delete files older than N days from the session TMPDIR on exit (-1 = never delete).</string>
+
+    <string name="extra_keys_invalid_json">Invalid JSON for extra keys. Changes were not saved.</string>
+
+    <string name="shortcut_invalid_format">Invalid shortcut. Use the format \"ctrl+x\" or leave empty to disable.</string>
+
+    <string name="terminal_cursor_style_title">Cursor style</string>
+    <string name="terminal_cursor_style_summary">How the terminal cursor is drawn.</string>
+
+    <string name="terminal_cursor_blink_rate_title">Cursor blink rate</string>
+    <string name="terminal_cursor_blink_rate_summary">Cursor blink rate in milliseconds.</string>
+
+    <string name="bell_character_title">Bell behaviour</string>
+    <string name="bell_character_summary">What happens when the terminal receives a bell (BEL) character.</string>
+
+    <string name="terminal_margin_horizontal_title">Horizontal margin</string>
+    <string name="terminal_margin_horizontal_summary">Horizontal terminal margin in dp.</string>
+
+    <string name="terminal_margin_vertical_title">Vertical margin</string>
+    <string name="terminal_margin_vertical_summary">Vertical terminal margin in dp.</string>
+
+    <string name="terminal_toolbar_height_title">Toolbar height scale</string>
+    <string name="terminal_toolbar_height_summary">Extra keys / terminal toolbar height scale factor.</string>
+
+    <string name="default_working_directory_title">Default working directory</string>
+    <string name="default_working_directory_summary">Directory opened for new sessions (leave empty for home).</string>
+
+    <string name="back_key_title">Back key behaviour</string>
+    <string name="back_key_summary">What the hardware/software back key does in the terminal.</string>
+
+    <string name="volume_keys_title">Volume keys behaviour</string>
+    <string name="volume_keys_summary">Whether volume keys control volume or act as virtual keys.</string>
+
+    <string name="soft_keyboard_toggle_behaviour_title">Keyboard toggle behaviour</string>
+    <string name="soft_keyboard_toggle_behaviour_summary">Whether the keyboard toggle shows/hides or enables/disables the soft keyboard.</string>
+
+    <string name="ctrl_space_workaround_title">Ctrl+Space workaround</string>
+    <string name="ctrl_space_workaround_summary">Use a workaround so Ctrl+Space is delivered correctly.</string>
+
+    <string name="enforce_char_based_input_title">Enforce char-based input</string>
+    <string name="enforce_char_based_input_summary">Force characters to be sent one byte at a time.</string>
+
+    <string name="disable_hardware_keyboard_shortcuts_title">Disable hardware keyboard shortcuts</string>
+    <string name="disable_hardware_keyboard_shortcuts_summary">Ignore keyboard shortcuts from a hardware/external keyboard.</string>
+
+    <string name="disable_terminal_session_change_toast_title">Disable session change toast</string>
+    <string name="disable_terminal_session_change_toast_summary">Do not show a toast when switching terminal sessions.</string>
+
+    <string name="terminal_onclick_url_open_title">Open URL on click</string>
+    <string name="terminal_onclick_url_open_summary">Open URLs in the terminal transcript when tapped.</string>
+
+    <string name="fullscreen_title">Fullscreen</string>
+    <string name="fullscreen_summary">Run Termux in fullscreen mode.</string>
+
+    <string name="use_fullscreen_workaround_title">Fullscreen workaround</string>
+    <string name="use_fullscreen_workaround_summary">Use a workaround for fullscreen on devices that hide it incorrectly.</string>
+
+    <string name="night_mode_legacy_title">Night mode (legacy night-mode)</string>
+    <string name="night_mode_legacy_summary">Controls the legacy night-mode property. Prefer the theme setting on the Display screen.</string>
+
+    <string name="shortcut_summary">Format: Ctrl+KEY (e.g. Ctrl+a). Leave empty to disable.</string>
+    <string name="shortcut_create_session_title">Create session shortcut</string>
+    <string name="shortcut_next_session_title">Next session shortcut</string>
+    <string name="shortcut_previous_session_title">Previous session shortcut</string>
+    <string name="shortcut_rename_session_title">Rename session shortcut</string>
+
+    <string name="allow_external_apps_title">Allow external apps</string>
+    <string name="allow_external_apps_summary">Allow other apps to start Termux commands via RUN_COMMAND.</string>
+
+    <string name="disable_file_share_receiver_title">Disable file share receiver</string>
+    <string name="disable_file_share_receiver_summary">Do not accept files shared into Termux.</string>
+
+    <string name="disable_file_view_receiver_title">Disable file view receiver</string>
+    <string name="disable_file_view_receiver_summary">Do not open files sent to Termux for viewing.</string>
+
+    <string name="run_termux_am_socket_server_title">Run termux-am socket server</string>
+    <string name="run_termux_am_socket_server_summary">Start the termux-am socket server for inter-process commands.</string>
+
+    <string name="hide_soft_keyboard_on_startup_title">Hide soft keyboard on startup</string>
+    <string name="hide_soft_keyboard_on_startup_summary">Keep the soft keyboard hidden when Termux starts.</string>
+
+    <!-- Terminal preference list-entries -->
+    <string name="terminal_cursor_style_block">Block</string>
+    <string name="terminal_cursor_style_underline">Underline</string>
+    <string name="terminal_cursor_style_bar">Bar</string>
+
+    <string name="bell_character_vibrate">Vibrate</string>
+    <string name="bell_character_beep">Beep</string>
+    <string name="bell_character_ignore">Ignore</string>
+
+    <string name="back_key_back">Back button</string>
+    <string name="back_key_escape">Escape key</string>
+
+    <string name="volume_keys_virtual">Virtual (volume keys act as keys)</string>
+    <string name="volume_keys_volume">Volume (control device volume)</string>
+
+    <string name="soft_keyboard_toggle_show_hide">Show / hide</string>
+    <string name="soft_keyboard_toggle_enable_disable">Enable / disable</string>
+
+    <string name="night_mode_true">Dark</string>
+    <string name="night_mode_false">Light</string>
+    <string name="night_mode_system">System default</string>
 </resources>

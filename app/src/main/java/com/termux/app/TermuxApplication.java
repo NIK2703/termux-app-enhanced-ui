@@ -16,6 +16,7 @@ import com.termux.shared.termux.shell.command.environment.TermuxShellEnvironment
 import com.termux.shared.termux.shell.am.TermuxAmSocketServer;
 import com.termux.shared.termux.shell.TermuxShellManager;
 import com.termux.shared.termux.theme.TermuxThemeUtils;
+import com.termux.app.TermuxLocaleUtils;
 
 public class TermuxApplication extends Application {
 
@@ -37,7 +38,10 @@ public class TermuxApplication extends Application {
         // Set TermuxBootstrap.TERMUX_APP_PACKAGE_MANAGER and TermuxBootstrap.TERMUX_APP_PACKAGE_VARIANT
         TermuxBootstrap.setTermuxPackageManagerAndVariant(BuildConfig.TERMUX_PACKAGE_VARIANT);
 
-        // Init app wide SharedProperties loaded from termux.properties
+        // Migrate any legacy ~/.termux/termux.properties configuration into SharedPreferences.
+        TermuxAppSharedProperties.migrateLegacyTermuxProperties(context);
+
+        // Init app wide SharedProperties loaded from SharedPreferences
         TermuxAppSharedProperties properties = TermuxAppSharedProperties.init(context);
 
         // Init app wide shell manager
@@ -45,6 +49,10 @@ public class TermuxApplication extends Application {
 
         // Set NightMode.APP_NIGHT_MODE
         TermuxThemeUtils.setAppNightMode(properties.getNightMode());
+
+        // Apply the app display language (per-app locale) at startup so the chosen
+        // language (e.g. Russian) is used everywhere without re-selecting it.
+        TermuxLocaleUtils.applyLocale(TermuxLocaleUtils.getLocaleOverride());
 
         // Check and create termux files directory. If failed to access it like in case of secondary
         // user or external sd card installation, then don't run files directory related code

@@ -12,8 +12,6 @@ import androidx.preference.SwitchPreferenceCompat;
 
 import com.termux.R;
 import com.termux.app.TermuxActivity;
-import com.termux.shared.logger.Logger;
-import com.termux.shared.termux.TermuxConstants;
 import com.termux.shared.termux.settings.preferences.TermuxAppSharedPreferences;
 import com.termux.shared.termux.settings.preferences.TermuxPreferenceConstants;
 import com.termux.shared.termux.settings.properties.TermuxPropertyConstants;
@@ -21,8 +19,8 @@ import com.termux.shared.termux.settings.properties.TermuxPropertyConstants;
 /**
  * The single "Input" screen. Handles both the S2 terminal I/O keys (soft keyboard,
  * text input) routed through {@link TerminalIOPreferencesDataStore} and the S3 extra
- * keys keys persisted directly to {@code termux.properties} (plus hide extra keys with
- * keyboard stored in {@link TermuxAppSharedPreferences}).
+ * keys keys persisted to {@link TermuxAppSharedPreferences} (plus hide extra keys with
+ * keyboard stored there as well).
  */
 @Keep
 public class TerminalIOPreferencesFragment extends TermuxPreferenceFragmentBase {
@@ -50,14 +48,25 @@ public class TerminalIOPreferencesFragment extends TermuxPreferenceFragmentBase 
             });
         }
 
-        // Keep the extra-keys layout summary in sync with the current value.
+        // Keep the extra-keys layout summary in sync with the current value, and validate JSON.
         EditTextPreference layoutPref = findPreference(TermuxPropertyConstants.KEY_EXTRA_KEYS);
         if (layoutPref != null) {
             layoutPref.setSummary(layoutPref.getText() != null && !layoutPref.getText().isEmpty()
                 ? layoutPref.getText()
                 : getString(R.string.extra_keys_layout_summary));
             layoutPref.setOnPreferenceChangeListener((preference, newValue) -> {
-                layoutPref.setSummary((String) newValue);
+                String value = (String) newValue;
+                // Empty value falls back to the extra-keys-style preset.
+                if (value == null || value.trim().isEmpty())
+                    return true;
+                try {
+                    new org.json.JSONArray(value);
+                } catch (org.json.JSONException e) {
+                    android.widget.Toast.makeText(context,
+                        R.string.extra_keys_invalid_json, android.widget.Toast.LENGTH_LONG).show();
+                    return false;
+                }
+                layoutPref.setSummary(value);
                 return true;
             });
         }
@@ -197,16 +206,16 @@ class TerminalIOPreferencesDataStore extends PreferenceDataStore {
 
     @Override
     public String getString(String key, String defValue) {
-        if (key == null) return defValue;
+        if (key == null || mPreferences == null) return defValue;
         switch (key) {
             case TermuxPropertyConstants.KEY_EXTRA_KEYS:
-                return readProperty(key);
+                return mPreferences.getExtraKeys();
             case TermuxPropertyConstants.KEY_EXTRA_KEYS_STYLE:
-                return readPropertyOrDefault(key, TermuxPropertyConstants.DEFAULT_IVALUE_EXTRA_KEYS_STYLE);
+                return mPreferences.getExtraKeysStyle();
             case TermuxPropertyConstants.KEY_EXTRA_KEYS_SPECIAL_BUTTON_MODE:
-                return readPropertyOrDefault(key, TermuxPropertyConstants.DEFAULT_IVALUE_EXTRA_KEYS_SPECIAL_BUTTON_MODE);
+                return mPreferences.getExtraKeysSpecialButtonMode();
             case TermuxPropertyConstants.KEY_EXTRA_KEYS_TEXT_ALL_CAPS:
-                return readPropertyOrDefault(key, "true");
+                return mPreferences.shouldExtraKeysTextBeAllCaps() ? "true" : "false";
             default:
                 return defValue;
         }
@@ -214,53 +223,26 @@ class TerminalIOPreferencesDataStore extends PreferenceDataStore {
 
     @Override
     public void putString(String key, String value) {
-        if (key == null) return;
+        if (key == null || mPreferences == null) return;
         switch (key) {
             case TermuxPropertyConstants.KEY_EXTRA_KEYS:
+                mPreferences.setExtraKeys(value);
+                TermuxActivity.updateTermuxActivityStyling(mContext, true);
+                break;
             case TermuxPropertyConstants.KEY_EXTRA_KEYS_STYLE:
+                mPreferences.setExtraKeysStyle(value);
+                TermuxActivity.updateTermuxActivityStyling(mContext, true);
+                break;
             case TermuxPropertyConstants.KEY_EXTRA_KEYS_TEXT_ALL_CAPS:
+                mPreferences.setExtraKeysTextAllCaps("true".equals(value));
+                TermuxActivity.updateTermuxActivityStyling(mContext, true);
+                break;
             case TermuxPropertyConstants.KEY_EXTRA_KEYS_SPECIAL_BUTTON_MODE:
-                writeProperty(key, value);
+                mPreferences.setExtraKeysSpecialButtonMode(value);
                 TermuxActivity.updateTermuxActivityStyling(mContext, true);
                 break;
             default:
                 break;
-        }
-    }
-
-    private String readPropertyOrDefault(String key, String defValue) {
-        String v = readProperty(key);
-        return v != null ? v : defValue;
-    }
-
-    private String readProperty(String key) {
-        java.io.File propsFile = new java.io.File(TermuxConstants.TERMUX_PROPERTIES_PRIMARY_FILE_PATH);
-        if (!propsFile.isFile()) return null;
-        java.util.Properties props = new java.util.Properties();
-        try (java.io.FileInputStream in = new java.io.FileInputStream(propsFile)) {
-            props.load(in);
-        } catch (java.io.IOException e) {
-            Logger.logError("TerminalIOPrefsFragment", "Failed to read termux.properties: " + e.getMessage());
-            return null;
-        }
-        return props.getProperty(key);
-    }
-
-    private void writeProperty(String key, String value) {
-        java.io.File propsFile = new java.io.File(TermuxConstants.TERMUX_PROPERTIES_PRIMARY_FILE_PATH);
-        java.util.Properties props = new java.util.Properties();
-        if (propsFile.isFile()) {
-            try (java.io.FileInputStream in = new java.io.FileInputStream(propsFile)) {
-                props.load(in);
-            } catch (java.io.IOException e) {
-                Logger.logError("TerminalIOPrefsFragment", "Failed to read termux.properties for update: " + e.getMessage());
-            }
-        }
-        props.setProperty(key, value);
-        try (java.io.FileOutputStream out = new java.io.FileOutputStream(propsFile)) {
-            props.store(out, null);
-        } catch (java.io.IOException e) {
-            Logger.logError("TerminalIOPrefsFragment", "Failed to write termux.properties: " + e.getMessage());
         }
     }
 

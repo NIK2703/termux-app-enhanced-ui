@@ -13,6 +13,7 @@ import com.termux.shared.termux.TermuxConstants;
 import com.termux.shared.logger.Logger;
 import com.termux.shared.data.DataUtils;
 import com.termux.shared.termux.TermuxUtils;
+import com.termux.shared.termux.settings.properties.TermuxPropertyConstants;
 import com.termux.shared.termux.settings.preferences.TermuxPreferenceConstants.TERMUX_APP;
 
 public class TermuxAppSharedPreferences extends AppSharedPreferences {
@@ -325,6 +326,351 @@ public class TermuxAppSharedPreferences extends AppSharedPreferences {
 
     public void setCrashReportNotificationsEnabled(boolean value) {
         SharedPreferenceUtils.setBoolean(mSharedPreferences, TERMUX_APP.KEY_CRASH_REPORT_NOTIFICATIONS_ENABLED, value, false);
+    }
+
+
+    /* #######################################################################
+     * Settings migrated from the ~/.termux/termux.properties file.
+     * Keys intentionally match the old termux.properties keys so that values
+     * can be migrated on first launch.
+     * ####################################################################### */
+
+    /* boolean */
+
+    public boolean shouldAllowExternalApps() {
+        return SharedPreferenceUtils.getBoolean(mSharedPreferences, TERMUX_APP.KEY_ALLOW_EXTERNAL_APPS, TERMUX_APP.DEFAULT_VALUE_ALLOW_EXTERNAL_APPS);
+    }
+
+    public void setAllowExternalApps(boolean value) {
+        SharedPreferenceUtils.setBoolean(mSharedPreferences, TERMUX_APP.KEY_ALLOW_EXTERNAL_APPS, value, false);
+    }
+
+
+    public boolean isFileShareReceiverDisabled() {
+        return SharedPreferenceUtils.getBoolean(mSharedPreferences, TERMUX_APP.KEY_DISABLE_FILE_SHARE_RECEIVER, TERMUX_APP.DEFAULT_VALUE_DISABLE_FILE_SHARE_RECEIVER);
+    }
+
+    public void setFileShareReceiverDisabled(boolean value) {
+        SharedPreferenceUtils.setBoolean(mSharedPreferences, TERMUX_APP.KEY_DISABLE_FILE_SHARE_RECEIVER, value, false);
+    }
+
+
+    public boolean isFileViewReceiverDisabled() {
+        return SharedPreferenceUtils.getBoolean(mSharedPreferences, TERMUX_APP.KEY_DISABLE_FILE_VIEW_RECEIVER, TERMUX_APP.DEFAULT_VALUE_DISABLE_FILE_VIEW_RECEIVER);
+    }
+
+    public void setFileViewReceiverDisabled(boolean value) {
+        SharedPreferenceUtils.setBoolean(mSharedPreferences, TERMUX_APP.KEY_DISABLE_FILE_VIEW_RECEIVER, value, false);
+    }
+
+
+    public boolean areHardwareKeyboardShortcutsDisabled() {
+        return SharedPreferenceUtils.getBoolean(mSharedPreferences, TERMUX_APP.KEY_DISABLE_HARDWARE_KEYBOARD_SHORTCUTS, TERMUX_APP.DEFAULT_VALUE_DISABLE_HARDWARE_KEYBOARD_SHORTCUTS);
+    }
+
+    public void setHardwareKeyboardShortcutsDisabled(boolean value) {
+        SharedPreferenceUtils.setBoolean(mSharedPreferences, TERMUX_APP.KEY_DISABLE_HARDWARE_KEYBOARD_SHORTCUTS, value, false);
+    }
+
+
+    public boolean areTerminalSessionChangeToastsDisabled() {
+        return SharedPreferenceUtils.getBoolean(mSharedPreferences, TERMUX_APP.KEY_DISABLE_TERMINAL_SESSION_CHANGE_TOAST, TERMUX_APP.DEFAULT_VALUE_DISABLE_TERMINAL_SESSION_CHANGE_TOAST);
+    }
+
+    public void setTerminalSessionChangeToastsDisabled(boolean value) {
+        SharedPreferenceUtils.setBoolean(mSharedPreferences, TERMUX_APP.KEY_DISABLE_TERMINAL_SESSION_CHANGE_TOAST, value, false);
+    }
+
+
+    public boolean isEnforcingCharBasedInput() {
+        return SharedPreferenceUtils.getBoolean(mSharedPreferences, TERMUX_APP.KEY_ENFORCE_CHAR_BASED_INPUT, TERMUX_APP.DEFAULT_VALUE_ENFORCE_CHAR_BASED_INPUT);
+    }
+
+    public void setEnforceCharBasedInput(boolean value) {
+        SharedPreferenceUtils.setBoolean(mSharedPreferences, TERMUX_APP.KEY_ENFORCE_CHAR_BASED_INPUT, value, false);
+    }
+
+
+    public boolean shouldExtraKeysTextBeAllCaps() {
+        return SharedPreferenceUtils.getBoolean(mSharedPreferences, TERMUX_APP.KEY_EXTRA_KEYS_TEXT_ALL_CAPS, TERMUX_APP.DEFAULT_VALUE_EXTRA_KEYS_TEXT_ALL_CAPS);
+    }
+
+    public void setExtraKeysTextAllCaps(boolean value) {
+        SharedPreferenceUtils.setBoolean(mSharedPreferences, TERMUX_APP.KEY_EXTRA_KEYS_TEXT_ALL_CAPS, value, false);
+    }
+
+
+    public boolean shouldSoftKeyboardBeHiddenOnStartup() {
+        return SharedPreferenceUtils.getBoolean(mSharedPreferences, TERMUX_APP.KEY_HIDE_SOFT_KEYBOARD_ON_STARTUP, TERMUX_APP.DEFAULT_VALUE_HIDE_SOFT_KEYBOARD_ON_STARTUP);
+    }
+
+    public void setSoftKeyboardHiddenOnStartup(boolean value) {
+        SharedPreferenceUtils.setBoolean(mSharedPreferences, TERMUX_APP.KEY_HIDE_SOFT_KEYBOARD_ON_STARTUP, value, false);
+    }
+
+
+    public boolean shouldRunTermuxAmSocketServer() {
+        return SharedPreferenceUtils.getBoolean(mSharedPreferences, TERMUX_APP.KEY_RUN_TERMUX_AM_SOCKET_SERVER, TERMUX_APP.DEFAULT_VALUE_RUN_TERMUX_AM_SOCKET_SERVER);
+    }
+
+    public void setRunTermuxAmSocketServer(boolean value) {
+        SharedPreferenceUtils.setBoolean(mSharedPreferences, TERMUX_APP.KEY_RUN_TERMUX_AM_SOCKET_SERVER, value, false);
+    }
+
+
+    public boolean shouldOpenTerminalTranscriptURLOnClick() {
+        return SharedPreferenceUtils.getBoolean(mSharedPreferences, TERMUX_APP.KEY_TERMINAL_ONCLICK_URL_OPEN, TERMUX_APP.DEFAULT_VALUE_TERMINAL_ONCLICK_URL_OPEN);
+    }
+
+    public void setOpenTerminalTranscriptURLOnClick(boolean value) {
+        SharedPreferenceUtils.setBoolean(mSharedPreferences, TERMUX_APP.KEY_TERMINAL_ONCLICK_URL_OPEN, value, false);
+    }
+
+
+    public boolean isUsingCtrlSpaceWorkaround() {
+        return SharedPreferenceUtils.getBoolean(mSharedPreferences, TERMUX_APP.KEY_USE_CTRL_SPACE_WORKAROUND, TERMUX_APP.DEFAULT_VALUE_USE_CTRL_SPACE_WORKAROUND);
+    }
+
+    public void setCtrlSpaceWorkaround(boolean value) {
+        SharedPreferenceUtils.setBoolean(mSharedPreferences, TERMUX_APP.KEY_USE_CTRL_SPACE_WORKAROUND, value, false);
+    }
+
+
+    public boolean isUsingFullScreen() {
+        return SharedPreferenceUtils.getBoolean(mSharedPreferences, TERMUX_APP.KEY_USE_FULLSCREEN, TERMUX_APP.DEFAULT_VALUE_USE_FULLSCREEN);
+    }
+
+    public void setFullScreen(boolean value) {
+        SharedPreferenceUtils.setBoolean(mSharedPreferences, TERMUX_APP.KEY_USE_FULLSCREEN, value, false);
+    }
+
+
+    public boolean isUsingFullScreenWorkAround() {
+        return SharedPreferenceUtils.getBoolean(mSharedPreferences, TERMUX_APP.KEY_USE_FULLSCREEN_WORKAROUND, TERMUX_APP.DEFAULT_VALUE_USE_FULLSCREEN_WORKAROUND);
+    }
+
+    public void setFullScreenWorkAround(boolean value) {
+        SharedPreferenceUtils.setBoolean(mSharedPreferences, TERMUX_APP.KEY_USE_FULLSCREEN_WORKAROUND, value, false);
+    }
+
+
+    /* int */
+
+    public int getBellBehaviour() {
+        return SharedPreferenceUtils.getInt(mSharedPreferences, TERMUX_APP.KEY_BELL_BEHAVIOUR, TERMUX_APP.DEFAULT_VALUE_BELL_BEHAVIOUR);
+    }
+
+    public void setBellBehaviour(int value) {
+        if (value < TermuxPropertyConstants.IVALUE_BELL_BEHAVIOUR_VIBRATE) value = TermuxPropertyConstants.IVALUE_BELL_BEHAVIOUR_VIBRATE;
+        if (value > TermuxPropertyConstants.IVALUE_BELL_BEHAVIOUR_IGNORE) value = TermuxPropertyConstants.IVALUE_BELL_BEHAVIOUR_IGNORE;
+        SharedPreferenceUtils.setInt(mSharedPreferences, TERMUX_APP.KEY_BELL_BEHAVIOUR, value, false);
+    }
+
+
+    public int getDeleteTMPDIRFilesOlderThanXDaysOnExit() {
+        return SharedPreferenceUtils.getInt(mSharedPreferences, TERMUX_APP.KEY_DELETE_TMPDIR_FILES_OLDER_THAN_X_DAYS_ON_EXIT, TERMUX_APP.DEFAULT_VALUE_DELETE_TMPDIR_FILES_OLDER_THAN_X_DAYS_ON_EXIT);
+    }
+
+    public void setDeleteTMPDIRFilesOlderThanXDaysOnExit(int value) {
+        if (value < TERMUX_APP.MIN_DELETE_TMPDIR_FILES_OLDER_THAN_X_DAYS_ON_EXIT) value = TERMUX_APP.MIN_DELETE_TMPDIR_FILES_OLDER_THAN_X_DAYS_ON_EXIT;
+        if (value > TERMUX_APP.MAX_DELETE_TMPDIR_FILES_OLDER_THAN_X_DAYS_ON_EXIT) value = TERMUX_APP.MAX_DELETE_TMPDIR_FILES_OLDER_THAN_X_DAYS_ON_EXIT;
+        SharedPreferenceUtils.setInt(mSharedPreferences, TERMUX_APP.KEY_DELETE_TMPDIR_FILES_OLDER_THAN_X_DAYS_ON_EXIT, value, false);
+    }
+
+
+    public int getTerminalCursorBlinkRate() {
+        return SharedPreferenceUtils.getInt(mSharedPreferences, TERMUX_APP.KEY_TERMINAL_CURSOR_BLINK_RATE, TERMUX_APP.DEFAULT_VALUE_TERMINAL_CURSOR_BLINK_RATE);
+    }
+
+    public void setTerminalCursorBlinkRate(int value) {
+        if (value < TERMUX_APP.MIN_TERMINAL_CURSOR_BLINK_RATE) value = TERMUX_APP.MIN_TERMINAL_CURSOR_BLINK_RATE;
+        if (value > TERMUX_APP.MAX_TERMINAL_CURSOR_BLINK_RATE) value = TERMUX_APP.MAX_TERMINAL_CURSOR_BLINK_RATE;
+        SharedPreferenceUtils.setInt(mSharedPreferences, TERMUX_APP.KEY_TERMINAL_CURSOR_BLINK_RATE, value, false);
+    }
+
+
+    public int getTerminalCursorStyle() {
+        return SharedPreferenceUtils.getInt(mSharedPreferences, TERMUX_APP.KEY_TERMINAL_CURSOR_STYLE, TERMUX_APP.DEFAULT_VALUE_TERMINAL_CURSOR_STYLE);
+    }
+
+    public void setTerminalCursorStyle(int value) {
+        if (value < TermuxPropertyConstants.IVALUE_TERMINAL_CURSOR_STYLE_BLOCK) value = TermuxPropertyConstants.IVALUE_TERMINAL_CURSOR_STYLE_BLOCK;
+        if (value > TermuxPropertyConstants.IVALUE_TERMINAL_CURSOR_STYLE_BAR) value = TermuxPropertyConstants.IVALUE_TERMINAL_CURSOR_STYLE_BAR;
+        SharedPreferenceUtils.setInt(mSharedPreferences, TERMUX_APP.KEY_TERMINAL_CURSOR_STYLE, value, false);
+    }
+
+
+    public int getTerminalMarginHorizontal() {
+        return SharedPreferenceUtils.getInt(mSharedPreferences, TERMUX_APP.KEY_TERMINAL_MARGIN_HORIZONTAL, TERMUX_APP.DEFAULT_VALUE_TERMINAL_MARGIN_HORIZONTAL);
+    }
+
+    public void setTerminalMarginHorizontal(int value) {
+        if (value < TERMUX_APP.MIN_TERMINAL_MARGIN_HORIZONTAL) value = TERMUX_APP.MIN_TERMINAL_MARGIN_HORIZONTAL;
+        if (value > TERMUX_APP.MAX_TERMINAL_MARGIN_HORIZONTAL) value = TERMUX_APP.MAX_TERMINAL_MARGIN_HORIZONTAL;
+        SharedPreferenceUtils.setInt(mSharedPreferences, TERMUX_APP.KEY_TERMINAL_MARGIN_HORIZONTAL, value, false);
+    }
+
+
+    public int getTerminalMarginVertical() {
+        return SharedPreferenceUtils.getInt(mSharedPreferences, TERMUX_APP.KEY_TERMINAL_MARGIN_VERTICAL, TERMUX_APP.DEFAULT_VALUE_TERMINAL_MARGIN_VERTICAL);
+    }
+
+    public void setTerminalMarginVertical(int value) {
+        if (value < TERMUX_APP.MIN_TERMINAL_MARGIN_VERTICAL) value = TERMUX_APP.MIN_TERMINAL_MARGIN_VERTICAL;
+        if (value > TERMUX_APP.MAX_TERMINAL_MARGIN_VERTICAL) value = TERMUX_APP.MAX_TERMINAL_MARGIN_VERTICAL;
+        SharedPreferenceUtils.setInt(mSharedPreferences, TERMUX_APP.KEY_TERMINAL_MARGIN_VERTICAL, value, false);
+    }
+
+
+    public int getTerminalTranscriptRows() {
+        return SharedPreferenceUtils.getInt(mSharedPreferences, TERMUX_APP.KEY_TERMINAL_TRANSCRIPT_ROWS, TERMUX_APP.DEFAULT_VALUE_TERMINAL_TRANSCRIPT_ROWS);
+    }
+
+    public void setTerminalTranscriptRows(int value) {
+        if (value < TERMUX_APP.MIN_TERMINAL_TRANSCRIPT_ROWS) value = TERMUX_APP.MIN_TERMINAL_TRANSCRIPT_ROWS;
+        if (value > TERMUX_APP.MAX_TERMINAL_TRANSCRIPT_ROWS) value = TERMUX_APP.MAX_TERMINAL_TRANSCRIPT_ROWS;
+        SharedPreferenceUtils.setInt(mSharedPreferences, TERMUX_APP.KEY_TERMINAL_TRANSCRIPT_ROWS, value, false);
+    }
+
+
+    /* float */
+
+    public float getTerminalToolbarHeightScaleFactor() {
+        return SharedPreferenceUtils.getFloat(mSharedPreferences, TERMUX_APP.KEY_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR, TERMUX_APP.DEFAULT_VALUE_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR);
+    }
+
+    public void setTerminalToolbarHeightScaleFactor(float value) {
+        if (value < TERMUX_APP.MIN_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR) value = TERMUX_APP.MIN_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR;
+        if (value > TERMUX_APP.MAX_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR) value = TERMUX_APP.MAX_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR;
+        SharedPreferenceUtils.setFloat(mSharedPreferences, TERMUX_APP.KEY_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR, value, false);
+    }
+
+
+    /* String (session shortcuts, raw "Ctrl+KEY" form) */
+
+    public String getShortcutString(String key) {
+        return SharedPreferenceUtils.getString(mSharedPreferences, key, null, true);
+    }
+
+    public void setShortcutString(String key, String value) {
+        SharedPreferenceUtils.setString(mSharedPreferences, key, value, false);
+    }
+
+
+    /* String */
+
+    public boolean isBackKeyTheEscapeKey() {
+        return TermuxPropertyConstants.IVALUE_BACK_KEY_BEHAVIOUR_ESCAPE.equals(getBackKeyBehaviour());
+    }
+
+    public String getBackKeyBehaviour() {
+        return SharedPreferenceUtils.getString(mSharedPreferences, TERMUX_APP.KEY_BACK_KEY_BEHAVIOUR, TERMUX_APP.DEFAULT_VALUE_BACK_KEY_BEHAVIOUR, true);
+    }
+
+    public void setBackKeyBehaviour(String value) {
+        SharedPreferenceUtils.setString(mSharedPreferences, TERMUX_APP.KEY_BACK_KEY_BEHAVIOUR, value, false);
+    }
+
+
+    public String getDefaultWorkingDirectory() {
+        return SharedPreferenceUtils.getString(mSharedPreferences, TERMUX_APP.KEY_DEFAULT_WORKING_DIRECTORY, TERMUX_APP.DEFAULT_VALUE_DEFAULT_WORKING_DIRECTORY, true);
+    }
+
+    public void setDefaultWorkingDirectory(String value) {
+        SharedPreferenceUtils.setString(mSharedPreferences, TERMUX_APP.KEY_DEFAULT_WORKING_DIRECTORY, value, false);
+    }
+
+
+    public String getExtraKeys() {
+        return SharedPreferenceUtils.getString(mSharedPreferences, TERMUX_APP.KEY_EXTRA_KEYS, TERMUX_APP.DEFAULT_VALUE_EXTRA_KEYS, true);
+    }
+
+    public void setExtraKeys(String value) {
+        SharedPreferenceUtils.setString(mSharedPreferences, TERMUX_APP.KEY_EXTRA_KEYS, value, false);
+    }
+
+
+    public String getExtraKeysStyle() {
+        return SharedPreferenceUtils.getString(mSharedPreferences, TERMUX_APP.KEY_EXTRA_KEYS_STYLE, TERMUX_APP.DEFAULT_VALUE_EXTRA_KEYS_STYLE, true);
+    }
+
+    public void setExtraKeysStyle(String value) {
+        SharedPreferenceUtils.setString(mSharedPreferences, TERMUX_APP.KEY_EXTRA_KEYS_STYLE, value, false);
+    }
+
+
+    public String getExtraKeysSpecialButtonMode() {
+        return SharedPreferenceUtils.getString(mSharedPreferences, TERMUX_APP.KEY_EXTRA_KEYS_SPECIAL_BUTTON_MODE, TERMUX_APP.DEFAULT_VALUE_EXTRA_KEYS_SPECIAL_BUTTON_MODE, true);
+    }
+
+    public void setExtraKeysSpecialButtonMode(String value) {
+        SharedPreferenceUtils.setString(mSharedPreferences, TERMUX_APP.KEY_EXTRA_KEYS_SPECIAL_BUTTON_MODE, value, false);
+    }
+
+
+    public String getNightMode() {
+        return SharedPreferenceUtils.getString(mSharedPreferences, TERMUX_APP.KEY_NIGHT_MODE, TERMUX_APP.DEFAULT_VALUE_NIGHT_MODE, true);
+    }
+
+    public void setNightMode(String value) {
+        SharedPreferenceUtils.setString(mSharedPreferences, TERMUX_APP.KEY_NIGHT_MODE, value, false);
+    }
+
+
+    public boolean shouldEnableDisableSoftKeyboardOnToggle() {
+        return TermuxPropertyConstants.IVALUE_SOFT_KEYBOARD_TOGGLE_BEHAVIOUR_ENABLE_DISABLE.equals(getSoftKeyboardToggleBehaviour());
+    }
+
+    public String getSoftKeyboardToggleBehaviour() {
+        return SharedPreferenceUtils.getString(mSharedPreferences, TERMUX_APP.KEY_SOFT_KEYBOARD_TOGGLE_BEHAVIOUR, TERMUX_APP.DEFAULT_VALUE_SOFT_KEYBOARD_TOGGLE_BEHAVIOUR, true);
+    }
+
+    public void setSoftKeyboardToggleBehaviour(String value) {
+        SharedPreferenceUtils.setString(mSharedPreferences, TERMUX_APP.KEY_SOFT_KEYBOARD_TOGGLE_BEHAVIOUR, value, false);
+    }
+
+
+    public boolean areVirtualVolumeKeysDisabled() {
+        return TermuxPropertyConstants.IVALUE_VOLUME_KEY_BEHAVIOUR_VOLUME.equals(getVolumeKeysBehaviour());
+    }
+
+    public String getVolumeKeysBehaviour() {
+        return SharedPreferenceUtils.getString(mSharedPreferences, TERMUX_APP.KEY_VOLUME_KEYS_BEHAVIOUR, TERMUX_APP.DEFAULT_VALUE_VOLUME_KEYS_BEHAVIOUR, true);
+    }
+
+    public void setVolumeKeysBehaviour(String value) {
+        SharedPreferenceUtils.setString(mSharedPreferences, TERMUX_APP.KEY_VOLUME_KEYS_BEHAVIOUR, value, false);
+    }
+
+
+    /* Generic key based accessors used by the properties facade. */
+
+    public boolean getBooleanByKey(String key, boolean def) {
+        return SharedPreferenceUtils.getBoolean(mSharedPreferences, key, def);
+    }
+
+    public String getStringByKey(String key) {
+        return SharedPreferenceUtils.getString(mSharedPreferences, key, null, true);
+    }
+
+    public boolean isKeyPresentByKey(String key) {
+        return SharedPreferenceUtils.isKeyPresent(mSharedPreferences, key);
+    }
+
+    public void setGenericBoolean(String key, boolean value) {
+        SharedPreferenceUtils.setBoolean(mSharedPreferences, key, value, false);
+    }
+
+    public void setGenericInt(String key, int value) {
+        SharedPreferenceUtils.setInt(mSharedPreferences, key, value, false);
+    }
+
+    public void setGenericFloat(String key, float value) {
+        SharedPreferenceUtils.setFloat(mSharedPreferences, key, value, false);
+    }
+
+    public void setGenericString(String key, String value) {
+        SharedPreferenceUtils.setString(mSharedPreferences, key, value, false);
     }
 
 }

@@ -636,7 +636,7 @@ public final class TermuxActivityPopupController {
             : (appNightMode == NightMode.TRUE);
         ColorSchemeUtils.showColorSchemeDialog(mContext, isNight, mContext.getString(R.string.color_scheme_dialog_title),
             mContext.getString(R.string.error_styling_not_installed),
-            () -> mHost.recreateActivity());
+            () -> TermuxActivityUtils.updateTermuxActivityStyling(mContext, false));
     }
 
     /**

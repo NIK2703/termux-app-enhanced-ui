@@ -16,18 +16,9 @@ import androidx.preference.SwitchPreferenceCompat;
 
 import com.termux.R;
 import com.termux.app.TermuxActivity;
-import com.termux.shared.logger.Logger;
-import com.termux.shared.termux.TermuxConstants;
 import com.termux.shared.termux.extrakeys.ColorSchemeUtils;
 import com.termux.shared.termux.settings.preferences.TermuxAppSharedPreferences;
-import com.termux.shared.termux.settings.properties.TermuxPropertyConstants;
 import com.termux.shared.theme.NightMode;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.Properties;
 
 /**
  * The single "Display" screen. Subsections:
@@ -43,8 +34,6 @@ import java.util.Properties;
 @Keep
 public class DisplayPreferencesFragment extends TermuxPreferenceFragmentBase {
 
-    private static final String LOG_TAG = "DisplayPrefsFragment";
-
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
         Context context = getContext();
@@ -59,12 +48,13 @@ public class DisplayPreferencesFragment extends TermuxPreferenceFragmentBase {
         final ListPreference themePref = findPreference("theme_mode");
         if (themePref != null) {
             themePref.setPersistent(false);
-            String currentValue = readNightModeProperty();
+            TermuxAppSharedPreferences prefs = TermuxAppSharedPreferences.build(context, true);
+            String currentValue = prefs != null ? prefs.getNightMode() : "system";
             themePref.setValue(!android.text.TextUtils.isEmpty(currentValue) ? currentValue : "system");
 
             themePref.setOnPreferenceChangeListener((preference, newValue) -> {
                 String val = (String) newValue;
-                writeNightModeProperty(val);
+                if (prefs != null) prefs.setNightMode(val);
                 NightMode.setAppNightMode(val);
                 Context ctx = getContext();
                 if (ctx != null) {
@@ -179,41 +169,6 @@ public class DisplayPreferencesFragment extends TermuxPreferenceFragmentBase {
     private void updateColorSchemeSummary(Preference pref, boolean isNight) {
         pref.setSummary(ColorSchemeUtils.schemeDisplayName(
             ColorSchemeUtils.getSelectedSchemeName(isNight)));
-    }
-
-    // -----------------------------------------------------------------------
-    //  Night-mode (theme) property persistence via termux.properties
-    // -----------------------------------------------------------------------
-
-    private String readNightModeProperty() {
-        File propsFile = new File(TermuxConstants.TERMUX_PROPERTIES_PRIMARY_FILE_PATH);
-        if (!propsFile.isFile()) return null;
-        Properties props = new Properties();
-        try (FileInputStream in = new FileInputStream(propsFile)) {
-            props.load(in);
-        } catch (IOException e) {
-            Logger.logError(LOG_TAG, "Failed to read termux.properties: " + e.getMessage());
-            return null;
-        }
-        return props.getProperty(TermuxPropertyConstants.KEY_NIGHT_MODE);
-    }
-
-    private void writeNightModeProperty(String value) {
-        File propsFile = new File(TermuxConstants.TERMUX_PROPERTIES_PRIMARY_FILE_PATH);
-        Properties props = new Properties();
-        if (propsFile.isFile()) {
-            try (FileInputStream in = new FileInputStream(propsFile)) {
-                props.load(in);
-            } catch (IOException e) {
-                Logger.logError(LOG_TAG, "Failed to read termux.properties for update: " + e.getMessage());
-            }
-        }
-        props.setProperty(TermuxPropertyConstants.KEY_NIGHT_MODE, value);
-        try (FileOutputStream out = new FileOutputStream(propsFile)) {
-            props.store(out, null);
-        } catch (IOException e) {
-            Logger.logError(LOG_TAG, "Failed to write termux.properties: " + e.getMessage());
-        }
     }
 
     // -----------------------------------------------------------------------

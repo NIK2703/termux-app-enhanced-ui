@@ -529,115 +529,171 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         }
     }
 
-    public void addNewSession(boolean isFailSafe, String sessionName) {
+    /**
+     * How the freshly-created session should be presented to the user.
+     * <ul>
+     *   <li>{@link #SELECT_AND_SCROLL} — select the new page via the pager
+     *       ({@link #setCurrentSession}) and scroll the tab strip to its right end so the new
+     *       tab and the trailing (+) button are fully revealed. Used by the "+" button, the
+     *       directory-history popup and keyboard shortcuts.</li>
+     *   <li>{@link #CALLER_MANAGED} — do NOT select or scroll; the caller already has the pager
+     *       parked on the placeholder slot (right-swipe-to-add) and manages selection/bookkeeping
+     *       itself so the transition reads as a normal tab-to-tab swipe with no jump.</li>
+     * </ul>
+     */
+    public enum NewSessionSelectMode {
+        SELECT_AND_SCROLL,
+        CALLER_MANAGED
+    }
+
+    /**
+     * Single entry point for creating a new terminal-session tab, shared by every add-tab path:
+     * the "+" button, the directory-history popup, keyboard shortcuts and the right-swipe-to-add
+     * gesture. Centralises the MAX_SESSIONS limit, working-directory resolution, session creation
+     * and (for selectable tabs) the end-scroll reveal — removing the duplicated logic that used to
+     * live in {@code addNewSession} / {@code addNewSessionInDirectory} / {@code createSessionForPlaceholder}.
+     *
+     * @param isFailSafe     start a failsafe session.
+     * @param sessionName    session name (may be null).
+     * @param directory      working directory; null resolves to the current session's cwd or the
+     *                       default working directory.
+     * @param selectMode     {@link NewSessionSelectMode#SELECT_AND_SCROLL} for UI add-tab paths,
+     *                       {@link NewSessionSelectMode#CALLER_MANAGED} for the right-swipe gesture.
+     * @param showLimitDialog show the "max terminals reached" dialog when the limit is hit (true for
+     *                        UI paths; the swipe passes false and silently gets null).
+     * @param allowColdStart permit the cold-start background init when the pager is still empty.
+     *                       Only the regular "+" button needs this, so the directory popup and the
+     *                       swipe pass false to preserve their existing behaviour exactly.
+     * @return the created {@link TermuxSession}, or null on error / limit reached / cold-start init.
+     */
+    public TermuxSession createNewSession(boolean isFailSafe, @Nullable String sessionName,
+            @Nullable String directory, @NonNull NewSessionSelectMode selectMode,
+            boolean showLimitDialog, boolean allowColdStart) {
         TermuxService service = mActivity.getTermuxService();
-        if (service == null) return;
+        if (service == null) return null;
 
         if (service.getTermuxSessionsSize() >= MAX_SESSIONS) {
-            AlertDialog maxDialog = new AlertDialog.Builder(mActivity).setTitle(R.string.title_max_terminals_reached).setMessage(R.string.msg_max_terminals_reached)
-                .setPositiveButton(android.R.string.ok, null).create();
-            maxDialog.show();
-        } else {
-            TerminalSession currentSession = mActivity.getCurrentSession();
-
-            String workingDirectory;
-            if (currentSession == null) {
-                workingDirectory = mActivity.getProperties().getDefaultWorkingDirectory();
-            } else {
-                workingDirectory = currentSession.getCwd();
+            if (showLimitDialog) {
+                AlertDialog maxDialog = new AlertDialog.Builder(mActivity).setTitle(R.string.title_max_terminals_reached).setMessage(R.string.msg_max_terminals_reached)
+                    .setPositiveButton(android.R.string.ok, null).create();
+                maxDialog.show();
             }
-
-            TermuxSession newTermuxSession = service.createTermuxSession(null, null, null, workingDirectory, isFailSafe, sessionName);
-            if (newTermuxSession == null) return;
-
-            TerminalSession newTerminalSession = newTermuxSession.getTerminalSession();
-
-            // Cold-start detection: the pager has never been populated (adapter has 0 items)
-            // and we just created the first session.  The emulator subprocess
-            // (JNI.createSubprocess → fork) takes long enough to cause a visible UI stutter
-            // if it runs inside the pager layout pass on the UI thread.  Instead, initialize
-            // the emulator with default dimensions on a background thread, then attach the
-            // session to the pager once the subprocess is alive.
-            androidx.viewpager2.widget.ViewPager2 pager = mActivity.getTerminalPager();
-            boolean isColdStart = (pager == null || pager.getAdapter() == null
-                    || pager.getAdapter().getItemCount() == 0)
-                    && service.getTermuxSessionsSize() == 1
-                    && newTerminalSession.getEmulator() == null;
-            if (isColdStart) {
-                mActivity.setColdStartSessionPending(true);
-                final TermuxActivity activity = mActivity;
-                final TerminalSession session = newTerminalSession;
-                new Thread(() -> {
-                    android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_DEFAULT);
-                    // Initialize the emulator with reasonable default dimensions.
-                    // JNI.createSubprocess() (fork + PTY setup) runs here, NOT on the UI thread.
-                    session.updateSize(80, 24, 10, 10);
-                    activity.runOnUiThread(() -> {
-                        if (activity.isFinishing()) return;
-                        mActivity.setColdStartSessionPending(false);
-                        // Run the full pager sync now.  syncWithServiceList will notify
-                        // RecyclerView that items are available, triggering a layout pass
-                        // that creates the ViewHolder and binds it to the session via
-                        // attachSession() → updateSize().  Since the emulator is already
-                        // initialized, that updateSize() will find mEmulator != null and
-                        // only resize — no fork on the UI thread.
-                        // onTerminalPageSelected will run through its deferred path
-                        // (pageView == null initially) and complete once the layout
-                        // pass creates the page — all without blocking the UI.
-                        activity.syncTerminalPagerToService();
-                    });
-                }).start();
-                return;
-            }
-
-            setCurrentSession(newTerminalSession);
+            return null;
         }
+
+        String workingDirectory = directory;
+        if (workingDirectory == null) {
+            TerminalSession currentSession = mActivity.getCurrentSession();
+            workingDirectory = (currentSession == null)
+                    ? mActivity.getProperties().getDefaultWorkingDirectory()
+                    : currentSession.getCwd();
+        }
+
+        TermuxSession newTermuxSession = service.createTermuxSession(null, null, null, workingDirectory, isFailSafe, sessionName);
+        if (newTermuxSession == null) return null;
+        TerminalSession newTerminalSession = newTermuxSession.getTerminalSession();
+
+        // CALLER_MANAGED (right-swipe gesture): the caller handles selection / pager bookkeeping /
+        // its own end-scroll, so just hand back the session.
+        if (selectMode == NewSessionSelectMode.CALLER_MANAGED) {
+            return newTermuxSession;
+        }
+
+        // Reveal the newly-added tab AND the trailing (+) button by scrolling the tab strip to its
+        // right end — identical to the right-swipe-to-add gesture. Reserve the end-scroll now (so
+        // competing CENTRE scrolls are suppressed) and arm the label-triggered scroll;
+        // scrollStripToEnd() fires from onTitleChanged once the shell sets the tab's real title,
+        // with a 250ms fallback.
+        armEndScrollForNewSession(newTerminalSession);
+
+        // Cold-start detection: the pager has never been populated (adapter has 0 items)
+        // and we just created the first session.  The emulator subprocess
+        // (JNI.createSubprocess → fork) takes long enough to cause a visible UI stutter
+        // if it runs inside the pager layout pass on the UI thread.  Instead, initialize
+        // the emulator with default dimensions on a background thread, then attach the
+        // session to the pager once the subprocess is alive.
+        androidx.viewpager2.widget.ViewPager2 pager = mActivity.getTerminalPager();
+        boolean isColdStart = allowColdStart && (pager == null || pager.getAdapter() == null
+                || pager.getAdapter().getItemCount() == 0)
+                && service.getTermuxSessionsSize() == 1
+                && newTerminalSession.getEmulator() == null;
+        if (isColdStart) {
+            mActivity.setColdStartSessionPending(true);
+            final TermuxActivity activity = mActivity;
+            final TerminalSession session = newTerminalSession;
+            new Thread(() -> {
+                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_DEFAULT);
+                // Initialize the emulator with reasonable default dimensions.
+                // JNI.createSubprocess() (fork + PTY setup) runs here, NOT on the UI thread.
+                session.updateSize(80, 24, 10, 10);
+                activity.runOnUiThread(() -> {
+                    if (activity.isFinishing()) return;
+                    mActivity.setColdStartSessionPending(false);
+                    // Run the full pager sync now.  syncWithServiceList will notify
+                    // RecyclerView that items are available, triggering a layout pass
+                    // that creates the ViewHolder and binds it to the session via
+                    // attachSession() → updateSize().  Since the emulator is already
+                    // initialized, that updateSize() will find mEmulator != null and
+                    // only resize — no fork on the UI thread.
+                    // onTerminalPageSelected will run through its deferred path
+                    // (pageView == null initially) and complete once the layout
+                    // pass creates the page — all without blocking the UI.
+                    activity.syncTerminalPagerToService();
+                });
+            }).start();
+            return newTermuxSession;
+        }
+
+        setCurrentSession(newTerminalSession);
+        return newTermuxSession;
+    }
+
+    /**
+     * Reserve the tab-strip end-scroll for a freshly-added session and arm its label-triggered
+     * fire. The actual right-end scroll ({@link TermuxSessionTabsController#scrollStripToEnd})
+     * fires from {@link #onTitleChanged} once the shell sets the tab's real title, with a 250ms
+     * fallback in case the shell never emits one.
+     */
+    private void armEndScrollForNewSession(@NonNull TerminalSession session) {
+        TermuxSessionTabsController tabs = mActivity.getTermuxSessionTabsController();
+        if (tabs != null) tabs.setEndScrollReserved(true);
+        markPendingEndScrollSession(session);
+    }
+
+    /**
+     * Create a new terminal session tab. Thin wrapper over {@link #createNewSession} for the
+     * "+" button, keyboard shortcuts and the notification/service-launch paths: the new tab is
+     * selected and the strip scrolls to reveal the trailing (+) button.
+     */
+    public void addNewSession(boolean isFailSafe, String sessionName) {
+        createNewSession(isFailSafe, sessionName, null,
+                NewSessionSelectMode.SELECT_AND_SCROLL, true, true);
     }
 
     /**
      * Create a new terminal session to replace a placeholder "new tab" page, and return it.
-     * Unlike {@link #addNewSession}, this does NOT select the session or scroll the pager — the
-     * caller (the placeholder-commit path in SessionPagerManager) already has the pager parked on
-     * the placeholder slot and handles selection/bookkeeping itself so the transition reads as a
-     * normal tab-to-tab swipe with no jump.
+     * Thin wrapper over {@link #createNewSession} for the right-swipe-to-add gesture: the caller
+     * (the placeholder-commit path in {@code SessionPagerManager}) already has the pager parked on
+     * the placeholder slot and handles selection/bookkeeping itself, so no selection/scroll happens
+     * here. The session limit is enforced silently (no dialog) — the swipe simply edge-bounces.
      *
      * @return the created {@link TermuxSession}, or null if the service is missing or the session
      *         limit was reached.
      */
     public TermuxSession createSessionForPlaceholder(boolean isFailSafe, String sessionName) {
-        TermuxService service = mActivity.getTermuxService();
-        if (service == null) return null;
-        if (service.getTermuxSessionsSize() >= MAX_SESSIONS) return null;
-
-        TerminalSession currentSession = mActivity.getCurrentSession();
-        String workingDirectory = (currentSession == null)
-                ? mActivity.getProperties().getDefaultWorkingDirectory()
-                : currentSession.getCwd();
-
-        return service.createTermuxSession(null, null, null, workingDirectory, isFailSafe, sessionName);
+        return createNewSession(isFailSafe, sessionName, null,
+                NewSessionSelectMode.CALLER_MANAGED, false, false);
     }
 
     /**
-     * Create a new terminal session starting in the given directory. Used by the
-     * "new tab" button's directory-history popup: picking a directory opens a fresh
-     * session there instead of inheriting the current session's cwd.
+     * Create a new terminal session starting in the given directory. Thin wrapper over
+     * {@link #createNewSession} for the "new tab" button's directory-history popup: picking a
+     * directory opens a fresh session there instead of inheriting the current session's cwd. The
+     * new tab is selected and the strip scrolls to reveal the trailing (+) button.
      */
     public void addNewSessionInDirectory(@NonNull String directory) {
-        TermuxService service = mActivity.getTermuxService();
-        if (service == null) return;
-
-        if (service.getTermuxSessionsSize() >= MAX_SESSIONS) {
-            AlertDialog maxDialog = new AlertDialog.Builder(mActivity).setTitle(R.string.title_max_terminals_reached).setMessage(R.string.msg_max_terminals_reached)
-                .setPositiveButton(android.R.string.ok, null).create();
-            maxDialog.show();
-            return;
-        }
-
-        TermuxSession newTermuxSession = service.createTermuxSession(null, null, null, directory, false, null);
-        if (newTermuxSession == null) return;
-
-        TerminalSession newTerminalSession = newTermuxSession.getTerminalSession();
-        setCurrentSession(newTerminalSession);
+        createNewSession(false, null, directory,
+                NewSessionSelectMode.SELECT_AND_SCROLL, true, false);
     }
 
     public void setCurrentStoredSession() {

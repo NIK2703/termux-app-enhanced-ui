@@ -1,0 +1,259 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory
+        app:title="@string/appearance_category_title"
+        app:iconSpaceReserved="false">
+
+        <SeekBarPreference
+            app:key="terminal-transcript-rows"
+            app:title="@string/terminal_transcript_rows_title"
+            app:summary="@string/terminal_transcript_rows_summary"
+            app:min="100"
+            android:max="50000"
+            app:defaultValue="2000"
+            app:showSeekBarValue="true"
+            app:iconSpaceReserved="false" />
+
+        <ListPreference
+            app:key="terminal-cursor-style"
+            app:defaultValue="block"
+            app:title="@string/terminal_cursor_style_title"
+            app:summary="@string/terminal_cursor_style_summary"
+            app:entries="@array/terminal_cursor_style_entries"
+            app:entryValues="@array/terminal_cursor_style_values"
+            app:iconSpaceReserved="false" />
+
+        <SeekBarPreference
+            app:key="terminal-cursor-blink-rate"
+            app:title="@string/terminal_cursor_blink_rate_title"
+            app:summary="@string/terminal_cursor_blink_rate_summary"
+            app:min="0"
+            android:max="2000"
+            app:defaultValue="0"
+            app:showSeekBarValue="true"
+            app:iconSpaceReserved="false" />
+
+        <SeekBarPreference
+            app:key="terminal-margin-horizontal"
+            app:title="@string/terminal_margin_horizontal_title"
+            app:summary="@string/terminal_margin_horizontal_summary"
+            app:min="0"
+            android:max="100"
+            app:defaultValue="3"
+            app:showSeekBarValue="true"
+            app:iconSpaceReserved="false" />
+
+        <SeekBarPreference
+            app:key="terminal-margin-vertical"
+            app:title="@string/terminal_margin_vertical_title"
+            app:summary="@string/terminal_margin_vertical_summary"
+            app:min="0"
+            android:max="100"
+            app:defaultValue="0"
+            app:showSeekBarValue="true"
+            app:iconSpaceReserved="false" />
+
+        <EditTextPreference
+            app:key="terminal-toolbar-height"
+            app:title="@string/terminal_toolbar_height_title"
+            app:summary="@string/terminal_toolbar_height_summary"
+            app:defaultValue="1"
+            android:inputType="numberDecimal"
+            app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:title="@string/sound_category_title"
+        app:iconSpaceReserved="false">
+
+        <ListPreference
+            app:key="bell-character"
+            app:defaultValue="vibrate"
+            app:title="@string/bell_character_title"
+            app:summary="@string/bell_character_summary"
+            app:entries="@array/bell_character_entries"
+            app:entryValues="@array/bell_character_values"
+            app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:title="@string/key_behaviour_category_title"
+        app:iconSpaceReserved="false">
+
+        <ListPreference
+            app:key="back-key"
+            app:defaultValue="back"
+            app:title="@string/back_key_title"
+            app:summary="@string/back_key_summary"
+            app:entries="@array/back_key_entries"
+            app:entryValues="@array/back_key_values"
+            app:iconSpaceReserved="false" />
+
+        <ListPreference
+            app:key="volume-keys"
+            app:defaultValue="virtual"
+            app:title="@string/volume_keys_title"
+            app:summary="@string/volume_keys_summary"
+            app:entries="@array/volume_keys_entries"
+            app:entryValues="@array/volume_keys_values"
+            app:iconSpaceReserved="false" />
+
+        <ListPreference
+            app:key="soft-keyboard-toggle-behaviour"
+            app:defaultValue="show/hide"
+            app:title="@string/soft_keyboard_toggle_behaviour_title"
+            app:summary="@string/soft_keyboard_toggle_behaviour_summary"
+            app:entries="@array/soft_keyboard_toggle_behaviour_entries"
+            app:entryValues="@array/soft_keyboard_toggle_behaviour_values"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="ctrl-space-workaround"
+            app:title="@string/ctrl_space_workaround_title"
+            app:summary="@string/ctrl_space_workaround_summary"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="enforce-char-based-input"
+            app:title="@string/enforce_char_based_input_title"
+            app:summary="@string/enforce_char_based_input_summary"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="disable-hardware-keyboard-shortcuts"
+            app:title="@string/disable_hardware_keyboard_shortcuts_title"
+            app:summary="@string/disable_hardware_keyboard_shortcuts_summary"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="disable-terminal-session-change-toast"
+            app:title="@string/disable_terminal_session_change_toast_title"
+            app:summary="@string/disable_terminal_session_change_toast_summary"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="terminal-onclick-url-open"
+            app:title="@string/terminal_onclick_url_open_title"
+            app:summary="@string/terminal_onclick_url_open_summary"
+            app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:title="@string/screen_category_title"
+        app:iconSpaceReserved="false">
+
+        <SwitchPreferenceCompat
+            app:key="fullscreen"
+            app:title="@string/fullscreen_title"
+            app:summary="@string/fullscreen_summary"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="use-fullscreen-workaround"
+            app:title="@string/use_fullscreen_workaround_title"
+            app:summary="@string/use_fullscreen_workaround_summary"
+            app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:title="@string/shortcuts_category_title"
+        app:iconSpaceReserved="false">
+
+        <EditTextPreference
+            app:key="shortcut.create-session"
+            app:title="@string/shortcut_create_session_title"
+            app:summary="@string/shortcut_summary"
+            app:dialogTitle="@string/shortcut_create_session_title"
+            app:iconSpaceReserved="false" />
+
+        <EditTextPreference
+            app:key="shortcut.next-session"
+            app:title="@string/shortcut_next_session_title"
+            app:summary="@string/shortcut_summary"
+            app:dialogTitle="@string/shortcut_next_session_title"
+            app:iconSpaceReserved="false" />
+
+        <EditTextPreference
+            app:key="shortcut.previous-session"
+            app:title="@string/shortcut_previous_session_title"
+            app:summary="@string/shortcut_summary"
+            app:dialogTitle="@string/shortcut_previous_session_title"
+            app:iconSpaceReserved="false" />
+
+        <EditTextPreference
+            app:key="shortcut.rename-session"
+            app:title="@string/shortcut_rename_session_title"
+            app:summary="@string/shortcut_summary"
+            app:dialogTitle="@string/shortcut_rename_session_title"
+            app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:title="@string/session_category_title"
+        app:iconSpaceReserved="false">
+
+        <EditTextPreference
+            app:key="default-working-directory"
+            app:title="@string/default_working_directory_title"
+            app:summary="@string/default_working_directory_summary"
+            app:dialogTitle="@string/default_working_directory_title"
+            app:iconSpaceReserved="false" />
+
+        <EditTextPreference
+            app:key="delete-tmpdir-files-older-than-x-days-on-exit"
+            app:title="@string/delete_tmpdir_files_older_than_x_days_on_exit_title"
+            app:summary="@string/delete_tmpdir_files_older_than_x_days_on_exit_summary"
+            app:defaultValue="3"
+            app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:title="@string/security_category_title"
+        app:iconSpaceReserved="false">
+
+        <SwitchPreferenceCompat
+            app:key="allow-external-apps"
+            app:title="@string/allow_external_apps_title"
+            app:summary="@string/allow_external_apps_summary"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="disable-file-share-receiver"
+            app:title="@string/disable_file_share_receiver_title"
+            app:summary="@string/disable_file_share_receiver_summary"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="disable-file-view-receiver"
+            app:title="@string/disable_file_view_receiver_title"
+            app:summary="@string/disable_file_view_receiver_summary"
+            app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:title="@string/misc_category_title"
+        app:iconSpaceReserved="false">
+
+        <SwitchPreferenceCompat
+            app:key="run-termux-am-socket-server"
+            app:title="@string/run_termux_am_socket_server_title"
+            app:summary="@string/run_termux_am_socket_server_summary"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="hide-soft-keyboard-on-startup"
+            app:title="@string/hide_soft_keyboard_on_startup_title"
+            app:summary="@string/hide_soft_keyboard_on_startup_summary"
+            app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>

@@ -432,4 +432,118 @@
     <string name="screen_orientation_entry_landscape_follow_sensor">Альбомная (по датчику)</string>
     <string name="screen_orientation_entry_portrait">Книжная</string>
     <string name="screen_orientation_entry_landscape">Альбомная</string>
+
+    <!-- Terminal screen (migrated termux.properties) -->
+    <string name="terminal_preferences_title">Терминал</string>
+    <string name="terminal_preferences_summary">Вид терминала, поведение клавиш, экран и прочее</string>
+
+    <string name="sound_category_title">Звук и уведомления</string>
+    <string name="key_behaviour_category_title">Поведение клавиш</string>
+    <string name="screen_category_title">Экран</string>
+    <string name="shortcuts_category_title">Ярлыки</string>
+    <string name="session_category_title">Сессия</string>
+    <string name="security_category_title">Безопасность</string>
+    <string name="misc_category_title">Прочее</string>
+    <string name="terminal_category_title">Терминал</string>
+
+    <string name="terminal_transcript_rows_title">Число строк в буфере прокрутки</string>
+    <string name="terminal_transcript_rows_summary">Количество строк, сохраняемых в буфере прокрутки.</string>
+
+    <string name="terminal_cursor_style_title">Стиль курсора</string>
+    <string name="terminal_cursor_style_summary">Как отрисовывается курсор терминала.</string>
+    <string name="terminal_cursor_style_block">Блок</string>
+    <string name="terminal_cursor_style_underline">Подчёркивание</string>
+    <string name="terminal_cursor_style_bar">Вертикальная черта</string>
+
+    <string name="terminal_cursor_blink_rate_title">Частота мигания курсора</string>
+    <string name="terminal_cursor_blink_rate_summary">Частота мигания курсора в миллисекундах.</string>
+
+    <string name="terminal_margin_horizontal_title">Горизонтальный отступ</string>
+    <string name="terminal_margin_horizontal_summary">Горизонтальный отступ терминала в dp.</string>
+    <string name="terminal_margin_vertical_title">Вертикальный отступ</string>
+    <string name="terminal_margin_vertical_summary">Вертикальный отступ терминала в dp.</string>
+
+    <string name="terminal_toolbar_height_title">Масштаб панели инструментов</string>
+    <string name="terminal_toolbar_height_summary">Коэффициент масштаба панели доп. клавиш / терминала.</string>
+
+    <string name="bell_character_title">Поведение при сигнале</string>
+    <string name="bell_character_summary">Что происходит, когда терминал получает символ звонка (BEL).</string>
+    <string name="bell_character_vibrate">Вибрация</string>
+    <string name="bell_character_beep">Звук</string>
+    <string name="bell_character_ignore">Игнорировать</string>
+
+    <string name="back_key_title">Поведение клавиши «Назад»</string>
+    <string name="back_key_summary">Что делает аппаратная/экранная клавиша «Назад» в терминале.</string>
+    <string name="back_key_back">Кнопка «Назад»</string>
+    <string name="back_key_escape">Клавиша Escape</string>
+
+    <string name="volume_keys_title">Поведение клавиш громкости</string>
+    <string name="volume_keys_summary">Управляют ли клавиши громкости звуком или работают как виртуальные клавиши.</string>
+    <string name="volume_keys_virtual">Виртуальные (работают как клавиши)</string>
+    <string name="volume_keys_volume">Громкость (управляют звуком устройства)</string>
+
+    <string name="soft_keyboard_toggle_behaviour_title">Поведение переключателя клавиатуры</string>
+    <string name="soft_keyboard_toggle_behaviour_summary">Показывает/скрывает или включает/выключает экранную клавиатуру переключатель.</string>
+    <string name="soft_keyboard_toggle_show_hide">Показать / скрыть</string>
+    <string name="soft_keyboard_toggle_enable_disable">Включить / выключить</string>
+
+    <string name="ctrl_space_workaround_title">Обходная мера Ctrl+Пробел</string>
+    <string name="ctrl_space_workaround_summary">Использовать обходную меру, чтобы Ctrl+Пробел передавался корректно.</string>
+
+    <string name="enforce_char_based_input_title">Побайтовая отправка ввода</string>
+    <string name="enforce_char_based_input_summary">Отправлять символы по одному байту за раз.</string>
+
+    <string name="disable_hardware_keyboard_shortcuts_title">Отключить горячие клавиши внешней клавиатуры</string>
+    <string name="disable_hardware_keyboard_shortcuts_summary">Игнорировать горячие клавиши от аппаратной/внешней клавиатуры.</string>
+
+    <string name="disable_terminal_session_change_toast_title">Не показывать уведомление о смене сессии</string>
+    <string name="disable_terminal_session_change_toast_summary">Не показывать всплывающее сообщение при переключении сессий терминала.</string>
+
+    <string name="terminal_onclick_url_open_title">Открывать ссылки по нажатию</string>
+    <string name="terminal_onclick_url_open_summary">Открывать ссылки в буфере терминала при нажатии.</string>
+
+    <string name="fullscreen_title">Полноэкранный режим</string>
+    <string name="fullscreen_summary">Запускать Termux в полноэкранном режиме.</string>
+
+    <string name="use_fullscreen_workaround_title">Обходная мера полноэкранного режима</string>
+    <string name="use_fullscreen_workaround_summary">Использовать обходную меру для полноэкранного режима на устройствах, где он скрыт некорректно.</string>
+
+    <string name="shortcut_summary">Формат: Ctrl+КЛАВИША (например Ctrl+a). Оставьте пустым, чтобы отключить.</string>
+    <string name="shortcut_empty_summary">Не задано (оставьте пустым для отключения)</string>
+    <string name="shortcut_invalid_format">Неверный формат ярлыка. Используйте формат «ctrl+x» или оставьте пустым для отключения.</string>
+    <string name="shortcut_create_session_title">Ярлык создания сессии</string>
+    <string name="shortcut_next_session_title">Ярлык следующей сессии</string>
+    <string name="shortcut_previous_session_title">Ярлык предыдущей сессии</string>
+    <string name="shortcut_rename_session_title">Ярлык переименования сессии</string>
+
+    <string name="default_working_directory_title">Рабочая директория по умолчанию</string>
+    <string name="default_working_directory_summary">Директория для новых сессий (оставьте пустой для домашней).</string>
+
+    <string name="delete_tmpdir_files_older_than_x_days_on_exit_title">Удалять старые файлы TMPDIR при выходе</string>
+    <string name="delete_tmpdir_files_older_than_x_days_on_exit_summary">Удалять файлы старше N дней из TMPDIR сессии при выходе (-1 = не удалять).</string>
+
+    <string name="allow_external_apps_title">Разрешить внешние приложения</string>
+    <string name="allow_external_apps_summary">Разрешить другим приложениям запускать команды Termux через RUN_COMMAND.</string>
+
+    <string name="disable_file_share_receiver_title">Отключить приём общих файлов</string>
+    <string name="disable_file_share_receiver_summary">Не принимать файлы, отправленные в Termux.</string>
+
+    <string name="disable_file_view_receiver_title">Отключить просмотр файлов</string>
+    <string name="disable_file_view_receiver_summary">Не открывать отправленные в Termux файлы для просмотра.</string>
+
+    <string name="run_termux_am_socket_server_title">Запускать сокет-сервер termux-am</string>
+    <string name="run_termux_am_socket_server_summary">Запустить сокет-сервер termux-am для межпроцессных команд.</string>
+
+    <string name="hide_soft_keyboard_on_startup_title">Скрывать клавиатуру при запуске</string>
+    <string name="hide_soft_keyboard_on_startup_summary">Держать экранную клавиатуру скрытой при запуске Termux.</string>
+
+    <string name="empty_value_summary">Не задано</string>
+    <string name="extra_keys_invalid_json">Неверный JSON для доп. клавиш. Изменения не сохранены.</string>
+
+    <!-- Legacy night-mode entries (kept for reference; theme is on Display screen) -->
+    <string name="night_mode_legacy_title">Ночной режим (устаревший night-mode)</string>
+    <string name="night_mode_legacy_summary">Управляет устаревшим свойством ночного режима. Лучше используйте тему на экране «Дисплей».</string>
+    <string name="night_mode_true">Тёмная</string>
+    <string name="night_mode_false">Светлая</string>
+    <string name="night_mode_system">Системная</string>
 </resources>

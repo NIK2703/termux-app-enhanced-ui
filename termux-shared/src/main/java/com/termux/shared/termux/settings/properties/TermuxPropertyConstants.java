@@ -435,14 +435,14 @@ public final class TermuxPropertyConstants {
         /* float */
         KEY_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR,
 
-        /* Integer */
+        /* Integer (session shortcuts are stored as raw "Ctrl+KEY" strings, see String section) */
+
+        /* String */
+        KEY_BACK_KEY_BEHAVIOUR,
         KEY_SHORTCUT_CREATE_SESSION,
         KEY_SHORTCUT_NEXT_SESSION,
         KEY_SHORTCUT_PREVIOUS_SESSION,
         KEY_SHORTCUT_RENAME_SESSION,
-
-        /* String */
-        KEY_BACK_KEY_BEHAVIOUR,
         KEY_COLOR_SCHEME_DARK,
         KEY_COLOR_SCHEME_LIGHT,
         KEY_DEFAULT_WORKING_DIRECTORY,
@@ -498,5 +498,70 @@ public final class TermuxPropertyConstants {
      */
     public static final Set<String> TERMUX_DEFAULT_INVERETED_TRUE_BOOLEAN_BEHAVIOUR_PROPERTIES_LIST = new HashSet<>(Arrays.asList(
     ));
+
+
+    /** The boolean keys (both default-false and default-true behaviour). */
+    public static final Set<String> TERMUX_APP_PROPERTIES_BOOLEAN_KEYS = new HashSet<>(Arrays.asList(
+        KEY_DISABLE_FILE_SHARE_RECEIVER,
+        KEY_DISABLE_FILE_VIEW_RECEIVER,
+        KEY_DISABLE_HARDWARE_KEYBOARD_SHORTCUTS,
+        KEY_DISABLE_TERMINAL_SESSION_CHANGE_TOAST,
+        KEY_ENFORCE_CHAR_BASED_INPUT,
+        KEY_EXTRA_KEYS_TEXT_ALL_CAPS,
+        KEY_HIDE_SOFT_KEYBOARD_ON_STARTUP,
+        KEY_RUN_TERMUX_AM_SOCKET_SERVER,
+        KEY_TERMINAL_ONCLICK_URL_OPEN,
+        KEY_USE_CTRL_SPACE_WORKAROUND,
+        KEY_USE_FULLSCREEN,
+        KEY_USE_FULLSCREEN_WORKAROUND,
+        TermuxConstants.PROP_ALLOW_EXTERNAL_APPS
+    ));
+
+    /** The int keys. */
+    public static final Set<String> TERMUX_APP_PROPERTIES_INT_KEYS = new HashSet<>(Arrays.asList(
+        KEY_BELL_BEHAVIOUR,
+        KEY_DELETE_TMPDIR_FILES_OLDER_THAN_X_DAYS_ON_EXIT,
+        KEY_TERMINAL_CURSOR_BLINK_RATE,
+        KEY_TERMINAL_CURSOR_STYLE,
+        KEY_TERMINAL_MARGIN_HORIZONTAL,
+        KEY_TERMINAL_MARGIN_VERTICAL,
+        KEY_TERMINAL_TRANSCRIPT_ROWS
+    ));
+
+    /** The float keys. */
+    public static final Set<String> TERMUX_APP_PROPERTIES_FLOAT_KEYS = new HashSet<>(Arrays.asList(
+        KEY_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR
+    ));
+
+    /** The String keys. */
+    public static final Set<String> TERMUX_APP_PROPERTIES_STRING_KEYS = new HashSet<>(Arrays.asList(
+        KEY_BACK_KEY_BEHAVIOUR,
+        KEY_SHORTCUT_CREATE_SESSION,
+        KEY_SHORTCUT_NEXT_SESSION,
+        KEY_SHORTCUT_PREVIOUS_SESSION,
+        KEY_SHORTCUT_RENAME_SESSION,
+        KEY_COLOR_SCHEME_DARK,
+        KEY_COLOR_SCHEME_LIGHT,
+        KEY_DEFAULT_WORKING_DIRECTORY,
+        KEY_EXTRA_KEYS,
+        KEY_EXTRA_KEYS_STYLE,
+        KEY_EXTRA_KEYS_SPECIAL_BUTTON_MODE,
+        KEY_NIGHT_MODE,
+        KEY_SOFT_KEYBOARD_TOGGLE_BEHAVIOUR,
+        KEY_VOLUME_KEYS_BEHAVIOUR
+    ));
+
+
+    public static boolean isBooleanKey(String key) {
+        return TERMUX_APP_PROPERTIES_BOOLEAN_KEYS.contains(key);
+    }
+
+    public static boolean isIntKey(String key) {
+        return TERMUX_APP_PROPERTIES_INT_KEYS.contains(key);
+    }
+
+    public static boolean isFloatKey(String key) {
+        return TERMUX_APP_PROPERTIES_FLOAT_KEYS.contains(key);
+    }
 
 }

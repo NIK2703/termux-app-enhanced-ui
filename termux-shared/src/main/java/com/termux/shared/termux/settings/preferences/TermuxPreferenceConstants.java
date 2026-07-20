@@ -72,6 +72,7 @@ package com.termux.shared.termux.settings.preferences;
  */
 
 import com.termux.shared.shell.command.ExecutionCommand;
+import com.termux.shared.termux.settings.properties.TermuxPropertyConstants;
 
 /**
  * A class that defines shared constants of the SharedPreferences used by Termux app and its plugins.
@@ -230,6 +231,134 @@ public final class TermuxPreferenceConstants {
          */
         public static final String KEY_BUTTON_BG_ACTIVE_ALPHA = "button_bg_active_alpha";
         public static final int DEFAULT_BUTTON_BG_ACTIVE_ALPHA = 12;
+
+
+
+        /* ###################################################################
+         * Keys migrated from the ~/.termux/termux.properties file.
+         * The string values intentionally match the legacy termux.properties keys
+         * (see {@link TermuxPropertyConstants}) so that values can be migrated on
+         * first launch.
+         * ################################################################### */
+
+        /* boolean */
+
+        /** @see TermuxPropertyConstants#KEY_ALLOW_EXTERNAL_APPS legacy "allow-external-apps" */
+        public static final String KEY_ALLOW_EXTERNAL_APPS = "allow-external-apps";
+        public static final boolean DEFAULT_VALUE_ALLOW_EXTERNAL_APPS = false;
+
+        public static final String KEY_DISABLE_FILE_SHARE_RECEIVER = "disable-file-share-receiver";
+        public static final boolean DEFAULT_VALUE_DISABLE_FILE_SHARE_RECEIVER = false;
+
+        public static final String KEY_DISABLE_FILE_VIEW_RECEIVER = "disable-file-view-receiver";
+        public static final boolean DEFAULT_VALUE_DISABLE_FILE_VIEW_RECEIVER = false;
+
+        public static final String KEY_DISABLE_HARDWARE_KEYBOARD_SHORTCUTS = "disable-hardware-keyboard-shortcuts";
+        public static final boolean DEFAULT_VALUE_DISABLE_HARDWARE_KEYBOARD_SHORTCUTS = false;
+
+        public static final String KEY_DISABLE_TERMINAL_SESSION_CHANGE_TOAST = "disable-terminal-session-change-toast";
+        public static final boolean DEFAULT_VALUE_DISABLE_TERMINAL_SESSION_CHANGE_TOAST = false;
+
+        public static final String KEY_ENFORCE_CHAR_BASED_INPUT = "enforce-char-based-input";
+        public static final boolean DEFAULT_VALUE_ENFORCE_CHAR_BASED_INPUT = false;
+
+        public static final String KEY_EXTRA_KEYS_TEXT_ALL_CAPS = "extra-keys-text-all-caps";
+        public static final boolean DEFAULT_VALUE_EXTRA_KEYS_TEXT_ALL_CAPS = true;
+
+        public static final String KEY_HIDE_SOFT_KEYBOARD_ON_STARTUP = "hide-soft-keyboard-on-startup";
+        public static final boolean DEFAULT_VALUE_HIDE_SOFT_KEYBOARD_ON_STARTUP = false;
+
+        public static final String KEY_RUN_TERMUX_AM_SOCKET_SERVER = "run-termux-am-socket-server";
+        public static final boolean DEFAULT_VALUE_RUN_TERMUX_AM_SOCKET_SERVER = true;
+
+        public static final String KEY_TERMINAL_ONCLICK_URL_OPEN = "terminal-onclick-url-open";
+        public static final boolean DEFAULT_VALUE_TERMINAL_ONCLICK_URL_OPEN = false;
+
+        public static final String KEY_USE_CTRL_SPACE_WORKAROUND = "ctrl-space-workaround";
+        public static final boolean DEFAULT_VALUE_USE_CTRL_SPACE_WORKAROUND = false;
+
+        public static final String KEY_USE_FULLSCREEN = "fullscreen";
+        public static final boolean DEFAULT_VALUE_USE_FULLSCREEN = false;
+
+        public static final String KEY_USE_FULLSCREEN_WORKAROUND = "use-fullscreen-workaround";
+        public static final boolean DEFAULT_VALUE_USE_FULLSCREEN_WORKAROUND = false;
+
+
+        /* int */
+
+        public static final String KEY_BELL_BEHAVIOUR = "bell-character";
+        public static final int DEFAULT_VALUE_BELL_BEHAVIOUR = TermuxPropertyConstants.DEFAULT_IVALUE_BELL_BEHAVIOUR;
+
+        public static final String KEY_DELETE_TMPDIR_FILES_OLDER_THAN_X_DAYS_ON_EXIT = "delete-tmpdir-files-older-than-x-days-on-exit";
+        public static final int DEFAULT_VALUE_DELETE_TMPDIR_FILES_OLDER_THAN_X_DAYS_ON_EXIT = TermuxPropertyConstants.DEFAULT_IVALUE_DELETE_TMPDIR_FILES_OLDER_THAN_X_DAYS_ON_EXIT;
+        public static final int MIN_DELETE_TMPDIR_FILES_OLDER_THAN_X_DAYS_ON_EXIT = TermuxPropertyConstants.IVALUE_DELETE_TMPDIR_FILES_OLDER_THAN_X_DAYS_ON_EXIT_MIN;
+        public static final int MAX_DELETE_TMPDIR_FILES_OLDER_THAN_X_DAYS_ON_EXIT = TermuxPropertyConstants.IVALUE_DELETE_TMPDIR_FILES_OLDER_THAN_X_DAYS_ON_EXIT_MAX;
+
+        public static final String KEY_TERMINAL_CURSOR_BLINK_RATE = "terminal-cursor-blink-rate";
+        public static final int DEFAULT_VALUE_TERMINAL_CURSOR_BLINK_RATE = TermuxPropertyConstants.DEFAULT_IVALUE_TERMINAL_CURSOR_BLINK_RATE;
+        public static final int MIN_TERMINAL_CURSOR_BLINK_RATE = TermuxPropertyConstants.IVALUE_TERMINAL_CURSOR_BLINK_RATE_MIN;
+        public static final int MAX_TERMINAL_CURSOR_BLINK_RATE = TermuxPropertyConstants.IVALUE_TERMINAL_CURSOR_BLINK_RATE_MAX;
+
+        public static final String KEY_TERMINAL_CURSOR_STYLE = "terminal-cursor-style";
+        public static final int DEFAULT_VALUE_TERMINAL_CURSOR_STYLE = TermuxPropertyConstants.DEFAULT_IVALUE_TERMINAL_CURSOR_STYLE;
+
+        public static final String KEY_TERMINAL_MARGIN_HORIZONTAL = "terminal-margin-horizontal";
+        public static final int DEFAULT_VALUE_TERMINAL_MARGIN_HORIZONTAL = TermuxPropertyConstants.DEFAULT_IVALUE_TERMINAL_MARGIN_HORIZONTAL;
+        public static final int MIN_TERMINAL_MARGIN_HORIZONTAL = TermuxPropertyConstants.IVALUE_TERMINAL_MARGIN_HORIZONTAL_MIN;
+        public static final int MAX_TERMINAL_MARGIN_HORIZONTAL = TermuxPropertyConstants.IVALUE_TERMINAL_MARGIN_HORIZONTAL_MAX;
+
+        public static final String KEY_TERMINAL_MARGIN_VERTICAL = "terminal-margin-vertical";
+        public static final int DEFAULT_VALUE_TERMINAL_MARGIN_VERTICAL = TermuxPropertyConstants.DEFAULT_IVALUE_TERMINAL_MARGIN_VERTICAL;
+        public static final int MIN_TERMINAL_MARGIN_VERTICAL = TermuxPropertyConstants.IVALUE_TERMINAL_MARGIN_VERTICAL_MIN;
+        public static final int MAX_TERMINAL_MARGIN_VERTICAL = TermuxPropertyConstants.IVALUE_TERMINAL_MARGIN_VERTICAL_MAX;
+
+        public static final String KEY_TERMINAL_TRANSCRIPT_ROWS = "terminal-transcript-rows";
+        public static final int DEFAULT_VALUE_TERMINAL_TRANSCRIPT_ROWS = TermuxPropertyConstants.DEFAULT_IVALUE_TERMINAL_TRANSCRIPT_ROWS;
+        public static final int MIN_TERMINAL_TRANSCRIPT_ROWS = TermuxPropertyConstants.IVALUE_TERMINAL_TRANSCRIPT_ROWS_MIN;
+        public static final int MAX_TERMINAL_TRANSCRIPT_ROWS = TermuxPropertyConstants.IVALUE_TERMINAL_TRANSCRIPT_ROWS_MAX;
+
+
+        /* float */
+
+        public static final String KEY_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR = "terminal-toolbar-height";
+        public static final float DEFAULT_VALUE_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR = TermuxPropertyConstants.DEFAULT_IVALUE_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR;
+        public static final float MIN_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR = TermuxPropertyConstants.IVALUE_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR_MIN;
+        public static final float MAX_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR = TermuxPropertyConstants.IVALUE_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR_MAX;
+
+
+        /* Integer (session shortcuts, may be null/0) */
+
+        public static final String KEY_SHORTCUT_CREATE_SESSION = "shortcut.create-session";
+        public static final String KEY_SHORTCUT_NEXT_SESSION = "shortcut.next-session";
+        public static final String KEY_SHORTCUT_PREVIOUS_SESSION = "shortcut.previous-session";
+        public static final String KEY_SHORTCUT_RENAME_SESSION = "shortcut.rename-session";
+
+
+        /* String */
+
+        public static final String KEY_BACK_KEY_BEHAVIOUR = "back-key";
+        public static final String DEFAULT_VALUE_BACK_KEY_BEHAVIOUR = TermuxPropertyConstants.DEFAULT_IVALUE_BACK_KEY_BEHAVIOUR;
+
+        public static final String KEY_DEFAULT_WORKING_DIRECTORY = "default-working-directory";
+        public static final String DEFAULT_VALUE_DEFAULT_WORKING_DIRECTORY = TermuxPropertyConstants.DEFAULT_IVALUE_DEFAULT_WORKING_DIRECTORY;
+
+        public static final String KEY_EXTRA_KEYS = "extra-keys";
+        public static final String DEFAULT_VALUE_EXTRA_KEYS = TermuxPropertyConstants.DEFAULT_IVALUE_EXTRA_KEYS;
+
+        public static final String KEY_EXTRA_KEYS_STYLE = "extra-keys-style";
+        public static final String DEFAULT_VALUE_EXTRA_KEYS_STYLE = TermuxPropertyConstants.DEFAULT_IVALUE_EXTRA_KEYS_STYLE;
+
+        public static final String KEY_EXTRA_KEYS_SPECIAL_BUTTON_MODE = "extra-keys-special-button-mode";
+        public static final String DEFAULT_VALUE_EXTRA_KEYS_SPECIAL_BUTTON_MODE = TermuxPropertyConstants.DEFAULT_IVALUE_EXTRA_KEYS_SPECIAL_BUTTON_MODE;
+
+        public static final String KEY_NIGHT_MODE = "night-mode";
+        public static final String DEFAULT_VALUE_NIGHT_MODE = TermuxPropertyConstants.DEFAULT_IVALUE_NIGHT_MODE;
+
+        public static final String KEY_SOFT_KEYBOARD_TOGGLE_BEHAVIOUR = "soft-keyboard-toggle-behaviour";
+        public static final String DEFAULT_VALUE_SOFT_KEYBOARD_TOGGLE_BEHAVIOUR = TermuxPropertyConstants.DEFAULT_IVALUE_SOFT_KEYBOARD_TOGGLE_BEHAVIOUR;
+
+        public static final String KEY_VOLUME_KEYS_BEHAVIOUR = "volume-keys";
+        public static final String DEFAULT_VALUE_VOLUME_KEYS_BEHAVIOUR = TermuxPropertyConstants.DEFAULT_IVALUE_VOLUME_KEYS_BEHAVIOUR;
 
     }
 

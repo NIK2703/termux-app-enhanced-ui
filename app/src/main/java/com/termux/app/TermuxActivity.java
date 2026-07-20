@@ -523,9 +523,8 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
             return insets;
         });
 
-        if (mProperties.isUsingFullScreen()) {
-            getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        }
+        setFullScreenFlags();
+
 
         setTermuxTerminalViewAndClients();
 
@@ -2586,6 +2585,19 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         reloadActivityStyling(true);
     }
 
+    /**
+     * Apply or clear the fullscreen window flag according to the current
+     * {@link TermuxAppSharedProperties#isUsingFullScreen()} setting. Called on activity creation and
+     * on every styling reload so that toggling the setting takes effect immediately.
+     */
+    private void setFullScreenFlags() {
+        if (mProperties == null) return;
+        if (mProperties.isUsingFullScreen())
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        else
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+    }
+
     public void reloadActivityStyling(boolean recreateActivity) {
         if (mProperties != null) {
             reloadProperties();
@@ -2604,6 +2616,7 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
 
         setMargins();
         setTerminalToolbarHeight();
+        setFullScreenFlags();
 
         FileReceiverActivity.updateFileReceiverActivityComponentsState(this);
 
