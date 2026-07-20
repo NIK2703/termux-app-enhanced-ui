@@ -1,13 +1,10 @@
 package com.termux.app.terminal.io.autocomplete;
 
-import android.graphics.Typeface;
 import android.os.Build;
-import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.StaticLayout;
 import android.text.Layout;
 import android.text.TextPaint;
-import android.text.style.StyleSpan;
 import android.util.LruCache;
 
 import androidx.annotation.NonNull;
@@ -34,8 +31,6 @@ import androidx.annotation.NonNull;
 final class AutoCompleteTextRenderer {
 
     private AutoCompleteTextRenderer() {}
-
-    private static final StyleSpan BOLD_SPAN = new StyleSpan(Typeface.BOLD);
 
     private static final int LAYOUT_CACHE_MAX = 512;
     private static final LruCache<String, StaticLayout> sLayoutCache =
@@ -94,13 +89,8 @@ final class AutoCompleteTextRenderer {
     @NonNull
     static SpannableString buildSuggestionSpannable(@NonNull String suggestion,
             @NonNull String input, int availWidth, @NonNull TextPaint paint, boolean isShell) {
-        // Shell candidates are matched against the last word of the line (the token
-        // bash completed); history against the whole line. The bold highlight must
-        // cover the exact matched token.
         String matchStr = isShell ? AutoCompleteController.lastWordOf(input) : input;
         int wordStart = Math.min(wordStartOffset(matchStr), suggestion.length());
-        int boldLen = matchStr.length() - wordStart;
-        boolean hasLastWord = boldLen > 0;
         String prefix = (wordStart > 0) ? "... " : "";
         int prefixLen = prefix.length();
         String displayText = (prefixLen > 0) ? prefix + suggestion.substring(wordStart) : suggestion;
@@ -109,14 +99,7 @@ final class AutoCompleteTextRenderer {
             displayText = truncateToLines(displayText, availWidth, paint, 2, false);
         }
 
-        SpannableString ss = new SpannableString(displayText);
-        int spanEnd = Math.min(prefixLen + boldLen, displayText.length());
-        if (hasLastWord && spanEnd > prefixLen
-                && suggestion.regionMatches(true, 0, matchStr, 0, matchStr.length())) {
-            ss.setSpan(BOLD_SPAN,
-                    prefixLen, spanEnd, SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
-        }
-        return ss;
+        return new SpannableString(displayText);
     }
 
     /**

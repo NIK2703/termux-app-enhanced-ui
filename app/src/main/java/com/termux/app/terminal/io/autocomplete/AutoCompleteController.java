@@ -6,18 +6,14 @@ import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.Outline;
-import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.StateListDrawable;
 import android.os.Build;
 import android.text.Editable;
 import android.text.Layout;
-import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.TextUtils;
-import android.text.style.ForegroundColorSpan;
-import android.text.style.StyleSpan;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.MotionEvent;
@@ -57,9 +53,6 @@ import com.termux.app.terminal.TermuxColorSchemeManager;
 public final class AutoCompleteController implements AutoCompleteDataProvider {
 
     private static final String LOG_TAG = "AutoCompleteController";
-
-    /** Shared BOLD style span instance (reused across all suggestion rows). */
-    private static final StyleSpan BOLD_SPAN = new StyleSpan(Typeface.BOLD);
 
     private final Context mContext;
     private EditText mInputField;
@@ -607,8 +600,7 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
                     // recompute below dismisses it (fullRescanSuggestions also refuses to
                     // keep an empty, non-matching result while composing).
                     if (isShowing() && suggestionsMatchText(text)) {
-                        mPopupManager.updateBoldOnly(text);
-                        return;
+                        return; // popup shows correct suggestions, no bold update needed
                     }
                     // Not a matching composition: do not bail here — let the code below
                     // re-scan and dismiss the now-irrelevant popup.
@@ -936,77 +928,11 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
     }
 
     /**
-     * (Optimize auto-complete: three-path dispatch, additive filtering, history version guard)
-     * Path B (optimized): update bold spans on the existing popup content when the
-     * suggestion set is unchanged and only the typed prefix grew longer.
-     * Mutates the Spannable buffer in-place via {@code tv.getText()} so no
-     * requestLayout / remeasure is triggered — only {@code invalidate()} for redraw.
-     * When the word-start anchor changes (e.g. user crosses a space/slash boundary)
-     * falls back to {@code setText()} to rebuild the truncated display.
-     *
-     * <p>With two separate windows this refreshes BOTH the shell window and the
-     * history window in their own view walks.
-     */
-    /** Apply (or rebuild) the bold-span for a single suggestion row. */
-    private void applyBoldSpan(@NonNull TextView tv, @NonNull String suggestion,
-            @NonNull String newText, boolean isShell) {
-        String matchStr = isShell ? lastWordOf(newText) : newText;
-        final int inputLen = matchStr.length();
-        final int wordStart = Math.min(AutoCompleteTextRenderer.wordStartOffset(matchStr), suggestion.length());
-        final int boldLen = inputLen - wordStart;
-        final boolean hasLastWord = boldLen > 0;
-        final String prefix = (wordStart > 0) ? "... " : "";
-        final int prefixLen = prefix.length();
-
-        CharSequence currentText = tv.getText();
-        // Lazily compute the expected display string — it is only needed on the
-        // rebuild branch (rare case of crossing a word boundary). Normally the
-        // prefix grows inside a word and currentText already equals suggestion, so
-        // we cheaply verify that without concatenating substring+prefix.
-        final int ws = Math.min(wordStart, suggestion.length());
-        final int curLen = currentText.length();
-        final int sugLen = suggestion.length();
-        boolean displayMatches;
-        if (prefixLen == 0) {
-            displayMatches = (curLen == sugLen) && suggestion.contentEquals(currentText);
-        } else {
-            displayMatches = (curLen == prefixLen + (sugLen - ws))
-                    && prefix.contentEquals(currentText.subSequence(0, prefixLen))
-                    && TextUtils.regionMatches(suggestion, ws, currentText, prefixLen, sugLen - ws);
-        }
-        if (!displayMatches) {
-            // Word-boundary anchor shifted → rebuild text with setText (rare:
-            // crossing a space or / boundary). Re-measure and re-truncate too
-            // so the trailing '…' stays correct for long suggestions.
-            String expectedDisplay = (prefixLen > 0)
-                    ? prefix + suggestion.substring(ws)
-                    : suggestion;
-            int availWidth = tv.getWidth() - tv.getPaddingLeft() - tv.getPaddingRight();
-            SpannableString ss = AutoCompleteTextRenderer.buildSuggestionSpannable(
-                    suggestion, newText, Math.max(0, availWidth), tv.getPaint(), isShell);
-            tv.setText(ss, TextView.BufferType.SPANNABLE);
-        } else {
-            // Display buffer unchanged → only mutate bold spans in-place (fast path).
-            // The only bold-span is known (BOLD_SPAN), so remove it directly
-            // without a getSpans() array allocation per line.
-            Spannable sp = (Spannable) currentText;
-            sp.removeSpan(BOLD_SPAN);
-            if (hasLastWord && prefixLen + boldLen <= sp.length()
-                    && suggestion.regionMatches(true, 0, matchStr.toString(), 0, inputLen)) {
-                sp.setSpan(BOLD_SPAN,
-                        prefixLen, prefixLen + boldLen,
-                        SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
-            }
-            tv.invalidate();
-        }
-    }
-
-    /**
      * Path B: update the existing popups in-place after an additive text change.
      *
      * <p>The controller first top-ups the suggestion list from history (data
      * concern), then hands off to {@link AutoCompletePopupManager} which rebuilds
-     * the per-window content, refreshes bold spans and resizes/positions the two
+     * the per-window content, refreshes spans and resizes/positions the two
      * windows (shell stacked above history).
      */
     private void updatePopupContent(@NonNull String newText, @NonNull EditText inputField) {

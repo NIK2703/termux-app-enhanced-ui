@@ -225,6 +225,8 @@ public final class SchemeDialogTheme {
             if (title != null) title.setTextColor(fg);
         }
 
+        boolean isBgLight = com.termux.shared.termux.extrakeys.ColorSchemeUtils.isColorLight(bg);
+
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
             android.view.Window window = activity.getWindow();
             if (window != null) {
@@ -233,6 +235,17 @@ public final class SchemeDialogTheme {
                 // first frame, so the markdown/editor content never flashes the default theme bg.
                 window.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(bg));
                 window.setStatusBarColor(android.graphics.Color.TRANSPARENT);
+                // The status bar is transparent, so its text/icons are drawn over the toolbar's
+                // scheme background. On a light scheme the default white icons would be invisible,
+                // so force dark status-bar text/icons (API 23+).
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                    int visibility = window.getDecorView().getSystemUiVisibility();
+                    if (isBgLight)
+                        visibility |= android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+                    else
+                        visibility &= ~android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+                    window.getDecorView().setSystemUiVisibility(visibility);
+                }
             }
         }
     }

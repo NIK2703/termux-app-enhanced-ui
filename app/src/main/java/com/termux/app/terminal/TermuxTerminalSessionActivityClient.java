@@ -191,13 +191,6 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         }
 
         termuxSessionListNotifyUpdated();
-
-        // The active session's label changed (e.g. its OSC window title grew/shrank) — keep the
-        // active tab centred as its width changes, instead of leaving it clipped.
-        if (updatedSession == mActivity.getCurrentSession()) {
-            TermuxSessionTabsController tabs = mActivity.getTermuxSessionTabsController();
-            if (tabs != null) tabs.ensureActiveTabVisible(true);
-        }
     }
 
     /**

@@ -564,6 +564,7 @@ public class TermuxSessionTabsController {
 
                 final int startX = mTabsScroll.getScrollX();
                 if (startX == maxScroll) {
+                    mEndScrollActive = false;
                     return;
                 }
                 // Self-driven scroll: we own the target, HSV's per-frame re-clamp is bypassed.
@@ -576,6 +577,7 @@ public class TermuxSessionTabsController {
                 mEndScrollAnim.addListener(new android.animation.AnimatorListenerAdapter() {
                     @Override
                     public void onAnimationEnd(android.animation.Animator animation) {
+                        mEndScrollActive = false;
                         mEndScrollAnim = null;
                     }
                     @Override
@@ -862,14 +864,12 @@ public class TermuxSessionTabsController {
 
         mCurrentSessionIndex = index;
         // A genuine tab selection (user tap / page settle) cancels any sticky end-scroll so the
-        // strip can recentre on the chosen tab. BUT if an end-scroll is already reserved (we just
-        // added a tab and are waiting for its label before scrolling to the right end), do NOT
-        // cancel it or post a competing CENTRE scroll — that would fight the end-scroll and cause
-        // the (+) button to stay clipped. The end-scroll clears mEndScrollActive itself once the
-        // label is set (or via the fallback timer).
+        // strip can recentre on the chosen tab via updateTabs() (called from onSessionPageSelected).
+        // BUT if an end-scroll is already reserved (we just added a tab), do NOT cancel it or post
+        // a competing CENTRE scroll — that would fight the end-scroll. The end-scroll clears
+        // mEndScrollActive itself once the animation finishes (see runEndScroll onAnimationEnd).
         if (mEndScrollActive) return;
         mEndScrollActive = false;
-        ensureActiveTabVisible(true);
     }
 
     // ── Intermediate page-scroll support ──────────────────────────────────
