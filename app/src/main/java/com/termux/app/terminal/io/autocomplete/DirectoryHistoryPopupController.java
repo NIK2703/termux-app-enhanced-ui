@@ -24,7 +24,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.termux.R;
 import com.termux.app.TermuxActivityUtils;
 import com.termux.app.terminal.TermuxColorSchemeManager;
-import com.termux.shared.logger.Logger;
 
 import java.util.ArrayList;
 
@@ -41,7 +40,6 @@ import java.util.ArrayList;
  */
 public final class DirectoryHistoryPopupController {
 
-    private static final String LOG_TAG = "TermuxActivity";
 
     /** Tag value marking the synthetic top "CLEAR HISTORY…" row. */
     public static final int CLEAR_ALL_TAG = -2;

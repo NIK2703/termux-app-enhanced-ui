@@ -52,7 +52,6 @@ import com.termux.app.terminal.TermuxColorSchemeManager;
  */
 public final class AutoCompleteController implements AutoCompleteDataProvider {
 
-    private static final String LOG_TAG = "AutoCompleteController";
 
     private final Context mContext;
     private EditText mInputField;

@@ -13,7 +13,6 @@ import org.json.JSONException;
 
 import java.util.ArrayList;
 
-import com.termux.shared.logger.Logger;
 
 /**
  * Pure-data controller for the directory history (visited CWDs).
@@ -22,8 +21,6 @@ import com.termux.shared.logger.Logger;
  * and persistence via {@link SharedPreferences}.
  */
 public final class DirectoryHistoryController {
-
-    private static final String LOG_TAG = "TermuxActivity";
 
     private static final String PREF_DIRECTORY_HISTORY = "directory_history";
 
@@ -100,8 +97,7 @@ public final class DirectoryHistoryController {
                     mDirectoryHistory.add(s);
                 }
             }
-        } catch (JSONException e) {
-            Logger.logStackTraceWithMessage(LOG_TAG, "Failed to parse directory history", e);
+        } catch (JSONException ignored) {
         }
         boolean trimmed = false;
         while (mDirectoryHistory.size() > mDirectoryHistoryMax) {

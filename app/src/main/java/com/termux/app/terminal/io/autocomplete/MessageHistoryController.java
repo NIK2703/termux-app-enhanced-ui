@@ -6,7 +6,6 @@ import android.text.TextUtils;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.termux.shared.logger.Logger;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -30,8 +29,6 @@ import java.util.Iterator;
  * into the first real directory automatically.
  */
 public final class MessageHistoryController {
-
-    private static final String LOG_TAG = "TermuxActivity";
 
     private static final String PREF_MESSAGE_HISTORY = "message_history";
     private static final String PREF_MESSAGE_HISTORY_PER_DIR = "message_history_per_directory";
@@ -185,8 +182,7 @@ public final class MessageHistoryController {
             mMessageHistory.addAll(migrated);
             savePerDirectory();
             mPrefs.edit().remove(PREF_MESSAGE_HISTORY).apply();
-        } catch (JSONException e) {
-            Logger.logStackTraceWithMessage(LOG_TAG, "Failed lazy migration", e);
+        } catch (JSONException ignored) {
         }
     }
 
@@ -243,8 +239,7 @@ public final class MessageHistoryController {
                     mMessageHistory.add(s);
                 }
             }
-        } catch (JSONException e) {
-            Logger.logStackTraceWithMessage(LOG_TAG, "Failed to parse message history", e);
+        } catch (JSONException ignored) {
         }
         // Trim to configured max
         boolean trimmed = false;
@@ -279,8 +274,7 @@ public final class MessageHistoryController {
                     }
                     mMessageHistoryPerDirectory.put(dir, list);
                 }
-            } catch (JSONException e) {
-                Logger.logStackTraceWithMessage(LOG_TAG, "Failed to parse per-directory message history", e);
+            } catch (JSONException ignored) {
             }
         }
 
@@ -309,8 +303,7 @@ public final class MessageHistoryController {
                     savePerDirectory();
                     mPrefs.edit().remove(PREF_MESSAGE_HISTORY).apply();
                     return;
-                } catch (JSONException e) {
-                    Logger.logStackTraceWithMessage(LOG_TAG, "Failed to migrate global history", e);
+                } catch (JSONException ignored) {
                 }
             }
         }
@@ -350,8 +343,7 @@ public final class MessageHistoryController {
                 for (String s : entry.getValue()) arr.put(s);
                 obj.put(entry.getKey(), arr);
             }
-        } catch (JSONException e) {
-            Logger.logStackTraceWithMessage(LOG_TAG, "Failed to serialize per-directory message history", e);
+        } catch (JSONException ignored) {
             return;
         }
         mPrefs.edit().putString(PREF_MESSAGE_HISTORY_PER_DIR, obj.toString()).apply();

@@ -8,7 +8,6 @@ import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.text.Layout;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewOutlineProvider;
@@ -24,7 +23,6 @@ import androidx.annotation.Nullable;
 
 import com.termux.R;
 import com.termux.app.terminal.TermuxColorSchemeManager;
-import com.termux.shared.logger.Logger;
 
 /**
  * Owns the message-history auto-complete popup window and all of its lifecycle:
@@ -37,8 +35,6 @@ import com.termux.shared.logger.Logger;
  * concern fully isolated from {@code AutoCompleteController}'s orchestration.
  */
 final class AutoCompletePopupManager {
-
-    private static final String LOG_TAG = "AutoCompletePopupManager";
 
     @NonNull private final Context mContext;
     @NonNull private final AutoCompleteDataProvider mData;
@@ -275,8 +271,7 @@ final class AutoCompletePopupManager {
         int y = calcPopupY(inputField, h, w, loc[0], loc[1]);
         try {
             popup.showAtLocation(inputField, Gravity.NO_GRAVITY, x, y);
-        } catch (Exception e) {
-            Logger.logStackTraceWithMessage(LOG_TAG, "Failed to show auto-complete popup", e);
+        } catch (Exception ignored) {
         }
     }
 
