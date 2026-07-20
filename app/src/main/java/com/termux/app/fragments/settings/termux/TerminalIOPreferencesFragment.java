@@ -122,10 +122,10 @@ class TerminalIOPreferencesDataStore extends PreferenceDataStore {
                 getTermuxPrefs().edit().putBoolean("text_input_enabled", value).apply();
                 break;
             case "text_input_append_enter":
-                getTermuxPrefs().edit().putBoolean("text_input_append_enter", value).apply();
+                if (mPreferences != null) mPreferences.setTextInputAppendEnter(value);
                 break;
             case "text_input_hide_on_send":
-                getTermuxPrefs().edit().putBoolean("text_input_hide_on_send", value).apply();
+                if (mPreferences != null) mPreferences.setTextInputHideOnSend(value);
                 break;
             case "per_directory_message_history":
                 getTermuxPrefs().edit().putBoolean("per_directory_message_history", value).apply();
@@ -168,9 +168,9 @@ class TerminalIOPreferencesDataStore extends PreferenceDataStore {
             case "text_input_enabled":
                 return getTermuxPrefs().getBoolean("text_input_enabled", true);
             case "text_input_append_enter":
-                return getTermuxPrefs().getBoolean("text_input_append_enter", true);
+                return mPreferences != null && mPreferences.shouldTextInputAppendEnter();
             case "text_input_hide_on_send":
-                return getTermuxPrefs().getBoolean("text_input_hide_on_send", true);
+                return mPreferences != null && mPreferences.shouldTextInputHideOnSend();
             case "per_directory_message_history":
                 return getTermuxPrefs().getBoolean("per_directory_message_history", false);
             case TermuxPreferenceConstants.TERMUX_APP.KEY_HIDE_EXTRA_KEYS_WITH_KEYBOARD:

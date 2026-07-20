@@ -196,12 +196,12 @@
 
                 <!-- Tab panel position -->
                 <string name="termux_tab_panel_position_title">Tab panel position</string>
-                <string name="termux_tab_panel_position_top">Top (default)</string>
+                <string name="termux_tab_panel_position_top">Top</string>
                 <string name="termux_tab_panel_position_bottom">Bottom</string>
 
                 <!-- Tab height mode -->
                 <string name="termux_tab_height_mode_title">Tab height</string>
-                <string name="termux_tab_height_mode_single">Single line (default)</string>
+                <string name="termux_tab_height_mode_single">Single line</string>
                 <string name="termux_tab_height_mode_double">Two lines</string>
 
                 <!-- Extra keys special button mode -->
@@ -313,6 +313,18 @@
     <!-- Screen orientation preference -->
     <string name="screen_orientation_title">Screen orientation</string>
     <string name="screen_orientation_summary">"Follow sensor" variants rotate between the two orientations (e.g. 0°/180° portrait).</string>
+
+    <!-- Theme mode entries -->
+    <string name="theme_mode_entry_dark">Dark</string>
+    <string name="theme_mode_entry_light">Light</string>
+    <string name="theme_mode_entry_system">System default</string>
+
+    <!-- Screen orientation entries -->
+    <string name="screen_orientation_entry_follow_sensor">Follow sensor</string>
+    <string name="screen_orientation_entry_portrait_follow_sensor">Portrait (follow sensor)</string>
+    <string name="screen_orientation_entry_landscape_follow_sensor">Landscape (follow sensor)</string>
+    <string name="screen_orientation_entry_portrait">Portrait</string>
+    <string name="screen_orientation_entry_landscape">Landscape</string>
 
     <!-- Donate Preference -->
     <string name="donate_preference_title">Donate</string>

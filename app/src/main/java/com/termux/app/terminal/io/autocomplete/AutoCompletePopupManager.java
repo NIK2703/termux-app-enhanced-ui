@@ -215,7 +215,11 @@ final class AutoCompletePopupManager {
                 && mHistoryContent != null && mHistoryContent.getParent() != null;
 
         if (!hasHistory || (historyReuse && !contentChangedForWindow())) {
-            updateBoldSpansOnly(input);
+            // Rebuild (not just re-bold) so the highlight tracks the edited prefix
+            // reliably — an in-place span mutation inside a showing PopupWindow is
+            // not guaranteed to repaint (and is exactly why a backspace left the
+            // old characters bold).
+            if (mHistoryContent != null) rebuildHistoryViews(mHistoryContent, input);
             mLastBuiltHistoryVersion = mData.getHistoryVersion();
             mLastAppliedPrefix = input;
             applyPopupGeometry(inputField);
@@ -415,14 +419,22 @@ final class AutoCompletePopupManager {
         }
 
         boolean historyChanged = contentChangedForWindow();
+        boolean prefixChanged = !newText.equals(mLastAppliedPrefix);
 
-        if (historyChanged && mHistoryContent != null) {
+        if ((historyChanged || prefixChanged) && mHistoryContent != null) {
+            // Rebuild the views whenever the shown set OR the typed prefix changed.
+            // Rebuilding (instead of mutating bold spans in place) is what makes the
+            // highlight track deletions reliably: an in-place Spannable mutation on a
+            // TextView inside an already-showing PopupWindow is not guaranteed to
+            // repaint (and the geometry guard below can skip popup.update()), so a
+            // backspace would leave the old characters bold. A fresh rebuild always
+            // renders the correct bold region.
             final int savedScroll = mHistoryContent.getScrollY();
             rebuildHistoryViews(mHistoryContent, newText);
             mHistoryContent.setScrollY(savedScroll);
         }
 
-        mLastAppliedPrefix = newText;
+        // mLastAppliedPrefix is updated inside rebuildHistoryViews()/show.
         applyPopupGeometry(inputField);
     }
 
@@ -442,6 +454,10 @@ final class AutoCompletePopupManager {
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT));
         }
+        // The rebuilt views reflect the current prefix, so record it as applied.
+        // Without this, updatePopupContent would treat every subsequent keystroke
+        // as a prefix change and rebuild unconditionally.
+        mLastAppliedPrefix = input;
     }
 
     private void updateBoldSpansOnly(@NonNull String newText) {
@@ -519,7 +535,12 @@ final class AutoCompletePopupManager {
                         prefixLen, prefixLen + boldLen,
                         android.text.SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
-            tv.invalidate();
+            // Re-set the (already mutated) Spannable so the TextView re-measures and
+            // repaints. invalidate() alone is unreliable for an in-place span change
+            // inside a showing PopupWindow (and is why the popup could appear frozen
+            // on backspace, where caret X often doesn't move enough to force a window
+            // update()).
+            tv.setText(sp, TextView.BufferType.SPANNABLE);
         }
     }
 

@@ -13,6 +13,33 @@
     <!-- Night variant of the settings theme: the transparent status bar shows the dark header
          colour through, so keep its icons/text light (white). The content background is pure
          black instead of the default dark surface grey. -->
+    <!-- Night variant of the terminal activity theme.
+         The light variant (app/values/themes.xml) hardcodes black extra-keys text and
+         light-grey backgrounds for the LIGHT UI; without this override the same black text
+         leaks into dark mode. Restore the scheme-aware values so buttons are white-on-dark
+         in night mode and black-on-light in day mode (matching termux-shared base theme). -->
+    <style name="Theme.TermuxActivity.DayNight.NoActionBar" parent="Theme.TermuxApp.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/white</item>
+        <item name="colorPrimaryVariant">@color/grey_200</item>
+
+        <item name="android:windowBackground">@color/black</item>
+
+        <!-- Status bar: light text/icons on dark background -->
+        <item name="android:statusBarColor">@color/black</item>
+        <item name="android:windowLightStatusBar">false</item>
+
+        <!-- Left drawer. -->
+        <item name="buttonBarButtonStyle">@style/TermuxActivity.Drawer.ButtonBarStyle.Dark</item>
+        <item name="termuxActivityDrawerBackground">@color/scheme_dialog_background</item>
+        <item name="termuxActivityDrawerImageTint">@color/scheme_dialog_foreground</item>
+
+        <!-- Extra keys colors: white text on dark/translucent backgrounds in night mode. -->
+        <item name="extraKeysButtonTextColor">@color/extra_keys_button_text</item>
+        <item name="extraKeysButtonActiveTextColor">@color/extra_keys_button_active_text</item>
+        <item name="extraKeysButtonBackgroundColor">@color/extra_keys_button_background</item>
+        <item name="extraKeysButtonActiveBackgroundColor">@color/extra_keys_button_active_background</item>
+    </style>
+
     <style name="Theme.TermuxApp.Settings" parent="Theme.TermuxApp.DayNight.NoActionBar">
         <item name="preferenceCategoryStyle">@style/Preference.Category.Settings</item>
         <item name="android:windowLightStatusBar">false</item>

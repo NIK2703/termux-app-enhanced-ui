@@ -1,39 +1,3 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string-array name="theme_mode_entries">
-        <item>어둡게</item>
-        <item>밝게</item>
-        <item>시스템 기본값</item>
-    </string-array>
-    <string-array name="theme_mode_values">
-        <item>true</item>
-        <item>false</item>
-        <item>system</item>
-    </string-array>
-
-    <string-array name="screen_orientation_entries">
-        <item>센서에 따르기</item>
-        <item>세로 (센서에 따르기)</item>
-        <item>가로 (센서에 따르기)</item>
-        <item>세로</item>
-        <item>가로</item>
-    </string-array>
-
-    <string-array name="screen_orientation_values">
-        <item>sensor</item>
-        <item>portrait_follow_sensor</item>
-        <item>landscape_follow_sensor</item>
-        <item>portrait</item>
-        <item>landscape</item>
-    </string-array>
-
-    <string-array name="locale_override_entries">
-        <item>@string/locale_override_entry_system</item>
-        <item>@string/locale_override_entry_english</item>
-    </string-array>
-    <string-array name="locale_override_values">
-        <item>system</item>
-        <item>en</item>
-    </string-array>
-
 </resources>

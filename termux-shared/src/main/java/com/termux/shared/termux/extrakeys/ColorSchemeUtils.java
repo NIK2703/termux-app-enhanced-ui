@@ -120,10 +120,17 @@ public final class ColorSchemeUtils {
      */
     public static int getSchemeForeground() {
         int foreground = TerminalColors.COLOR_SCHEME.mDefaultColors[TextStyle.COLOR_INDEX_FOREGROUND];
-        // The built-in default foreground is white; on a light scheme that is invisible, so fall
-        // back to a contrast color based on the background brightness.
-        if (foreground == 0xFFFFFFFF && isTerminalSchemeLight()) {
+        // Guarantee readable panel/button/tab text against the scheme background: force black on a
+        // light scheme and white on a dark scheme whenever the foreground would otherwise be
+        // low-contrast. Symmetric guard (previously only white-on-light was handled), which fixes
+        // black text on a dark background in night mode.
+        boolean schemeLight = isTerminalSchemeLight();
+        boolean foregroundLight = TerminalColors.getPerceivedBrightnessOfColor(foreground) >= LIGHTNESS_THRESHOLD;
+        if (schemeLight && foregroundLight) {
             return 0xFF000000;
+        }
+        if (!schemeLight && !foregroundLight) {
+            return 0xFFFFFFFF;
         }
         return foreground;
     }

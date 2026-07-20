@@ -469,10 +469,10 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
             mActivity.getTermuxSessionTabsController().updateTabs(service.getTermuxSessions());
         }
 
-        // Load the text input content saved for the newly-current session.
-        mActivity.restoreTextInputForSession(session);
-
         // Apply the per-session text input panel visibility state for the new session.
+        // This also restores the saved text input content (single restore site — avoids
+        // double restore on tab switch, which previously widened a race with the deferred
+        // auto-complete recompute).
         mActivity.applyTextInputVisibilityForSession(session);
 
         // Record the newly-current session's working directory into the
@@ -979,15 +979,41 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         int toggleButtonStroke = withAlpha(
                 TermuxColorSchemeManager.compositeColors(mActivity.getColorSchemeManager().getSchemeBackground(), overlayActive),
                 buttonFillAlpha);
-        // Plain tab button (new session): normal fill + stroke.
+        // Plain tab button (new session): normal fill + stroke, with an active
+        // (pressed/swiped) background so the press/swipe gesture gives visible feedback.
+        // Use the same scheme-derived colours as the extra-keys buttons so the contrast
+        // between idle and active states is clearly visible.
         ImageButton newSessionBtn = mActivity.findViewById(R.id.new_session_tab_button);
         if (newSessionBtn != null) {
-            android.graphics.drawable.GradientDrawable d =
+            android.graphics.drawable.GradientDrawable normalState =
                     new android.graphics.drawable.GradientDrawable();
-            d.setShape(android.graphics.drawable.GradientDrawable.OVAL);
-            d.setColor(toggleButtonBg);
-            d.setStroke(buttonStrokePx, toggleButtonStroke);
-            newSessionBtn.setBackground(d);
+            normalState.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+            normalState.setColor(buttonBg);
+            normalState.setStroke(buttonStrokePx, buttonActiveBg);
+
+            // Active background: a clearly visible highlight. The scheme-derived
+            // buttonActiveBg is only a faint (default ~12% alpha) tint, so compose a
+            // stronger overlay of the active colour onto the terminal background and
+            // present it at high opacity so the idle -> active change is unmistakable.
+            int activeFill = withAlpha(
+                    TermuxColorSchemeManager.compositeColors(
+                            mActivity.getColorSchemeManager().getSchemeBackground(),
+                            ColorSchemeUtils.getButtonActiveBackground(isSchemeLight, 55)),
+                    230);
+            android.graphics.drawable.GradientDrawable activeState =
+                    new android.graphics.drawable.GradientDrawable();
+            activeState.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+            activeState.setColor(activeFill);
+            activeState.setStroke(buttonStrokePx, activeFill);
+
+            android.graphics.drawable.StateListDrawable states =
+                    new android.graphics.drawable.StateListDrawable();
+            // Pressed (tap / swipe in progress) shows the active background.
+            states.addState(new int[]{android.R.attr.state_pressed}, activeState);
+            states.addState(new int[]{android.R.attr.state_selected}, activeState);
+            states.addState(new int[]{}, normalState);
+
+            newSessionBtn.setBackground(states);
             newSessionBtn.setColorFilter(buttonText, android.graphics.PorterDuff.Mode.SRC_ATOP);
             newSessionBtn.setForeground(null);
         }
@@ -1047,7 +1073,7 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         // Push pre-computed scrollbar thumb colours to TerminalView (alpha baked in ONCE here).
         TerminalView tv = mActivity.getTerminalView();
         if (tv != null) {
-            tv.setScrollbarColors(buttonBg, buttonActiveBg);
+            tv.setScrollbarColors(toggleButtonBg, toggleButtonStroke);
             // Terminal text-selection drag handles follow the scheme foreground, just like the
             // input-panel selection handles.
             tv.setTextSelectionHandleColor(buttonText);

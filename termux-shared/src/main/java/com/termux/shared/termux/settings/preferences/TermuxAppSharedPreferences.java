@@ -104,9 +104,17 @@ public class TermuxAppSharedPreferences extends AppSharedPreferences {
         return SharedPreferenceUtils.getBoolean(mSharedPreferences, TERMUX_APP.KEY_TEXT_INPUT_APPEND_ENTER, TERMUX_APP.DEFAULT_VALUE_TEXT_INPUT_APPEND_ENTER);
     }
 
+    public void setTextInputAppendEnter(boolean value) {
+        SharedPreferenceUtils.setBoolean(mSharedPreferences, TERMUX_APP.KEY_TEXT_INPUT_APPEND_ENTER, value, false);
+    }
+
 
     public boolean shouldTextInputHideOnSend() {
         return SharedPreferenceUtils.getBoolean(mSharedPreferences, TERMUX_APP.KEY_TEXT_INPUT_HIDE_ON_SEND, TERMUX_APP.DEFAULT_VALUE_TEXT_INPUT_HIDE_ON_SEND);
+    }
+
+    public void setTextInputHideOnSend(boolean value) {
+        SharedPreferenceUtils.setBoolean(mSharedPreferences, TERMUX_APP.KEY_TEXT_INPUT_HIDE_ON_SEND, value, false);
     }
 
 

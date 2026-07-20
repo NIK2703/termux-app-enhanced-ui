@@ -99,81 +99,11 @@ public class TermuxActivityViewHelper {
 
     /** Wire the horizontal session-pager tabs, including the new-session tab button. */
     public void setupSessionsListView(@NonNull View rootView) {
-        ImageButton newSessionTabButton = rootView.findViewById(R.id.new_session_tab_button);
-        if (newSessionTabButton != null) {
-            // Tap opens a new tab (default cwd); long-press creates a named session.
-            newSessionTabButton.setOnClickListener(v ->
-                mActivity.getTermuxTerminalSessionClient().addNewSession(false, null));
-            newSessionTabButton.setOnLongClickListener(v -> {
-                TextInputDialogUtils.textInput(mActivity, R.string.title_create_named_session, null,
-                    R.string.action_create_named_session_confirm,
-                    text -> mActivity.getTermuxTerminalSessionClient().addNewSession(false, text),
-                    R.string.action_new_session_failsafe,
-                    text -> mActivity.getTermuxTerminalSessionClient().addNewSession(true, text),
-                    -1, null, null);
-                return true;
-            });
-
-            // A swipe-up (drag off the button) opens the directory-history popup, mirroring the
-            // pencil button's gesture. We return false from the touch listener until a swipe is
-            // actually detected, so a plain tap / long-press still reaches the listeners above.
-            if (mDirectoryHistoryPopupCtrl != null) {
-                attachDirectoryHistoryGesture(newSessionTabButton);
-            }
-        }
-    }
-
-    private void attachDirectoryHistoryGesture(@NonNull ImageButton newSessionTabButton) {
-        final DirectoryHistoryPopupController popup = mDirectoryHistoryPopupCtrl;
-        final int touchSlop = ViewConfiguration.get(mActivity).getScaledTouchSlop();
-        final float[] downXY = new float[2];
-        final boolean[] gestureActive = { false };
-        final boolean[] swipeConsumed = { false };
-
-        newSessionTabButton.setOnTouchListener((v, event) -> {
-            switch (event.getActionMasked()) {
-                case android.view.MotionEvent.ACTION_DOWN:
-                    downXY[0] = event.getRawX();
-                    downXY[1] = event.getRawY();
-                    gestureActive[0] = true;
-                    swipeConsumed[0] = false;
-                    return false;   // let click / long-press proceed
-                case android.view.MotionEvent.ACTION_MOVE: {
-                    if (!gestureActive[0]) return false;
-                    if (popup.isShowing()) {
-                        popup.updateHighlight(event.getRawX(), event.getRawY());
-                        return true;
-                    }
-                    float dy = event.getRawY() - downXY[1];
-                    float dx = event.getRawX() - downXY[0];
-                    if (dy < -touchSlop && Math.abs(dy) > Math.abs(dx) && popup.shouldShow()) {
-                        v.setPressed(false);
-                        swipeConsumed[0] = true;
-                        popup.show(v);
-                        return true;   // consume: cancels pending click/long-press
-                    }
-                    return false;
-                }
-                case android.view.MotionEvent.ACTION_UP:
-                case android.view.MotionEvent.ACTION_CANCEL: {
-                    boolean wasPopup = popup.isShowing();
-                    if (wasPopup) {
-                        int selected = popup.getHighlightIndex();
-                        popup.dismiss();
-                        if (event.getActionMasked() == android.view.MotionEvent.ACTION_UP) {
-                            if (selected == DirectoryHistoryPopupController.CLEAR_ALL_TAG) {
-                                popup.confirmClear();
-                            } else if (selected >= 0) {
-                                popup.pick(selected);
-                            }
-                        }
-                    }
-                    gestureActive[0] = false;
-                    return !wasPopup;   // not a swipe -> allow onClick
-                }
-            }
-            return false;
-        });
+        // NOTE: The live wiring for the new-session (+) button (click, long-press and the
+        // swipe-to-directory-history gesture with its active-background feedback) lives in
+        // TermuxActivity.setTermuxSessionsListView(), which is the path actually invoked at
+        // runtime (setupSessionsListView is currently dead code). Kept as a no-op to avoid
+        // drifting duplicate gesture handlers.
     }
 
     /**

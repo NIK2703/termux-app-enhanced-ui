@@ -37,7 +37,7 @@
 
     <!-- Terminal Sidebar and Shortcuts -->
     <string name="action_new_session">Новый сеанс</string>
-    <string name="action_new_session_failsafe">Failsafe</string>
+    <string name="action_new_session_failsafe">Аварийный режим</string>
     <string name="title_max_terminals_reached">Максимум терминалов</string>
     <string name="msg_max_terminals_reached">Закройте существующие, прежде чем создавать новые.</string>
 
@@ -55,7 +55,7 @@
     <!-- Terminal Popup -->
     <string name="action_select_url">Выбрать URL</string>
     <string name="title_select_url_dialog">Нажмите на URL, чтобы скопировать, или долгое нажатие, чтобы открыть</string>
-    <string name="title_select_url_none_found">В терминале не найдено URL.</string>
+    <string name="title_select_url_none_found">URL не найден в терминале.</string>
     <string name="msg_select_url_copied_to_clipboard">URL скопирован в буфер обмена</string>
 
     <string name="action_share_transcript">Поделиться журналом</string>
@@ -109,7 +109,7 @@
     <string name="error_run_command_service_invalid_intent_action">Неверное действие Intent для RunCommandService: `%1$s`</string>
     <string name="error_run_command_service_invalid_execution_command_runner">Неверный исполнитель команды для RunCommandService: `%1$s`</string>
     <string name="error_run_command_service_mandatory_extra_missing">Отсутствует обязательное дополнение RunCommandService: «%1$s»</string>
-    <string name="error_run_command_service_api_help">Посетите %1$s для получения дополнительной информации об использовании Intent RUN_COMMAND.</string>
+    <string name="error_run_command_service_api_help">Посетите %1$s для подробностей об использовании Intent RUN_COMMAND.</string>
 
     <!-- Termux File Receiver -->
     <string name="title_file_received">Сохранить файл в ~/downloads/</string>
@@ -237,7 +237,7 @@
     <!-- Text input preferences -->
     <string name="input_panel_title">Панель ввода</string>
     <string name="text_input_append_enter_title">Добавлять Enter при отправке</string>
-    <string name="text_input_append_enter_summary">При отправке из поля ввода также отправлять перевод строки (Enter). Отключите, чтобы отправлять текст без завершающего переноса строки.</string>
+    <string name="text_input_append_enter_summary">При отправке из панели ввода также отправлять перевод строки (Enter). Отключите, чтобы отправлять текст без завершающего переноса строки.</string>
 
     <string name="text_input_hide_on_send_title">Скрывать панель ввода после отправки</string>
     <string name="text_input_hide_on_send_summary">При включении панель ввода закрывается и фокус переходит в терминал после отправки. Отключите, чтобы панель оставалась открытой для последовательных команд.</string>
@@ -296,16 +296,16 @@
     <string name="swipe_rightmost_new_tab_title">Смахните последнюю вкладку для нового сеанса</string>
     <string name="swipe_rightmost_new_tab_summary">На последней вкладке смахните вправо, чтобы открыть новый сеанс терминала</string>
     <string name="termux_tab_height_mode_title">Высота вкладки</string>
-    <string name="termux_tab_height_mode_single">Одна строка (по умолчанию)</string>
+    <string name="termux_tab_height_mode_single">Одна строка</string>
     <string name="termux_tab_height_mode_double">Две строки</string>
     <string name="termux_tab_panel_position_title">Положение панели вкладок</string>
-    <string name="termux_tab_panel_position_top">Сверху (по умолчанию)</string>
+    <string name="termux_tab_panel_position_top">Сверху</string>
     <string name="termux_tab_panel_position_bottom">Снизу</string>
 
     <!-- Text input show preference -->
-    <string name="text_input_show_title">Показывать поле ввода текста</string>
-    <string name="text_input_show_summary_on">Поле ввода текста отображается над дополнительными клавишами</string>
-    <string name="text_input_show_summary_off">Поле ввода текста скрыто</string>
+    <string name="text_input_show_title">Показывать панель ввода текста</string>
+    <string name="text_input_show_summary_on">Панель ввода текста отображается над дополнительными клавишами</string>
+    <string name="text_input_show_summary_off">Панель ввода текста скрыта</string>
 
     <!-- Message history -->
     <string name="message_history_empty">Нет истории сообщений</string>
@@ -367,7 +367,7 @@
     <!-- App language override -->
     <string name="locale_override_title">Язык приложения</string>
     <string name="locale_override_summary">Переопределить язык приложения</string>
-    <string name="locale_override_entry_system">Системный язык (автоперевод, возможны неточности)</string>
+    <string name="locale_override_entry_system">Системный (автоперевод может быть неточным)</string>
     <string name="locale_override_entry_english">Английский</string>
     <!-- Hide extra keys with keyboard -->
     <string name="hide_extra_keys_with_keyboard_title">Прятать кнопки с клавиатурой</string>
@@ -420,4 +420,16 @@
     <!-- History & Tabs subsections -->
     <string name="history_category_title">История</string>
     <string name="tabs_category_title">Вкладки</string>
+
+    <!-- Theme mode entries -->
+    <string name="theme_mode_entry_dark">Тёмная</string>
+    <string name="theme_mode_entry_light">Светлая</string>
+    <string name="theme_mode_entry_system">Системная</string>
+
+    <!-- Screen orientation entries -->
+    <string name="screen_orientation_entry_follow_sensor">По датчику</string>
+    <string name="screen_orientation_entry_portrait_follow_sensor">Книжная (по датчику)</string>
+    <string name="screen_orientation_entry_landscape_follow_sensor">Альбомная (по датчику)</string>
+    <string name="screen_orientation_entry_portrait">Книжная</string>
+    <string name="screen_orientation_entry_landscape">Альбомная</string>
 </resources>

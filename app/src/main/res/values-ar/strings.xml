@@ -176,10 +176,10 @@
     <string name="shared_user_label">مستخدم &TERMUX_APP_NAME;</string>
     <string name="tab_close_description">إغلاق علامة التبويب</string>
     <string name="termux_tab_height_mode_title">ارتفاع علامة التبويب</string>
-    <string name="termux_tab_height_mode_single">سطر واحد (افتراضي)</string>
+    <string name="termux_tab_height_mode_single">سطر واحد</string>
     <string name="termux_tab_height_mode_double">سطران</string>
     <string name="termux_tab_panel_position_title">موضع لوحة علامات التبويب</string>
-    <string name="termux_tab_panel_position_top">أعلى (افتراضي)</string>
+    <string name="termux_tab_panel_position_top">أعلى</string>
     <string name="termux_tab_panel_position_bottom">أسفل</string>
     <string name="termux_api_preferences_summary">تفضيلات تطبيق &TERMUX_API_APP_NAME;</string>
     <string name="termux_api_preferences_title">&TERMUX_API_APP_NAME;</string>
@@ -262,4 +262,52 @@
     <!-- Text input auto-complete -->
     <string name="suggestions_max_count_title">أقصى اقتراحات</string>
     <string name="suggestions_max_count_summary">الإكمال التلقائي من سجل الرسائل (1–10)</string>
+
+        <string name="appearance_category_title">المظهر</string>
+    <string name="backup_restore_preferences_summary">النسخ الاحتياطي أو استعادة بيانات Termux</string>
+    <string name="backup_restore_preferences_title">النسخ الاحتياطي والاستعادة</string>
+    <string name="diagnostics_preferences_summary">التسجيل وإشعارات الأعطال</string>
+    <string name="diagnostics_preferences_title">التشخيص</string>
+    <string name="display_preferences_summary">السمة، اللغة، شفافية اللوحة، عرض الطرفية، النافذة وعلامات التبويب</string>
+    <string name="display_preferences_title">العرض</string>
+    <string name="extra_keys_category_title">المفاتيح الإضافية</string>
+    <string name="extra_keys_header">المفاتيح الإضافية</string>
+    <string name="extra_keys_layout_summary">مصفوفة JSON تحدد صفوف المفاتيح الإضافية ونوافذها المنبثقة.</string>
+    <string name="extra_keys_layout_title">تخطيط المفاتيح</string>
+    <string name="extra_keys_preferences_summary">تفضيلات شريط المفاتيح الإضافية</string>
+    <string name="extra_keys_preferences_title">المفاتيح الإضافية</string>
+    <string name="extra_keys_special_button_mode_hold">ضغط مستمر (أثناء الضغط)</string>
+    <string name="extra_keys_special_button_mode_sticky">ثابت (تبديل / قفل)</string>
+    <string name="extra_keys_special_button_mode_summary">كيفية استجابة مفاتيح التعديل (CTRL، ALT، SHIFT، FN) للمس. ثابت: انقر للتبديل، ضغط مطول للقفل. مستمر: نشطة فقط أثناء الضغط على المفتاح.</string>
+    <string name="extra_keys_special_button_mode_title">سلوك المفاتيح الخاصة</string>
+    <string name="extra_keys_style_all">الكل</string>
+    <string name="extra_keys_style_arrows_all">كل الأسهم</string>
+    <string name="extra_keys_style_arrows_only">الأسهم فقط</string>
+    <string name="extra_keys_style_default">افتراضي</string>
+    <string name="extra_keys_style_none">بدون</string>
+    <string name="extra_keys_style_summary">كيفية عرض الأحرف الخاصة على المفاتيح.</string>
+    <string name="extra_keys_style_title">نمط المفاتيح</string>
+    <string name="extra_keys_text_all_caps_summary">عرض تسميات المفاتيح الإضافية بأحرف كبيرة.</string>
+    <string name="extra_keys_text_all_caps_title">نص بأحرف كبيرة</string>
+    <string name="failure_notifications_category_title">إشعارات الأعطال</string>
+    <string name="history_category_title">السجل</string>
+    <string name="input_panel_title">لوحة الإدخال</string>
+    <string name="input_preferences_summary">تفضيلات إدخال النص ولوحة المفاتيح</string>
+    <string name="input_preferences_title">الإدخال</string>
+    <string name="language_category_title">اللغة</string>
+    <string name="plugin_logging_category_title">التسجيل</string>
+    <string name="sessions_history_preferences_summary">تفضيلات الجلسات وعلامات التبويب والسجل</string>
+    <string name="sessions_history_preferences_title">الجلسات</string>
+    <string name="tabs_category_title">علامات التبويب</string>
+    <string name="view_category_title">عرض</string>
+    <string name="window_category_title">نافذة</string>
+
+    <string name="theme_mode_entry_dark">داكن</string>
+    <string name="theme_mode_entry_light">فاتح</string>
+    <string name="theme_mode_entry_system">النظام الافتراضي</string>
+    <string name="screen_orientation_entry_follow_sensor">تابع المستشعر</string>
+    <string name="screen_orientation_entry_portrait_follow_sensor">عمودي (تابع المستشعر)</string>
+    <string name="screen_orientation_entry_landscape_follow_sensor">أفقي (تابع المستشعر)</string>
+    <string name="screen_orientation_entry_portrait">عمودي</string>
+    <string name="screen_orientation_entry_landscape">أفقي</string>
 </resources>

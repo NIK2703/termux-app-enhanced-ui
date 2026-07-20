@@ -32,9 +32,8 @@
         SD karta kurulamaz.
         \n&TERMUX_APP_NAME; için derlenen başlangıç ikili dosyaları $PREFIX yolunu sabit kodlar ve yalnızca
         şu yola kurulabilir:\n%1$s.</string>
-<string name="action_new_session">Yeni oturum</string>
-<string name="action_new_session_failsafe">Failsafe</string>
-<string name="title_max_terminals_reached">Maksimum terminal sayısına ulaşıldı</string>
+ <string name="action_new_session">Yeni oturum</string>
+ <string name="title_max_terminals_reached">Maksimum terminal sayısına ulaşıldı</string>
 <string name="msg_max_terminals_reached">Yeni oluşturmadan önce mevcut olanları kapatın.</string>
 <string name="title_rename_session">Oturum adını ayarla</string>
 <string name="action_rename_session_confirm">Ayarla</string>
@@ -265,4 +264,50 @@
     <!-- Text input auto-complete -->
     <string name="suggestions_max_count_title">Maks. öneri</string>
     <string name="suggestions_max_count_summary">Mesaj geçmişinden otomatik tamamlama (1–10)</string>
+<string name="language_category_title">Dil</string>
+<string name="appearance_category_title">Görünüm</string>
+<string name="input_preferences_title">Giriş</string>
+<string name="input_preferences_summary">Metin girişi ve klavye tercihleri</string>
+<string name="extra_keys_preferences_title">Ek Tuşlar</string>
+<string name="extra_keys_preferences_summary">Ek tuşlar çubuğu tercihleri</string>
+<string name="display_preferences_title">Görüntü</string>
+<string name="display_preferences_summary">Tema, dil, panel saydamlığı, terminal görünümü, pencere ve sekmeler</string>
+<string name="sessions_history_preferences_title">Oturumlar</string>
+<string name="sessions_history_preferences_summary">Oturumlar, sekmeler ve geçmiş tercihleri</string>
+<string name="backup_restore_preferences_title">Yedekle ve Geri Yükle</string>
+<string name="backup_restore_preferences_summary">Termux verilerini yedekleyin veya geri yükleyin</string>
+<string name="diagnostics_preferences_title">Tanılama</string>
+<string name="diagnostics_preferences_summary">Günlük kaydı ve hata bildirimleri</string>
+<string name="plugin_logging_category_title">Günlük Kaydı</string>
+<string name="failure_notifications_category_title">Hata Bildirimleri</string>
+<string name="extra_keys_special_button_mode_title">Özel tuş davranışı</string>
+<string name="extra_keys_special_button_mode_summary">Değiştirici tuşların (CTRL, ALT, SHIFT, FN) dokunuşa nasıl yanıt verdiği. Yapışkan: açmak için dokunun, uzun basarak kilitlenir. Basılı tut: yalnızca tuşa basıldığı sürece etkindir.</string>
+<string name="extra_keys_special_button_mode_sticky">Yapışkan (aç/kilit)</string>
+<string name="extra_keys_special_button_mode_hold">Basılı tut (basıldığı sürece)</string>
+<string name="extra_keys_header">Ek tuşlar</string>
+<string name="extra_keys_category_title">Ek Tuşlar</string>
+<string name="extra_keys_layout_title">Tuş düzeni</string>
+<string name="extra_keys_layout_summary">Ek tuşların satırlarını ve açılır menülerini tanımlayan JSON matrisi.</string>
+<string name="extra_keys_style_title">Tuş stili</string>
+<string name="extra_keys_style_summary">Tuşlardaki özel karakterlerin nasıl görüntülendiği.</string>
+<string name="extra_keys_style_default">Varsayılan</string>
+<string name="extra_keys_style_arrows_only">Yalnızca oklar</string>
+<string name="extra_keys_style_arrows_all">Tüm oklar</string>
+<string name="extra_keys_style_all">Tümü</string>
+<string name="extra_keys_style_none">Yok</string>
+<string name="extra_keys_text_all_caps_title">Tümü büyük harf metin</string>
+<string name="extra_keys_text_all_caps_summary">Ek tuş etiketlerini büyük harfle göster.</string>
+<string name="view_category_title">Görünüm</string>
+<string name="window_category_title">Pencere</string>
+<string name="history_category_title">Geçmiş</string>
+<string name="tabs_category_title">Sekmeler</string>
+    <string name="action_new_session_failsafe">Güvenli kip</string>
+    <string name="theme_mode_entry_dark">Koyu</string>
+    <string name="theme_mode_entry_light">Açık</string>
+    <string name="theme_mode_entry_system">Sistem varsayılanı</string>
+    <string name="screen_orientation_entry_follow_sensor">Sensörü takip et</string>
+    <string name="screen_orientation_entry_portrait_follow_sensor">Dikey (sensörü takip et)</string>
+    <string name="screen_orientation_entry_landscape_follow_sensor">Yatay (sensörü takip et)</string>
+    <string name="screen_orientation_entry_portrait">Dikey</string>
+    <string name="screen_orientation_entry_landscape">Yatay</string>
 </resources>

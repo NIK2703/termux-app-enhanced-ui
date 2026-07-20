@@ -8,6 +8,7 @@ import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.StateListDrawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -798,11 +799,11 @@ public class TermuxSessionTabsController {
             setTabBackground(tabView, tabView.isSelected() ? bgActive : bg);
         }
 
-        // Give the (+) add button (last child, excluded from the loop above) the normal scheme
-        // background so it reads as a tab and blends correctly when the placeholder swipe reaches it.
+        // Give the (+) add button (last child, excluded from the loop above) its scheme
+        // background while preserving the press/swipe active-state visual.
         if (mSchemeApplied) {
             View addBtn = mTabsContainer.getChildAt(mTabsContainer.getChildCount() - 1);
-            if (addBtn != null) setTabBackground(addBtn, mSchemeBg);
+            if (addBtn != null) setAddButtonBackground(addBtn);
         }
     }
 
@@ -853,10 +854,10 @@ public class TermuxSessionTabsController {
         }
 
         // The (+) add button (last child) never becomes selected; keep it at the normal scheme bg,
-        // overriding any blend left over from the placeholder swipe.
+        // overriding any blend left over from the placeholder swipe. Preserve its active state.
         if (mSchemeApplied) {
             View addBtn = mTabsContainer.getChildAt(mTabsContainer.getChildCount() - 1);
-            if (addBtn != null) setTabBackground(addBtn, mSchemeBg);
+            if (addBtn != null) setAddButtonBackground(addBtn);
         }
 
         mCurrentSessionIndex = index;
@@ -970,7 +971,7 @@ public class TermuxSessionTabsController {
         // Reset the (+) add button (last child) to the normal scheme bg after a cancelled swipe.
         if (mSchemeApplied) {
             View addBtn = mTabsContainer.getChildAt(mTabsContainer.getChildCount() - 1);
-            if (addBtn != null) setTabBackground(addBtn, mSchemeBg);
+            if (addBtn != null) setAddButtonBackground(addBtn);
         }
         mCurrentSessionIndex = currentIndex;
     }
@@ -986,6 +987,31 @@ public class TermuxSessionTabsController {
      * Set a rounded-rectangle background on a tab/view using the given scheme color,
      * preserving the rounded shape (the previous {@code setBackgroundTintList} flattened it).
      */
+    /**
+     * Set the background of the trailing (+) add button as an oval {@link StateListDrawable}
+     * that shows an active (pressed / swipe-selected) fill. Unlike {@link #setTabBackground},
+     * this preserves the press/swipe visual activation required by the add button, instead of
+     * replacing it with a flat state-less rectangle.
+     */
+    private void setAddButtonBackground(View view) {
+        int strokePx = Math.round(mActivity.getResources().getDimension(R.dimen.terminal_text_input_stroke));
+        GradientDrawable idle = new GradientDrawable();
+        idle.setShape(GradientDrawable.OVAL);
+        idle.setColor(mSchemeBg);
+        idle.setStroke(strokePx, mSchemeBgActive);
+
+        GradientDrawable active = new GradientDrawable();
+        active.setShape(GradientDrawable.OVAL);
+        active.setColor(mSchemeBgActive);
+        active.setStroke(strokePx, mSchemeBgActive);
+
+        StateListDrawable states = new StateListDrawable();
+        states.addState(new int[]{android.R.attr.state_pressed}, active);
+        states.addState(new int[]{android.R.attr.state_selected}, active);
+        states.addState(new int[]{}, idle);
+        view.setBackground(states);
+    }
+
     private void setTabBackground(View view, int color) {
         GradientDrawable d = new GradientDrawable();
         d.setShape(GradientDrawable.RECTANGLE);

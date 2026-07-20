@@ -245,4 +245,50 @@
     <!-- Text input auto-complete -->
     <string name="suggestions_max_count_title">अधिकतम सुझाव</string>
     <string name="suggestions_max_count_summary">संदेश इतिहास से स्वतः पूर्ण (1–10)</string>
+
+    <string name="language_category_title">भाषा</string>
+    <string name="appearance_category_title">दिखावट</string>
+    <string name="extra_keys_preferences_title">अतिरिक्त कुंजियाँ</string>
+    <string name="extra_keys_preferences_summary">अतिरिक्त कुंजियों की पट्टी के लिए प्राथमिकताएँ</string>
+    <string name="sessions_history_preferences_title">सत्र</string>
+    <string name="sessions_history_preferences_summary">सत्रों, टैबों और इतिहास के लिए प्राथमिकताएँ</string>
+    <string name="backup_restore_preferences_title">बैकअप और पुनर्स्थापना</string>
+    <string name="backup_restore_preferences_summary">Termux डेटा का बैकअप लें या पुनर्स्थापित करें</string>
+    <string name="diagnostics_preferences_title">निदान</string>
+    <string name="diagnostics_preferences_summary">लॉगिंग और विफलता सूचनाएँ</string>
+    <string name="input_preferences_title">इनपुट</string>
+    <string name="input_preferences_summary">टेक्स्ट इनपुट और कीबोर्ड के लिए प्राथमिकताएँ</string>
+    <string name="display_preferences_title">प्रदर्शन</string>
+    <string name="display_preferences_summary">थीम, भाषा, पैनल पारदर्शिता, टर्मिनल दृश्य, विंडो और टैब</string>
+    <string name="extra_keys_special_button_mode_title">विशेष कुंजियों का व्यवहार</string>
+    <string name="extra_keys_special_button_mode_summary">संशोधक कुंजियाँ (CTRL, ALT, SHIFT, FN) स्पर्श पर कैसे प्रतिक्रिया करती हैं। स्टिकी: टॉगल करने हेतु टैप, लॉक करने हेतु लंबे समय दबाएँ। होल्ड: केवल तब तक सक्रिय जब तक कुंजी दबी रहे।</string>
+    <string name="extra_keys_special_button_mode_sticky">स्टिकी (टॉगल / लॉक)</string>
+    <string name="extra_keys_special_button_mode_hold">होल्ड (दबे रहने पर)</string>
+    <string name="extra_keys_header">अतिरिक्त कुंजियाँ</string>
+    <string name="extra_keys_category_title">अतिरिक्त कुंजियाँ</string>
+    <string name="extra_keys_layout_title">कुंजियों का लेआउट</string>
+    <string name="extra_keys_layout_summary">अतिरिक्त कुंजियों की पंक्तियों और उनके पॉपअप को परिभाषित करने वाला JSON मैट्रिक्स।</string>
+    <string name="extra_keys_style_title">कुंजियों की शैली</string>
+    <string name="extra_keys_style_summary">कुंजियों पर विशेष वर्णों को कैसे प्रदर्शित किया जाता है।</string>
+    <string name="extra_keys_style_default">डिफ़ॉल्ट</string>
+    <string name="extra_keys_style_arrows_only">केवल तीर</string>
+    <string name="extra_keys_style_arrows_all">सभी तीर</string>
+    <string name="extra_keys_style_all">सभी</string>
+    <string name="extra_keys_style_none">कोई नहीं</string>
+    <string name="extra_keys_text_all_caps_title">सभी कैप्स टेक्स्ट</string>
+    <string name="extra_keys_text_all_caps_summary">अतिरिक्त कुंजी लेबल बड़े अक्षरों में दिखाएँ।</string>
+    <string name="history_category_title">इतिहास</string>
+    <string name="tabs_category_title">टैब</string>
+    <string name="input_panel_title">इनपुट पैनल</string>
+    <string name="view_category_title">दृश्य</string>
+    <string name="window_category_title">विंडो</string>
+
+    <string name="theme_mode_entry_dark">डार्क</string>
+    <string name="theme_mode_entry_light">लाइट</string>
+    <string name="theme_mode_entry_system">सिस्टम डिफ़ॉल्ट</string>
+    <string name="screen_orientation_entry_follow_sensor">सेंसर का पालन करें</string>
+    <string name="screen_orientation_entry_portrait_follow_sensor">पोर्ट्रेट (सेंसर का पालन करें)</string>
+    <string name="screen_orientation_entry_landscape_follow_sensor">लैंडस्केप (सेंसर का पालन करें)</string>
+    <string name="screen_orientation_entry_portrait">पोर्ट्रेट</string>
+    <string name="screen_orientation_entry_landscape">लैंडस्केप</string>
 </resources>

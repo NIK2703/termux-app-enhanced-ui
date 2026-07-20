@@ -858,6 +858,17 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
                         downXY[1] = event.getRawY();
                         gestureActive[0] = true;
                         swipeConsumed[0] = false;
+                        // Show the active background immediately on touch-down and keep it
+                        // lit for the whole gesture (tap or swipe). state_pressed is not
+                        // reliable here because the button lives in a HorizontalScrollView
+                        // that can send ACTION_CANCEL, so we drive state_selected ourselves.
+                        v.setSelected(true);
+                        // Stop the parent HorizontalScrollView from intercepting the touch
+                        // stream (which would send ACTION_CANCEL and clear the active state
+                        // / dismiss the popup). Must target the scrolling ancestor, not the
+                        // immediate LinearLayout parent, since the disallow flag only affects
+                        // the ancestor that actually intercepts.
+                        disallowTabScrollIntercept(v, true);
                         return false;   // let click / long-press proceed
                     case MotionEvent.ACTION_MOVE: {
                         if (!gestureActive[0]) return false;
@@ -875,16 +886,9 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
                         boolean triggered = !isTabPanelAtBottom() ? swipeDown : swipeUp;
                         if (triggered && Math.abs(dy) > Math.abs(dx)
                                 && mDirectoryHistoryPopupCtrl.shouldShow()) {
-                            v.setPressed(false);
+                            v.setSelected(true);   // keep the active background lit
                             v.cancelLongPress();   // cancel pending long-press before it fires
                             swipeConsumed[0] = true;
-                            // Prevent parent views (especially the HorizontalScrollView
-                            // that now contains the add button) from intercepting the
-                            // touch sequence. Without this, any slight horizontal movement
-                            // in the swipe-up gesture makes HorizontalScrollView send
-                            // ACTION_CANCEL to the button, which immediately dismisses the
-                            // directory-history popup.
-                            v.getParent().requestDisallowInterceptTouchEvent(true);
                             mDirectoryHistoryPopupCtrl.show(v);
                             return true;   // consume: cancels pending click/long-press
                         }
@@ -903,11 +907,14 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
                                     mDirectoryHistoryPopupCtrl.pick(selected);
                                 }
                             }
-                            gestureActive[0] = false;
-                            return true;
                         }
+                        // Always clear the active visual state and release the scroll lock
+                        // on finger release (tap and swipe alike).
                         gestureActive[0] = false;
-                        return false;   // not a swipe -> allow onClick
+                        v.setSelected(false);
+                        v.setPressed(false);
+                        disallowTabScrollIntercept(v, false);
+                        return wasPopup;   // swipe -> consume; plain tap -> allow onClick
                     }
                 }
                 return false;
@@ -915,6 +922,20 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         }
     }
 
+    /**
+     * Allow / disallow the session-tabs {@link HorizontalScrollView} from intercepting the touch
+     * stream of a descendant view (the new-session button). The disallow flag only affects the
+     * ancestor that actually performs interception, so we walk up the parent chain until we reach
+     * the {@link HorizontalScrollView} rather than calling it on the button's immediate parent
+     * (a {@link LinearLayout} that never intercepts).
+     */
+    private void disallowTabScrollIntercept(View child, boolean disallow) {
+        android.view.ViewParent p = child.getParent();
+        while (p != null && !(p instanceof android.widget.HorizontalScrollView)) {
+            p = p.getParent();
+        }
+        if (p != null) p.requestDisallowInterceptTouchEvent(disallow);
+    }
 
 
     private void setTerminalToolbarView(Bundle savedInstanceState) {
@@ -1093,14 +1114,17 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
             return;
         }
         String text = mTextInputState.getInputText(session.mHandle);
-        mAutoCompleteCtrl.setSuppressAutoComplete(true);
-        textInputView.setText(text != null ? text : "");
-        mAutoCompleteCtrl.setSuppressAutoComplete(false);
-        // Restore the caret position saved for this session, if any. getCaret() returns
-        // -1 when nothing was recorded, so only valid positions (>= 0) are applied.
-        int caret = mTextInputState.getCaret(session.mHandle);
-        if (caret >= 0) {
-            textInputView.setSelection(Math.min(caret, textInputView.length()));
+        mAutoCompleteCtrl.setRestoringInput(true);
+        try {
+            textInputView.setText(text != null ? text : "");
+            // Restore the caret position saved for this session, if any. getCaret() returns
+            // -1 when nothing was recorded, so only valid positions (>= 0) are applied.
+            int caret = mTextInputState.getCaret(session.mHandle);
+            if (caret >= 0) {
+                textInputView.setSelection(Math.min(caret, textInputView.length()));
+            }
+        } finally {
+            mAutoCompleteCtrl.setRestoringInput(false);
         }
     }
 
@@ -2475,13 +2499,27 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
                 : isTextInputVisible());
 
         // Startup / tab switch restore: just set the slot state (no animation).
+        // Record the resolved per-session visibility so isTextInputVisible() and
+        // onBackPressed() stay authoritative even when the panel was shown via a
+        // tab-switch or startup restore (which otherwise left hasVisible()==false
+        // and made Back finish the app instead of hiding the panel).
+        if (session != null) {
+            mTextInputState.setVisible(session.mHandle, visible);
+        }
         setTextInputSlotVisible(visible);
+
+        // Restore this session's saved text whenever the panel is visible, regardless of
+        // where focus lands. Doing it here (a single site) avoids a second restore on tab
+        // switch (the caller no longer restores separately), which previously widened a race
+        // window around the deferred auto-complete recompute.
+        if (visible) {
+            restoreTextInputForSession(session);
+        }
 
         if (applyFocus) {
             // On switch, restore where focus was last for this session:
             // on the panel (with keyboard) or on the terminal.
             if (visible && isFocusOnInputForSession(session)) {
-                restoreTextInputForSession(session);
                 EditText textInput = findViewById(R.id.terminal_toolbar_text_input);
                 if (textInput != null) {
                     textInput.requestFocus();

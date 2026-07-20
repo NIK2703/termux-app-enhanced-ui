@@ -122,6 +122,11 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
     private int mDisplayMax = 4;
     /** Suppress auto-complete popup during programmatic text changes (suggestion tap, etc.). */
     private boolean mSuppressAutoComplete;
+    /** True while a session's saved input is being restored into the field (tab switch,
+     *  panel re-show). Mutes every afterTextChanged event for that restore so the popup is
+     *  not triggered by the programmatic setText(). Distinct from mSuppressAutoComplete so
+     *  it does not interact with the swipe/compose guards or the live typing path. */
+    private boolean mRestoringInput;
     /** Suppress auto-complete popup during an active swipe-to-select gesture. */
     private boolean mSwipeSuppressed;
     /** Force a full rescan (Path A) on the next update — set after a swipe commits
@@ -320,6 +325,22 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
         mSuppressAutoComplete = suppress;
     }
 
+    /**
+     * Mute all text-change handling while a session's saved input is restored into the
+     * field via a programmatic setText(). Set true before setText() and false after.
+     *
+     * <p>While true, afterTextChanged returns immediately, so no recompute (sync or
+     * deferred) is ever queued for the restore — the popup stays dismissed for the
+     * restored line and live typing afterwards is unaffected. Crucially this must NOT
+     * cancel any pending recompute from real user input (e.g. a backspace taken on the
+     * previous tab): the restore's own setText() never reaches the coalesce/post path
+     * because it is muted first, so there is nothing of ours to drop, and dropping a
+     * user's pending recompute would make the popup appear frozen.
+     */
+    public void setRestoringInput(boolean restoring) {
+        mRestoringInput = restoring;
+    }
+
     /** Set/clear the swipe-gesture auto-complete suppression guard (distinct from the tap guard). */
     void setSwipeSuppress(boolean suppress) {
         mSwipeSuppressed = suppress;
@@ -405,27 +426,49 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
             }
             @Override
             public void afterTextChanged(android.text.Editable s) {
+                // A session's saved input is being restored into the field (tab switch /
+                // panel re-show). Mute the whole event so the popup stays dismissed for the
+                // restored line and no recompute is deferred.
+                if (mRestoringInput) return;
                 // Safety net against a "stuck" swipe suppression: if the gesture's
                 // UP/CANCEL was never delivered (e.g. app backgrounded mid-swipe) the
                 // suppress guard would stay latched and auto-complete would stay
-                // silent on every keystroke. If the pointer is no longer down, the
-                // swipe can't still be in progress — clear the stale guard so typing
-                // brings the popup back.
-                if (mSwipeSuppressed && mSwipeHandler.isEngaged() && !mSwipeHandler.isPointerDown()) {
+                // silent on every keystroke. Clear the guard whenever a swipe is no
+                // longer genuinely in progress (engaged=false covers a dead gesture
+                // whose UP/CANCEL was lost — the original condition required
+                // !isPointerDown(), which the dead gesture also satisfies, so it never
+                // fired). Clearing on !isEngaged() actually resets the stuck state.
+                if (mSwipeSuppressed && !mSwipeHandler.isEngaged()) {
                     mSwipeHandler.resetIfEngaged();
                 }
                 final EditText f = mInputField;
-                // Use the cheap up-front signal instead of scanning all spans on every
-                // keystroke (committed input never carries a composing span, so this
-                // avoids a getSpans() Object[] allocation per keystroke).
-                if (f != null && mComposingChangePending) {
+                // A "composing" change (after != count) is ambiguous: it is true for BOTH
+                // real IME composition AND for plain delete/insert/paste of a range.
+                //
+                // CRITICAL: any DELETION (before > after, i.e. characters removed) must be
+                // recomputed SYNCHRONOUSLY, never deferred. During IME composition the
+                // composing span is still attached to the (now shorter) word, so
+                // hasComposingSpan() returns true for a backspace — and deferring it to a
+                // posted run makes updateAutoCompleteSuggestions() hit the caret/composition
+                // bounce and dismiss or freeze the popup (the reported "popup stops updating
+                // on backspace" bug). So we only take the deferred compose path when this is
+                // a genuine additive composition (after > before AND a composing span is
+                // present). A pure deletion is always treated as a committed edit.
+                boolean isDeletion = mComposingChangePending && (mAutoCompleteChangeBefore > mAutoCompleteChangeCount);
+                boolean realCompose = f != null && mComposingChangePending && !isDeletion && hasComposingSpan(f);
+                if (realCompose) {
                     if (mComposingCoalesce != null) mImeHandler.removeCallbacks(mComposingCoalesce);
-                    mComposingCoalesce = () -> { mComposingCoalesce = null; updateAutoCompleteSuggestions(); };
+                    final CharSequence snapshotPrev = mAutoCompletePrevText;
+                    mComposingCoalesce = () -> {
+                        mComposingCoalesce = null;
+                        if (mSuppressAutoComplete || mSwipeSuppressed) return;
+                        updateAutoCompleteSuggestions();
+                    };
                     mImeHandler.post(mComposingCoalesce); // collapses the compose chain into 1 recompute, NO timer
                     return;
                 }
                 if (mComposingCoalesce != null) { mImeHandler.removeCallbacks(mComposingCoalesce); mComposingCoalesce = null; }
-                updateAutoCompleteSuggestions(); // a committed character is computed instantly
+                updateAutoCompleteSuggestions(); // a committed character (or a backspace) is computed instantly
             }
         });
 
@@ -522,12 +565,26 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
             return;
         }
 
+        // A deletion (backspace / range delete) is detected by comparing against the
+        // pre-edit snapshot. During IME composition the reported caret can transiently
+        // sit INSIDE the still-attached composing span (caret != text.length()) even
+        // right after a backspace, which would otherwise send us into the caret bounce
+        // below and dismiss/freeze the popup. For a deletion we must NOT bounce: the
+        // correct behaviour is to shorten the filter and refresh. We accept the deletion
+        // whenever the caret (or the selection end) is at the end of the shortened text,
+        // which is the normal end-of-line backspace case.
+        final CharSequence prevSnapshot = mAutoCompletePrevText;
+        final boolean deletion = prevSnapshot != null && prevSnapshot.length() > text.length()
+                && TextUtils.regionMatches(prevSnapshot, 0, text, 0, text.length());
+
         // Only show auto-complete when the caret sits at the end of the input field.
         // When the caret is anywhere else the contextual popup must stay hidden —
         // UNLESS a swipe-to-select gesture is in progress (the gesture deliberately
         // holds a selection inside the text; dismissing mid-swipe would defeat it).
         int caret = inputField.getSelectionStart();
-        if (caret < 0 || caret != text.length()) {
+        boolean caretAtEnd = (caret == text.length())
+                || (deletion && inputField.getSelectionEnd() == text.length());
+        if (caret < 0 || !caretAtEnd) {
             // Do NOT dismiss while an IME composition is in progress: during compose
             // the reported selection can transiently sit inside the composing span
             // (caret != length) even though the user is still additively typing.
@@ -536,19 +593,26 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
                 return;
             }
             if (hasComposingSpan(inputField)) {
-                // Only keep the popup (bold-only refresh, no rebuild/dismiss) when the
-                // shown suggestions still actually match the composing text. A
-                // glide/swipe-typed word that matches no suggestion can leave the
-                // composing span attached until the next word is typed; in that case
-                // the stale, mismatched popup must NOT be kept — fall through so the
-                // recompute below dismisses it (fullRescanSuggestions also refuses to
-                // keep an empty, non-matching result while composing).
-                if (isShowing() && suggestionsMatchText(text)) {
-                    mPopupManager.updateBoldOnly(text);
-                    return;
+                if (deletion) {
+                    // A backspace during composition: do NOT bounce to bold-only and do
+                    // NOT dismiss. Fall through so the deletion handler (below) shortens
+                    // the filter and refreshes the popup. Dismissing here is exactly the
+                    // "popup stops updating on backspace" bug.
+                } else {
+                    // Only keep the popup (bold-only refresh, no rebuild/dismiss) when the
+                    // shown suggestions still actually match the composing text. A
+                    // glide/swipe-typed word that matches no suggestion can leave the
+                    // composing span attached until the next word is typed; in that case
+                    // the stale, mismatched popup must NOT be kept — fall through so the
+                    // recompute below dismisses it (fullRescanSuggestions also refuses to
+                    // keep an empty, non-matching result while composing).
+                    if (isShowing() && suggestionsMatchText(text)) {
+                        mPopupManager.updateBoldOnly(text);
+                        return;
+                    }
+                    // Not a matching composition: do not bail here — let the code below
+                    // re-scan and dismiss the now-irrelevant popup.
                 }
-                // Not a matching composition: do not bail here — let the code below
-                // re-scan and dismiss the now-irrelevant popup.
             }
             dismissAutoCompleteSuggestions();
             return;

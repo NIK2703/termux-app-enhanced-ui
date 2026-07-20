@@ -74,7 +74,25 @@ public class SettingsActivity extends AppCompatActivity {
             window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
             // Match the status bar colour to the settings header so it reads as one continuous bar.
             window.setStatusBarColor(headerColor);
+            // In light theme the header is light, so force dark status-bar text/icons (API 23+);
+            // in night theme keep the default light text.
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M
+                    && (getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
+                        != android.content.res.Configuration.UI_MODE_NIGHT_YES) {
+                window.getDecorView().setSystemUiVisibility(android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+            } else {
+                window.getDecorView().setSystemUiVisibility(0);
+            }
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        // Clear the light status-bar flag so it doesn't leak to other activities.
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            getWindow().getDecorView().setSystemUiVisibility(0);
+        }
+        super.onDestroy();
     }
 
     @Override

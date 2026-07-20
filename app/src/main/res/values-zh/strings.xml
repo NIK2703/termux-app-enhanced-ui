@@ -262,4 +262,52 @@
     <!-- Text input auto-complete -->
     <string name="suggestions_max_count_title">最大建议数</string>
     <string name="suggestions_max_count_summary">从消息历史中自动补全（1–10）</string>
+
+    <string name="language_category_title">语言</string>
+    <string name="appearance_category_title">外观</string>
+    <string name="input_preferences_title">输入</string>
+    <string name="input_preferences_summary">文本输入和键盘偏好设置</string>
+    <string name="extra_keys_preferences_title">额外按键</string>
+    <string name="extra_keys_preferences_summary">额外按键栏偏好设置</string>
+    <string name="display_preferences_title">显示</string>
+    <string name="display_preferences_summary">主题、语言、面板透明度、终端视图、窗口和标签页</string>
+    <string name="sessions_history_preferences_title">会话</string>
+    <string name="sessions_history_preferences_summary">会话、标签页和历史偏好设置</string>
+    <string name="backup_restore_preferences_title">备份与恢复</string>
+    <string name="backup_restore_preferences_summary">备份或恢复 Termux 数据</string>
+    <string name="diagnostics_preferences_title">诊断</string>
+    <string name="diagnostics_preferences_summary">日志记录和失败通知</string>
+    <string name="plugin_logging_category_title">日志记录</string>
+    <string name="failure_notifications_category_title">失败通知</string>
+    <string name="extra_keys_special_button_mode_title">特殊按键行为</string>
+    <string name="extra_keys_special_button_mode_summary">修饰键（CTRL、ALT、SHIFT、FN）对触摸的响应方式。粘性：点按切换，长按锁定。按住：仅在按键按下时生效。</string>
+    <string name="extra_keys_special_button_mode_sticky">粘性（切换/锁定）</string>
+    <string name="extra_keys_special_button_mode_hold">按住（按下时）</string>
+    <string name="extra_keys_header">额外按键</string>
+    <string name="extra_keys_category_title">额外按键</string>
+    <string name="extra_keys_layout_title">按键布局</string>
+    <string name="extra_keys_layout_summary">定义额外按键行及其弹出项的 JSON 矩阵。</string>
+    <string name="extra_keys_style_title">按键样式</string>
+    <string name="extra_keys_style_summary">按键上特殊字符的显示方式。</string>
+    <string name="extra_keys_style_default">默认</string>
+    <string name="extra_keys_style_arrows_only">仅箭头</string>
+    <string name="extra_keys_style_arrows_all">全部箭头</string>
+    <string name="extra_keys_style_all">全部</string>
+    <string name="extra_keys_style_none">无</string>
+    <string name="extra_keys_text_all_caps_title">全大写文本</string>
+    <string name="extra_keys_text_all_caps_summary">以大写形式显示额外按键标签。</string>
+    <string name="view_category_title">视图</string>
+    <string name="window_category_title">窗口</string>
+    <string name="history_category_title">历史</string>
+    <string name="tabs_category_title">标签页</string>
+    <string name="input_panel_title">输入面板</string>
+
+    <string name="theme_mode_entry_dark">深色</string>
+    <string name="theme_mode_entry_light">浅色</string>
+    <string name="theme_mode_entry_system">系统默认</string>
+    <string name="screen_orientation_entry_follow_sensor">跟随传感器</string>
+    <string name="screen_orientation_entry_portrait_follow_sensor">竖屏（跟随传感器）</string>
+    <string name="screen_orientation_entry_landscape_follow_sensor">横屏（跟随传感器）</string>
+    <string name="screen_orientation_entry_portrait">竖屏</string>
+    <string name="screen_orientation_entry_landscape">横屏</string>
 </resources>
