@@ -28,7 +28,7 @@ import com.termux.shared.logger.Logger;
 
 /**
  * Owns the message-history auto-complete popup window and all of its lifecycle:
- * building, showing, positioning, content rebuild, and
+ * building, showing, positioning, content rebuild, bold-span refresh and
  * dismissal.
  *
  * <p>This class contains NO suggestion data and NO input/fetch logic — it is
@@ -78,6 +78,11 @@ final class AutoCompletePopupManager {
     // Reused scratch array for getLocationInWindow in the hot positioning path
     // (every keystroke) — avoids a new int[2] allocation per call.
     private final int[] mTmpLoc = new int[2];
+
+    // Reused BOLD span instance — avoids a new StyleSpan allocation on every
+    // character typed (applyBoldSpan runs on each visible line per keystroke).
+    private static final android.text.style.StyleSpan BOLD_SPAN =
+            new android.text.style.StyleSpan(android.graphics.Typeface.BOLD);
 
     private int mLastBuiltHistoryVersion = -1;
     @Nullable private String mLastAppliedPrefix = "";
@@ -210,6 +215,10 @@ final class AutoCompletePopupManager {
                 && mHistoryContent != null && mHistoryContent.getParent() != null;
 
         if (!hasHistory || (historyReuse && !contentChangedForWindow())) {
+            // Rebuild (not just re-bold) so the highlight tracks the edited prefix
+            // reliably — an in-place span mutation inside a showing PopupWindow is
+            // not guaranteed to repaint (and is exactly why a backspace left the
+            // old characters bold).
             if (mHistoryContent != null) rebuildHistoryViews(mHistoryContent, input);
             mLastBuiltHistoryVersion = mData.getHistoryVersion();
             mLastAppliedPrefix = input;
@@ -413,6 +422,13 @@ final class AutoCompletePopupManager {
         boolean prefixChanged = !newText.equals(mLastAppliedPrefix);
 
         if ((historyChanged || prefixChanged) && mHistoryContent != null) {
+            // Rebuild the views whenever the shown set OR the typed prefix changed.
+            // Rebuilding (instead of mutating bold spans in place) is what makes the
+            // highlight track deletions reliably: an in-place Spannable mutation on a
+            // TextView inside an already-showing PopupWindow is not guaranteed to
+            // repaint (and the geometry guard below can skip popup.update()), so a
+            // backspace would leave the old characters bold. A fresh rebuild always
+            // renders the correct bold region.
             final int savedScroll = mHistoryContent.getScrollY();
             rebuildHistoryViews(mHistoryContent, newText);
             mHistoryContent.setScrollY(savedScroll);
@@ -422,7 +438,7 @@ final class AutoCompletePopupManager {
         applyPopupGeometry(inputField);
     }
 
-    // ── Per-window rebuild ──
+    // ── Per-window rebuild + bold spans ──
 
     private void rebuildHistoryViews(@NonNull LinearLayout content, @NonNull String input) {
         content.removeAllViews();
@@ -444,10 +460,88 @@ final class AutoCompletePopupManager {
         mLastAppliedPrefix = input;
     }
 
+    private void updateBoldSpansOnly(@NonNull String newText) {
+        updateBoldSpansInWindow(mHistoryPopup, mHistoryContent, newText);
+    }
+
+    /** Cheap refresh of bold spans only (no rebuild/dismiss) for the active popup. */
+    void updateBoldOnly(@NonNull String newText) {
+        updateBoldSpansOnly(newText);
+    }
+
+    private void updateBoldSpansInWindow(@Nullable PopupWindow popup,
+                                          @Nullable LinearLayout content,
+                                          @NonNull String newText) {
+        if (popup == null || !popup.isShowing() || content == null) return;
+        // Skip entirely if the prefix text did not change.
+        if (newText.equals(mLastAppliedPrefix)) return;
+        mLastAppliedPrefix = newText;
+        final int n = displayCount();
+        int rendered = 0;
+        int viewIdx = 0;
+        // In sync with rebuildHistoryViews: the view at position viewIdx shows the
+        // history entry with index (n-1 - viewIdx), i.e. newest at the bottom.
+        for (int displayIdx = n - 1; displayIdx >= 0 && rendered < n; displayIdx--, rendered++) {
+            TextView tv = textViewAt(content, viewIdx++);
+            if (tv == null) break;
+            applyBoldSpan(tv, mData.getSuggestions().get(displayIdx), newText);
+        }
+    }
+
     private static TextView textViewAt(@NonNull LinearLayout content, int i) {
         if (i < 0 || i >= content.getChildCount()) return null;
         View child = content.getChildAt(i);
         return (child instanceof TextView) ? (TextView) child : null;
+    }
+
+    private void applyBoldSpan(@NonNull TextView tv, @NonNull String suggestion,
+            @NonNull String newText) {
+        final int inputLen = newText.length();
+        final int wordStart = Math.min(AutoCompleteTextRenderer.wordStartOffset(newText), suggestion.length());
+        final int boldLen = inputLen - wordStart;
+        final boolean hasLastWord = boldLen > 0;
+        final String prefix = (wordStart > 0) ? "... " : "";
+        final int prefixLen = prefix.length();
+
+        int ws = Math.min(wordStart, suggestion.length());
+
+        CharSequence currentText = tv.getText();
+        // Lazily compute the expected display string — only on the rebuild branch
+        // (rare case of crossing a word boundary). Normally currentText already
+        // equals suggestion, so we compare without concatenating substring+prefix.
+        final int curLen = currentText.length();
+        final int sugLen = suggestion.length();
+        boolean displayMatches;
+        if (prefixLen == 0) {
+            displayMatches = (curLen == sugLen) && suggestion.contentEquals(currentText);
+        } else {
+            displayMatches = (curLen == prefixLen + (sugLen - ws))
+                    && prefix.contentEquals(currentText.subSequence(0, prefixLen))
+                    && TextUtils.regionMatches(suggestion, ws, currentText, prefixLen, sugLen - ws);
+        }
+        if (!displayMatches) {
+            int availWidth = tv.getWidth() - tv.getPaddingLeft() - tv.getPaddingRight();
+            android.text.SpannableString ss = AutoCompleteTextRenderer.buildSuggestionSpannable(
+                    suggestion, newText, Math.max(0, availWidth), tv.getPaint(), false);
+            tv.setText(ss, TextView.BufferType.SPANNABLE);
+        } else {
+            // The only bold-span is known (BOLD_SPAN), so remove it directly
+            // without a getSpans() array allocation per line per character.
+            android.text.Spannable sp = (android.text.Spannable) currentText;
+            sp.removeSpan(BOLD_SPAN);
+            if (hasLastWord && prefixLen + boldLen <= sp.length()
+                    && suggestion.regionMatches(true, 0, newText, 0, inputLen)) {
+                sp.setSpan(BOLD_SPAN,
+                        prefixLen, prefixLen + boldLen,
+                        android.text.SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            // Re-set the (already mutated) Spannable so the TextView re-measures and
+            // repaints. invalidate() alone is unreliable for an in-place span change
+            // inside a showing PopupWindow (and is why the popup could appear frozen
+            // on backspace, where caret X often doesn't move enough to force a window
+            // update()).
+            tv.setText(sp, TextView.BufferType.SPANNABLE);
+        }
     }
 
     // ── Display math ──

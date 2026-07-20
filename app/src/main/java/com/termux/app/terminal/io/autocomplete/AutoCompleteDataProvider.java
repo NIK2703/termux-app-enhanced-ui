@@ -20,7 +20,7 @@ import java.util.ArrayList;
  *   <li>{@code AutoCompleteController} — owns the suggestion data, input handling
  *       and candidate insertion;</li>
  *   <li>{@code AutoCompletePopupManager} — owns the history popup window (build,
- *       show, position, dismiss, content rebuild & refresh);</li>
+ *       show, position, dismiss, content rebuild & bold-span refresh);</li>
  * </ul>
  */
 interface AutoCompleteDataProvider {
