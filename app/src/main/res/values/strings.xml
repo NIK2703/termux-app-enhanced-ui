@@ -594,4 +594,50 @@
     <string name="extra_keys_haptic_all">Tap and gestures</string>
     <string name="extra_keys_haptic_gestures">Gestures only</string>
     <string name="extra_keys_haptic_off">Disabled</string>
+
+    <!-- Extra keys visibility entries -->
+    <string name="extra_keys_visibility_always">Always</string>
+    <string name="extra_keys_visibility_keyboard">Only when keyboard is open</string>
+    <string name="extra_keys_visibility_never">Never</string>
+
+    <!-- Extra keys editor signal entries -->
+    <string name="extra_keys_editor_signal_ctrl">CTRL (modifier)</string>
+    <string name="extra_keys_editor_signal_alt">ALT (modifier)</string>
+    <string name="extra_keys_editor_signal_shift">SHIFT (modifier)</string>
+    <string name="extra_keys_editor_signal_fn">FN (modifier)</string>
+    <string name="extra_keys_editor_signal_keyboard">Keyboard toggle</string>
+    <string name="extra_keys_editor_signal_paste">Paste</string>
+    <string name="extra_keys_editor_signal_scroll">Scroll lock</string>
+    <string name="extra_keys_editor_signal_space">Space</string>
+    <string name="extra_keys_editor_signal_esc">Esc</string>
+    <string name="extra_keys_editor_signal_tab">Tab</string>
+    <string name="extra_keys_editor_signal_home">Home</string>
+    <string name="extra_keys_editor_signal_end">End</string>
+    <string name="extra_keys_editor_signal_page_up">Page Up</string>
+    <string name="extra_keys_editor_signal_page_down">Page Down</string>
+    <string name="extra_keys_editor_signal_insert">Insert</string>
+    <string name="extra_keys_editor_signal_delete">Delete</string>
+    <string name="extra_keys_editor_signal_backspace">Backspace</string>
+    <string name="extra_keys_editor_signal_up">Up</string>
+    <string name="extra_keys_editor_signal_left">Left</string>
+    <string name="extra_keys_editor_signal_right">Right</string>
+    <string name="extra_keys_editor_signal_down">Down</string>
+    <string name="extra_keys_editor_signal_enter">Enter</string>
+    <!-- F1-F12 -->
+    <string name="extra_keys_editor_signal_f1">F1</string>
+    <string name="extra_keys_editor_signal_f2">F2</string>
+    <string name="extra_keys_editor_signal_f3">F3</string>
+    <string name="extra_keys_editor_signal_f4">F4</string>
+    <string name="extra_keys_editor_signal_f5">F5</string>
+    <string name="extra_keys_editor_signal_f6">F6</string>
+    <string name="extra_keys_editor_signal_f7">F7</string>
+    <string name="extra_keys_editor_signal_f8">F8</string>
+    <string name="extra_keys_editor_signal_f9">F9</string>
+    <string name="extra_keys_editor_signal_f10">F10</string>
+    <string name="extra_keys_editor_signal_f11">F11</string>
+    <string name="extra_keys_editor_signal_f12">F12</string>
+    <string name="extra_keys_editor_signal_backslash">Backslash (\\)</string>
+    <string name="extra_keys_editor_signal_quote">Quote (\")</string>
+    <string name="extra_keys_editor_signal_apostrophe">Apostrophe (\')</string>
+    <string name="extra_keys_editor_signal_custom">Custom text…</string>
 </resources>

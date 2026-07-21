@@ -288,5 +288,84 @@
 <string name="screen_orientation_entry_portrait_follow_sensor">Potret (ikuti sensor)</string>
 <string name="screen_orientation_entry_landscape_follow_sensor">Lanskap (ikuti sensor)</string>
 <string name="screen_orientation_entry_portrait">Potret</string>
-<string name="screen_orientation_entry_landscape">Lanskap</string>
+    <string name="screen_orientation_entry_landscape">Lanskap</string>
+
+    <!-- Extra keys visibility -->
+    <string name="extra_keys_visibility_title">Tampilkan panel tombol tambahan</string>
+    <string name="extra_keys_visibility_summary">Kapan panel tombol tambahan ditampilkan.</string>
+    <string name="extra_keys_visibility_always">Selalu</string>
+    <string name="extra_keys_visibility_keyboard">Hanya saat keyboard terbuka</string>
+    <string name="extra_keys_visibility_never">Tidak pernah</string>
+
+    <!-- Extra keys invalid JSON -->
+    <string name="extra_keys_invalid_json">JSON untuk tombol tambahan tidak valid. Perubahan tidak disimpan.</string>
+
+    <!-- Extra Keys Editor -->
+    <string name="extra_keys_editor_title">Editor Tombol Tambahan</string>
+    <string name="extra_keys_editor_summary">Bangun panel tombol tambahan secara visual: atur baris dan kolom, lalu ketuk tombol untuk menetapkan sinyal.</string>
+    <string name="extra_keys_editor_columns_title">Kolom</string>
+    <string name="extra_keys_editor_columns_summary">Jumlah tombol per baris (1 hingga 10).</string>
+    <string name="extra_keys_editor_rows_title">Baris</string>
+    <string name="extra_keys_editor_rows_summary">Jumlah baris tombol (1 hingga 4).</string>
+    <string name="extra_keys_editor_preview_title">Pratinjau</string>
+    <string name="extra_keys_editor_preview_summary">Panel langsung — ketuk tombol apa pun untuk mengubah sinyalnya.</string>
+    <string name="extra_keys_editor_signal_dialog_title">Tetapkan sinyal</string>
+    <string name="extra_keys_editor_custom_text_title">Teks kustom</string>
+    <string name="extra_keys_editor_custom_text_message">Masukkan teks literal yang akan dikirim saat tombol ini ditekan:</string>
+    <string name="extra_keys_editor_save_title">Terapkan ke tombol tambahan</string>
+    <string name="extra_keys_editor_save_summary">Simpan tata letak ini ke pengaturan tombol tambahan.</string>
+    <string name="extra_keys_editor_empty">(kosong)</string>
+    <string name="extra_keys_editor_max_signals">Maksimal 8 sinyal per tombol</string>
+    <string name="extra_keys_editor_custom_text_no_space">Teks kustom dengan spasi tidak didukung dalam kombinasi</string>
+    <string name="extra_keys_editor_done">Selesai</string>
+    <string name="extra_keys_editor_open_editor">Edit tombol tambahan</string>
+    <string name="extra_keys_editor_open_editor_summary">Konfigurasikan tata letak, skala, dan ikatan tombol</string>
+    <string name="extra_keys_editor_hint">Ketuk untuk menetapkan tombol utama · Geser ↑ ↓ ← → untuk menetapkan tombol isyarat</string>
+
+    <!-- Extra keys haptic feedback -->
+    <string name="extra_keys_haptic_title">Umpan balik haptik</string>
+    <string name="extra_keys_haptic_summary">Getaran pada interaksi panel tombol tambahan</string>
+    <string name="extra_keys_haptic_all">Ketuk dan isyarat</string>
+    <string name="extra_keys_haptic_gestures">Hanya isyarat</string>
+    <string name="extra_keys_haptic_off">Nonaktif</string>
+
+    <!-- Extra keys editor signal entries -->
+    <string name="extra_keys_editor_signal_ctrl">CTRL (pengubah)</string>
+    <string name="extra_keys_editor_signal_alt">ALT (pengubah)</string>
+    <string name="extra_keys_editor_signal_shift">SHIFT (pengubah)</string>
+    <string name="extra_keys_editor_signal_fn">FN (pengubah)</string>
+    <string name="extra_keys_editor_signal_keyboard">Keyboard toggle</string>
+    <string name="extra_keys_editor_signal_paste">Paste</string>
+    <string name="extra_keys_editor_signal_scroll">Scroll lock</string>
+    <string name="extra_keys_editor_signal_space">Space</string>
+    <string name="extra_keys_editor_signal_esc">Esc</string>
+    <string name="extra_keys_editor_signal_tab">Tab</string>
+    <string name="extra_keys_editor_signal_home">Home</string>
+    <string name="extra_keys_editor_signal_end">End</string>
+    <string name="extra_keys_editor_signal_page_up">Page Up</string>
+    <string name="extra_keys_editor_signal_page_down">Page Down</string>
+    <string name="extra_keys_editor_signal_insert">Insert</string>
+    <string name="extra_keys_editor_signal_delete">Delete</string>
+    <string name="extra_keys_editor_signal_backspace">Backspace</string>
+    <string name="extra_keys_editor_signal_up">Up</string>
+    <string name="extra_keys_editor_signal_left">Left</string>
+    <string name="extra_keys_editor_signal_right">Right</string>
+    <string name="extra_keys_editor_signal_down">Down</string>
+    <string name="extra_keys_editor_signal_enter">Enter</string>
+    <string name="extra_keys_editor_signal_f1">F1</string>
+    <string name="extra_keys_editor_signal_f2">F2</string>
+    <string name="extra_keys_editor_signal_f3">F3</string>
+    <string name="extra_keys_editor_signal_f4">F4</string>
+    <string name="extra_keys_editor_signal_f5">F5</string>
+    <string name="extra_keys_editor_signal_f6">F6</string>
+    <string name="extra_keys_editor_signal_f7">F7</string>
+    <string name="extra_keys_editor_signal_f8">F8</string>
+    <string name="extra_keys_editor_signal_f9">F9</string>
+    <string name="extra_keys_editor_signal_f10">F10</string>
+    <string name="extra_keys_editor_signal_f11">F11</string>
+    <string name="extra_keys_editor_signal_f12">F12</string>
+    <string name="extra_keys_editor_signal_backslash">Backslash (\\)</string>
+    <string name="extra_keys_editor_signal_quote">Quote (\")</string>
+    <string name="extra_keys_editor_signal_apostrophe">Apostrophe (\')</string>
+    <string name="extra_keys_editor_signal_custom">Teks kustom…</string>
 </resources>

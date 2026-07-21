@@ -296,4 +296,83 @@
     <string name="screen_orientation_entry_landscape_follow_sensor">Paisagem (seguir sensor)</string>
     <string name="screen_orientation_entry_portrait">Retrato</string>
     <string name="screen_orientation_entry_landscape">Paisagem</string>
+
+    <!-- Extra keys visibility -->
+    <string name="extra_keys_visibility_title">Mostrar painel de teclas extras</string>
+    <string name="extra_keys_visibility_summary">Quando a barra de botões adicionais é exibida.</string>
+    <string name="extra_keys_visibility_always">Sempre</string>
+    <string name="extra_keys_visibility_keyboard">Apenas quando o teclado estiver aberto</string>
+    <string name="extra_keys_visibility_never">Nunca</string>
+
+    <!-- Extra keys invalid JSON -->
+    <string name="extra_keys_invalid_json">JSON inválido para teclas extras. As alterações não foram salvas.</string>
+
+    <!-- Extra Keys Editor -->
+    <string name="extra_keys_editor_title">Editor de Teclas Extras</string>
+    <string name="extra_keys_editor_summary">Construa visualmente o painel de teclas extras: defina linhas e colunas, depois toque em uma tecla para atribuir um sinal.</string>
+    <string name="extra_keys_editor_columns_title">Colunas</string>
+    <string name="extra_keys_editor_columns_summary">Número de botões por linha (1 a 10).</string>
+    <string name="extra_keys_editor_rows_title">Linhas</string>
+    <string name="extra_keys_editor_rows_summary">Número de linhas de botões (1 a 4).</string>
+    <string name="extra_keys_editor_preview_title">Pré-visualização</string>
+    <string name="extra_keys_editor_preview_summary">Painel ao vivo — toque em qualquer tecla para alterar seu sinal.</string>
+    <string name="extra_keys_editor_signal_dialog_title">Atribuir sinal</string>
+    <string name="extra_keys_editor_custom_text_title">Texto personalizado</string>
+    <string name="extra_keys_editor_custom_text_message">Insira o texto literal a ser enviado quando esta tecla for pressionada:</string>
+    <string name="extra_keys_editor_save_title">Aplicar às teclas extras</string>
+    <string name="extra_keys_editor_save_summary">Salvar este layout na configuração de teclas extras.</string>
+    <string name="extra_keys_editor_empty">(vazio)</string>
+    <string name="extra_keys_editor_max_signals">Máximo de 8 sinais por botão</string>
+    <string name="extra_keys_editor_custom_text_no_space">Texto personalizado com espaços não é suportado em combinações</string>
+    <string name="extra_keys_editor_done">Concluído</string>
+    <string name="extra_keys_editor_open_editor">Editar teclas extras</string>
+    <string name="extra_keys_editor_open_editor_summary">Configurar layout, escala e atalhos das teclas</string>
+    <string name="extra_keys_editor_hint">Toque para atribuir a tecla principal · Deslize ↑ ↓ ← → para atribuir teclas de gesto</string>
+
+    <!-- Haptic feedback -->
+    <string name="extra_keys_haptic_title">Feedback tátil</string>
+    <string name="extra_keys_haptic_summary">Vibrar ao interagir com o painel de teclas extras</string>
+    <string name="extra_keys_haptic_all">Toque e gestos</string>
+    <string name="extra_keys_haptic_gestures">Apenas gestos</string>
+    <string name="extra_keys_haptic_off">Desativado</string>
+
+    <!-- Extra keys editor signal entries -->
+    <string name="extra_keys_editor_signal_ctrl">CTRL (modificador)</string>
+    <string name="extra_keys_editor_signal_alt">ALT (modificador)</string>
+    <string name="extra_keys_editor_signal_shift">SHIFT (modificador)</string>
+    <string name="extra_keys_editor_signal_fn">FN (modificador)</string>
+    <string name="extra_keys_editor_signal_keyboard">Alternar teclado</string>
+    <string name="extra_keys_editor_signal_paste">Colar</string>
+    <string name="extra_keys_editor_signal_scroll">Bloqueio de rolagem</string>
+    <string name="extra_keys_editor_signal_space">Espaço</string>
+    <string name="extra_keys_editor_signal_esc">Esc</string>
+    <string name="extra_keys_editor_signal_tab">Tab</string>
+    <string name="extra_keys_editor_signal_home">Home</string>
+    <string name="extra_keys_editor_signal_end">End</string>
+    <string name="extra_keys_editor_signal_page_up">Page Up</string>
+    <string name="extra_keys_editor_signal_page_down">Page Down</string>
+    <string name="extra_keys_editor_signal_insert">Insert</string>
+    <string name="extra_keys_editor_signal_delete">Delete</string>
+    <string name="extra_keys_editor_signal_backspace">Backspace</string>
+    <string name="extra_keys_editor_signal_up">Up</string>
+    <string name="extra_keys_editor_signal_left">Left</string>
+    <string name="extra_keys_editor_signal_right">Right</string>
+    <string name="extra_keys_editor_signal_down">Down</string>
+    <string name="extra_keys_editor_signal_enter">Enter</string>
+    <string name="extra_keys_editor_signal_f1">F1</string>
+    <string name="extra_keys_editor_signal_f2">F2</string>
+    <string name="extra_keys_editor_signal_f3">F3</string>
+    <string name="extra_keys_editor_signal_f4">F4</string>
+    <string name="extra_keys_editor_signal_f5">F5</string>
+    <string name="extra_keys_editor_signal_f6">F6</string>
+    <string name="extra_keys_editor_signal_f7">F7</string>
+    <string name="extra_keys_editor_signal_f8">F8</string>
+    <string name="extra_keys_editor_signal_f9">F9</string>
+    <string name="extra_keys_editor_signal_f10">F10</string>
+    <string name="extra_keys_editor_signal_f11">F11</string>
+    <string name="extra_keys_editor_signal_f12">F12</string>
+    <string name="extra_keys_editor_signal_backslash">Barra invertida (\\)</string>
+    <string name="extra_keys_editor_signal_quote">Aspas (\")</string>
+    <string name="extra_keys_editor_signal_apostrophe">Apóstrofo (\')</string>
+    <string name="extra_keys_editor_signal_custom">Texto personalizado…</string>
 </resources>

@@ -295,4 +295,83 @@
     <string name="screen_orientation_entry_landscape_follow_sensor">横向き（センサーに従う）</string>
     <string name="screen_orientation_entry_portrait">縦向き</string>
     <string name="screen_orientation_entry_landscape">横向き</string>
+
+    <!-- Extra keys visibility -->
+    <string name="extra_keys_visibility_title">拡張キーパネルを表示</string>
+    <string name="extra_keys_visibility_summary">追加ボタンバーを表示するタイミング</string>
+    <string name="extra_keys_visibility_always">常に表示</string>
+    <string name="extra_keys_visibility_keyboard">キーボード表示時のみ</string>
+    <string name="extra_keys_visibility_never">表示しない</string>
+
+    <!-- Extra keys error -->
+    <string name="extra_keys_invalid_json">拡張キーのJSONが無効です。変更は保存されませんでした。</string>
+
+    <!-- Extra keys editor -->
+    <string name="extra_keys_editor_title">拡張キーエディター</string>
+    <string name="extra_keys_editor_summary">拡張キーパネルを視覚的に構築: 行と列を設定し、キーをタップしてシグナルを割り当てます。</string>
+    <string name="extra_keys_editor_columns_title">列数</string>
+    <string name="extra_keys_editor_columns_summary">行あたりのボタン数（1〜10）</string>
+    <string name="extra_keys_editor_rows_title">行数</string>
+    <string name="extra_keys_editor_rows_summary">ボタンの行数（1〜4）</string>
+    <string name="extra_keys_editor_preview_title">プレビュー</string>
+    <string name="extra_keys_editor_preview_summary">ライブパネル — キーをタップしてシグナルを変更</string>
+    <string name="extra_keys_editor_signal_dialog_title">シグナルを割り当て</string>
+    <string name="extra_keys_editor_custom_text_title">カスタムテキスト</string>
+    <string name="extra_keys_editor_custom_text_message">このキーが押されたときに送信する文字を入力:</string>
+    <string name="extra_keys_editor_save_title">拡張キーに適用</string>
+    <string name="extra_keys_editor_save_summary">このレイアウトを拡張キー設定に保存</string>
+    <string name="extra_keys_editor_empty">（空）</string>
+    <string name="extra_keys_editor_max_signals">1ボタンあたり最大8シグナル</string>
+    <string name="extra_keys_editor_custom_text_no_space">スペースを含むカスタムテキストは組み合わせでサポートされていません</string>
+    <string name="extra_keys_editor_done">完了</string>
+    <string name="extra_keys_editor_open_editor">拡張キーを編集</string>
+    <string name="extra_keys_editor_open_editor_summary">レイアウト、スケール、キー割り当てを設定</string>
+    <string name="extra_keys_editor_hint">タップでメインキーを割り当て · スワイプ ↑ ↓ ← → でジェスチャーキーを割り当て</string>
+
+    <!-- Extra keys haptic feedback -->
+    <string name="extra_keys_haptic_title">触覚フィードバック</string>
+    <string name="extra_keys_haptic_summary">拡張キーパネル操作時のバイブレーション</string>
+    <string name="extra_keys_haptic_all">タップとジェスチャー</string>
+    <string name="extra_keys_haptic_gestures">ジェスチャーのみ</string>
+    <string name="extra_keys_haptic_off">無効</string>
+
+    <!-- Extra keys editor signals -->
+    <string name="extra_keys_editor_signal_ctrl">CTRL（修飾キー）</string>
+    <string name="extra_keys_editor_signal_alt">ALT（修飾キー）</string>
+    <string name="extra_keys_editor_signal_shift">SHIFT（修飾キー）</string>
+    <string name="extra_keys_editor_signal_fn">FN（修飾キー）</string>
+    <string name="extra_keys_editor_signal_keyboard">キーボード切替</string>
+    <string name="extra_keys_editor_signal_paste">ペースト</string>
+    <string name="extra_keys_editor_signal_scroll">スクロールロック</string>
+    <string name="extra_keys_editor_signal_space">Space</string>
+    <string name="extra_keys_editor_signal_esc">Esc</string>
+    <string name="extra_keys_editor_signal_tab">Tab</string>
+    <string name="extra_keys_editor_signal_home">Home</string>
+    <string name="extra_keys_editor_signal_end">End</string>
+    <string name="extra_keys_editor_signal_page_up">Page Up</string>
+    <string name="extra_keys_editor_signal_page_down">Page Down</string>
+    <string name="extra_keys_editor_signal_insert">Insert</string>
+    <string name="extra_keys_editor_signal_delete">Delete</string>
+    <string name="extra_keys_editor_signal_backspace">Backspace</string>
+    <string name="extra_keys_editor_signal_up">Up</string>
+    <string name="extra_keys_editor_signal_left">Left</string>
+    <string name="extra_keys_editor_signal_right">Right</string>
+    <string name="extra_keys_editor_signal_down">Down</string>
+    <string name="extra_keys_editor_signal_enter">Enter</string>
+    <string name="extra_keys_editor_signal_f1">F1</string>
+    <string name="extra_keys_editor_signal_f2">F2</string>
+    <string name="extra_keys_editor_signal_f3">F3</string>
+    <string name="extra_keys_editor_signal_f4">F4</string>
+    <string name="extra_keys_editor_signal_f5">F5</string>
+    <string name="extra_keys_editor_signal_f6">F6</string>
+    <string name="extra_keys_editor_signal_f7">F7</string>
+    <string name="extra_keys_editor_signal_f8">F8</string>
+    <string name="extra_keys_editor_signal_f9">F9</string>
+    <string name="extra_keys_editor_signal_f10">F10</string>
+    <string name="extra_keys_editor_signal_f11">F11</string>
+    <string name="extra_keys_editor_signal_f12">F12</string>
+    <string name="extra_keys_editor_signal_backslash">Backslash（\\）</string>
+    <string name="extra_keys_editor_signal_quote">Quote（\"）</string>
+    <string name="extra_keys_editor_signal_apostrophe">Apostrophe（\'）</string>
+    <string name="extra_keys_editor_signal_custom">カスタムテキスト…</string>
 </resources>

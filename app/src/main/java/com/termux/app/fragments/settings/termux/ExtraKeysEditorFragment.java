@@ -2,6 +2,7 @@ package com.termux.app.fragments.settings.termux;
 
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -41,6 +42,7 @@ public class ExtraKeysEditorFragment extends TermuxPreferenceFragmentBase {
     private static final int DIR_RIGHT = 4;
     private static final int MAX_ROWS = 4;
     private static final int MAX_COLS = 10;
+    private static final String TAG = "ExtraKeysEditor";
 
     private static class KeyCell {
         String tap = "";
@@ -129,7 +131,11 @@ public class ExtraKeysEditorFragment extends TermuxPreferenceFragmentBase {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        initPreview();
+        if (getListView() != null) {
+            getListView().post(() -> {
+                if (mPreviewView == null) initPreview();
+            });
+        }
 
         getChildFragmentManager().setFragmentResultListener(
             SignalPickerDialogFragment.REQUEST_KEY,
@@ -139,8 +145,8 @@ public class ExtraKeysEditorFragment extends TermuxPreferenceFragmentBase {
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
+    public void onResume() {
+        super.onResume();
         if (mPreviewView == null) initPreview();
     }
 
@@ -186,6 +192,7 @@ public class ExtraKeysEditorFragment extends TermuxPreferenceFragmentBase {
         try {
             json = buildJsonMatrix();
         } catch (JSONException e) {
+            Log.e(TAG, "Failed to build extra-keys JSON matrix", e);
             return;
         }
 
@@ -193,6 +200,7 @@ public class ExtraKeysEditorFragment extends TermuxPreferenceFragmentBase {
         try {
             info = new ExtraKeysInfo(json, style, ExtraKeysConstants.CONTROL_CHARS_ALIASES);
         } catch (JSONException e) {
+            Log.e(TAG, "Failed to parse extra-keys JSON", e);
             return;
         }
 
@@ -200,17 +208,24 @@ public class ExtraKeysEditorFragment extends TermuxPreferenceFragmentBase {
         mPreviewView.setSpecialButtonMode("hold".equals(mPrefs.getExtraKeysSpecialButtonMode())
             ? ExtraKeysView.SpecialButtonMode.HOLD
             : ExtraKeysView.SpecialButtonMode.STICKY);
-        mPreviewView.setRepetitiveKeys(ExtraKeysConstants.PRIMARY_REPETITIVE_KEYS);
 
         TermuxColorSchemeManager cm = new TermuxColorSchemeManager();
-        cm.recompute();
-        mPreviewView.setButtonColors(cm.getButtonText(), cm.getButtonText(),
-            cm.getButtonBg(), cm.getButtonActiveBg());
+        cm.recompute(mPrefs);
+
+        mPreviewView.setBackgroundColor(cm.getSchemeBackground());
+
+        mPreviewView.setRepetitiveKeys(ExtraKeysConstants.PRIMARY_REPETITIVE_KEYS);
 
         float scale = 1.0f;
-        try { scale = mPrefs.getTerminalToolbarHeightScaleFactor(); } catch (Exception ignored) {}
+        try { scale = mPrefs.getTerminalToolbarHeightScaleFactor(); } catch (Exception e) { Log.e(TAG, "Failed to get toolbar height scale", e); }
         float rowHeightPx = 37.5f * getResources().getDisplayMetrics().density * scale;
         mPreviewView.reload(info, rowHeightPx);
+
+        int schemeBg = cm.getSchemeBackground();
+        int buttonBg = TermuxColorSchemeManager.compositeColors(schemeBg, cm.getButtonBg());
+        int buttonActiveBg = TermuxColorSchemeManager.compositeColors(schemeBg, cm.getButtonActiveBg());
+        mPreviewView.setButtonColors(cm.getButtonText(), cm.getButtonText(),
+            buttonBg, buttonActiveBg);
 
         int childCount = mPreviewView.getChildCount();
         for (int i = 0; i < childCount; i++) {
@@ -248,6 +263,7 @@ public class ExtraKeysEditorFragment extends TermuxPreferenceFragmentBase {
         try {
             info = new ExtraKeysInfo(current, style, ExtraKeysConstants.CONTROL_CHARS_ALIASES);
         } catch (JSONException e) {
+            Log.e(TAG, "Failed to parse extra-keys JSON", e);
             mRows = 2; mCols = 5;
             SeekBarPreference colsPref = findPreference("extra_keys_editor_columns");
             if (colsPref != null) colsPref.setValue(mCols);
@@ -437,11 +453,13 @@ public class ExtraKeysEditorFragment extends TermuxPreferenceFragmentBase {
         try {
             json = buildJsonMatrix();
         } catch (JSONException e) {
+            Log.e(TAG, "Failed to build extra-keys JSON matrix in save", e);
             return;
         }
         try {
             new JSONArray(json);
         } catch (JSONException e) {
+            Log.e(TAG, "Failed to validate extra-keys JSON in save", e);
             return;
         }
         mPrefs.setExtraKeys(json);

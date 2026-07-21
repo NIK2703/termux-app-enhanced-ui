@@ -195,7 +195,7 @@
                 <string name="termux_terminal_view_terminal_margin_adjustment_title">Корректировка отступов терминала</string>
                 <string name="termux_terminal_view_terminal_margin_adjustment_off">Корректировка отступов терминала будет отключена.</string>
                 <string name="termux_terminal_view_terminal_margin_adjustment_on">Корректировка отступов терминала будет включена.
-                    Следует включить, чтобы исправить проблему, когда экранная клавиатура перекрывает часть дополнительных клавиш/терминала.
+                    Следует включить, чтобы исправить проблему, когда экранная клавиатура перекрывает часть дополнительных кнопок/терминала.
                     Если это вызывает мерцание экрана на вашем устройстве, отключите. (По умолчанию)</string>
 
     <!-- Termux:API App Preferences -->
@@ -304,7 +304,7 @@
 
     <!-- Text input show preference -->
     <string name="text_input_show_title">Показывать панель ввода текста</string>
-    <string name="text_input_show_summary_on">Панель ввода текста отображается над дополнительными клавишами</string>
+    <string name="text_input_show_summary_on">Панель ввода текста отображается над дополнительными кнопками</string>
     <string name="text_input_show_summary_off">Панель ввода текста скрыта</string>
 
     <!-- Message history -->
@@ -381,8 +381,8 @@
     <string name="language_category_title">Язык</string>
     <string name="input_preferences_title">Ввод</string>
     <string name="input_preferences_summary">Настройки ввода текста и клавиатуры</string>
-    <string name="extra_keys_preferences_title">Дополнительные клавиши</string>
-    <string name="extra_keys_preferences_summary">Настройки панели дополнительных клавиш</string>
+    <string name="extra_keys_preferences_title">Дополнительные кнопки</string>
+    <string name="extra_keys_preferences_summary">Настройки панели дополнительных кнопок</string>
     <string name="display_preferences_title">Отображение</string>
     <string name="display_preferences_summary">Тема, прозрачность панели, вид терминала, вкладки, окно и полноэкранный режим</string>
     <string name="sessions_history_preferences_title">Сессии</string>
@@ -395,10 +395,10 @@
     <string name="failure_notifications_category_title">Уведомления об ошибках</string>
 
     <!-- Extra keys subsection -->
-    <string name="extra_keys_header">Дополнительные клавиши</string>
-    <string name="extra_keys_category_title">Дополнительные клавиши</string>
+    <string name="extra_keys_header">Дополнительные кнопки</string>
+    <string name="extra_keys_category_title">Дополнительные кнопки</string>
     <string name="extra_keys_layout_title">Раскладка клавиш</string>
-    <string name="extra_keys_layout_summary">JSON-матрица, определяющая ряды дополнительных клавиш и их всплывающие значения.</string>
+    <string name="extra_keys_layout_summary">JSON-матрица, определяющая ряды дополнительных кнопок и их всплывающие значения.</string>
     <string name="extra_keys_style_title">Стиль клавиш</string>
     <string name="extra_keys_style_summary">Как отображаются специальные символы на клавишах.</string>
     <string name="extra_keys_style_default">По умолчанию</string>
@@ -407,7 +407,7 @@
     <string name="extra_keys_style_all">Все</string>
     <string name="extra_keys_style_none">Нет</string>
     <string name="extra_keys_text_all_caps_title">Текст заглавными</string>
-    <string name="extra_keys_text_all_caps_summary">Показывать подписи дополнительных клавиш в верхнем регистре.</string>
+    <string name="extra_keys_text_all_caps_summary">Показывать подписи дополнительных кнопок в верхнем регистре.</string>
     <string name="extra_keys_special_button_mode_title">Поведение спецклавиш</string>
     <string name="extra_keys_special_button_mode_summary">Как модификаторы (CTRL, ALT, SHIFT, FN) реагируют на касание. Залипающий: нажмите для переключения, долгое нажатие — для блокировки. Удержание: активно только пока клавиша нажата.</string>
     <string name="extra_keys_special_button_mode_sticky">Залипающий (переключение / блокировка)</string>
@@ -464,7 +464,7 @@
     <string name="terminal_margin_vertical_summary">Вертикальный отступ терминала в dp.</string>
 
     <string name="terminal_toolbar_height_title">Масштаб панели инструментов</string>
-    <string name="terminal_toolbar_height_summary">Коэффициент масштаба панели доп. клавиш / терминала.</string>
+    <string name="terminal_toolbar_height_summary">Коэффициент масштаба панели доп. кнопок / терминала.</string>
 
     <string name="bell_character_title">Поведение при сигнале</string>
     <string name="bell_character_summary">Что происходит, когда терминал получает символ звонка (BEL).</string>
@@ -538,7 +538,7 @@
     <string name="hide_soft_keyboard_on_startup_summary">Держать экранную клавиатуру скрытой при запуске Termux.</string>
 
     <string name="empty_value_summary">Не задано</string>
-    <string name="extra_keys_invalid_json">Неверный JSON для доп. клавиш. Изменения не сохранены.</string>
+    <string name="extra_keys_invalid_json">Неверный JSON для доп. кнопок. Изменения не сохранены.</string>
 
     <!-- Legacy night-mode entries (kept for reference; theme is on Display screen) -->
     <string name="night_mode_legacy_title">Ночной режим (устаревший night-mode)</string>
@@ -548,38 +548,83 @@
     <string name="night_mode_system">Системная</string>
 
     <!-- Extra keys visibility -->
-    <string name="extra_keys_visibility_title">Показывать панель доп. клавиш</string>
-    <string name="extra_keys_visibility_summary">Когда отображается панель дополнительных клавиш.</string>
+    <string name="extra_keys_visibility_title">Показывать панель доп. кнопок</string>
+    <string name="extra_keys_visibility_summary">Когда отображается панель дополнительных кнопок.</string>
 
     <!-- Extra keys corner radius -->
     <string name="extra_keys_corner_radius_title">Радиус скругления кнопок</string>
 
     <!-- Extra Keys Editor -->
-    <string name="extra_keys_editor_title">Редактор доп. клавиш</string>
-    <string name="extra_keys_editor_summary">Визуальное создание панели доп. клавиш: задайте строки и столбцы, затем нажмите на клавишу, чтобы назначить сигнал.</string>
+    <string name="extra_keys_editor_title">Редактор доп. кнопок</string>
+    <string name="extra_keys_editor_summary">Визуальное создание панели доп. кнопок: задайте строки и столбцы, затем нажмите на кнопку, чтобы назначить сигнал.</string>
     <string name="extra_keys_editor_columns_title">Столбцы</string>
     <string name="extra_keys_editor_columns_summary">Количество кнопок в строке (1–10).</string>
     <string name="extra_keys_editor_rows_title">Строки</string>
     <string name="extra_keys_editor_rows_summary">Количество рядов кнопок (1–4).</string>
     <string name="extra_keys_editor_preview_title">Предпросмотр</string>
-    <string name="extra_keys_editor_preview_summary">Интерактивная панель — нажмите на любую клавишу, чтобы изменить её сигнал.</string>
+    <string name="extra_keys_editor_preview_summary">Интерактивная панель — нажмите на любую кнопку, чтобы изменить её сигнал.</string>
     <string name="extra_keys_editor_signal_dialog_title">Назначить сигнал</string>
     <string name="extra_keys_editor_custom_text_title">Свой текст</string>
-    <string name="extra_keys_editor_custom_text_message">Введите текст для отправки при нажатии этой клавиши:</string>
-    <string name="extra_keys_editor_save_title">Применить к доп. клавишам</string>
-    <string name="extra_keys_editor_save_summary">Сохранить раскладку в настройки доп. клавиш.</string>
+    <string name="extra_keys_editor_custom_text_message">Введите текст для отправки при нажатии этой кнопки:</string>
+    <string name="extra_keys_editor_save_title">Применить к доп. кнопкам</string>
+    <string name="extra_keys_editor_save_summary">Сохранить раскладку в настройки доп. кнопок.</string>
     <string name="extra_keys_editor_empty">(пусто)</string>
     <string name="extra_keys_editor_max_signals">Максимум 8 сигналов на кнопку</string>
     <string name="extra_keys_editor_custom_text_no_space">Свой текст с пробелами не поддерживается в комбинациях</string>
     <string name="extra_keys_editor_done">Готово</string>
-    <string name="extra_keys_editor_open_editor">Редактировать доп. клавиши</string>
+    <string name="extra_keys_editor_open_editor">Редактировать доп. кнопки</string>
     <string name="extra_keys_editor_open_editor_summary">Настройка раскладки, масштаба и привязки клавиш</string>
     <string name="extra_keys_editor_hint">Нажмите, чтобы назначить основную клавишу · Смахните ↑ ↓ ← → для назначения жестовых клавиш</string>
 
     <!-- Haptic feedback for extra keys -->
     <string name="extra_keys_haptic_title">Тактильная обратная связь</string>
-    <string name="extra_keys_haptic_summary">Вибрация при взаимодействии с панелью доп. клавиш</string>
+    <string name="extra_keys_haptic_summary">Вибрация при взаимодействии с панелью доп. кнопок</string>
     <string name="extra_keys_haptic_all">Нажатия и жесты</string>
     <string name="extra_keys_haptic_gestures">Только жесты</string>
     <string name="extra_keys_haptic_off">Отключено</string>
+
+    <!-- Extra keys visibility entries -->
+    <string name="extra_keys_visibility_always">Всегда</string>
+    <string name="extra_keys_visibility_keyboard">Только при открытой клавиатуре</string>
+    <string name="extra_keys_visibility_never">Никогда</string>
+
+    <!-- Extra keys editor signal entries -->
+    <string name="extra_keys_editor_signal_ctrl">CTRL (модификатор)</string>
+    <string name="extra_keys_editor_signal_alt">ALT (модификатор)</string>
+    <string name="extra_keys_editor_signal_shift">SHIFT (модификатор)</string>
+    <string name="extra_keys_editor_signal_fn">FN (модификатор)</string>
+    <string name="extra_keys_editor_signal_keyboard">Переключатель клавиатуры</string>
+    <string name="extra_keys_editor_signal_paste">Вставить</string>
+    <string name="extra_keys_editor_signal_scroll">Блокировка прокрутки</string>
+    <string name="extra_keys_editor_signal_space">Пробел</string>
+    <string name="extra_keys_editor_signal_esc">Esc</string>
+    <string name="extra_keys_editor_signal_tab">Tab</string>
+    <string name="extra_keys_editor_signal_home">Home</string>
+    <string name="extra_keys_editor_signal_end">End</string>
+    <string name="extra_keys_editor_signal_page_up">Page Up</string>
+    <string name="extra_keys_editor_signal_page_down">Page Down</string>
+    <string name="extra_keys_editor_signal_insert">Insert</string>
+    <string name="extra_keys_editor_signal_delete">Delete</string>
+    <string name="extra_keys_editor_signal_backspace">Backspace</string>
+    <string name="extra_keys_editor_signal_up">Вверх</string>
+    <string name="extra_keys_editor_signal_left">Влево</string>
+    <string name="extra_keys_editor_signal_right">Вправо</string>
+    <string name="extra_keys_editor_signal_down">Вниз</string>
+    <string name="extra_keys_editor_signal_enter">Enter</string>
+    <string name="extra_keys_editor_signal_f1">F1</string>
+    <string name="extra_keys_editor_signal_f2">F2</string>
+    <string name="extra_keys_editor_signal_f3">F3</string>
+    <string name="extra_keys_editor_signal_f4">F4</string>
+    <string name="extra_keys_editor_signal_f5">F5</string>
+    <string name="extra_keys_editor_signal_f6">F6</string>
+    <string name="extra_keys_editor_signal_f7">F7</string>
+    <string name="extra_keys_editor_signal_f8">F8</string>
+    <string name="extra_keys_editor_signal_f9">F9</string>
+    <string name="extra_keys_editor_signal_f10">F10</string>
+    <string name="extra_keys_editor_signal_f11">F11</string>
+    <string name="extra_keys_editor_signal_f12">F12</string>
+    <string name="extra_keys_editor_signal_backslash">Обратная косая черта (\\)</string>
+    <string name="extra_keys_editor_signal_quote">Кавычка (\")</string>
+    <string name="extra_keys_editor_signal_apostrophe">Апостроф (\')</string>
+    <string name="extra_keys_editor_signal_custom">Свой текст…</string>
 </resources>

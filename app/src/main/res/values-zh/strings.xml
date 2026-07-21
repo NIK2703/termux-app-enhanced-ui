@@ -313,4 +313,83 @@
     <string name="screen_orientation_entry_landscape_follow_sensor">横屏（跟随传感器）</string>
     <string name="screen_orientation_entry_portrait">竖屏</string>
     <string name="screen_orientation_entry_landscape">横屏</string>
+
+    <!-- Extra keys visibility -->
+    <string name="extra_keys_visibility_title">显示额外按键面板</string>
+    <string name="extra_keys_visibility_summary">控制额外按键栏的显示时机。</string>
+    <string name="extra_keys_visibility_always">始终显示</string>
+    <string name="extra_keys_visibility_keyboard">仅键盘打开时</string>
+    <string name="extra_keys_visibility_never">从不显示</string>
+
+    <!-- Extra keys invalid JSON -->
+    <string name="extra_keys_invalid_json">额外按键的 JSON 格式无效，更改未保存。</string>
+
+    <!-- Extra keys haptic feedback -->
+    <string name="extra_keys_haptic_title">触觉反馈</string>
+    <string name="extra_keys_haptic_summary">操作额外按键面板时震动</string>
+    <string name="extra_keys_haptic_all">点击与手势</string>
+    <string name="extra_keys_haptic_gestures">仅手势</string>
+    <string name="extra_keys_haptic_off">已禁用</string>
+
+    <!-- Extra keys editor -->
+    <string name="extra_keys_editor_title">额外按键编辑器</string>
+    <string name="extra_keys_editor_summary">可视化构建额外按键面板：设置行数和列数，然后点击按键分配信号。</string>
+    <string name="extra_keys_editor_columns_title">列数</string>
+    <string name="extra_keys_editor_columns_summary">每行的按键数量（1 到 10）。</string>
+    <string name="extra_keys_editor_rows_title">行数</string>
+    <string name="extra_keys_editor_rows_summary">按键行数（1 到 4）。</string>
+    <string name="extra_keys_editor_preview_title">预览</string>
+    <string name="extra_keys_editor_preview_summary">实时面板 — 点击任意按键更改其信号。</string>
+    <string name="extra_keys_editor_signal_dialog_title">分配信号</string>
+    <string name="extra_keys_editor_custom_text_title">自定义文本</string>
+    <string name="extra_keys_editor_custom_text_message">输入按下此键时要发送的文本：</string>
+    <string name="extra_keys_editor_save_title">应用到额外按键</string>
+    <string name="extra_keys_editor_save_summary">将此布局保存到额外按键设置。</string>
+    <string name="extra_keys_editor_empty">（空）</string>
+    <string name="extra_keys_editor_max_signals">每个按键最多 8 个信号</string>
+    <string name="extra_keys_editor_custom_text_no_space">组合键中不支持含空格的文本</string>
+    <string name="extra_keys_editor_done">完成</string>
+    <string name="extra_keys_editor_open_editor">编辑额外按键</string>
+    <string name="extra_keys_editor_open_editor_summary">配置布局、缩放和按键绑定</string>
+    <string name="extra_keys_editor_hint">点击分配主键 · 滑动 ↑ ↓ ← → 分配手势键</string>
+
+    <!-- Extra keys editor signals -->
+    <string name="extra_keys_editor_signal_ctrl">CTRL（修饰键）</string>
+    <string name="extra_keys_editor_signal_alt">ALT（修饰键）</string>
+    <string name="extra_keys_editor_signal_shift">SHIFT（修饰键）</string>
+    <string name="extra_keys_editor_signal_fn">FN（修饰键）</string>
+    <string name="extra_keys_editor_signal_keyboard">键盘切换</string>
+    <string name="extra_keys_editor_signal_paste">粘贴</string>
+    <string name="extra_keys_editor_signal_scroll">滚动锁定</string>
+    <string name="extra_keys_editor_signal_space">空格</string>
+    <string name="extra_keys_editor_signal_esc">Esc</string>
+    <string name="extra_keys_editor_signal_tab">Tab</string>
+    <string name="extra_keys_editor_signal_home">Home</string>
+    <string name="extra_keys_editor_signal_end">End</string>
+    <string name="extra_keys_editor_signal_page_up">Page Up</string>
+    <string name="extra_keys_editor_signal_page_down">Page Down</string>
+    <string name="extra_keys_editor_signal_insert">Insert</string>
+    <string name="extra_keys_editor_signal_delete">Delete</string>
+    <string name="extra_keys_editor_signal_backspace">Backspace</string>
+    <string name="extra_keys_editor_signal_up">↑</string>
+    <string name="extra_keys_editor_signal_left">←</string>
+    <string name="extra_keys_editor_signal_right">→</string>
+    <string name="extra_keys_editor_signal_down">↓</string>
+    <string name="extra_keys_editor_signal_enter">Enter</string>
+    <string name="extra_keys_editor_signal_f1">F1</string>
+    <string name="extra_keys_editor_signal_f2">F2</string>
+    <string name="extra_keys_editor_signal_f3">F3</string>
+    <string name="extra_keys_editor_signal_f4">F4</string>
+    <string name="extra_keys_editor_signal_f5">F5</string>
+    <string name="extra_keys_editor_signal_f6">F6</string>
+    <string name="extra_keys_editor_signal_f7">F7</string>
+    <string name="extra_keys_editor_signal_f8">F8</string>
+    <string name="extra_keys_editor_signal_f9">F9</string>
+    <string name="extra_keys_editor_signal_f10">F10</string>
+    <string name="extra_keys_editor_signal_f11">F11</string>
+    <string name="extra_keys_editor_signal_f12">F12</string>
+    <string name="extra_keys_editor_signal_backslash">反斜杠（\\）</string>
+    <string name="extra_keys_editor_signal_quote">引号（\"）</string>
+    <string name="extra_keys_editor_signal_apostrophe">撇号（\'）</string>
+    <string name="extra_keys_editor_signal_custom">自定义文本…</string>
 </resources>

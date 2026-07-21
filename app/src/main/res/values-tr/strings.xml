@@ -313,4 +313,83 @@
     <string name="screen_orientation_entry_landscape_follow_sensor">Yatay (sensörü takip et)</string>
     <string name="screen_orientation_entry_portrait">Dikey</string>
     <string name="screen_orientation_entry_landscape">Yatay</string>
+
+    <!-- Extra keys visibility -->
+    <string name="extra_keys_visibility_title">Ek tuşlar panelini göster</string>
+    <string name="extra_keys_visibility_summary">Ek düğmeler çubuğunun ne zaman gösterileceği.</string>
+    <string name="extra_keys_visibility_always">Her zaman</string>
+    <string name="extra_keys_visibility_keyboard">Yalnızca klavye açıkken</string>
+    <string name="extra_keys_visibility_never">Asla</string>
+
+    <!-- Extra keys JSON error -->
+    <string name="extra_keys_invalid_json">Ek tuşlar için geçersiz JSON. Değişiklikler kaydedilmedi.</string>
+
+    <!-- Extra keys haptic feedback -->
+    <string name="extra_keys_haptic_title">Dokunsal geri bildirim</string>
+    <string name="extra_keys_haptic_summary">Ek tuşlar paneli etkileşimlerinde titreşim</string>
+    <string name="extra_keys_haptic_all">Dokunma ve hareketler</string>
+    <string name="extra_keys_haptic_gestures">Yalnızca hareketler</string>
+    <string name="extra_keys_haptic_off">Devre dışı</string>
+
+    <!-- Extra keys editor -->
+    <string name="extra_keys_editor_title">Ek Tuşlar Düzenleyicisi</string>
+    <string name="extra_keys_editor_summary">Ek tuşlar panelini görsel olarak oluşturun: satır ve sütunları ayarlayın, ardından sinyal atamak için bir tuşa dokunun.</string>
+    <string name="extra_keys_editor_columns_title">Sütunlar</string>
+    <string name="extra_keys_editor_columns_summary">Satır başına düğme sayısı (1-10).</string>
+    <string name="extra_keys_editor_rows_title">Satırlar</string>
+    <string name="extra_keys_editor_rows_summary">Düğme satırı sayısı (1-4).</string>
+    <string name="extra_keys_editor_preview_title">Önizleme</string>
+    <string name="extra_keys_editor_preview_summary">Canlı panel — sinyalini değiştirmek için herhangi bir tuşa dokunun.</string>
+    <string name="extra_keys_editor_signal_dialog_title">Sinyal ata</string>
+    <string name="extra_keys_editor_custom_text_title">Özel metin</string>
+    <string name="extra_keys_editor_custom_text_message">Bu tuşa basıldığında gönderilecek metni girin:</string>
+    <string name="extra_keys_editor_save_title">Ek tuşlara uygula</string>
+    <string name="extra_keys_editor_save_summary">Bu düzeni ek tuşlar ayarına kaydedin.</string>
+    <string name="extra_keys_editor_empty">(boş)</string>
+    <string name="extra_keys_editor_max_signals">Düğme başına maksimum 8 sinyal</string>
+    <string name="extra_keys_editor_custom_text_no_space">Boşluk içeren özel metin kombinasyonlarda desteklenmez</string>
+    <string name="extra_keys_editor_done">Tamam</string>
+    <string name="extra_keys_editor_open_editor">Ek tuşları düzenle</string>
+    <string name="extra_keys_editor_open_editor_summary">Düzen, ölçek ve tuş bağlamalarını yapılandırın</string>
+    <string name="extra_keys_editor_hint">Ana tuşu atamak için dokunun · Hareket tuşları atamak için ↑ ↓ ← → kaydırın</string>
+
+    <!-- Extra keys editor signals -->
+    <string name="extra_keys_editor_signal_ctrl">CTRL (değiştirici)</string>
+    <string name="extra_keys_editor_signal_alt">ALT (değiştirici)</string>
+    <string name="extra_keys_editor_signal_shift">SHIFT (değiştirici)</string>
+    <string name="extra_keys_editor_signal_fn">FN (değiştirici)</string>
+    <string name="extra_keys_editor_signal_keyboard">Klavye aç/kapat</string>
+    <string name="extra_keys_editor_signal_paste">Yapıştır</string>
+    <string name="extra_keys_editor_signal_scroll">Kaydırma kilidi</string>
+    <string name="extra_keys_editor_signal_space">Space</string>
+    <string name="extra_keys_editor_signal_esc">Esc</string>
+    <string name="extra_keys_editor_signal_tab">Tab</string>
+    <string name="extra_keys_editor_signal_home">Home</string>
+    <string name="extra_keys_editor_signal_end">End</string>
+    <string name="extra_keys_editor_signal_page_up">Page Up</string>
+    <string name="extra_keys_editor_signal_page_down">Page Down</string>
+    <string name="extra_keys_editor_signal_insert">Insert</string>
+    <string name="extra_keys_editor_signal_delete">Delete</string>
+    <string name="extra_keys_editor_signal_backspace">Backspace</string>
+    <string name="extra_keys_editor_signal_up">Up</string>
+    <string name="extra_keys_editor_signal_left">Left</string>
+    <string name="extra_keys_editor_signal_right">Right</string>
+    <string name="extra_keys_editor_signal_down">Down</string>
+    <string name="extra_keys_editor_signal_enter">Enter</string>
+    <string name="extra_keys_editor_signal_f1">F1</string>
+    <string name="extra_keys_editor_signal_f2">F2</string>
+    <string name="extra_keys_editor_signal_f3">F3</string>
+    <string name="extra_keys_editor_signal_f4">F4</string>
+    <string name="extra_keys_editor_signal_f5">F5</string>
+    <string name="extra_keys_editor_signal_f6">F6</string>
+    <string name="extra_keys_editor_signal_f7">F7</string>
+    <string name="extra_keys_editor_signal_f8">F8</string>
+    <string name="extra_keys_editor_signal_f9">F9</string>
+    <string name="extra_keys_editor_signal_f10">F10</string>
+    <string name="extra_keys_editor_signal_f11">F11</string>
+    <string name="extra_keys_editor_signal_f12">F12</string>
+    <string name="extra_keys_editor_signal_backslash">Backslash (\\)</string>
+    <string name="extra_keys_editor_signal_quote">Quote (\")</string>
+    <string name="extra_keys_editor_signal_apostrophe">Apostrophe (\')</string>
+    <string name="extra_keys_editor_signal_custom">Özel metin…</string>
 </resources>
