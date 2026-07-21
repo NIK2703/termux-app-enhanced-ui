@@ -13,6 +13,8 @@ import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.LinearLayout;
 import android.widget.Toast;
+import android.view.Window;
+import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 
 import androidx.annotation.Keep;
@@ -281,6 +283,7 @@ public class SignalPickerDialogFragment extends DialogFragment {
         Context context = requireContext();
         EditText editText = new EditText(context);
         editText.setMaxLines(1);
+        editText.setSingleLine(true);
         editText.setEms(1);
 
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(context, R.style.ThemeOverlay_TermuxActivity_Dialog)
@@ -295,14 +298,34 @@ public class SignalPickerDialogFragment extends DialogFragment {
             .setNegativeButton(android.R.string.cancel, null);
 
         AlertDialog dialog = builder.create();
-        dialog.show();
 
-        // Immediately focus the EditText and show the keyboard
-        editText.requestFocus();
-        InputMethodManager imm = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
-        if (imm != null) {
-            imm.showSoftInput(editText, InputMethodManager.SHOW_FORCED);
+        // A: Configure dialog window to request keyboard on show
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE
+                | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         }
+
+        // B: Show keyboard when dialog is ready (after layout + window focus)
+        dialog.setOnShowListener(d -> {
+            editText.requestFocus();
+            editText.post(() -> {
+                InputMethodManager imm = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (imm != null) {
+                    imm.showSoftInput(editText, InputMethodManager.SHOW_IMPLICIT);
+                }
+            });
+        });
+
+        // C: Hide keyboard when dialog is dismissed
+        dialog.setOnDismissListener(d -> {
+            InputMethodManager imm = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null && editText.getWindowToken() != null) {
+                imm.hideSoftInputFromWindow(editText.getWindowToken(), 0);
+            }
+        });
+
+        dialog.show();
 
         // Capture the first character typed — close dialog immediately
         editText.addTextChangedListener(new android.text.TextWatcher() {

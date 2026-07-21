@@ -103,6 +103,7 @@ public class ExtraKeysEditorFragment extends TermuxPreferenceFragmentBase {
             heightPref.setOnPreferenceChangeListener((preference, newValue) -> {
                 mPrefs.setTerminalToolbarHeightScaleFactor(((Integer) newValue) / 100f);
                 rebuildPreview();
+                TermuxActivity.updateTermuxActivityStyling(requireContext(), true);
                 return true; // true = accept the change in SeekBarPreference (persistent=false prevents disk save, mPrefs call above writes the actual value)
             });
         }
