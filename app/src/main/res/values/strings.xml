@@ -577,8 +577,8 @@
     <string name="extra_keys_editor_preview_title">Preview</string>
     <string name="extra_keys_editor_preview_summary">Live panel — tap any key to change its signal.</string>
     <string name="extra_keys_editor_signal_dialog_title">Assign signal</string>
-    <string name="extra_keys_editor_custom_text_title">Custom text</string>
-    <string name="extra_keys_editor_custom_text_message">Enter literal text to send when this key is pressed:</string>
+    <string name="extra_keys_editor_custom_text_title">Custom bind</string>
+    <string name="extra_keys_editor_custom_text_message">Press any key to bind:</string>
     <string name="extra_keys_editor_save_title">Apply to extra keys</string>
     <string name="extra_keys_editor_save_summary">Save this layout to the extra-keys setting.</string>
     <string name="extra_keys_editor_empty">(empty)</string>
@@ -601,10 +601,10 @@
     <string name="extra_keys_visibility_never">Never</string>
 
     <!-- Extra keys editor signal entries -->
-    <string name="extra_keys_editor_signal_ctrl">CTRL (modifier)</string>
-    <string name="extra_keys_editor_signal_alt">ALT (modifier)</string>
-    <string name="extra_keys_editor_signal_shift">SHIFT (modifier)</string>
-    <string name="extra_keys_editor_signal_fn">FN (modifier)</string>
+    <string name="extra_keys_editor_signal_ctrl">CTRL</string>
+    <string name="extra_keys_editor_signal_alt">ALT</string>
+    <string name="extra_keys_editor_signal_shift">SHIFT</string>
+    <string name="extra_keys_editor_signal_fn">FN</string>
     <string name="extra_keys_editor_signal_keyboard">Keyboard toggle</string>
     <string name="extra_keys_editor_signal_paste">Paste</string>
     <string name="extra_keys_editor_signal_scroll">Scroll lock</string>
@@ -639,5 +639,5 @@
     <string name="extra_keys_editor_signal_backslash">Backslash (\\)</string>
     <string name="extra_keys_editor_signal_quote">Quote (\")</string>
     <string name="extra_keys_editor_signal_apostrophe">Apostrophe (\')</string>
-    <string name="extra_keys_editor_signal_custom">Custom text…</string>
+    <string name="extra_keys_editor_signal_custom">Custom bind…</string>
 </resources>

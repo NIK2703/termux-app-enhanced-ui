@@ -300,7 +300,7 @@
 
     <!-- Extra keys visibility -->
     <string name="extra_keys_visibility_title">Mostrar panel de teclas adicionales</string>
-    <string name="extra_keys_visibility_summary">Cuándo se muestra la barra de botones adicionales.</string>
+    <string name="extra_keys_visibility_summary">Cuándo se muestra la barra de teclas adicionales.</string>
     <string name="extra_keys_visibility_always">Siempre</string>
     <string name="extra_keys_visibility_keyboard">Solo cuando el teclado está abierto</string>
     <string name="extra_keys_visibility_never">Nunca</string>
@@ -310,21 +310,21 @@
 
     <!-- Extra keys editor -->
     <string name="extra_keys_editor_title">Editor de teclas adicionales</string>
-    <string name="extra_keys_editor_summary">Construya visualmente el panel de teclas adicionales: establezca filas y columnas, luego toque una tecla para asignar una señal.</string>
+    <string name="extra_keys_editor_summary">Construir visualmente el panel de teclas adicionales: establecer filas y columnas, luego toque una tecla para asignar una señal.</string>
     <string name="extra_keys_editor_columns_title">Columnas</string>
     <string name="extra_keys_editor_columns_summary">Número de botones por fila (1 a 10).</string>
     <string name="extra_keys_editor_rows_title">Filas</string>
     <string name="extra_keys_editor_rows_summary">Número de filas de botones (1 a 4).</string>
     <string name="extra_keys_editor_preview_title">Vista previa</string>
-    <string name="extra_keys_editor_preview_summary">Panel en vivo: toque cualquier tecla para cambiar su señal.</string>
+    <string name="extra_keys_editor_preview_summary">Vista previa en vivo: toque cualquier tecla para cambiar su señal.</string>
     <string name="extra_keys_editor_signal_dialog_title">Asignar señal</string>
-    <string name="extra_keys_editor_custom_text_title">Texto personalizado</string>
-    <string name="extra_keys_editor_custom_text_message">Introduzca el texto literal que se enviará al presionar esta tecla:</string>
+    <string name="extra_keys_editor_custom_text_title">Custom bind</string>
+    <string name="extra_keys_editor_custom_text_message">Press any key to bind:</string>
     <string name="extra_keys_editor_save_title">Aplicar a teclas adicionales</string>
     <string name="extra_keys_editor_save_summary">Guardar este diseño en la configuración de teclas adicionales.</string>
     <string name="extra_keys_editor_empty">(vacío)</string>
     <string name="extra_keys_editor_max_signals">Máximo 8 señales por botón</string>
-    <string name="extra_keys_editor_custom_text_no_space">No se admiten textos personalizados con espacios en combinaciones</string>
+    <string name="extra_keys_editor_custom_text_no_space">No se admiten textos personalizados con espacios en combinaciones de teclas</string>
     <string name="extra_keys_editor_done">Hecho</string>
     <string name="extra_keys_editor_open_editor">Editar teclas adicionales</string>
     <string name="extra_keys_editor_open_editor_summary">Configurar diseño, escala y asignaciones de teclas</string>
@@ -332,16 +332,11 @@
 
     <!-- Extra keys haptic feedback -->
     <string name="extra_keys_haptic_title">Respuesta háptica</string>
-    <string name="extra_keys_haptic_summary">Vibrar al interactuar con el panel de teclas adicionales</string>
+    <string name="extra_keys_haptic_summary">Vibración al interactuar con la barra de teclas adicionales</string>
     <string name="extra_keys_haptic_all">Toque y gestos</string>
     <string name="extra_keys_haptic_gestures">Solo gestos</string>
     <string name="extra_keys_haptic_off">Desactivado</string>
 
-    <!-- Extra keys editor signal entries -->
-    <string name="extra_keys_editor_signal_ctrl">CTRL (modificador)</string>
-    <string name="extra_keys_editor_signal_alt">ALT (modificador)</string>
-    <string name="extra_keys_editor_signal_shift">SHIFT (modificador)</string>
-    <string name="extra_keys_editor_signal_fn">FN (modificador)</string>
     <string name="extra_keys_editor_signal_keyboard">Alternar teclado</string>
     <string name="extra_keys_editor_signal_paste">Pegar</string>
     <string name="extra_keys_editor_signal_scroll">Bloqueo de desplazamiento</string>
@@ -375,5 +370,5 @@
     <string name="extra_keys_editor_signal_backslash">Barra invertida (\\)</string>
     <string name="extra_keys_editor_signal_quote">Comillas (\")</string>
     <string name="extra_keys_editor_signal_apostrophe">Apóstrofo (\')</string>
-    <string name="extra_keys_editor_signal_custom">Texto personalizado…</string>
+    <string name="extra_keys_editor_signal_custom">Custom bind…</string>
 </resources>

@@ -307,38 +307,33 @@
 
     <!-- Extra keys haptic feedback -->
     <string name="extra_keys_haptic_title">हैप्टिक फ़ीडबैक</string>
-    <string name="extra_keys_haptic_summary">अतिरिक्त कुंजियाँ पैनल इंटरैक्शन पर वाइब्रेट करें</string>
+    <string name="extra_keys_haptic_summary">अतिरिक्त कुंजी पैनल के उपयोग पर वाइब्रेट करें</string>
     <string name="extra_keys_haptic_all">टैप और जेस्चर</string>
     <string name="extra_keys_haptic_gestures">केवल जेस्चर</string>
     <string name="extra_keys_haptic_off">अक्षम</string>
 
     <!-- Extra keys editor -->
     <string name="extra_keys_editor_title">अतिरिक्त कुंजियाँ संपादक</string>
-    <string name="extra_keys_editor_summary">अतिरिक्त कुंजियाँ पैनल को दृश्य रूप से बनाएँ: पंक्तियाँ और स्तंभ सेट करें, फिर सिग्नल असाइन करने के लिए एक कुंजी दबाएँ।</string>
+    <string name="extra_keys_editor_summary">अतिरिक्त कुंजी पैनल को दृश्य रूप में बनाएँ: पंक्तियाँ और स्तंभ सेट करें, फिर सिग्नल असाइन करने के लिए एक कुंजी दबाएँ।</string>
     <string name="extra_keys_editor_columns_title">स्तंभ</string>
     <string name="extra_keys_editor_columns_summary">प्रति पंक्ति बटनों की संख्या (1 से 10)।</string>
     <string name="extra_keys_editor_rows_title">पंक्तियाँ</string>
     <string name="extra_keys_editor_rows_summary">बटन पंक्तियों की संख्या (1 से 4)।</string>
     <string name="extra_keys_editor_preview_title">पूर्वावलोकन</string>
-    <string name="extra_keys_editor_preview_summary">लाइव पैनल — इसका सिग्नल बदलने के लिए कोई भी कुंजी दबाएँ।</string>
+    <string name="extra_keys_editor_preview_summary">लाइव पैनल — किसी भी कुंजी का सिग्नल बदलने के लिए उसे दबाएँ।</string>
     <string name="extra_keys_editor_signal_dialog_title">सिग्नल असाइन करें</string>
-    <string name="extra_keys_editor_custom_text_title">कस्टम टेक्स्ट</string>
-    <string name="extra_keys_editor_custom_text_message">इस कुंजी को दबाने पर भेजने के लिए शाब्दिक टेक्स्ट दर्ज करें:</string>
+    <string name="extra_keys_editor_custom_text_title">Custom bind</string>
+    <string name="extra_keys_editor_custom_text_message">Press any key to bind:</string>
     <string name="extra_keys_editor_save_title">अतिरिक्त कुंजियों पर लागू करें</string>
-    <string name="extra_keys_editor_save_summary">इस लेआउट को अतिरिक्त कुंजियाँ सेटिंग में सहेजें।</string>
+    <string name="extra_keys_editor_save_summary">इस लेआउट को अतिरिक्त कुंजियों की सेटिंग में सहेजें।</string>
     <string name="extra_keys_editor_empty">(खाली)</string>
     <string name="extra_keys_editor_max_signals">अधिकतम 8 सिग्नल प्रति बटन</string>
-    <string name="extra_keys_editor_custom_text_no_space">स्पेस वाला कस्टम टेक्स्ट कॉम्बिनेशन में समर्थित नहीं है</string>
+    <string name="extra_keys_editor_custom_text_no_space">खाली स्थान वाला कस्टम टेक्स्ट संयोजन में समर्थित नहीं है</string>
     <string name="extra_keys_editor_done">हो गया</string>
     <string name="extra_keys_editor_open_editor">अतिरिक्त कुंजियाँ संपादित करें</string>
-    <string name="extra_keys_editor_open_editor_summary">लेआउट, स्केल और कुंजी बाइंडिंग कॉन्फ़िगर करें</string>
+    <string name="extra_keys_editor_open_editor_summary">लेआउट, आकार और कुंजी बाइंडिंग कॉन्फ़िगर करें</string>
     <string name="extra_keys_editor_hint">मुख्य कुंजी असाइन करने के लिए दबाएँ · जेस्चर कुंजियाँ असाइन करने के लिए ↑ ↓ ← → स्वाइप करें</string>
 
-    <!-- Extra keys editor signals -->
-    <string name="extra_keys_editor_signal_ctrl">CTRL (मॉडिफ़ायर)</string>
-    <string name="extra_keys_editor_signal_alt">ALT (मॉडिफ़ायर)</string>
-    <string name="extra_keys_editor_signal_shift">SHIFT (मॉडिफ़ायर)</string>
-    <string name="extra_keys_editor_signal_fn">FN (मॉडिफ़ायर)</string>
     <string name="extra_keys_editor_signal_keyboard">कीबोर्ड टॉगल</string>
     <string name="extra_keys_editor_signal_paste">पेस्ट करें</string>
     <string name="extra_keys_editor_signal_scroll">स्क्रॉल लॉक</string>
@@ -372,5 +367,5 @@
     <string name="extra_keys_editor_signal_backslash">बैकस्लैश (\\)</string>
     <string name="extra_keys_editor_signal_quote">कोट (\")</string>
     <string name="extra_keys_editor_signal_apostrophe">एपॉस्ट्रॉफ़ी (\')</string>
-    <string name="extra_keys_editor_signal_custom">कस्टम टेक्स्ट…</string>
+    <string name="extra_keys_editor_signal_custom">Custom bind…</string>
 </resources>

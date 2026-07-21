@@ -329,21 +329,21 @@ $HOME/bin/termux-url-opener
 
     <!-- Extra Keys Editor -->
     <string name="extra_keys_editor_title">추가 키 편집기</string>
-    <string name="extra_keys_editor_summary">추가 키 패널을 시각적으로 제작: 행과 열을 설정한 다음 키를 탭하여 신호를 지정하세요.</string>
+    <string name="extra_keys_editor_summary">추가 키 패널을 시각적으로 구성: 행과 열을 설정한 다음 키를 탭하여 신호를 지정하세요.</string>
     <string name="extra_keys_editor_columns_title">열</string>
     <string name="extra_keys_editor_columns_summary">행당 버튼 수 (1~10).</string>
     <string name="extra_keys_editor_rows_title">행</string>
     <string name="extra_keys_editor_rows_summary">버튼 행 수 (1~4).</string>
     <string name="extra_keys_editor_preview_title">미리보기</string>
-    <string name="extra_keys_editor_preview_summary">라이브 패널 — 키를 탭하여 신호를 변경하세요.</string>
+    <string name="extra_keys_editor_preview_summary">실시간 패널 — 키를 탭하여 신호를 변경하세요.</string>
     <string name="extra_keys_editor_signal_dialog_title">신호 지정</string>
-    <string name="extra_keys_editor_custom_text_title">사용자 정의 텍스트</string>
-    <string name="extra_keys_editor_custom_text_message">이 키를 누를 때 보낼 리터럴 텍스트를 입력하세요:</string>
+    <string name="extra_keys_editor_custom_text_title">Custom bind</string>
+    <string name="extra_keys_editor_custom_text_message">Press any key to bind:</string>
     <string name="extra_keys_editor_save_title">추가 키에 적용</string>
     <string name="extra_keys_editor_save_summary">이 레이아웃을 추가 키 설정에 저장합니다.</string>
     <string name="extra_keys_editor_empty">(비어 있음)</string>
     <string name="extra_keys_editor_max_signals">버튼당 최대 8개 신호</string>
-    <string name="extra_keys_editor_custom_text_no_space">공백이 있는 사용자 정의 텍스트는 조합에서 지원되지 않습니다</string>
+    <string name="extra_keys_editor_custom_text_no_space">공백이 포함된 사용자 정의 텍스트는 키 조합에서 지원되지 않습니다</string>
     <string name="extra_keys_editor_done">완료</string>
     <string name="extra_keys_editor_open_editor">추가 키 편집</string>
     <string name="extra_keys_editor_open_editor_summary">레이아웃, 크기 및 키 바인딩 구성</string>
@@ -357,10 +357,6 @@ $HOME/bin/termux-url-opener
     <string name="extra_keys_haptic_off">사용 안 함</string>
 
     <!-- Extra keys editor signal entries -->
-    <string name="extra_keys_editor_signal_ctrl">CTRL (수정자)</string>
-    <string name="extra_keys_editor_signal_alt">ALT (수정자)</string>
-    <string name="extra_keys_editor_signal_shift">SHIFT (수정자)</string>
-    <string name="extra_keys_editor_signal_fn">FN (수정자)</string>
     <string name="extra_keys_editor_signal_keyboard">키보드 전환</string>
     <string name="extra_keys_editor_signal_paste">붙여넣기</string>
     <string name="extra_keys_editor_signal_scroll">스크롤 잠금</string>
@@ -395,5 +391,5 @@ $HOME/bin/termux-url-opener
     <string name="extra_keys_editor_signal_backslash">백슬래시 (\\)</string>
     <string name="extra_keys_editor_signal_quote">따옴표 (\")</string>
     <string name="extra_keys_editor_signal_apostrophe">아포스트로피 (\')</string>
-    <string name="extra_keys_editor_signal_custom">사용자 정의 텍스트…</string>
+    <string name="extra_keys_editor_signal_custom">Custom bind…</string>
 </resources>

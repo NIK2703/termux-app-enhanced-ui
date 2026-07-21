@@ -310,8 +310,8 @@
     <string name="extra_keys_editor_preview_title">Pratinjau</string>
     <string name="extra_keys_editor_preview_summary">Panel langsung — ketuk tombol apa pun untuk mengubah sinyalnya.</string>
     <string name="extra_keys_editor_signal_dialog_title">Tetapkan sinyal</string>
-    <string name="extra_keys_editor_custom_text_title">Teks kustom</string>
-    <string name="extra_keys_editor_custom_text_message">Masukkan teks literal yang akan dikirim saat tombol ini ditekan:</string>
+    <string name="extra_keys_editor_custom_text_title">Custom bind</string>
+    <string name="extra_keys_editor_custom_text_message">Press any key to bind:</string>
     <string name="extra_keys_editor_save_title">Terapkan ke tombol tambahan</string>
     <string name="extra_keys_editor_save_summary">Simpan tata letak ini ke pengaturan tombol tambahan.</string>
     <string name="extra_keys_editor_empty">(kosong)</string>
@@ -319,7 +319,7 @@
     <string name="extra_keys_editor_custom_text_no_space">Teks kustom dengan spasi tidak didukung dalam kombinasi</string>
     <string name="extra_keys_editor_done">Selesai</string>
     <string name="extra_keys_editor_open_editor">Edit tombol tambahan</string>
-    <string name="extra_keys_editor_open_editor_summary">Konfigurasikan tata letak, skala, dan ikatan tombol</string>
+    <string name="extra_keys_editor_open_editor_summary">Konfigurasikan tata letak, skala, dan pemetaan tombol</string>
     <string name="extra_keys_editor_hint">Ketuk untuk menetapkan tombol utama · Geser ↑ ↓ ← → untuk menetapkan tombol isyarat</string>
 
     <!-- Extra keys haptic feedback -->
@@ -329,11 +329,6 @@
     <string name="extra_keys_haptic_gestures">Hanya isyarat</string>
     <string name="extra_keys_haptic_off">Nonaktif</string>
 
-    <!-- Extra keys editor signal entries -->
-    <string name="extra_keys_editor_signal_ctrl">CTRL (pengubah)</string>
-    <string name="extra_keys_editor_signal_alt">ALT (pengubah)</string>
-    <string name="extra_keys_editor_signal_shift">SHIFT (pengubah)</string>
-    <string name="extra_keys_editor_signal_fn">FN (pengubah)</string>
     <string name="extra_keys_editor_signal_keyboard">Keyboard toggle</string>
     <string name="extra_keys_editor_signal_paste">Paste</string>
     <string name="extra_keys_editor_signal_scroll">Scroll lock</string>
@@ -367,5 +362,5 @@
     <string name="extra_keys_editor_signal_backslash">Backslash (\\)</string>
     <string name="extra_keys_editor_signal_quote">Quote (\")</string>
     <string name="extra_keys_editor_signal_apostrophe">Apostrophe (\')</string>
-    <string name="extra_keys_editor_signal_custom">Teks kustom…</string>
+    <string name="extra_keys_editor_signal_custom">Custom bind…</string>
 </resources>

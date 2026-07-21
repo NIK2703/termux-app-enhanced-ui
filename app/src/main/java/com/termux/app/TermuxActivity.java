@@ -43,6 +43,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.termux.R;
@@ -499,8 +500,9 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
             // Skip this while paused (app backgrounded / screen off) — Android
             // dismisses the IME on pause, but we must keep the panel open so it
             // stays visible when the app returns to the foreground.
-            boolean imeVisible = WindowInsetsCompat.toWindowInsetsCompat(insets)
-                    .isVisible(WindowInsetsCompat.Type.ime());
+            WindowInsetsCompat _compat = WindowInsetsCompat.toWindowInsetsCompat(insets);
+            boolean imeVisible = _compat.isVisible(WindowInsetsCompat.Type.ime())
+                || _compat.getInsets(WindowInsetsCompat.Type.ime()).bottom > 0;
             if (!mIsPaused && !mJustResumed && mSoftKeyboardVisible && !imeVisible && isTextInputVisible()
                     && !mButtonTouchInProgress && !mPopupCtrl.isHistoryPopupShowing()) {
                 dismissAutoCompleteSuggestions();
@@ -523,7 +525,7 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
                 Logger.logDebug(LOG_TAG, "Auto-" + (imeVisible ? "showing" : "hiding") + " extra keys with keyboard");
             }
 
-            return insets;
+            return v.onApplyWindowInsets(insets);
         });
 
         setFullScreenFlags();
@@ -594,6 +596,12 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         // while panel open" and close the text input panel. onStart runs before
         // the insets listener fires on resume.
         mSoftKeyboardVisible = false;
+        // Request a fresh insets dispatch so the IME listener immediately
+        // re-evaluates the current keyboard state. Without this, if the
+        // keyboard was already open (e.g. after recreate or returning from
+        // background with keyboard still up), mSoftKeyboardVisible would
+        // stay false until the next IME state change.
+        ViewCompat.requestApplyInsets(findViewById(android.R.id.content));
 
         // Open the "just resumed" window: suppress the IME-hidden auto-close of
         // the panel until the transient post-return insets frames have settled.

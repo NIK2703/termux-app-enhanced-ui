@@ -316,7 +316,7 @@
 
     <!-- Extra keys visibility -->
     <string name="extra_keys_visibility_title">Ek tuşlar panelini göster</string>
-    <string name="extra_keys_visibility_summary">Ek düğmeler çubuğunun ne zaman gösterileceği.</string>
+    <string name="extra_keys_visibility_summary">Ek tuşlar panelinin ne zaman gösterileceği.</string>
     <string name="extra_keys_visibility_always">Her zaman</string>
     <string name="extra_keys_visibility_keyboard">Yalnızca klavye açıkken</string>
     <string name="extra_keys_visibility_never">Asla</string>
@@ -341,23 +341,19 @@
     <string name="extra_keys_editor_preview_title">Önizleme</string>
     <string name="extra_keys_editor_preview_summary">Canlı panel — sinyalini değiştirmek için herhangi bir tuşa dokunun.</string>
     <string name="extra_keys_editor_signal_dialog_title">Sinyal ata</string>
-    <string name="extra_keys_editor_custom_text_title">Özel metin</string>
-    <string name="extra_keys_editor_custom_text_message">Bu tuşa basıldığında gönderilecek metni girin:</string>
+    <string name="extra_keys_editor_custom_text_title">Custom bind</string>
+    <string name="extra_keys_editor_custom_text_message">Press any key to bind:</string>
     <string name="extra_keys_editor_save_title">Ek tuşlara uygula</string>
     <string name="extra_keys_editor_save_summary">Bu düzeni ek tuşlar ayarına kaydedin.</string>
     <string name="extra_keys_editor_empty">(boş)</string>
     <string name="extra_keys_editor_max_signals">Düğme başına maksimum 8 sinyal</string>
-    <string name="extra_keys_editor_custom_text_no_space">Boşluk içeren özel metin kombinasyonlarda desteklenmez</string>
+    <string name="extra_keys_editor_custom_text_no_space">Boşluk içeren özel metin, kombinasyonlarda desteklenmez</string>
     <string name="extra_keys_editor_done">Tamam</string>
     <string name="extra_keys_editor_open_editor">Ek tuşları düzenle</string>
     <string name="extra_keys_editor_open_editor_summary">Düzen, ölçek ve tuş bağlamalarını yapılandırın</string>
     <string name="extra_keys_editor_hint">Ana tuşu atamak için dokunun · Hareket tuşları atamak için ↑ ↓ ← → kaydırın</string>
 
     <!-- Extra keys editor signals -->
-    <string name="extra_keys_editor_signal_ctrl">CTRL (değiştirici)</string>
-    <string name="extra_keys_editor_signal_alt">ALT (değiştirici)</string>
-    <string name="extra_keys_editor_signal_shift">SHIFT (değiştirici)</string>
-    <string name="extra_keys_editor_signal_fn">FN (değiştirici)</string>
     <string name="extra_keys_editor_signal_keyboard">Klavye aç/kapat</string>
     <string name="extra_keys_editor_signal_paste">Yapıştır</string>
     <string name="extra_keys_editor_signal_scroll">Kaydırma kilidi</string>
@@ -391,5 +387,5 @@
     <string name="extra_keys_editor_signal_backslash">Backslash (\\)</string>
     <string name="extra_keys_editor_signal_quote">Quote (\")</string>
     <string name="extra_keys_editor_signal_apostrophe">Apostrophe (\')</string>
-    <string name="extra_keys_editor_signal_custom">Özel metin…</string>
+    <string name="extra_keys_editor_signal_custom">Custom bind…</string>
 </resources>

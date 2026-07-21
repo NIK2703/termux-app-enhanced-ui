@@ -334,13 +334,13 @@
     <string name="extra_keys_editor_preview_title">معاينة</string>
     <string name="extra_keys_editor_preview_summary">لوحة حية — اضغط على أي مفتاح لتغيير إشارته.</string>
     <string name="extra_keys_editor_signal_dialog_title">تعيين إشارة</string>
-    <string name="extra_keys_editor_custom_text_title">نص مخصص</string>
-    <string name="extra_keys_editor_custom_text_message">أدخل النص الحرفي لإرساله عند الضغط على هذا المفتاح:</string>
+    <string name="extra_keys_editor_custom_text_title">Custom bind</string>
+    <string name="extra_keys_editor_custom_text_message">Press any key to bind:</string>
     <string name="extra_keys_editor_save_title">تطبيق على المفاتيح الإضافية</string>
     <string name="extra_keys_editor_save_summary">احفظ هذا التخطيط في إعداد المفاتيح الإضافية.</string>
     <string name="extra_keys_editor_empty">(فارغ)</string>
     <string name="extra_keys_editor_max_signals">الحد الأقصى 8 إشارات لكل زر</string>
-    <string name="extra_keys_editor_custom_text_no_space">النص المخصص مع المسافات غير مدعوم في التوليفات</string>
+    <string name="extra_keys_editor_custom_text_no_space">النص المخصص مع المسافات غير مدعوم في التركيبات</string>
     <string name="extra_keys_editor_done">تم</string>
     <string name="extra_keys_editor_open_editor">تحرير المفاتيح الإضافية</string>
     <string name="extra_keys_editor_open_editor_summary">تكوين التخطيط والتحجيم وربط المفاتيح</string>
@@ -354,10 +354,6 @@
     <string name="extra_keys_haptic_off">معطل</string>
 
     <!-- Extra keys editor signals -->
-    <string name="extra_keys_editor_signal_ctrl">CTRL (معدل)</string>
-    <string name="extra_keys_editor_signal_alt">ALT (معدل)</string>
-    <string name="extra_keys_editor_signal_shift">SHIFT (معدل)</string>
-    <string name="extra_keys_editor_signal_fn">FN (معدل)</string>
     <string name="extra_keys_editor_signal_keyboard">تبديل لوحة المفاتيح</string>
     <string name="extra_keys_editor_signal_paste">لصق</string>
     <string name="extra_keys_editor_signal_scroll">قفل التمرير</string>
@@ -391,5 +387,5 @@
     <string name="extra_keys_editor_signal_backslash">خط مائل عكسي (\\)</string>
     <string name="extra_keys_editor_signal_quote">اقتباس (\")</string>
     <string name="extra_keys_editor_signal_apostrophe">فاصلة عليا (\')</string>
-    <string name="extra_keys_editor_signal_custom">نص مخصص…</string>
+    <string name="extra_keys_editor_signal_custom">Custom bind…</string>
 </resources>

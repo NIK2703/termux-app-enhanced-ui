@@ -13,6 +13,7 @@ import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.LinearLayout;
 import android.widget.Toast;
+import android.view.inputmethod.InputMethodManager;
 
 import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
@@ -279,31 +280,62 @@ public class SignalPickerDialogFragment extends DialogFragment {
     private void openCustomTextDialog() {
         Context context = requireContext();
         EditText editText = new EditText(context);
-        if (mSelected.size() == 1) {
-            editText.setText(mSelected.get(0));
-        }
+        editText.setMaxLines(1);
+        editText.setEms(1);
 
-        new MaterialAlertDialogBuilder(context, R.style.ThemeOverlay_TermuxActivity_Dialog)
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(context, R.style.ThemeOverlay_TermuxActivity_Dialog)
             .setTitle(R.string.extra_keys_editor_custom_text_title)
-            .setMessage(R.string.extra_keys_editor_custom_text_message)
             .setView(editText)
             .setPositiveButton(android.R.string.ok, (d, which) -> {
                 String text = editText.getText().toString().trim();
                 if (!text.isEmpty()) {
-                    if (mSelected.size() >= 8) {
-                        Toast.makeText(context, getString(R.string.extra_keys_editor_max_signals), Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    if (text.contains(" ")) {
-                        Toast.makeText(context, getString(R.string.extra_keys_editor_custom_text_no_space), Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    mSelected.add(text);
-                    rebuildChipsWithGrouping();
-                    updateDoneButton();
+                    addCustomSignal(text);
                 }
             })
-            .setNegativeButton(android.R.string.cancel, null)
-            .show();
+            .setNegativeButton(android.R.string.cancel, null);
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+
+        // Immediately focus the EditText and show the keyboard
+        editText.requestFocus();
+        InputMethodManager imm = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null) {
+            imm.showSoftInput(editText, InputMethodManager.SHOW_FORCED);
+        }
+
+        // Capture the first character typed — close dialog immediately
+        editText.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                if (s.length() > 0) {
+                    String text = s.toString().trim();
+                    if (!text.isEmpty() && addCustomSignal(text)) {
+                        dialog.dismiss();
+                    }
+                }
+            }
+        });
+    }
+
+    private boolean addCustomSignal(String text) {
+        if (mSelected.size() >= 8) {
+            Toast.makeText(requireContext(), getString(R.string.extra_keys_editor_max_signals), Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (text.contains(" ")) {
+            Toast.makeText(requireContext(), getString(R.string.extra_keys_editor_custom_text_no_space), Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        mSelected.add(text);
+        rebuildChipsWithGrouping();
+        updateDoneButton();
+        return true;
     }
 }

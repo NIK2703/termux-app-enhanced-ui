@@ -341,8 +341,8 @@
     <string name="extra_keys_editor_preview_title">预览</string>
     <string name="extra_keys_editor_preview_summary">实时面板 — 点击任意按键更改其信号。</string>
     <string name="extra_keys_editor_signal_dialog_title">分配信号</string>
-    <string name="extra_keys_editor_custom_text_title">自定义文本</string>
-    <string name="extra_keys_editor_custom_text_message">输入按下此键时要发送的文本：</string>
+    <string name="extra_keys_editor_custom_text_title">Custom bind</string>
+    <string name="extra_keys_editor_custom_text_message">Press any key to bind:</string>
     <string name="extra_keys_editor_save_title">应用到额外按键</string>
     <string name="extra_keys_editor_save_summary">将此布局保存到额外按键设置。</string>
     <string name="extra_keys_editor_empty">（空）</string>
@@ -354,10 +354,6 @@
     <string name="extra_keys_editor_hint">点击分配主键 · 滑动 ↑ ↓ ← → 分配手势键</string>
 
     <!-- Extra keys editor signals -->
-    <string name="extra_keys_editor_signal_ctrl">CTRL（修饰键）</string>
-    <string name="extra_keys_editor_signal_alt">ALT（修饰键）</string>
-    <string name="extra_keys_editor_signal_shift">SHIFT（修饰键）</string>
-    <string name="extra_keys_editor_signal_fn">FN（修饰键）</string>
     <string name="extra_keys_editor_signal_keyboard">键盘切换</string>
     <string name="extra_keys_editor_signal_paste">粘贴</string>
     <string name="extra_keys_editor_signal_scroll">滚动锁定</string>
@@ -391,5 +387,5 @@
     <string name="extra_keys_editor_signal_backslash">反斜杠（\\）</string>
     <string name="extra_keys_editor_signal_quote">引号（\"）</string>
     <string name="extra_keys_editor_signal_apostrophe">撇号（\'）</string>
-    <string name="extra_keys_editor_signal_custom">自定义文本…</string>
+    <string name="extra_keys_editor_signal_custom">Custom bind…</string>
 </resources>

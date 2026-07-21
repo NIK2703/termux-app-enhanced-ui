@@ -317,8 +317,8 @@
     <string name="extra_keys_editor_preview_title">Pré-visualização</string>
     <string name="extra_keys_editor_preview_summary">Painel ao vivo — toque em qualquer tecla para alterar seu sinal.</string>
     <string name="extra_keys_editor_signal_dialog_title">Atribuir sinal</string>
-    <string name="extra_keys_editor_custom_text_title">Texto personalizado</string>
-    <string name="extra_keys_editor_custom_text_message">Insira o texto literal a ser enviado quando esta tecla for pressionada:</string>
+    <string name="extra_keys_editor_custom_text_title">Custom bind</string>
+    <string name="extra_keys_editor_custom_text_message">Press any key to bind:</string>
     <string name="extra_keys_editor_save_title">Aplicar às teclas extras</string>
     <string name="extra_keys_editor_save_summary">Salvar este layout na configuração de teclas extras.</string>
     <string name="extra_keys_editor_empty">(vazio)</string>
@@ -337,10 +337,6 @@
     <string name="extra_keys_haptic_off">Desativado</string>
 
     <!-- Extra keys editor signal entries -->
-    <string name="extra_keys_editor_signal_ctrl">CTRL (modificador)</string>
-    <string name="extra_keys_editor_signal_alt">ALT (modificador)</string>
-    <string name="extra_keys_editor_signal_shift">SHIFT (modificador)</string>
-    <string name="extra_keys_editor_signal_fn">FN (modificador)</string>
     <string name="extra_keys_editor_signal_keyboard">Alternar teclado</string>
     <string name="extra_keys_editor_signal_paste">Colar</string>
     <string name="extra_keys_editor_signal_scroll">Bloqueio de rolagem</string>
@@ -374,5 +370,5 @@
     <string name="extra_keys_editor_signal_backslash">Barra invertida (\\)</string>
     <string name="extra_keys_editor_signal_quote">Aspas (\")</string>
     <string name="extra_keys_editor_signal_apostrophe">Apóstrofo (\')</string>
-    <string name="extra_keys_editor_signal_custom">Texto personalizado…</string>
+    <string name="extra_keys_editor_signal_custom">Custom bind…</string>
 </resources>

@@ -304,8 +304,8 @@
     <string name="screen_orientation_entry_landscape">Paysage</string>
 
     <!-- Extra keys visibility -->
-    <string name="extra_keys_visibility_title">Afficher le panneau des touches supplémentaires</string>
-    <string name="extra_keys_visibility_summary">Quand la barre de boutons supplémentaires est affichée</string>
+    <string name="extra_keys_visibility_title">Afficher la barre de touches supplémentaires</string>
+    <string name="extra_keys_visibility_summary">Quand la barre de touches supplémentaires est affichée</string>
     <string name="extra_keys_visibility_always">Toujours</string>
     <string name="extra_keys_visibility_keyboard">Uniquement quand le clavier est ouvert</string>
     <string name="extra_keys_visibility_never">Jamais</string>
@@ -317,18 +317,18 @@
     <string name="extra_keys_editor_title">Éditeur de touches supplémentaires</string>
     <string name="extra_keys_editor_summary">Construisez visuellement le panneau des touches supplémentaires : définissez les lignes et colonnes, puis appuyez sur une touche pour lui attribuer un signal.</string>
     <string name="extra_keys_editor_columns_title">Colonnes</string>
-    <string name="extra_keys_editor_columns_summary">Nombre de boutons par ligne (1 à 10).</string>
+    <string name="extra_keys_editor_columns_summary">Nombre de touches par ligne (1 à 10).</string>
     <string name="extra_keys_editor_rows_title">Lignes</string>
-    <string name="extra_keys_editor_rows_summary">Nombre de lignes de boutons (1 à 4).</string>
+    <string name="extra_keys_editor_rows_summary">Nombre de lignes de touches (1 à 4).</string>
     <string name="extra_keys_editor_preview_title">Aperçu</string>
     <string name="extra_keys_editor_preview_summary">Panneau en direct — appuyez sur une touche pour changer son signal.</string>
     <string name="extra_keys_editor_signal_dialog_title">Attribuer un signal</string>
-    <string name="extra_keys_editor_custom_text_title">Texte personnalisé</string>
-    <string name="extra_keys_editor_custom_text_message">Entrez le texte littéral à envoyer lorsque cette touche est pressée :</string>
+    <string name="extra_keys_editor_custom_text_title">Custom bind</string>
+    <string name="extra_keys_editor_custom_text_message">Press any key to bind:</string>
     <string name="extra_keys_editor_save_title">Appliquer aux touches supplémentaires</string>
     <string name="extra_keys_editor_save_summary">Enregistrer cette disposition dans le paramètre des touches supplémentaires.</string>
     <string name="extra_keys_editor_empty">(vide)</string>
-    <string name="extra_keys_editor_max_signals">Maximum 8 signaux par bouton</string>
+    <string name="extra_keys_editor_max_signals">Maximum 8 signaux par touche</string>
     <string name="extra_keys_editor_custom_text_no_space">Le texte personnalisé avec espaces n\'est pas pris en charge dans les combinaisons</string>
     <string name="extra_keys_editor_done">Terminé</string>
     <string name="extra_keys_editor_open_editor">Modifier les touches supplémentaires</string>
@@ -337,16 +337,12 @@
 
     <!-- Extra keys haptic feedback -->
     <string name="extra_keys_haptic_title">Retour haptique</string>
-    <string name="extra_keys_haptic_summary">Vibrer lors des interactions avec le panneau des touches supplémentaires</string>
+    <string name="extra_keys_haptic_summary">Vibrer lors des interactions avec la barre de touches supplémentaires</string>
     <string name="extra_keys_haptic_all">Appui et gestes</string>
     <string name="extra_keys_haptic_gestures">Gestes uniquement</string>
     <string name="extra_keys_haptic_off">Désactivé</string>
 
     <!-- Extra keys editor signals -->
-    <string name="extra_keys_editor_signal_ctrl">CTRL (modificateur)</string>
-    <string name="extra_keys_editor_signal_alt">ALT (modificateur)</string>
-    <string name="extra_keys_editor_signal_shift">SHIFT (modificateur)</string>
-    <string name="extra_keys_editor_signal_fn">FN (modificateur)</string>
     <string name="extra_keys_editor_signal_keyboard">Basculer le clavier</string>
     <string name="extra_keys_editor_signal_paste">Coller</string>
     <string name="extra_keys_editor_signal_scroll">Verrouillage du défilement</string>
@@ -380,5 +376,5 @@
     <string name="extra_keys_editor_signal_backslash">Backslash (\\)</string>
     <string name="extra_keys_editor_signal_quote">Guillemet (\")</string>
     <string name="extra_keys_editor_signal_apostrophe">Apostrophe (\')</string>
-    <string name="extra_keys_editor_signal_custom">Texte personnalisé…</string>
+    <string name="extra_keys_editor_signal_custom">Custom bind…</string>
 </resources>
