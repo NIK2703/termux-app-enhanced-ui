@@ -54,14 +54,6 @@
             app:showSeekBarValue="true"
             app:iconSpaceReserved="false" />
 
-        <EditTextPreference
-            app:key="terminal-toolbar-height"
-            app:title="@string/terminal_toolbar_height_title"
-            app:summary="@string/terminal_toolbar_height_summary"
-            app:defaultValue="1"
-            android:inputType="numberDecimal"
-            app:iconSpaceReserved="false" />
-
     </PreferenceCategory>
 
     <PreferenceCategory

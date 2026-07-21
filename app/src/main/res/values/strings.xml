@@ -431,9 +431,8 @@
     <string name="locale_override_entry_system">System default (auto-translate may be inaccurate)</string>
     <string name="locale_override_entry_english">English</string>
 
-    <!-- Hide extra keys with keyboard -->
-    <string name="hide_extra_keys_with_keyboard_title">Hide extra keys with keyboard</string>
-    <string name="hide_extra_keys_with_keyboard_summary">Automatically hide extra buttons when keyboard is closed, show when opened</string>
+    <string name="extra_keys_visibility_title">Show extra keys panel</string>
+    <string name="extra_keys_visibility_summary">When the additional buttons bar is shown.</string>
 
     <!-- Text input auto-complete -->
     <string name="suggestions_max_count_title">Max suggestions</string>
@@ -564,4 +563,20 @@
     <string name="night_mode_true">Dark</string>
     <string name="night_mode_false">Light</string>
     <string name="night_mode_system">System default</string>
+
+    <!-- Extra Keys Editor -->
+    <string name="extra_keys_editor_title">Extra Keys Editor</string>
+    <string name="extra_keys_editor_summary">Visually build the extra keys panel: set rows and columns, then tap a key to assign a signal.</string>
+    <string name="extra_keys_editor_columns_title">Columns</string>
+    <string name="extra_keys_editor_columns_summary">Number of buttons per row (1 to 10).</string>
+    <string name="extra_keys_editor_rows_title">Rows</string>
+    <string name="extra_keys_editor_rows_summary">Number of button rows (1 to 4).</string>
+    <string name="extra_keys_editor_preview_title">Preview</string>
+    <string name="extra_keys_editor_preview_summary">Live panel — tap any key to change its signal.</string>
+    <string name="extra_keys_editor_signal_dialog_title">Assign signal</string>
+    <string name="extra_keys_editor_custom_text_title">Custom text</string>
+    <string name="extra_keys_editor_custom_text_message">Enter literal text to send when this key is pressed:</string>
+    <string name="extra_keys_editor_save_title">Apply to extra keys</string>
+    <string name="extra_keys_editor_save_summary">Save this layout to the extra-keys setting.</string>
+    <string name="extra_keys_editor_empty">(empty)</string>
 </resources>

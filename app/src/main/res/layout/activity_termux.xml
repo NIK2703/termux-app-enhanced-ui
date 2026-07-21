@@ -48,7 +48,7 @@
                         android:layout_height="36dp"
                         android:layout_marginEnd="4dp"
                         android:src="@drawable/ic_add"
-                        android:background="@drawable/session_tab_background"
+                        android:background="@drawable/new_session_tab_background"
                         android:contentDescription="@string/action_new_session"
                         android:tint="?attr/colorOnSurface"
                         android:scaleType="center" />

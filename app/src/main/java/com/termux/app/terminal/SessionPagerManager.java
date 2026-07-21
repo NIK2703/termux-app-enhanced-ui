@@ -9,6 +9,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.termux.R;
+
+import java.util.function.Consumer;
 import com.termux.app.TermuxActivity;
 import com.termux.app.TermuxService;
 import com.termux.shared.termux.shell.command.runner.terminal.TermuxSession;
@@ -46,6 +48,21 @@ public final class SessionPagerManager {
 
     public void setPendingInitialSession(@Nullable TerminalSession session) {
         mPendingInitialSession = session;
+    }
+
+    @Nullable
+    private RecyclerView getPagerRecyclerView() {
+        if (mTerminalPager == null) return null;
+        return (RecyclerView) mTerminalPager.getChildAt(0);
+    }
+
+    /**
+     * Run {@code action} with the {@link TermuxSessionTabsController}, if one is available, so
+     * callers do not each have to repeat the null-safe {@code getTermuxSessionTabsController()} dance.
+     */
+    private void withTabsController(Consumer<TermuxSessionTabsController> action) {
+        TermuxSessionTabsController tabs = mActivity.getTermuxSessionTabsController();
+        if (tabs != null) action.accept(tabs);
     }
 
     /**
@@ -112,7 +129,7 @@ public final class SessionPagerManager {
         // Disable the RecyclerView item animator so the trailing placeholder page (inserted/removed
         // as the user lands on / leaves the last tab) appears and disappears instantly rather than
         // sliding in with a default animation — it must read as a normal tab page, not a popup.
-        final RecyclerView pagerRv = (RecyclerView) mTerminalPager.getChildAt(0);
+        final RecyclerView pagerRv = getPagerRecyclerView();
         if (pagerRv != null) pagerRv.setItemAnimator(null);
 
         mTerminalPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
@@ -128,8 +145,7 @@ public final class SessionPagerManager {
                     // end-scroll so onPageScrolled()'s finger-follow instant scroll is re-enabled and
                     // the strip can move with the swipe. The end-scroll (if any) already fired once
                     // the label was set; a manual swipe means the user is taking over.
-                    TermuxSessionTabsController tabs = mActivity.getTermuxSessionTabsController();
-                    if (tabs != null) tabs.setEndScrollReserved(false);
+                    withTabsController(tabs -> tabs.setEndScrollReserved(false));
                 } else if (state == ViewPager2.SCROLL_STATE_IDLE) {
                     mUserScrollInProgress = false;
                 }
@@ -149,9 +165,7 @@ public final class SessionPagerManager {
                     // If the swipe was cancelled (released back to the same page),
                     // onPageSelected never fires and the tab strip may be left in an
                     // intermediate blended state. Reset to clean selection state here.
-                    if (mActivity.getTermuxSessionTabsController() != null) {
-                        mActivity.getTermuxSessionTabsController().resetPageSelection(mTerminalPager.getCurrentItem());
-                    }
+                    withTabsController(tabs -> tabs.resetPageSelection(mTerminalPager.getCurrentItem()));
                 }
             }
 
@@ -160,9 +174,7 @@ public final class SessionPagerManager {
                 // Forward the intermediate scroll progress to the tab strip so the
                 // selection highlight and scroll position follow the user's finger
                 // smoothly rather than snapping at the end of the settle.
-                if (mActivity.getTermuxSessionTabsController() != null) {
-                    mActivity.getTermuxSessionTabsController().onPageScrolled(position, positionOffset);
-                }
+                withTabsController(tabs -> tabs.onPageScrolled(position, positionOffset));
                 // Update floating button margin for intermediate scroll state
                 updateFloatingButtonMarginForScroll(position, positionOffset);
 
@@ -226,7 +238,8 @@ public final class SessionPagerManager {
      * earlier by {@code setPendingInitialSession}, otherwise restores the stored/last session.
      */
     public void syncTerminalPagerToService() {
-        if (mTerminalPager == null || mTerminalPagerAdapter == null || mActivity.getTermuxService() == null) return;
+        TermuxService service = mActivity.getTermuxService();
+        if (mTerminalPager == null || mTerminalPagerAdapter == null || service == null) return;
 
         // If a cold-start session is being initialized on a background thread, defer the
         // ENTIRE pager sync (both adapter population and page selection).  The emulator
@@ -237,18 +250,18 @@ public final class SessionPagerManager {
         // so attachSession() → updateSize() will only resize, not fork again.
         if (mColdStartSessionPending) return;
 
-        mTerminalPagerAdapter.syncWithServiceList(mActivity.getTermuxService().getTermuxSessions());
+        mTerminalPagerAdapter.syncWithServiceList(service.getTermuxSessions());
 
         int index;
         if (mPendingInitialSession != null) {
-            index = mActivity.getTermuxService().getIndexOfSession(mPendingInitialSession);
+            index = service.getIndexOfSession(mPendingInitialSession);
             mPendingInitialSession = null;
         } else {
             TerminalSession stored = mActivity.getTermuxTerminalSessionClient().getCurrentStoredSessionOrLast();
-            index = (stored != null) ? mActivity.getTermuxService().getIndexOfSession(stored) : 0;
+            index = (stored != null) ? service.getIndexOfSession(stored) : 0;
         }
         if (index < 0) index = 0;
-        if (index >= mActivity.getTermuxService().getTermuxSessionsSize()) index = mActivity.getTermuxService().getTermuxSessionsSize() - 1;
+        if (index >= service.getTermuxSessionsSize()) index = service.getTermuxSessionsSize() - 1;
 
         if (index >= 0) {
             mTerminalPager.setCurrentItem(index, false);
@@ -283,10 +296,15 @@ public final class SessionPagerManager {
      * @return true if the "swipe rightmost tab for new session" feature is enabled and the user is
      *         not already at the {@link TermuxTerminalSessionActivityClient#MAX_SESSIONS} limit.
      */
+    private boolean isAtMaxSessions() {
+        TermuxService service = mActivity.getTermuxService();
+        return service != null && service.getTermuxSessionsSize() >= TermuxTerminalSessionActivityClient.MAX_SESSIONS;
+    }
+
     private boolean isPlaceholderEnabled() {
         TermuxService service = mActivity.getTermuxService();
         if (service == null) return false;
-        if (service.getTermuxSessionsSize() >= TermuxTerminalSessionActivityClient.MAX_SESSIONS) return false;
+        if (isAtMaxSessions()) return false;
         return mActivity.getSharedPreferences("termux_prefs", android.content.Context.MODE_PRIVATE)
                 .getBoolean("swipe_rightmost_new_tab", true);
     }
@@ -307,14 +325,12 @@ public final class SessionPagerManager {
             if (position < realLast) {
                 // Left the last tab — drop the placeholder page.
                 mTerminalPagerAdapter.setPlaceholderActive(false);
-                TermuxSessionTabsController tabs = mActivity.getTermuxSessionTabsController();
-                if (tabs != null) tabs.setPlaceholderActive(false);
+                withTabsController(tabs -> tabs.setPlaceholderActive(false));
             }
             // position == realLast → keep it.
         } else if (position == realLast && isPlaceholderEnabled()) {
             mTerminalPagerAdapter.setPlaceholderActive(true);
-            TermuxSessionTabsController tabs = mActivity.getTermuxSessionTabsController();
-            if (tabs != null) tabs.setPlaceholderActive(true);
+            withTabsController(tabs -> tabs.setPlaceholderActive(true));
         }
     }
 
@@ -330,7 +346,7 @@ public final class SessionPagerManager {
         int placeholderIndex = mTerminalPagerAdapter.getPlaceholderIndex();
 
         if (service == null || client == null) { cancelPlaceholder(); return; }
-        if (service.getTermuxSessionsSize() >= TermuxTerminalSessionActivityClient.MAX_SESSIONS) {
+        if (isAtMaxSessions()) {
             cancelPlaceholder();
             return;
         }
@@ -343,15 +359,15 @@ public final class SessionPagerManager {
         if (newSession == null) { cancelPlaceholder(); return; }
 
         mTerminalPagerAdapter.commitPlaceholder(service.getTermuxSessions(), placeholderIndex);
-        TermuxSessionTabsController tabs = mActivity.getTermuxSessionTabsController();
-        if (tabs != null) tabs.setPlaceholderActive(false);
-
-        // Reserve the end-scroll NOW (before the deferred post() bookkeeping runs) so that every
-        // onPageScrolled() instant scrollTo() during the pager settle is suppressed by the
-        // mEndScrollActive guard — only the single END smooth scroll (fired after the label is set)
-        // will drive the strip. Also arm the label-triggered scroll: the right-end scroll fires only
-        // once the new session's title is actually set (onTitleChanged), with a 250ms fallback.
-        if (tabs != null) tabs.setEndScrollReserved(true);
+        withTabsController(tabs -> {
+            tabs.setPlaceholderActive(false);
+            // Reserve the end-scroll NOW (before the deferred post() bookkeeping runs) so that every
+            // onPageScrolled() instant scrollTo() during the pager settle is suppressed by the
+            // mEndScrollActive guard — only the single END smooth scroll (fired after the label is set)
+            // will drive the strip. Also arm the label-triggered scroll: the right-end scroll fires only
+            // once the new session's title is actually set (onTitleChanged), with a 250ms fallback.
+            tabs.setEndScrollReserved(true);
+        });
         if (newSession.getTerminalSession() != null) {
             client.markPendingEndScrollSession(newSession.getTerminalSession());
         }
@@ -390,11 +406,10 @@ public final class SessionPagerManager {
         if (mTerminalPagerAdapter != null && mTerminalPagerAdapter.isPlaceholderActive()) {
             mTerminalPagerAdapter.setPlaceholderActive(false);
         }
-        TermuxSessionTabsController tabs = mActivity.getTermuxSessionTabsController();
-        if (tabs != null) {
+        withTabsController(tabs -> {
             tabs.setPlaceholderActive(false);
             tabs.resetPageSelection(mTerminalPager.getCurrentItem());
-        }
+        });
     }
 
     /**
@@ -457,7 +472,7 @@ public final class SessionPagerManager {
             // (not just the pager's target index) so a superseded switch does not re-assert it.
             final int pos = position;
             if (mTerminalPager != null) {
-                final RecyclerView rv = (RecyclerView) mTerminalPager.getChildAt(0);
+                final RecyclerView rv = getPagerRecyclerView();
                 if (rv != null) {
                     // Single-fire guard: either the attach listener OR the fallback post may run,
                     // never both, so the per-session bookkeeping below runs exactly once.
@@ -513,8 +528,7 @@ public final class SessionPagerManager {
         // (NOT updateTabs()) because updateTabs() does removeAllViews() + recreate every tab,
         // which would thrash on every swipe; setCurrentSession() only flips the selection
         // state / close-button visibility on the EXISTING tab views.
-        if (mActivity.getTermuxSessionTabsController() != null)
-            mActivity.getTermuxSessionTabsController().setCurrentSession(position);
+        withTabsController(tabs -> tabs.setCurrentSession(position));
 
         // Mirror the existing setCurrentSession() side effects for the newly-visible session so
         // per-session text input, tab highlight and background colour stay consistent. We avoid
@@ -581,14 +595,7 @@ public final class SessionPagerManager {
      */
     private int computeMarginEnd(@Nullable TerminalView view) {
         if (mActivity == null) return 0;
-        boolean hasScrollbar = view != null && view.mEmulator != null
-            && view.mEmulator.getScreen().getActiveTranscriptRows() > 0;
-        float density = mActivity.getResources().getDisplayMetrics().density;
-        if (hasScrollbar) {
-            return Math.max((int)(30 * density + 0.5f) - 2, 0);
-        } else {
-            return (int)(6 * density + 0.5f);
-        }
+        return TermuxActivity.computeFloatingButtonMarginEnd(view, mActivity.getResources());
     }
 
     /** Returns the {@link TerminalView} for the pager page at {@code position}, or null if not bound. */
@@ -603,7 +610,7 @@ public final class SessionPagerManager {
         TerminalView attached = mTerminalPagerAdapter.getAttachedView(position);
         if (attached != null) return attached;
         // Fallback for the rare case the map entry was dropped but the holder exists.
-        RecyclerView rv = (RecyclerView) mTerminalPager.getChildAt(0);
+        RecyclerView rv = getPagerRecyclerView();
         if (rv == null) return null;
         RecyclerView.ViewHolder vh = rv.findViewHolderForAdapterPosition(position);
         if (vh instanceof TerminalPagerAdapter.TerminalPageViewHolder) {
@@ -638,13 +645,14 @@ public final class SessionPagerManager {
         // during the sync — re-points the activity's terminal view to the correct page. If
         // updateTabs() ran first, getCurrentSession() would still return the closed session and no
         // tab would be highlighted.
-        if (mTerminalPager != null && mTerminalPagerAdapter != null && mActivity.getTermuxService() != null) {
-            int newSize = mActivity.getTermuxService().getTermuxSessionsSize();
+        TermuxService service = mActivity.getTermuxService();
+        if (mTerminalPager != null && mTerminalPagerAdapter != null && service != null) {
+            int newSize = service.getTermuxSessionsSize();
             if (mTerminalPagerAdapter.getItemCount() != newSize) {
                 int oldSize = mTerminalPagerAdapter.getItemCount();
                 int restoreIndex;
                 if (mPendingInitialSession != null) {
-                    restoreIndex = mActivity.getTermuxService().getIndexOfSession(mPendingInitialSession);
+                    restoreIndex = service.getIndexOfSession(mPendingInitialSession);
                     mPendingInitialSession = null;
                 } else if (newSize > oldSize) {
                     // A session was just added at the end of the list. Jump to its index so the
@@ -665,7 +673,7 @@ public final class SessionPagerManager {
                     restoreIndex = preferredIndex;
                 } else {
                     TerminalSession current = mActivity.getCurrentSession();
-                    restoreIndex = (current != null) ? mActivity.getTermuxService().getIndexOfSession(current) : mTerminalPager.getCurrentItem();
+                    restoreIndex = (current != null) ? service.getIndexOfSession(current) : mTerminalPager.getCurrentItem();
                 }
                 if (restoreIndex < 0) restoreIndex = mTerminalPager.getCurrentItem();
                 // Clamp to the new upper bound (e.g. closing the last tab should select the
@@ -680,13 +688,13 @@ public final class SessionPagerManager {
                 // no more "Inconsistency detected" / "Invalid item position" crashes.
                 // stopScroll() + setUserInputEnabled(false) still fire as a safety net
                 // to suppress touch and smooth-scroll animations during the update.
-                final RecyclerView pagerRv = (RecyclerView) mTerminalPager.getChildAt(0);
+                final RecyclerView pagerRv = getPagerRecyclerView();
                 if (pagerRv != null) pagerRv.stopScroll();
                 mTerminalPager.setUserInputEnabled(false);
 
-                mTerminalPagerAdapter.syncWithServiceList(mActivity.getTermuxService().getTermuxSessions());
+                mTerminalPagerAdapter.syncWithServiceList(service.getTermuxSessions());
 
-                if (restoreIndex >= 0 && restoreIndex < mActivity.getTermuxService().getTermuxSessionsSize()) {
+                if (restoreIndex >= 0 && restoreIndex < service.getTermuxSessionsSize()) {
                     mTerminalPager.setCurrentItem(restoreIndex, false);
                 }
 

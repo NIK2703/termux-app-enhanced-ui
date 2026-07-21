@@ -11,8 +11,6 @@ import com.termux.app.TermuxActivity;
 import com.termux.app.TermuxActivityUtils;
 import com.termux.shared.termux.extrakeys.ColorSchemeUtils;
 import com.termux.shared.termux.extrakeys.FontUtils;
-import com.termux.shared.theme.NightMode;
-import com.termux.shared.theme.ThemeUtils;
 import com.termux.terminal.TerminalSession;
 
 /**
@@ -126,10 +124,7 @@ public class TermuxDialogs {
      * live to that theme.
      */
     public void showStylingDialog() {
-        final NightMode appNightMode = NightMode.getAppNightMode();
-        final boolean isNight = (appNightMode == NightMode.SYSTEM)
-                ? ThemeUtils.isSystemNightModeEnabled()
-                : (appNightMode == NightMode.TRUE);
+        final boolean isNight = TermuxActivity.isNightModeActive();
         ColorSchemeUtils.showColorSchemeDialog(mActivity, isNight, mActivity.getString(R.string.color_scheme_dialog_title),
                 mActivity.getString(R.string.error_styling_not_installed),
                 () -> TermuxActivityUtils.updateTermuxActivityStyling(mActivity, false));

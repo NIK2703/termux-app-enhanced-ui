@@ -143,7 +143,7 @@ public final class MessageHistoryPopupController {
                 mHistoryEmptyHintShown = true;
                 Toast bottomToast = Toast.makeText(mActivity,
                         mActivity.getString(R.string.message_history_empty), Toast.LENGTH_SHORT);
-                bottomToast.setGravity(Gravity.BOTTOM, 0, dpToPx(48));
+                bottomToast.setGravity(Gravity.BOTTOM, 0, TermuxActivityUtils.dpToPx(mActivity, 48));
                 bottomToast.show();
             }
             return;
@@ -153,8 +153,8 @@ public final class MessageHistoryPopupController {
         content.setOrientation(LinearLayout.VERTICAL);
         content.setBackgroundColor(Color.TRANSPARENT);
 
-        int padH = dpToPx(14);
-        int padV = dpToPx(10);
+        int padH = TermuxActivityUtils.dpToPx(mActivity, 14);
+        int padV = TermuxActivityUtils.dpToPx(mActivity, 10);
 
         // Synthetic "CLEAR HISTORY…" row pinned at the TOP of the popup.
         // Selecting it opens a confirmation dialog; confirming wipes all history.
@@ -180,7 +180,7 @@ public final class MessageHistoryPopupController {
             View sep = new View(mActivity);
             sep.setBackgroundColor(mColorSchemeManager.getHistoryPopupSepColor());
             content.addView(sep, new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
+                    ViewGroup.LayoutParams.MATCH_PARENT, TermuxActivityUtils.dpToPx(mActivity, 1)));
         }
         // Displayed order (spec): newest at the BOTTOM (nearest the pencil button,
         // first reached by a swipe-up), oldest at the top. A re-sent message moves
@@ -235,13 +235,13 @@ public final class MessageHistoryPopupController {
                 sepBottom.setBackgroundColor(mColorSchemeManager.getHistoryPopupSepColor());
                 content.addView(sepBottom, content.getChildCount() - 1,
                         new LinearLayout.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
+                                ViewGroup.LayoutParams.MATCH_PARENT, TermuxActivityUtils.dpToPx(mActivity, 1)));
             }
         }
 
         int popupWidth = Math.min(
-                mActivity.getResources().getDisplayMetrics().widthPixels - dpToPx(24),
-                dpToPx(320));
+                mActivity.getResources().getDisplayMetrics().widthPixels - TermuxActivityUtils.dpToPx(mActivity, 24),
+                TermuxActivityUtils.dpToPx(mActivity, 320));
 
         // Wrap in a ScrollView: the popup is a bounded box (never edge-to-edge),
         // and a taller history scrolls inside it. Kept for edge auto-scroll while
@@ -263,7 +263,7 @@ public final class MessageHistoryPopupController {
                     int w = view.getWidth();
                     int h = view.getHeight();
                     if (w > 0 && h > 0) {
-                        outline.setRoundRect(0, 0, w, h, dpToPx(12));
+                        outline.setRoundRect(0, 0, w, h, TermuxActivityUtils.dpToPx(mActivity, 12));
                     }
                 }
             });
@@ -278,7 +278,7 @@ public final class MessageHistoryPopupController {
         // itself via setAlpha(), which does not affect the popup's background outline.
         // Larger elevation (16dp) for a bigger shadow, but outline alpha is
         // reduced so the shadow renders more transparent/softer.
-        mHistoryPopup.setElevation(dpToPx(16));
+        mHistoryPopup.setElevation(TermuxActivityUtils.dpToPx(mActivity, 16));
         // Background: rounded rect, fully opaque scheme composite colour.
         // getOutline() is overridden to call outline.setAlpha() — this controls
         // the shadow opacity independently from the elevation size.
@@ -296,7 +296,7 @@ public final class MessageHistoryPopupController {
             }
         };
         popupBgDrawable.setShape(GradientDrawable.RECTANGLE);
-        popupBgDrawable.setCornerRadius(dpToPx(12));
+        popupBgDrawable.setCornerRadius(TermuxActivityUtils.dpToPx(mActivity, 12));
         popupBgDrawable.setColor(mColorSchemeManager.getHistoryPopupBg()); // must be opaque for getOutline
         mHistoryPopup.setBackgroundDrawable(popupBgDrawable);
         // 10% visual transparency on the content (not the background drawable, so the
@@ -320,9 +320,9 @@ public final class MessageHistoryPopupController {
         int[] anchorLoc = new int[2];
         anchor.getLocationOnScreen(anchorLoc);
         // Gap between the button's top and the popup's bottom edge.
-        int popupGap = dpToPx(MESSAGE_HISTORY_POPUP_GAP_DP);
-        int roomAbove = Math.max(dpToPx(48), anchorLoc[1] - dpToPx(8) - popupGap);
-        int maxHeight = Math.min(dpToPx(MESSAGE_HISTORY_POPUP_MAX_HEIGHT_DP), roomAbove);
+        int popupGap = TermuxActivityUtils.dpToPx(mActivity, MESSAGE_HISTORY_POPUP_GAP_DP);
+        int roomAbove = Math.max(TermuxActivityUtils.dpToPx(mActivity, 48), anchorLoc[1] - TermuxActivityUtils.dpToPx(mActivity, 8) - popupGap);
+        int maxHeight = Math.min(TermuxActivityUtils.dpToPx(mActivity, MESSAGE_HISTORY_POPUP_MAX_HEIGHT_DP), roomAbove);
         int popupHeight = Math.min(contentHeight, maxHeight);
         mHistoryPopup.update(anchor,
                 0,
@@ -429,8 +429,8 @@ public final class MessageHistoryPopupController {
         mHistoryScroll.getLocationOnScreen(loc);
         int top = loc[1];
         int bottom = loc[1] + mHistoryScroll.getHeight();
-        int band = dpToPx(36);      // edge-sensitive zone
-        int maxStep = dpToPx(24);   // max px scrolled per 16ms reference interval
+        int band = TermuxActivityUtils.dpToPx(mActivity, 36);      // edge-sensitive zone
+        int maxStep = TermuxActivityUtils.dpToPx(mActivity, 24);   // max px scrolled per 16ms reference interval
 
         // Time-based step: scale by actual frame time so scroll speed is
         // consistent across 60/90/120 Hz displays (Choreographer / postOnAnimation).
@@ -512,9 +512,5 @@ public final class MessageHistoryPopupController {
     /** Whether the popup is currently showing. */
     public boolean isShowing() {
         return mHistoryPopup != null && mHistoryPopup.isShowing();
-    }
-
-    private int dpToPx(int dp) {
-        return TermuxActivityUtils.dpToPx(mActivity, dp);
     }
 }

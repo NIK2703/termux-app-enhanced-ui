@@ -69,6 +69,8 @@ public class TermuxSessionsListViewController extends ArrayAdapter<TermuxSession
         String sessionTitle = sessionAtRow.getTitle();
 
         String numberPart = "[" + (position + 1) + "] ";
+        // The list keeps an empty name part when name is blank to preserve the "[n] " formatting,
+        // so resolve the display name only when a real name is present.
         String sessionNamePart = (TextUtils.isEmpty(name) ? "" : name);
         String sessionTitlePart = (TextUtils.isEmpty(sessionTitle) ? "" : ((sessionNamePart.isEmpty() ? "" : "\n") + sessionTitle));
 
@@ -81,15 +83,10 @@ public class TermuxSessionsListViewController extends ArrayAdapter<TermuxSession
 
         boolean sessionRunning = sessionAtRow.isRunning();
 
-        if (sessionRunning) {
-            sessionTitleView.setPaintFlags(sessionTitleView.getPaintFlags() & ~Paint.STRIKE_THRU_TEXT_FLAG);
-        } else {
-            sessionTitleView.setPaintFlags(sessionTitleView.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
-        }
         int defaultColor = csm.getButtonText();
         int errorColor = ContextCompat.getColor(mActivity, com.termux.shared.R.color.terminal_tab_text_error);
-        int color = sessionRunning || sessionAtRow.getExitStatus() == 0 ? defaultColor : errorColor;
-        sessionTitleView.setTextColor(color);
+        SessionAppearanceUtils.applyFinishedSessionStyling(sessionTitleView, sessionRunning,
+                sessionAtRow.getExitStatus(), errorColor, defaultColor);
         return sessionRowView;
     }
 

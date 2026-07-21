@@ -64,9 +64,6 @@ public class TerminalPreferencesFragment extends TermuxPreferenceFragmentBase {
         configureSeekBarInt("terminal-margin-vertical", prefs.getTerminalMarginVertical(),
             value -> prefs.setTerminalMarginVertical(value), true);
 
-        configureFloatEditText("terminal-toolbar-height", prefs.getTerminalToolbarHeightScaleFactor(),
-            value -> prefs.setTerminalToolbarHeightScaleFactor(value), true);
-
         configureStringEditText("default-working-directory", prefs.getDefaultWorkingDirectory(),
             value -> prefs.setDefaultWorkingDirectory(value), false);
 

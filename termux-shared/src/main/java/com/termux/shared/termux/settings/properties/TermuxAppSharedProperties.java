@@ -294,13 +294,10 @@ public class TermuxAppSharedProperties {
 
             /* Integer (code point, may be null) */
             case TermuxPropertyConstants.KEY_SHORTCUT_CREATE_SESSION:
-                return getShortcutCodePoint(TermuxPropertyConstants.KEY_SHORTCUT_CREATE_SESSION);
             case TermuxPropertyConstants.KEY_SHORTCUT_NEXT_SESSION:
-                return getShortcutCodePoint(TermuxPropertyConstants.KEY_SHORTCUT_NEXT_SESSION);
             case TermuxPropertyConstants.KEY_SHORTCUT_PREVIOUS_SESSION:
-                return getShortcutCodePoint(TermuxPropertyConstants.KEY_SHORTCUT_PREVIOUS_SESSION);
             case TermuxPropertyConstants.KEY_SHORTCUT_RENAME_SESSION:
-                return getShortcutCodePoint(TermuxPropertyConstants.KEY_SHORTCUT_RENAME_SESSION);
+                return getShortcutCodePoint(key);
 
             /* String (may be null) */
             case TermuxPropertyConstants.KEY_BACK_KEY_BEHAVIOUR:

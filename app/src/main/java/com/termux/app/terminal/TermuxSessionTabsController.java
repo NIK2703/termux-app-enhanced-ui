@@ -18,6 +18,8 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.annotation.Nullable;
+
 import com.termux.R;
 import com.termux.app.TermuxActivity;
 import com.termux.shared.termux.shell.command.runner.terminal.TermuxSession;
@@ -77,6 +79,17 @@ public class TermuxSessionTabsController {
         mTabsContainer.setLayoutTransition(transition);
     }
 
+    private int getTabCount() {
+        if (mTabsContainer == null) return 0;
+        return mTabsContainer.getChildCount() - 1; // последний child — это (+) кнопка, не таб
+    }
+
+    @Nullable
+    private View getTabAt(int index) {
+        if (mTabsContainer == null) return null;
+        return mTabsContainer.getChildAt(index);
+    }
+
     /** Returns tab height in pixels based on the user's tab-height preference. */
     private int getTabHeightPx() {
         String mode = mActivity.getSharedPreferences("termux_prefs", android.content.Context.MODE_PRIVATE)
@@ -102,8 +115,8 @@ public class TermuxSessionTabsController {
                 ? R.dimen.terminal_tab_padding_start_single
                 : R.dimen.terminal_tab_padding_start_double;
         int padStartPx = Math.round(mActivity.getResources().getDimension(padStartDimenId));
-        for (int i = 0; i < mTabsContainer.getChildCount() - 1; i++) {
-            View tabView = mTabsContainer.getChildAt(i);
+        for (int i = 0; i < getTabCount(); i++) {
+            View tabView = getTabAt(i);
             ViewGroup.LayoutParams lp = tabView.getLayoutParams();
             lp.height = heightPx;
             tabView.setLayoutParams(lp);
@@ -298,8 +311,7 @@ public class TermuxSessionTabsController {
             String name = terminalSession.mSessionName;
             String title = terminalSession.getTitle();
 
-            String displayTitle = (name != null && !name.isEmpty()) ? name :
-                                  (title != null && !title.isEmpty()) ? title : mActivity.getString(R.string.session_default_title);
+            String displayTitle = SessionTitleUtils.resolveDisplayName(mActivity, name, title);
 
             titleView.setText(displayTitle);
 
@@ -324,11 +336,10 @@ public class TermuxSessionTabsController {
             }
 
             // Strike through for finished sessions.
-            if (!sessionRunning) {
-                titleView.setPaintFlags(titleView.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
-            } else {
-                titleView.setPaintFlags(titleView.getPaintFlags() & ~Paint.STRIKE_THRU_TEXT_FLAG);
-            }
+            SessionAppearanceUtils.applyFinishedSessionStyling(titleView, sessionRunning,
+                    terminalSession.getExitStatus(),
+                    androidx.core.content.ContextCompat.getColor(mActivity, com.termux.shared.R.color.terminal_tab_text_error),
+                    mSchemeTextColor);
         }
 
         // Selection state and close button visibility.
@@ -349,8 +360,8 @@ public class TermuxSessionTabsController {
         // Find the tab view that maps to this session.
         View tabView = null;
         if (mTabsContainer != null) {
-            for (int i = 0; i < mTabsContainer.getChildCount() - 1; i++) {
-                View child = mTabsContainer.getChildAt(i);
+            for (int i = 0; i < getTabCount(); i++) {
+                View child = getTabAt(i);
                 if (child == null) continue;
                 Object tag = child.getTag(R.id.session_tab_session_tag);
                 if (tag == session) {
@@ -787,8 +798,8 @@ public class TermuxSessionTabsController {
         if (mTabsContainer == null) return;
         int errorColor = androidx.core.content.ContextCompat.getColor(
                 mActivity, com.termux.shared.R.color.terminal_tab_text_error);
-        for (int i = 0; i < mTabsContainer.getChildCount() - 1; i++) {
-            View tabView = mTabsContainer.getChildAt(i);
+        for (int i = 0; i < getTabCount(); i++) {
+            View tabView = getTabAt(i);
             TextView title = tabView.findViewById(R.id.session_tab_title);
             ImageButton close = tabView.findViewById(R.id.session_tab_close);
             // Error (finished-with-exit) tabs keep their red color; normal tabs use the scheme fg.
@@ -803,10 +814,7 @@ public class TermuxSessionTabsController {
 
         // Give the (+) add button (last child, excluded from the loop above) its scheme
         // background while preserving the press/swipe active-state visual.
-        if (mSchemeApplied) {
-            View addBtn = mTabsContainer.getChildAt(mTabsContainer.getChildCount() - 1);
-            if (addBtn != null) setAddButtonBackground(addBtn);
-        }
+        applyAddButtonSchemeBackground();
     }
 
     /** Tell the controller whether the trailing placeholder page is present, so an in-progress
@@ -833,34 +841,33 @@ public class TermuxSessionTabsController {
         }
     }
 
-    public void setCurrentSession(int index) {        if (mTabsContainer == null) return;
-        if (index < 0 || index >= mTabsContainer.getChildCount() - 1) return;
-
-        // Update selection state and close button visibility for all tabs
-        for (int i = 0; i < mTabsContainer.getChildCount() - 1; i++) {
-            View child = mTabsContainer.getChildAt(i);
+    private void applyTabSelectionState(int index) {
+        if (mTabsContainer == null) return;
+        for (int i = 0; i < getTabCount(); i++) {
+            View child = getTabAt(i);
             boolean isSelected = (i == index);
             child.setSelected(isSelected);
-
-            // Re-tint the background to follow the selection: selected tab uses the active
-            // control background, the rest use the normal control background (same colors as the
-            // other bottom-panel controls). Only once the scheme colors have been applied.
             if (mSchemeApplied) {
                 setTabBackground(child, isSelected ? mSchemeBgActive : mSchemeBg);
             }
-
             ImageButton closeButton = child.findViewById(R.id.session_tab_close);
             if (closeButton != null) {
                 closeButton.setVisibility(isSelected ? View.VISIBLE : View.INVISIBLE);
             }
         }
+        applyAddButtonSchemeBackground();
+    }
 
-        // The (+) add button (last child) never becomes selected; keep it at the normal scheme bg,
-        // overriding any blend left over from the placeholder swipe. Preserve its active state.
-        if (mSchemeApplied) {
-            View addBtn = mTabsContainer.getChildAt(mTabsContainer.getChildCount() - 1);
-            if (addBtn != null) setAddButtonBackground(addBtn);
-        }
+    private void applyAddButtonSchemeBackground() {
+        if (mTabsContainer == null || !mSchemeApplied) return;
+        View addBtn = mTabsContainer.getChildAt(mTabsContainer.getChildCount() - 1);
+        if (addBtn != null) setAddButtonBackground(addBtn);
+    }
+
+    public void setCurrentSession(int index) {        if (mTabsContainer == null) return;
+        if (index < 0 || index >= mTabsContainer.getChildCount() - 1) return;
+
+        applyTabSelectionState(index);
 
         mCurrentSessionIndex = index;
         // A genuine tab selection (user tap / page settle) cancels any sticky end-scroll so the
@@ -893,10 +900,6 @@ public class TermuxSessionTabsController {
             return;
         }
         mPageScrollSuppressed = 0;
-        // While a just-added tab's end-scroll is active, let scrollStripToEnd() own the strip
-        // scroll. The pager's smooth settle would otherwise issue instant scrollTo() calls here
-        // that fight the smooth END scroll (jank + under-scroll, (+) button left clipped).
-        if (mEndScrollActive) return;
 
         int leftIdx = position;
         int rightIdx = position + 1;
@@ -955,24 +958,7 @@ public class TermuxSessionTabsController {
      */
     public void resetPageSelection(int currentIndex) {
         if (mTabsContainer == null) return;
-        for (int i = 0; i < mTabsContainer.getChildCount() - 1; i++) {
-            View child = mTabsContainer.getChildAt(i);
-            boolean isSelected = (i == currentIndex);
-            child.setSelected(isSelected);
-            if (mSchemeApplied) {
-                setTabBackground(child, isSelected ? mSchemeBgActive : mSchemeBg);
-            }
-            ImageButton closeButton = child.findViewById(R.id.session_tab_close);
-            if (closeButton != null) {
-                closeButton.setVisibility(isSelected ? View.VISIBLE : View.INVISIBLE);
-            }
-        }
-
-        // Reset the (+) add button (last child) to the normal scheme bg after a cancelled swipe.
-        if (mSchemeApplied) {
-            View addBtn = mTabsContainer.getChildAt(mTabsContainer.getChildCount() - 1);
-            if (addBtn != null) setAddButtonBackground(addBtn);
-        }
+        applyTabSelectionState(currentIndex);
         mCurrentSessionIndex = currentIndex;
     }
 
@@ -995,6 +981,10 @@ public class TermuxSessionTabsController {
      */
     private void setAddButtonBackground(View view) {
         int strokePx = Math.round(mActivity.getResources().getDimension(R.dimen.terminal_text_input_stroke));
+        view.setBackground(buildOvalStateListDrawable(strokePx));
+    }
+
+    private StateListDrawable buildOvalStateListDrawable(int strokePx) {
         GradientDrawable idle = new GradientDrawable();
         idle.setShape(GradientDrawable.OVAL);
         idle.setColor(mSchemeBg);
@@ -1009,7 +999,7 @@ public class TermuxSessionTabsController {
         states.addState(new int[]{android.R.attr.state_pressed}, active);
         states.addState(new int[]{android.R.attr.state_selected}, active);
         states.addState(new int[]{}, idle);
-        view.setBackground(states);
+        return states;
     }
 
     private void setTabBackground(View view, int color) {

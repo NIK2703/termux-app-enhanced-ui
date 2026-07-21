@@ -34,8 +34,6 @@ import com.termux.shared.termux.terminal.TermuxTerminalSessionClientBase;
 import com.termux.shared.termux.TermuxConstants;
 import com.termux.app.TermuxService;
 import com.termux.shared.termux.settings.properties.TermuxPropertyConstants;
-import com.termux.shared.theme.ThemeUtils;
-import com.termux.shared.theme.NightMode;
 import com.termux.view.TerminalView;
 import com.termux.shared.termux.terminal.io.BellHandler;
 import com.termux.shared.logger.Logger;
@@ -57,6 +55,8 @@ import java.util.Properties;
 public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionClientBase {
 
     private final TermuxActivity mActivity;
+
+    private final android.os.Handler mMainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
 
     static final int MAX_SESSIONS = 8;
 
@@ -160,20 +160,23 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
 
 
 
+    private void runIfVisible(java.lang.Runnable action) {
+        if (mActivity.isVisible()) action.run();
+    }
+
     @Override
     public void onTextChanged(@NonNull TerminalSession changedSession) {
-        if (!mActivity.isVisible()) return;
-
-        if (mActivity.getCurrentSession() == changedSession) {
-            TerminalView tv = mActivity.getTerminalView();
-            if (tv != null) tv.onScreenUpdated();
-        }
+        runIfVisible(() -> {
+            if (mActivity.getCurrentSession() == changedSession) {
+                TerminalView tv = mActivity.getTerminalView();
+                if (tv != null) tv.onScreenUpdated();
+            }
+        });
     }
 
     @Override
     public void onTitleChanged(@NonNull TerminalSession updatedSession) {
-        if (!mActivity.isVisible()) return;
-
+        runIfVisible(() -> {
         // Toast suppressed — the user requested no popups on session events.
 
         // If this is the session we just added by a right-swipe, its label is now real — scroll
@@ -181,8 +184,7 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         // actually set. Clear the pending ref + cancel the fallback timer.
         if (mPendingEndScrollSession == updatedSession) {
             mPendingEndScrollSession = null;
-            android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
-            mainHandler.removeCallbacks(mEndScrollFallback);
+            mMainHandler.removeCallbacks(mEndScrollFallback);
             TermuxSessionTabsController tabs = mActivity.getTermuxSessionTabsController();
             if (tabs != null) tabs.scrollStripToEnd();
             // Still refresh the tab list so the new title paints.
@@ -191,6 +193,7 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         }
 
         termuxSessionListNotifyUpdated();
+        });
     }
 
     /**
@@ -201,9 +204,8 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
      */
     public void markPendingEndScrollSession(@NonNull TerminalSession session) {
         mPendingEndScrollSession = session;
-        android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
-        mainHandler.removeCallbacks(mEndScrollFallback);
-        mainHandler.postDelayed(mEndScrollFallback, 250);
+        mMainHandler.removeCallbacks(mEndScrollFallback);
+        mMainHandler.postDelayed(mEndScrollFallback, 250);
     }
 
     @Override
@@ -248,26 +250,23 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
 
     @Override
     public void onCopyTextToClipboard(@NonNull TerminalSession session, String text) {
-        if (!mActivity.isVisible()) return;
-
-        ShareUtils.copyTextToClipboard(mActivity, text);
+        runIfVisible(() -> ShareUtils.copyTextToClipboard(mActivity, text));
     }
 
     @Override
     public void onPasteTextFromClipboard(@Nullable TerminalSession session) {
-        if (!mActivity.isVisible()) return;
-
-        String text = ShareUtils.getTextStringFromClipboardIfSet(mActivity, true);
-        if (text != null) {
-            TerminalView tv = mActivity.getTerminalView();
-            if (tv != null && tv.mEmulator != null) tv.mEmulator.paste(text);
-        }
+        runIfVisible(() -> {
+            String text = ShareUtils.getTextStringFromClipboardIfSet(mActivity, true);
+            if (text != null) {
+                TerminalView tv = mActivity.getTerminalView();
+                if (tv != null && tv.mEmulator != null) tv.mEmulator.paste(text);
+            }
+        });
     }
 
     @Override
     public void onBell(@NonNull TerminalSession session) {
-        if (!mActivity.isVisible()) return;
-
+        runIfVisible(() -> {
         switch (mActivity.getProperties().getBellBehaviour()) {
             case TermuxPropertyConstants.IVALUE_BELL_BEHAVIOUR_VIBRATE:
                 BellHandler.getInstance(mActivity).doBell();
@@ -281,6 +280,7 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
                 // Ignore the bell character.
                 break;
         }
+        });
     }
 
     @Override
@@ -547,6 +547,49 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
     }
 
     /**
+     * Return the working directory of the current terminal session, or {@code null} if there is
+     * no activity or no current session. Used to resolve the default working directory for a
+     * freshly-created session from the session the user is currently looking at.
+     */
+    @Nullable
+    public static String getCurrentSessionCwd(@Nullable TermuxActivity activity) {
+        if (activity == null) return null;
+        TerminalSession session = activity.getCurrentSession();
+        return (session != null) ? session.getCwd() : null;
+    }
+
+    /**
+     * Initialize a freshly-created session's emulator on a background thread so the JNI fork
+     * (PTY setup) does not block the UI thread during the first pager layout pass, then sync the
+     * pager to the service on the UI thread once the subprocess is alive. Used for the cold-start
+     * path when the pager is still empty.
+     */
+    public static void initSessionEmulatorOnBackgroundThread(@NonNull TermuxActivity activity,
+            @NonNull TerminalSession session) {
+        activity.setColdStartSessionPending(true);
+        new Thread(() -> {
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_DEFAULT);
+            // Initialize the emulator with reasonable default dimensions.
+            // JNI.createSubprocess() (fork + PTY setup) runs here, NOT on the UI thread.
+            session.updateSize(80, 24, 10, 10);
+            activity.runOnUiThread(() -> {
+                if (activity.isFinishing()) return;
+                activity.setColdStartSessionPending(false);
+                // Run the full pager sync now.  syncWithServiceList will notify
+                // RecyclerView that items are available, triggering a layout pass
+                // that creates the ViewHolder and binds it to the session via
+                // attachSession() → updateSize().  Since the emulator is already
+                // initialized, that updateSize() will find mEmulator != null and
+                // only resize — no fork on the UI thread.
+                // onTerminalPageSelected will run through its deferred path
+                // (pageView == null initially) and complete once the layout
+                // pass creates the page — all without blocking the UI.
+                activity.syncTerminalPagerToService();
+            });
+        }).start();
+    }
+
+    /**
      * Single entry point for creating a new terminal-session tab, shared by every add-tab path:
      * the "+" button, the directory-history popup, keyboard shortcuts and the right-swipe-to-add
      * gesture. Centralises the MAX_SESSIONS limit, working-directory resolution, session creation
@@ -583,10 +626,8 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
 
         String workingDirectory = directory;
         if (workingDirectory == null) {
-            TerminalSession currentSession = mActivity.getCurrentSession();
-            workingDirectory = (currentSession == null)
-                    ? mActivity.getProperties().getDefaultWorkingDirectory()
-                    : currentSession.getCwd();
+            String cwd = getCurrentSessionCwd(mActivity);
+            workingDirectory = (cwd != null) ? cwd : mActivity.getProperties().getDefaultWorkingDirectory();
         }
 
         TermuxSession newTermuxSession = service.createTermuxSession(null, null, null, workingDirectory, isFailSafe, sessionName);
@@ -618,29 +659,7 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
                 && service.getTermuxSessionsSize() == 1
                 && newTerminalSession.getEmulator() == null;
         if (isColdStart) {
-            mActivity.setColdStartSessionPending(true);
-            final TermuxActivity activity = mActivity;
-            final TerminalSession session = newTerminalSession;
-            new Thread(() -> {
-                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_DEFAULT);
-                // Initialize the emulator with reasonable default dimensions.
-                // JNI.createSubprocess() (fork + PTY setup) runs here, NOT on the UI thread.
-                session.updateSize(80, 24, 10, 10);
-                activity.runOnUiThread(() -> {
-                    if (activity.isFinishing()) return;
-                    mActivity.setColdStartSessionPending(false);
-                    // Run the full pager sync now.  syncWithServiceList will notify
-                    // RecyclerView that items are available, triggering a layout pass
-                    // that creates the ViewHolder and binds it to the session via
-                    // attachSession() → updateSize().  Since the emulator is already
-                    // initialized, that updateSize() will find mEmulator != null and
-                    // only resize — no fork on the UI thread.
-                    // onTerminalPageSelected will run through its deferred path
-                    // (pageView == null initially) and complete once the layout
-                    // pass creates the page — all without blocking the UI.
-                    activity.syncTerminalPagerToService();
-                });
-            }).start();
+            initSessionEmulatorOnBackgroundThread(mActivity, newTerminalSession);
             return newTermuxSession;
         }
 
@@ -788,15 +807,16 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
     }
 
     public void checkAndScrollToSession(TerminalSession session) {
-        if (!mActivity.isVisible()) return;
-        TermuxService service = mActivity.getTermuxService();
-        if (service == null) return;
+        runIfVisible(() -> {
+            TermuxService service = mActivity.getTermuxService();
+            if (service == null) return;
 
-        final int indexOfSession = service.getIndexOfSession(session);
-        if (indexOfSession < 0) return;
-        
-        // Update session tabs
-        termuxSessionListNotifyUpdated();
+            final int indexOfSession = service.getIndexOfSession(session);
+            if (indexOfSession < 0) return;
+
+            // Update session tabs
+            termuxSessionListNotifyUpdated();
+        });
     }
 
 
@@ -846,15 +866,7 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
      * recreate or direct system {@code uiMode} change.
      */
     public void checkForFontAndColors() {
-        final NightMode appNightMode = NightMode.getAppNightMode();
-        final boolean isNight;
-        if (appNightMode == NightMode.SYSTEM) {
-            // Read the authoritative device night state directly from the system resources.
-            isNight = ThemeUtils.isSystemNightModeEnabled();
-        } else {
-            isNight = (appNightMode == NightMode.TRUE);
-        }
-        applyTerminalColorScheme(isNight);
+        applyTerminalColorScheme(TermuxActivity.isNightModeActive());
     }
 
     /**
@@ -863,13 +875,7 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
      * Used to theme pages as they are (re)bound to their session in the horizontal pager.
      */
     public void checkForFontAndColorsForView(@NonNull TerminalView terminalView) {
-        final NightMode appNightMode = NightMode.getAppNightMode();
-        final boolean isNight;
-        if (appNightMode == NightMode.SYSTEM) {
-            isNight = ThemeUtils.isSystemNightModeEnabled();
-        } else {
-            isNight = (appNightMode == NightMode.TRUE);
-        }
+        final boolean isNight = TermuxActivity.isNightModeActive();
         try {
             File colorsFile = ColorSchemeUtils.getColorSchemeFileForTheme(isNight);
             boolean customApplied = (colorsFile != null) && ColorSchemeUtils.loadTerminalColorScheme(colorsFile);

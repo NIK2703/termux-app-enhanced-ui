@@ -133,8 +133,8 @@ public final class DirectoryHistoryPopupController {
         content.setOrientation(LinearLayout.VERTICAL);
         content.setBackgroundColor(Color.TRANSPARENT);
 
-        int padH = dpToPx(14);
-        int padV = dpToPx(10);
+        int padH = TermuxActivityUtils.dpToPx(mContext, 14);
+        int padV = TermuxActivityUtils.dpToPx(mContext, 10);
 
         if (mInverted) {
             // Newest at the TOP: iterate FORWARD so index 0 (newest) ends first.
@@ -161,7 +161,7 @@ public final class DirectoryHistoryPopupController {
                 View sep = new View(mContext);
                 sep.setBackgroundColor(mColorScheme.getHistoryPopupSepColor());
                 content.addView(sep, new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
+                        ViewGroup.LayoutParams.MATCH_PARENT, TermuxActivityUtils.dpToPx(mContext, 1)));
 
                 TextView tv = new TextView(mContext);
                 tv.setText(mContext.getString(R.string.message_history_clear_all));
@@ -199,7 +199,7 @@ public final class DirectoryHistoryPopupController {
                 View sep = new View(mContext);
                 sep.setBackgroundColor(mColorScheme.getHistoryPopupSepColor());
                 content.addView(sep, new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
+                        ViewGroup.LayoutParams.MATCH_PARENT, TermuxActivityUtils.dpToPx(mContext, 1)));
             }
 
             // Newest at the BOTTOM: iterate REVERSE so index 0 (newest) ends last.
@@ -222,8 +222,8 @@ public final class DirectoryHistoryPopupController {
         }
 
         int popupWidth = Math.min(
-                mContext.getResources().getDisplayMetrics().widthPixels - dpToPx(24),
-                dpToPx(320));
+                mContext.getResources().getDisplayMetrics().widthPixels - TermuxActivityUtils.dpToPx(mContext, 24),
+                TermuxActivityUtils.dpToPx(mContext, 320));
 
         ScrollView scroll = new ScrollView(mContext);
         scroll.setVerticalScrollBarEnabled(false);
@@ -242,7 +242,7 @@ public final class DirectoryHistoryPopupController {
                     int w = view.getWidth();
                     int h = view.getHeight();
                     if (w > 0 && h > 0) {
-                        outline.setRoundRect(0, 0, w, h, dpToPx(12));
+                        outline.setRoundRect(0, 0, w, h, TermuxActivityUtils.dpToPx(mContext, 12));
                     }
                 }
             });
@@ -257,7 +257,7 @@ public final class DirectoryHistoryPopupController {
         // itself via setAlpha(), which does not affect the popup's background outline.
         // Larger elevation (16dp) for a bigger shadow, but outline alpha is
         // reduced so the shadow renders more transparent/softer.
-        mPopup.setElevation(dpToPx(16));
+        mPopup.setElevation(TermuxActivityUtils.dpToPx(mContext, 16));
         // Background: rounded rect, fully opaque scheme composite colour.
         // getOutline() is overridden to call outline.setAlpha() — this controls
         // the shadow opacity independently from the elevation size.
@@ -275,7 +275,7 @@ public final class DirectoryHistoryPopupController {
             }
         };
         popupBgDrawable.setShape(GradientDrawable.RECTANGLE);
-        popupBgDrawable.setCornerRadius(dpToPx(12));
+        popupBgDrawable.setCornerRadius(TermuxActivityUtils.dpToPx(mContext, 12));
         popupBgDrawable.setColor(mColorScheme.getHistoryPopupBg()); // must be opaque for getOutline
         mPopup.setBackgroundDrawable(popupBgDrawable);
         // 10% visual transparency on the content (not the background drawable, so the
@@ -292,12 +292,12 @@ public final class DirectoryHistoryPopupController {
         int contentHeight = content.getMeasuredHeight();
         int[] anchorLoc = new int[2];
         anchor.getLocationOnScreen(anchorLoc);
-        int popupGap = dpToPx(mPopupGapDp);
+        int popupGap = TermuxActivityUtils.dpToPx(mContext, mPopupGapDp);
         int maxHeight;
         if (mInverted) {
             int screenHeight = mContext.getResources().getDisplayMetrics().heightPixels;
             int roomBelow = screenHeight - (anchorLoc[1] + anchor.getHeight()) - popupGap;
-            maxHeight = Math.min(dpToPx(mPopupMaxHeightDp), roomBelow);
+            maxHeight = Math.min(TermuxActivityUtils.dpToPx(mContext, mPopupMaxHeightDp), roomBelow);
             int popupHeight = Math.min(contentHeight, maxHeight);
             // Position the popup BELOW the anchor, flush to it (no gap).
             int offsetY = 0;
@@ -307,8 +307,8 @@ public final class DirectoryHistoryPopupController {
             final ScrollView scrollRef = scroll;
             scrollRef.post(() -> scrollRef.scrollTo(0, 0));
         } else {
-            int roomAbove = Math.max(dpToPx(48), anchorLoc[1] - dpToPx(8) - popupGap);
-            maxHeight = Math.min(dpToPx(mPopupMaxHeightDp), roomAbove);
+            int roomAbove = Math.max(TermuxActivityUtils.dpToPx(mContext, 48), anchorLoc[1] - TermuxActivityUtils.dpToPx(mContext, 8) - popupGap);
+            maxHeight = Math.min(TermuxActivityUtils.dpToPx(mContext, mPopupMaxHeightDp), roomAbove);
             int popupHeight = Math.min(contentHeight, maxHeight);
             mPopup.update(anchor,
                     0,
@@ -406,8 +406,8 @@ public final class DirectoryHistoryPopupController {
         mScroll.getLocationOnScreen(loc);
         int top = loc[1];
         int bottom = loc[1] + mScroll.getHeight();
-        int band = dpToPx(36);      // edge-sensitive zone
-        int maxStep = dpToPx(24);   // max px scrolled per 16ms reference interval
+        int band = TermuxActivityUtils.dpToPx(mContext, 36);      // edge-sensitive zone
+        int maxStep = TermuxActivityUtils.dpToPx(mContext, 24);   // max px scrolled per 16ms reference interval
 
         // Time-based step: scale by actual frame time so scroll speed is
         // consistent across 60/90/120 Hz displays.
@@ -459,9 +459,5 @@ public final class DirectoryHistoryPopupController {
         b.setNegativeButton(android.R.string.no, null);
         androidx.appcompat.app.AlertDialog dialog = b.create();
         dialog.show();
-    }
-
-    private int dpToPx(int dp) {
-        return TermuxActivityUtils.dpToPx(mContext, dp);
     }
 }

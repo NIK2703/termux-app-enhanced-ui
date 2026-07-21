@@ -13,6 +13,7 @@ import com.termux.view.TerminalView;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -501,21 +502,11 @@ public final class TermuxPropertyConstants {
 
 
     /** The boolean keys (both default-false and default-true behaviour). */
-    public static final Set<String> TERMUX_APP_PROPERTIES_BOOLEAN_KEYS = new HashSet<>(Arrays.asList(
-        KEY_DISABLE_FILE_SHARE_RECEIVER,
-        KEY_DISABLE_FILE_VIEW_RECEIVER,
-        KEY_DISABLE_HARDWARE_KEYBOARD_SHORTCUTS,
-        KEY_DISABLE_TERMINAL_SESSION_CHANGE_TOAST,
-        KEY_ENFORCE_CHAR_BASED_INPUT,
-        KEY_EXTRA_KEYS_TEXT_ALL_CAPS,
-        KEY_HIDE_SOFT_KEYBOARD_ON_STARTUP,
-        KEY_RUN_TERMUX_AM_SOCKET_SERVER,
-        KEY_TERMINAL_ONCLICK_URL_OPEN,
-        KEY_USE_CTRL_SPACE_WORKAROUND,
-        KEY_USE_FULLSCREEN,
-        KEY_USE_FULLSCREEN_WORKAROUND,
-        TermuxConstants.PROP_ALLOW_EXTERNAL_APPS
-    ));
+    public static final Set<String> TERMUX_APP_PROPERTIES_BOOLEAN_KEYS = Collections.unmodifiableSet(
+        new HashSet<String>() {{
+            addAll(TERMUX_DEFAULT_FALSE_BOOLEAN_BEHAVIOUR_PROPERTIES_LIST);
+            addAll(TERMUX_DEFAULT_TRUE_BOOLEAN_BEHAVIOUR_PROPERTIES_LIST);
+        }});
 
     /** The int keys. */
     public static final Set<String> TERMUX_APP_PROPERTIES_INT_KEYS = new HashSet<>(Arrays.asList(

@@ -1385,23 +1385,28 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
      * button gets marginEnd=28dp (gap from scrollbar). When content fits entirely in the
      * viewport (no scrollbar), marginEnd=6dp (same as marginBottom).
      */
+    public static boolean isNightModeActive() {
+        final NightMode appNightMode = NightMode.getAppNightMode();
+        if (appNightMode == NightMode.SYSTEM) {
+            return ThemeUtils.isSystemNightModeEnabled();
+        } else {
+            return (appNightMode == NightMode.TRUE);
+        }
+    }
+
+    public static int computeFloatingButtonMarginEnd(TerminalView view, android.content.res.Resources resources) {
+        boolean hasScrollbar = view != null && view.mEmulator != null
+            && view.mEmulator.getScreen().getActiveTranscriptRows() > 0;
+        float density = resources.getDisplayMetrics().density;
+        return hasScrollbar ? Math.max((int)(30 * density + 0.5f) - 2, 0) : (int)(6 * density + 0.5f);
+    }
+
     private void updateFloatingButtonMargin() {
         ImageButton toggleButton = findViewById(R.id.toggle_text_input_button);
         if (toggleButton == null) return;
 
-        boolean scrollbarVisible = false;
-        if (mTerminalView != null && mTerminalView.mEmulator != null) {
-            scrollbarVisible = mTerminalView.mEmulator.getScreen().getActiveTranscriptRows() > 0;
-        }
-
         RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams) toggleButton.getLayoutParams();
-        int targetMarginEnd;
-        if (scrollbarVisible) {
-            float density = getResources().getDisplayMetrics().density;
-            targetMarginEnd = Math.max((int)(30 * density + 0.5f) - 2, 0);
-        } else {
-            targetMarginEnd = (int) (6 * getResources().getDisplayMetrics().density + 0.5f);
-        }
+        int targetMarginEnd = computeFloatingButtonMarginEnd(mTerminalView, getResources());
         if (params.rightMargin != targetMarginEnd) {
             params.rightMargin = targetMarginEnd;
             toggleButton.setLayoutParams(params);
@@ -1671,10 +1676,6 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
     /** Persist the current directory history to preferences as a JSON array. */
     private void saveDirectoryHistory() {
         mDirectoryHistoryCtrl.save();
-    }
-
-    private int dpToPx(int dp) {
-        return TermuxActivityUtils.dpToPx(this, dp);
     }
 
     /**

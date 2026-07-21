@@ -1,11 +1,9 @@
 package com.termux.app.terminal;
 
 import android.app.Activity;
-import android.content.Intent;
 import android.view.ContextMenu;
 import android.view.LayoutInflater;
 import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.widget.ImageButton;
@@ -17,10 +15,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.termux.R;
 import com.termux.app.TermuxActivity;
-import com.termux.app.activities.HelpActivity;
-import com.termux.app.activities.SettingsActivity;
 import com.termux.app.terminal.io.autocomplete.DirectoryHistoryPopupController;
-import com.termux.shared.activity.ActivityUtils;
 import com.termux.shared.activity.media.AppCompatActivityUtils;
 import com.termux.shared.termux.interact.TextInputDialogUtils;
 import com.termux.shared.termux.theme.TermuxThemeUtils;
@@ -143,6 +138,21 @@ public class TermuxActivityViewHelper {
         TerminalView terminalView = mActivity.getTerminalView();
         if (terminalView == null) return;
 
+        buildContextMenu(menu, mActivity.getResources(), terminalView,
+            currentSession.getPid(), currentSession.isRunning(),
+            mActivity.getPreferences().shouldKeepScreenOn());
+    }
+
+    /**
+     * Build the shared terminal context-menu items. The item set and ids are identical between
+     * {@link TermuxActivityViewHelper} and {@link TermuxActivityPopupController}; only the way the
+     * session / keep-screen-on state is obtained differs between the two hosts, so those are passed
+     * in as parameters. The host-specific {@code onContextItemSelected} implementations still own
+     * how each item is serviced and must use the same ids.
+     */
+    static void buildContextMenu(@NonNull ContextMenu menu, @NonNull android.content.res.Resources resources,
+                                 @NonNull TerminalView terminalView, int sessionPid, boolean sessionRunning,
+                                 boolean keepScreenOn) {
         boolean autoFillEnabled = terminalView.isAutoFillEnabled();
 
         menu.add(Menu.NONE, CONTEXT_MENU_SELECT_URL_ID, Menu.NONE, R.string.action_select_url);
@@ -155,52 +165,15 @@ public class TermuxActivityViewHelper {
             menu.add(Menu.NONE, CONTEXT_MENU_AUTOFILL_PASSWORD, Menu.NONE, R.string.action_autofill_password);
         menu.add(Menu.NONE, CONTEXT_MENU_RESET_TERMINAL_ID, Menu.NONE, R.string.action_reset_terminal);
         menu.add(Menu.NONE, CONTEXT_MENU_KILL_PROCESS_ID, Menu.NONE,
-            mActivity.getResources().getString(R.string.action_kill_process, currentSession.getPid()))
-            .setEnabled(currentSession.isRunning());
+            resources.getString(R.string.action_kill_process, sessionPid))
+            .setEnabled(sessionRunning);
         menu.add(Menu.NONE, CONTEXT_MENU_STYLING_ID, Menu.NONE, R.string.action_style_terminal);
         menu.add(Menu.NONE, CONTEXT_MENU_FONT_ID, Menu.NONE, R.string.action_font_terminal);
         menu.add(Menu.NONE, CONTEXT_MENU_TOGGLE_KEEP_SCREEN_ON, Menu.NONE, R.string.action_toggle_keep_screen_on)
-            .setCheckable(true).setChecked(mActivity.getPreferences().shouldKeepScreenOn());
+            .setCheckable(true).setChecked(keepScreenOn);
         menu.add(Menu.NONE, CONTEXT_MENU_HELP_ID, Menu.NONE, R.string.action_open_help);
         menu.add(Menu.NONE, CONTEXT_MENU_SETTINGS_ID, Menu.NONE, R.string.action_open_settings);
         menu.add(Menu.NONE, CONTEXT_MENU_REPORT_ID, Menu.NONE, R.string.action_report_issue);
-    }
-
-    public boolean onContextItemSelected(MenuItem item) {
-        TerminalSession session = mActivity.getCurrentSession();
-        TerminalView terminalView = mActivity.getTerminalView();
-
-        switch (item.getItemId()) {
-            case CONTEXT_MENU_SELECT_URL_ID:
-                mActivity.getTermuxTerminalViewClient().showUrlSelection();
-                return true;
-            case CONTEXT_MENU_SHARE_TRANSCRIPT_ID:
-                mActivity.getTermuxTerminalViewClient().shareSessionTranscript();
-                return true;
-            case CONTEXT_MENU_SHARE_SELECTED_TEXT:
-                mActivity.getTermuxTerminalViewClient().shareSelectedText();
-                return true;
-            case CONTEXT_MENU_AUTOFILL_USERNAME:
-                if (terminalView != null) terminalView.requestAutoFillUsername();
-                return true;
-            case CONTEXT_MENU_AUTOFILL_PASSWORD:
-                if (terminalView != null) terminalView.requestAutoFillPassword();
-                return true;
-            case CONTEXT_MENU_REPORT_ID:
-                mActivity.getTermuxTerminalViewClient().reportIssueFromTranscript();
-                return true;
-            case CONTEXT_MENU_HELP_ID:
-                ActivityUtils.startActivity(mActivity, new Intent(mActivity, HelpActivity.class));
-                return true;
-            case CONTEXT_MENU_SETTINGS_ID:
-                ActivityUtils.startActivity(mActivity, new Intent(mActivity, SettingsActivity.class));
-                return true;
-            // RESET / KILL / STYLING / FONT / KEEP_SCREEN_ON require activity-internal dialog
-            // methods; the activity's own onContextItemSelected handles those (this helper is a
-            // partial extraction and returns false for items it cannot service via public API).
-            default:
-                return false;
-        }
     }
 
     public void onContextMenuClosed(Menu menu) {

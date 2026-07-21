@@ -139,4 +139,97 @@
         <item>false</item>
         <item>system</item>
     </string-array>
+
+    <string-array name="extra_keys_editor_signal_entries">
+        <item>CTRL (modifier)</item>
+        <item>ALT (modifier)</item>
+        <item>SHIFT (modifier)</item>
+        <item>FN (modifier)</item>
+        <item>Keyboard toggle</item>
+        <item>Paste</item>
+        <item>Scroll lock</item>
+        <item>Space</item>
+        <item>Esc</item>
+        <item>Tab</item>
+        <item>Home</item>
+        <item>End</item>
+        <item>Page Up</item>
+        <item>Page Down</item>
+        <item>Insert</item>
+        <item>Delete</item>
+        <item>Backspace</item>
+        <item>Up</item>
+        <item>Left</item>
+        <item>Right</item>
+        <item>Down</item>
+        <item>Enter</item>
+        <item>F1</item>
+        <item>F2</item>
+        <item>F3</item>
+        <item>F4</item>
+        <item>F5</item>
+        <item>F6</item>
+        <item>F7</item>
+        <item>F8</item>
+        <item>F9</item>
+        <item>F10</item>
+        <item>F11</item>
+        <item>F12</item>
+        <item>Backslash (\\)</item>
+        <item>Quote (\")</item>
+        <item>Apostrophe (\')</item>
+        <item>Custom text…</item>
+    </string-array>
+
+    <string-array name="extra_keys_editor_signal_values">
+        <item>CTRL</item>
+        <item>ALT</item>
+        <item>SHIFT</item>
+        <item>FN</item>
+        <item>KEYBOARD</item>
+        <item>PASTE</item>
+        <item>SCROLL</item>
+        <item>SPACE</item>
+        <item>ESC</item>
+        <item>TAB</item>
+        <item>HOME</item>
+        <item>END</item>
+        <item>PGUP</item>
+        <item>PGDN</item>
+        <item>INS</item>
+        <item>DEL</item>
+        <item>BKSP</item>
+        <item>UP</item>
+        <item>LEFT</item>
+        <item>RIGHT</item>
+        <item>DOWN</item>
+        <item>ENTER</item>
+        <item>F1</item>
+        <item>F2</item>
+        <item>F3</item>
+        <item>F4</item>
+        <item>F5</item>
+        <item>F6</item>
+        <item>F7</item>
+        <item>F8</item>
+        <item>F9</item>
+        <item>F10</item>
+        <item>F11</item>
+        <item>F12</item>
+        <item>BACKSLASH</item>
+        <item>QUOTE</item>
+        <item>APOSTROPHE</item>
+        <item>__CUSTOM__</item>
+    </string-array>
+
+    <string-array name="extra_keys_visibility_entries">
+        <item>Always</item>
+        <item>Only when keyboard is open</item>
+        <item>Never</item>
+    </string-array>
+    <string-array name="extra_keys_visibility_values">
+        <item>always</item>
+        <item>keyboard</item>
+        <item>never</item>
+    </string-array>
 </resources>

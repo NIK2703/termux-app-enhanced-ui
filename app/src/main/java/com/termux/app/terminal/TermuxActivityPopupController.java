@@ -22,7 +22,6 @@ import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.ScrollView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -31,12 +30,9 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.termux.R;
 import com.termux.app.TermuxActivity;
 import com.termux.app.terminal.io.autocomplete.MessageHistoryController;
-import com.termux.shared.data.DataUtils;
 import com.termux.app.TermuxActivityUtils;
 import com.termux.shared.termux.extrakeys.ColorSchemeUtils;
 import com.termux.shared.termux.extrakeys.FontUtils;
-import com.termux.shared.theme.NightMode;
-import com.termux.shared.theme.ThemeUtils;
 import com.termux.terminal.TerminalSession;
 import com.termux.view.TerminalView;
 
@@ -90,9 +86,6 @@ public final class TermuxActivityPopupController {
     /** Timestamp of the last auto-scroll tick, for frame-rate-independent velocity. */
     private long mHistoryLastScrollTimeMs = 0;
 
-    // Last toast (mirrors TermuxActivity.mLastToast).
-    private Toast mLastToast = null;
-
     // Context menu item ids (mirrors TermuxActivity definitions).
     private static final int CONTEXT_MENU_SELECT_URL_ID = 0;
     private static final int CONTEXT_MENU_SHARE_TRANSCRIPT_ID = 1;
@@ -125,9 +118,6 @@ public final class TermuxActivityPopupController {
         mMessageHistoryCtrl = controller;
     }
 
-    private int dpToPx(int dp) {
-        return TermuxActivityUtils.dpToPx(mContext, dp);
-    }
 
     public void showMessageHistoryPopup(@NonNull View anchor) {
         dismissMessageHistoryPopup();
@@ -160,7 +150,7 @@ public final class TermuxActivityPopupController {
             if (!mHistoryEmptyHintShown) {
                 mHistoryEmptyHintShown = true;
                 Toast bottomToast = Toast.makeText(mContext, mContext.getString(R.string.message_history_empty), Toast.LENGTH_SHORT);
-                bottomToast.setGravity(Gravity.BOTTOM, 0, dpToPx(48));
+                bottomToast.setGravity(Gravity.BOTTOM, 0, TermuxActivityUtils.dpToPx(mContext, 48));
                 bottomToast.show();
             }
             return;
@@ -170,8 +160,8 @@ public final class TermuxActivityPopupController {
         content.setOrientation(LinearLayout.VERTICAL);
         content.setBackgroundColor(Color.TRANSPARENT);
 
-        int padH = dpToPx(14);
-        int padV = dpToPx(10);
+        int padH = TermuxActivityUtils.dpToPx(mContext, 14);
+        int padV = TermuxActivityUtils.dpToPx(mContext, 10);
 
         // Synthetic "CLEAR HISTORY…" row pinned at the TOP of the popup.
         // Selecting it opens a confirmation dialog; confirming wipes all history.
@@ -197,7 +187,7 @@ public final class TermuxActivityPopupController {
             View sep = new View(mContext);
             sep.setBackgroundColor(mColorSchemeManager.getHistoryPopupSepColor());
             content.addView(sep, new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
+                    ViewGroup.LayoutParams.MATCH_PARENT, TermuxActivityUtils.dpToPx(mContext, 1)));
         }
         // Displayed order (spec): newest at the BOTTOM (nearest the pencil button,
         // first reached by a swipe-up), oldest at the top. A re-sent message moves
@@ -254,13 +244,13 @@ public final class TermuxActivityPopupController {
                 sepBottom.setBackgroundColor(mColorSchemeManager.getHistoryPopupSepColor());
                 content.addView(sepBottom, content.getChildCount() - 1,
                         new LinearLayout.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
+                                ViewGroup.LayoutParams.MATCH_PARENT, TermuxActivityUtils.dpToPx(mContext, 1)));
             }
         }
 
         int popupWidth = Math.min(
-                mContext.getResources().getDisplayMetrics().widthPixels - dpToPx(24),
-                dpToPx(320));
+                mContext.getResources().getDisplayMetrics().widthPixels - TermuxActivityUtils.dpToPx(mContext, 24),
+                TermuxActivityUtils.dpToPx(mContext, 320));
 
         // Wrap in a ScrollView: the popup is a bounded box (never edge-to-edge),
         // and a taller history scrolls inside it. Kept for edge auto-scroll while
@@ -282,7 +272,7 @@ public final class TermuxActivityPopupController {
                     int w = view.getWidth();
                     int h = view.getHeight();
                     if (w > 0 && h > 0) {
-                        outline.setRoundRect(0, 0, w, h, dpToPx(12));
+                        outline.setRoundRect(0, 0, w, h, TermuxActivityUtils.dpToPx(mContext, 12));
                     }
                 }
             });
@@ -297,7 +287,7 @@ public final class TermuxActivityPopupController {
         // itself via setAlpha(), which does not affect the popup's background outline.
         // Larger elevation (16dp) for a bigger shadow, but outline alpha is
         // reduced so the shadow renders more transparent/softer.
-        mHistoryPopup.setElevation(dpToPx(16));
+        mHistoryPopup.setElevation(TermuxActivityUtils.dpToPx(mContext, 16));
         // Background: rounded rect, fully opaque scheme composite colour.
         // getOutline() is overridden to call outline.setAlpha() — this controls
         // the shadow opacity independently from the elevation size.
@@ -315,7 +305,7 @@ public final class TermuxActivityPopupController {
             }
         };
         popupBgDrawable.setShape(GradientDrawable.RECTANGLE);
-        popupBgDrawable.setCornerRadius(dpToPx(12));
+        popupBgDrawable.setCornerRadius(TermuxActivityUtils.dpToPx(mContext, 12));
         popupBgDrawable.setColor(mColorSchemeManager.getHistoryPopupBg()); // must be opaque for getOutline
         mHistoryPopup.setBackgroundDrawable(popupBgDrawable);
         // 10% visual transparency on the content (not the background drawable, so the
@@ -339,9 +329,9 @@ public final class TermuxActivityPopupController {
         int[] anchorLoc = new int[2];
         anchor.getLocationOnScreen(anchorLoc);
         // Gap between the button's top and the popup's bottom edge.
-        int popupGap = dpToPx(MESSAGE_HISTORY_POPUP_GAP_DP);
-        int roomAbove = Math.max(dpToPx(48), anchorLoc[1] - dpToPx(8) - popupGap);
-        int maxHeight = Math.min(dpToPx(MESSAGE_HISTORY_POPUP_MAX_HEIGHT_DP), roomAbove);
+        int popupGap = TermuxActivityUtils.dpToPx(mContext, MESSAGE_HISTORY_POPUP_GAP_DP);
+        int roomAbove = Math.max(TermuxActivityUtils.dpToPx(mContext, 48), anchorLoc[1] - TermuxActivityUtils.dpToPx(mContext, 8) - popupGap);
+        int maxHeight = Math.min(TermuxActivityUtils.dpToPx(mContext, MESSAGE_HISTORY_POPUP_MAX_HEIGHT_DP), roomAbove);
         int popupHeight = Math.min(contentHeight, maxHeight);
         mHistoryPopup.update(anchor,
                 0,
@@ -448,8 +438,8 @@ public final class TermuxActivityPopupController {
         mHistoryScroll.getLocationOnScreen(loc);
         int top = loc[1];
         int bottom = loc[1] + mHistoryScroll.getHeight();
-        int band = dpToPx(36);      // edge-sensitive zone
-        int maxStep = dpToPx(24);   // max px scrolled per 16ms reference interval
+        int band = TermuxActivityUtils.dpToPx(mContext, 36);      // edge-sensitive zone
+        int maxStep = TermuxActivityUtils.dpToPx(mContext, 24);   // max px scrolled per 16ms reference interval
 
         // Time-based step: scale by actual frame time so scroll speed is
         // consistent across 60/90/120 Hz displays (Choreographer / postOnAnimation).
@@ -542,11 +532,7 @@ public final class TermuxActivityPopupController {
 
     /** Show a toast and dismiss the last one if still visible. */
     public void showToast(String text, boolean longDuration) {
-        if (text == null || text.isEmpty()) return;
-        if (mLastToast != null) mLastToast.cancel();
-        mLastToast = Toast.makeText(mContext, text, longDuration ? Toast.LENGTH_LONG : Toast.LENGTH_SHORT);
-        mLastToast.setGravity(Gravity.TOP, 0, 0);
-        mLastToast.show();
+        ((TermuxActivity) mContext).showToast(text, longDuration);
     }
 
     public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
@@ -556,24 +542,8 @@ public final class TermuxActivityPopupController {
         TerminalView terminalView = mHost.getTerminalView();
         if (terminalView == null) return;
 
-        boolean autoFillEnabled = terminalView.isAutoFillEnabled();
-
-        menu.add(Menu.NONE, CONTEXT_MENU_SELECT_URL_ID, Menu.NONE, R.string.action_select_url);
-        menu.add(Menu.NONE, CONTEXT_MENU_SHARE_TRANSCRIPT_ID, Menu.NONE, R.string.action_share_transcript);
-        if (!DataUtils.isNullOrEmpty(terminalView.getStoredSelectedText()))
-            menu.add(Menu.NONE, CONTEXT_MENU_SHARE_SELECTED_TEXT, Menu.NONE, R.string.action_share_selected_text);
-        if (autoFillEnabled)
-            menu.add(Menu.NONE, CONTEXT_MENU_AUTOFILL_USERNAME, Menu.NONE, R.string.action_autofill_username);
-        if (autoFillEnabled)
-            menu.add(Menu.NONE, CONTEXT_MENU_AUTOFILL_PASSWORD, Menu.NONE, R.string.action_autofill_password);
-        menu.add(Menu.NONE, CONTEXT_MENU_RESET_TERMINAL_ID, Menu.NONE, R.string.action_reset_terminal);
-        menu.add(Menu.NONE, CONTEXT_MENU_KILL_PROCESS_ID, Menu.NONE, mContext.getResources().getString(R.string.action_kill_process, mHost.getCurrentSession().getPid())).setEnabled(currentSession.isRunning());
-        menu.add(Menu.NONE, CONTEXT_MENU_STYLING_ID, Menu.NONE, R.string.action_style_terminal);
-        menu.add(Menu.NONE, CONTEXT_MENU_FONT_ID, Menu.NONE, R.string.action_font_terminal);
-        menu.add(Menu.NONE, CONTEXT_MENU_TOGGLE_KEEP_SCREEN_ON, Menu.NONE, R.string.action_toggle_keep_screen_on).setCheckable(true).setChecked(mHost.isKeepScreenOn());
-        menu.add(Menu.NONE, CONTEXT_MENU_HELP_ID, Menu.NONE, R.string.action_open_help);
-        menu.add(Menu.NONE, CONTEXT_MENU_SETTINGS_ID, Menu.NONE, R.string.action_open_settings);
-        menu.add(Menu.NONE, CONTEXT_MENU_REPORT_ID, Menu.NONE, R.string.action_report_issue);
+        TermuxActivityViewHelper.buildContextMenu(menu, mContext.getResources(), terminalView,
+            currentSession.getPid(), currentSession.isRunning(), mHost.isKeepScreenOn());
     }
 
     public boolean onContextItemSelected(MenuItem item) {
@@ -630,10 +600,7 @@ public final class TermuxActivityPopupController {
         // active theme, applying the choice live to that theme. This assigns the scheme to the
         // active light/dark theme instead of the shared colors.properties, so per-theme selection
         // stays consistent whether chosen from here or from Settings.
-        final NightMode appNightMode = NightMode.getAppNightMode();
-        final boolean isNight = (appNightMode == NightMode.SYSTEM)
-            ? ThemeUtils.isSystemNightModeEnabled()
-            : (appNightMode == NightMode.TRUE);
+        final boolean isNight = TermuxActivity.isNightModeActive();
         ColorSchemeUtils.showColorSchemeDialog(mContext, isNight, mContext.getString(R.string.color_scheme_dialog_title),
             mContext.getString(R.string.error_styling_not_installed),
             () -> TermuxActivityUtils.updateTermuxActivityStyling(mContext, false));
@@ -647,7 +614,7 @@ public final class TermuxActivityPopupController {
     private void showFontPicker() {
         FontUtils.showFontDialog(mContext, mContext.getString(R.string.error_styling_not_installed),
             () -> {
-                mHost.recreateActivity();
+                TermuxActivityUtils.updateTermuxActivityStyling(mContext, false);
                 showToast(mContext.getResources().getString(R.string.msg_terminal_font_applied), true);
             });
     }
