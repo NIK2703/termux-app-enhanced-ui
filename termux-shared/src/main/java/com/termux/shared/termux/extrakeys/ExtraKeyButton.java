@@ -25,6 +25,18 @@ public class ExtraKeyButton {
     /** The key name for the nested dict to define popup extra key info if using a dict to define the extra key. {popup: {key: name, ...}, ...} */
     public static final String KEY_POPUP = "popup";
 
+    /** The key name for the nested dict to define swipe up extra key info. */
+    public static final String KEY_SWIPE_UP = "swipeUp";
+
+    /** The key name for the nested dict to define swipe down extra key info. */
+    public static final String KEY_SWIPE_DOWN = "swipeDown";
+
+    /** The key name for the nested dict to define swipe left extra key info. */
+    public static final String KEY_SWIPE_LEFT = "swipeLeft";
+
+    /** The key name for the nested dict to define swipe right extra key info. */
+    public static final String KEY_SWIPE_RIGHT = "swipeRight";
+
 
     /**
      * The key that will be sent to the terminal, either a control character, like defined in
@@ -48,6 +60,30 @@ public class ExtraKeyButton {
     @Nullable
     private final ExtraKeyButton popup;
 
+    /**
+     * The {@link ExtraKeyButton} containing the information of the swipe up button.
+     */
+    @Nullable
+    private final ExtraKeyButton swipeUp;
+
+    /**
+     * The {@link ExtraKeyButton} containing the information of the swipe down button.
+     */
+    @Nullable
+    private final ExtraKeyButton swipeDown;
+
+    /**
+     * The {@link ExtraKeyButton} containing the information of the swipe left button.
+     */
+    @Nullable
+    private final ExtraKeyButton swipeLeft;
+
+    /**
+     * The {@link ExtraKeyButton} containing the information of the swipe right button.
+     */
+    @Nullable
+    private final ExtraKeyButton swipeRight;
+
 
     /**
      * Initialize a {@link ExtraKeyButton}.
@@ -62,7 +98,7 @@ public class ExtraKeyButton {
     public ExtraKeyButton(@NonNull JSONObject config,
                           @NonNull ExtraKeysConstants.ExtraKeyDisplayMap extraKeyDisplayMap,
                           @NonNull ExtraKeysConstants.ExtraKeyDisplayMap extraKeyAliasMap) throws JSONException {
-        this(config, null, extraKeyDisplayMap, extraKeyAliasMap);
+        this(config, null, null, null, null, extraKeyDisplayMap, extraKeyAliasMap);
     }
 
     /**
@@ -77,6 +113,30 @@ public class ExtraKeyButton {
      *                           aliases for the actual key names.
      */
     public ExtraKeyButton(@NonNull JSONObject config, @Nullable ExtraKeyButton popup,
+                          @NonNull ExtraKeysConstants.ExtraKeyDisplayMap extraKeyDisplayMap,
+                          @NonNull ExtraKeysConstants.ExtraKeyDisplayMap extraKeyAliasMap) throws JSONException {
+        this(config, popup, null, null, null, extraKeyDisplayMap, extraKeyAliasMap);
+    }
+
+    /**
+     * Initialize a {@link ExtraKeyButton}.
+     *
+     * @param config The {@link JSONObject} containing the info to create the {@link ExtraKeyButton}.
+     * @param swipeUp The {@link ExtraKeyButton} optional swipe up button.
+     * @param swipeDown The {@link ExtraKeyButton} optional swipe down button.
+     * @param swipeLeft The {@link ExtraKeyButton} optional swipe left button.
+     * @param swipeRight The {@link ExtraKeyButton} optional swipe right button.
+     * @param extraKeyDisplayMap The {@link ExtraKeysConstants.ExtraKeyDisplayMap} that defines the
+     *                           display text mapping for the keys if a custom value is not defined
+     *                           by {@link #KEY_DISPLAY_NAME}.
+     * @param extraKeyAliasMap The {@link ExtraKeysConstants.ExtraKeyDisplayMap} that defines the
+     *                           aliases for the actual key names.
+     */
+    public ExtraKeyButton(@NonNull JSONObject config,
+                          @Nullable ExtraKeyButton swipeUp,
+                          @Nullable ExtraKeyButton swipeDown,
+                          @Nullable ExtraKeyButton swipeLeft,
+                          @Nullable ExtraKeyButton swipeRight,
                           @NonNull ExtraKeysConstants.ExtraKeyDisplayMap extraKeyDisplayMap,
                           @NonNull ExtraKeysConstants.ExtraKeyDisplayMap extraKeyAliasMap) throws JSONException {
         String keyFromConfig = getStringFromJson(config, KEY_KEY_NAME);
@@ -109,7 +169,11 @@ public class ExtraKeyButton {
                 .collect(Collectors.joining(" "));
         }
 
-        this.popup = popup;
+        this.popup = swipeUp;
+        this.swipeUp = swipeUp;
+        this.swipeDown = swipeDown;
+        this.swipeLeft = swipeLeft;
+        this.swipeRight = swipeRight;
     }
 
     public String getStringFromJson(@NonNull JSONObject config, @NonNull String key) {
@@ -136,9 +200,34 @@ public class ExtraKeyButton {
     }
 
     /** Get {@link #popup}. */
+    @Deprecated
     @Nullable
     public ExtraKeyButton getPopup() {
-        return popup;
+        return getSwipeUp();
+    }
+
+    /** Get {@link #swipeUp}. */
+    @Nullable
+    public ExtraKeyButton getSwipeUp() {
+        return swipeUp;
+    }
+
+    /** Get {@link #swipeDown}. */
+    @Nullable
+    public ExtraKeyButton getSwipeDown() {
+        return swipeDown;
+    }
+
+    /** Get {@link #swipeLeft}. */
+    @Nullable
+    public ExtraKeyButton getSwipeLeft() {
+        return swipeLeft;
+    }
+
+    /** Get {@link #swipeRight}. */
+    @Nullable
+    public ExtraKeyButton getSwipeRight() {
+        return swipeRight;
     }
 
     /**

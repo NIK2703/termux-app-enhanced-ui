@@ -289,6 +289,9 @@ public final class TermuxPreferenceConstants {
         public static final String KEY_BELL_BEHAVIOUR = "bell-character";
         public static final int DEFAULT_VALUE_BELL_BEHAVIOUR = TermuxPropertyConstants.DEFAULT_IVALUE_BELL_BEHAVIOUR;
 
+        public static final String KEY_EXTRA_KEYS_HAPTIC = "extra-keys-haptic";
+        public static final int DEFAULT_VALUE_EXTRA_KEYS_HAPTIC = TermuxPropertyConstants.DEFAULT_IVALUE_EXTRA_KEYS_HAPTIC;
+
         public static final String KEY_DELETE_TMPDIR_FILES_OLDER_THAN_X_DAYS_ON_EXIT = "delete-tmpdir-files-older-than-x-days-on-exit";
         public static final int DEFAULT_VALUE_DELETE_TMPDIR_FILES_OLDER_THAN_X_DAYS_ON_EXIT = TermuxPropertyConstants.DEFAULT_IVALUE_DELETE_TMPDIR_FILES_OLDER_THAN_X_DAYS_ON_EXIT;
         public static final int MIN_DELETE_TMPDIR_FILES_OLDER_THAN_X_DAYS_ON_EXIT = TermuxPropertyConstants.IVALUE_DELETE_TMPDIR_FILES_OLDER_THAN_X_DAYS_ON_EXIT_MIN;
@@ -324,6 +327,14 @@ public final class TermuxPreferenceConstants {
         public static final float DEFAULT_VALUE_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR = TermuxPropertyConstants.DEFAULT_IVALUE_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR;
         public static final float MIN_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR = TermuxPropertyConstants.IVALUE_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR_MIN;
         public static final float MAX_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR = TermuxPropertyConstants.IVALUE_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR_MAX;
+
+
+        /* int (extra keys corner radius) */
+
+        public static final String KEY_EXTRA_KEYS_CORNER_RADIUS = "extra-keys-corner-radius";
+        public static final int DEFAULT_VALUE_EXTRA_KEYS_CORNER_RADIUS = TermuxPropertyConstants.DEFAULT_IVALUE_EXTRA_KEYS_CORNER_RADIUS;
+        public static final int MIN_EXTRA_KEYS_CORNER_RADIUS = TermuxPropertyConstants.IVALUE_EXTRA_KEYS_CORNER_RADIUS_MIN;
+        public static final int MAX_EXTRA_KEYS_CORNER_RADIUS = TermuxPropertyConstants.IVALUE_EXTRA_KEYS_CORNER_RADIUS_MAX;
 
 
         /* Integer (session shortcuts, may be null/0) */

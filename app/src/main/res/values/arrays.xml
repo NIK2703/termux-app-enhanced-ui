@@ -232,4 +232,15 @@
         <item>keyboard</item>
         <item>never</item>
     </string-array>
+
+    <string-array name="extra_keys_haptic_entries">
+        <item>@string/extra_keys_haptic_all</item>
+        <item>@string/extra_keys_haptic_gestures</item>
+        <item>@string/extra_keys_haptic_off</item>
+    </string-array>
+    <string-array name="extra_keys_haptic_values">
+        <item>all</item>
+        <item>gestures</item>
+        <item>off</item>
+    </string-array>
 </resources>

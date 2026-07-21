@@ -280,6 +280,9 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
     // being hidden while the text input panel is open.
     private boolean mSoftKeyboardVisible = false;
 
+    /** True while the terminal toolbar is temporarily shown just for the text input panel. */
+    private boolean mToolbarTemporarilyShownForTextInput = false;
+
     /** Non-null while the user's finger is on the toggle-text-input button. */
     private boolean mButtonTouchInProgress = false;
 
@@ -960,6 +963,9 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
 
         setTerminalToolbarHeight();
 
+        // Ensure the toggle button anchor is correct even when toolbar is initially GONE.
+        updateTextInputToggleButtonAnchor();
+
         // Load extra keys buttons - needed after activity recreate (theme change)
         if (mTermuxTerminalExtraKeys.getExtraKeysInfo() != null) {
             extraKeysView.reload(mTermuxTerminalExtraKeys.getExtraKeysInfo(), mTerminalToolbarDefaultHeight);
@@ -1069,6 +1075,16 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         final boolean showNow = mPreferences.toogleShowTerminalToolbar();
         Logger.showToast(this, (showNow ? getString(R.string.msg_enabling_terminal_toolbar) : getString(R.string.msg_disabling_terminal_toolbar)), true);
         terminalToolbarContainer.setVisibility(showNow ? View.VISIBLE : View.GONE);
+
+        // If hiding the toolbar while text input is visible, close text input first
+        // so the toolbar state is consistent.
+        if (!showNow && isTextInputVisible()) {
+            setTextInputVisible(false);
+            updateToggleTextInputButtonIcon();
+        }
+
+        // Update the pencil anchor so it stays at the bottom when toolbar is GONE.
+        updateTextInputToggleButtonAnchor();
     }
 
     private void saveTerminalToolbarTextInput(Bundle savedInstanceState) {
@@ -1164,7 +1180,6 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
                 .getString("tab_panel_position", "top");
         LinearLayout tabsContainer = findViewById(R.id.session_tabs_container);
         androidx.viewpager2.widget.ViewPager2 pager = findViewById(R.id.terminal_view_pager);
-        ImageButton pencil = findViewById(R.id.toggle_text_input_button);
         if (tabsContainer == null || pager == null) return;
 
         RelativeLayout.LayoutParams tabsLp = (RelativeLayout.LayoutParams) tabsContainer.getLayoutParams();
@@ -1180,30 +1195,11 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
             // Tabs right above the toolbar; ViewPager fills above the tabs
             tabsLp.addRule(RelativeLayout.ABOVE, R.id.terminal_toolbar_container);
             pagerLp.addRule(RelativeLayout.ABOVE, R.id.session_tabs_container);
-
-            // Pencil floats above the tabs panel (not above the toolbar) so it doesn't
-            // overlap the tabs. It keeps its natural margin from the main toolbar area.
-            if (pencil != null) {
-                RelativeLayout.LayoutParams penLp =
-                    (RelativeLayout.LayoutParams) pencil.getLayoutParams();
-                penLp.removeRule(RelativeLayout.ABOVE);
-                penLp.addRule(RelativeLayout.ABOVE, R.id.session_tabs_container);
-                pencil.setLayoutParams(penLp);
-            }
         } else {
             // Tabs at top; ViewPager fills between tabs and toolbar
             tabsLp.addRule(RelativeLayout.ALIGN_PARENT_TOP);
             pagerLp.addRule(RelativeLayout.BELOW, R.id.session_tabs_container);
             pagerLp.addRule(RelativeLayout.ABOVE, R.id.terminal_toolbar_container);
-
-            // Pencil floats above the toolbar (below the tabs).
-            if (pencil != null) {
-                RelativeLayout.LayoutParams penLp =
-                    (RelativeLayout.LayoutParams) pencil.getLayoutParams();
-                penLp.removeRule(RelativeLayout.ABOVE);
-                penLp.addRule(RelativeLayout.ABOVE, R.id.terminal_toolbar_container);
-                pencil.setLayoutParams(penLp);
-            }
         }
 
         tabsContainer.setLayoutParams(tabsLp);
@@ -1215,6 +1211,41 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         if (mDirectoryHistoryPopupCtrl != null) {
             mDirectoryHistoryPopupCtrl.setInverted(!"bottom".equals(position));
         }
+
+        // Update the text-input toggle button anchor so it stays at the bottom
+        // even when the toolbar is GONE (show_extra_keys = never).
+        updateTextInputToggleButtonAnchor();
+    }
+
+    /**
+     * Update the text-input toggle button's layout anchor to keep it at the bottom
+     * of the screen even when the terminal toolbar is GONE (show_extra_keys = never).
+     * When the toolbar is visible, the button is positioned ABOVE it (or above the
+     * tabs if the tab panel is at the bottom). When the toolbar is GONE, the button
+     * anchors to ALIGN_PARENT_BOTTOM so it doesn't fly to the top-right corner.
+     */
+    private void updateTextInputToggleButtonAnchor() {
+        ImageButton pencil = findViewById(R.id.toggle_text_input_button);
+        LinearLayout toolbar = getTerminalToolbarContainer();
+        if (pencil == null || toolbar == null) return;
+
+        RelativeLayout.LayoutParams penLp = (RelativeLayout.LayoutParams) pencil.getLayoutParams();
+        penLp.removeRule(RelativeLayout.ABOVE);
+        penLp.removeRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+
+        if (toolbar.getVisibility() == View.VISIBLE) {
+            String position = getSharedPreferences("termux_prefs", MODE_PRIVATE)
+                    .getString("tab_panel_position", "top");
+            if ("bottom".equals(position)) {
+                penLp.addRule(RelativeLayout.ABOVE, R.id.session_tabs_container);
+            } else {
+                penLp.addRule(RelativeLayout.ABOVE, R.id.terminal_toolbar_container);
+            }
+        } else {
+            // Toolbar is hidden — anchor button to the bottom of the screen.
+            penLp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+        }
+        pencil.setLayoutParams(penLp);
     }
 
     /** Whether the session tabs panel is configured to sit at the bottom of the screen. */
@@ -2388,6 +2419,7 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
     private void setTextInputSlotVisible(boolean visible) {
         final View container = findViewById(R.id.terminal_toolbar_text_input_container);
         final ExtraKeysView ekv = getExtraKeysView();
+        final LinearLayout toolbar = getTerminalToolbarContainer();
 
         if (container == null) {
             if (ekv != null) ekv.setVisibility(visible ? View.GONE
@@ -2401,6 +2433,12 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         container.setTranslationY(0f);
 
         if (visible) {
+            // If the toolbar container is GONE (show_extra_keys = never), temporarily
+            // show it so the text input panel (a child of the toolbar) can become visible.
+            if (toolbar != null && toolbar.getVisibility() != View.VISIBLE) {
+                toolbar.setVisibility(View.VISIBLE);
+                mToolbarTemporarilyShownForTextInput = true;
+            }
             // Showing the input panel hides the extra keys.
             container.setVisibility(View.VISIBLE);
             if (ekv != null) ekv.setVisibility(View.GONE);
@@ -2409,6 +2447,11 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
             container.setVisibility(View.GONE);
             if (ekv != null)
                 ekv.setVisibility(shouldShowExtraKeys() ? View.VISIBLE : View.GONE);
+            // If we had temporarily shown the toolbar for the text input, restore it.
+            if (mToolbarTemporarilyShownForTextInput && toolbar != null) {
+                toolbar.setVisibility(View.GONE);
+                mToolbarTemporarilyShownForTextInput = false;
+            }
         }
     }
 

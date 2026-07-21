@@ -270,7 +270,10 @@
     <string name="extra_keys_preferences_title">额外按键</string>
     <string name="extra_keys_preferences_summary">额外按键栏偏好设置</string>
     <string name="display_preferences_title">显示</string>
-    <string name="display_preferences_summary">主题、语言、面板透明度、终端视图、窗口和标签页</string>
+    <string name="display_preferences_summary">主题、面板透明度、终端视图、标签页、窗口和全屏</string>
+    <string name="terminal_preferences_title">高级</string>
+    <string name="terminal_preferences_summary">按键行为、快捷键、会话、安全和其他设置</string>
+    <string name="extra_keys_corner_radius_title">按钮圆角半径</string>
     <string name="sessions_history_preferences_title">会话</string>
     <string name="sessions_history_preferences_summary">会话、标签页和历史偏好设置</string>
     <string name="backup_restore_preferences_title">备份与恢复</string>

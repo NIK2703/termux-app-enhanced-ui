@@ -8,6 +8,10 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
 import android.util.AttributeSet;
+import android.util.TypedValue;
+
+import android.text.TextPaint;
+import android.text.TextUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,14 +30,16 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.widget.GridLayout;
 import android.widget.PopupWindow;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-
 import com.google.android.material.button.MaterialButton;
 import com.termux.shared.R;
+import com.termux.shared.termux.settings.properties.TermuxAppSharedProperties;
+import com.termux.shared.termux.settings.properties.TermuxPropertyConstants;
 import com.termux.shared.termux.terminal.io.TerminalExtraKeys;
 import com.termux.shared.theme.ThemeUtils;
 
@@ -75,6 +81,31 @@ import com.termux.shared.theme.ThemeUtils;
  * leave the rest to the super class.
  */
 public final class ExtraKeysView extends GridLayout {
+
+    /** Direction for swipe gestures detected in editor mode. */
+    public enum SwipeDirection {
+        UP, DOWN, LEFT, RIGHT
+    }
+
+    /** Listener for editor-mode gestures on the extra keys view. */
+    public interface EditorGestureListener {
+        /**
+         * Called when a button is tapped (short press without significant movement).
+         * @param button The button view that was tapped.
+         * @param row Row index of the button.
+         * @param col Column index of the button.
+         */
+        void onKeyTap(View button, int row, int col);
+
+        /**
+         * Called when a swipe gesture is detected on a button.
+         * @param button The button view that was swiped.
+         * @param row Row index of the button.
+         * @param col Column index of the button.
+         * @param direction The direction of the swipe.
+         */
+        void onKeySwipe(View button, int row, int col, SwipeDirection direction);
+    }
 
     /** The client for the {@link ExtraKeysView}. */
     public interface IExtraKeysView {
@@ -132,8 +163,11 @@ public final class ExtraKeysView extends GridLayout {
     public static final int BUTTON_MARGIN_HORIZONTAL_DP = 2;
     /** Button vertical margin in dp (distance between buttons will be 2x margin). */
     public static final int BUTTON_MARGIN_VERTICAL_DP = 2;
-    /** Button corner radius in dp. */
+    /** Default button corner radius in dp. */
     public static final int BUTTON_CORNER_RADIUS_DP = 12;
+
+    /** Current button corner radius in dp, loaded from preferences. */
+    private int mButtonCornerRadiusDp = BUTTON_CORNER_RADIUS_DP;
 
 
 
@@ -230,6 +264,27 @@ public final class ExtraKeysView extends GridLayout {
      * and a swipe up action is done on an extra key. */
     protected PopupWindow mPopupWindow;
 
+    /** Editor gesture listener. When non-null, the view is in editor mode. */
+    @Nullable
+    private EditorGestureListener mEditorListener;
+
+    /** Pointer state for editor gesture tracking. */
+    private static final int INVALID_POINTER_ID = -1;
+    private int mActivePointerId = INVALID_POINTER_ID;
+    private float mDownX;
+    private float mDownY;
+    private boolean mGestureConsumed;
+    @Nullable private View mActiveChild;
+    private int mSwipeThreshold; // pixels
+
+    /** Runtime swipe detection: X coordinate of finger down. */
+    private float mTouchDownX;
+    /** Runtime swipe detection: Y coordinate of finger down. */
+    private float mTouchDownY;
+    /** Runtime swipe detection: non-null when a swipe has been detected during the current touch sequence. */
+    @Nullable
+    private SwipeDirection mRuntimeSwipeDirection;
+
     protected ScheduledExecutorService mScheduledExecutor;
     protected Handler mHandler;
     protected SpecialButtonsLongHoldRunnable mSpecialButtonsLongHoldRunnable;
@@ -250,6 +305,12 @@ public final class ExtraKeysView extends GridLayout {
 
         setLongPressTimeout(ViewConfiguration.getLongPressTimeout());
         setLongPressRepeatDelay(DEFAULT_LONG_PRESS_REPEAT_DELAY);
+
+        ViewConfiguration vc = ViewConfiguration.get(context);
+        int touchSlop = vc.getScaledTouchSlop();
+        int minThresholdDp = 16;
+        int minThresholdPx = (int) (minThresholdDp * getResources().getDisplayMetrics().density);
+        mSwipeThreshold = Math.max(touchSlop, minThresholdPx);
     }
 
 
@@ -454,6 +515,10 @@ public final class ExtraKeysView extends GridLayout {
 
         removeAllViews();
 
+        // Load corner radius from preferences
+        TermuxAppSharedProperties props = TermuxAppSharedProperties.getProperties();
+        mButtonCornerRadiusDp = props != null ? props.getExtraKeysCornerRadius() : BUTTON_CORNER_RADIUS_DP;
+
         ExtraKeyButton[][] buttons = extraKeysInfo.getMatrix();
 
         setRowCount(buttons.length);
@@ -472,9 +537,54 @@ public final class ExtraKeysView extends GridLayout {
                 }
 
                 button.setText(buttonInfo.getDisplay());
+                // Stage 1: choose font size (14sp or 12sp) based on single-line width
+                // Stage 2: compute maxLines from button height, enable ellipsis
+                CharSequence displayText = button.getText();
+                if (button.getTransformationMethod() != null) {
+                    CharSequence transformed = button.getTransformationMethod().getTransformation(displayText, button);
+                    if (transformed != null) displayText = transformed;
+                }
+                TextPaint paint = new TextPaint(button.getPaint());
+                float displayDensity = getResources().getDisplayMetrics().density;
+
+                // Subtract margins from total cell height to get actual button content height
+                int vMarginPx = (int) (BUTTON_MARGIN_VERTICAL_DP * displayDensity);
+                int textAreaH = (int) (heightPx + 0.5f) - 2 * vMarginPx
+                    - button.getCompoundPaddingTop() - button.getCompoundPaddingBottom();
+                // Cell width from layout: totalViewWidth / columnCount
+                int totalCols = getColumnCount();
+                int textAreaW = totalCols > 0 && getWidth() > 0
+                    ? (getWidth() / totalCols) - button.getCompoundPaddingStart() - button.getCompoundPaddingEnd()
+                    : Integer.MAX_VALUE;
+
+                // Try 14sp first
+                float normalPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 14f, getResources().getDisplayMetrics());
+                float smallPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 12f, getResources().getDisplayMetrics());
+                paint.setTextSize(normalPx);
+                boolean tooWide = textAreaW > 0 && (float) Math.ceil(paint.measureText(displayText.toString())) > textAreaW;
+                float chosenSizePx = tooWide ? smallPx : normalPx;
+
+                // Apply chosen size
+                button.setTextSize(TypedValue.COMPLEX_UNIT_PX, chosenSizePx);
+
+                // Compute maxLines from available height
+                paint.setTextSize(chosenSizePx);
+                int lineHeight = paint.getFontMetricsInt(null);
+                // Account for button's line spacing
+                float lineSpacing = button.getLineSpacingMultiplier();
+                if (lineSpacing > 0f) {
+                    lineHeight = (int) (lineHeight * lineSpacing);
+                }
+                lineHeight += (int) button.getLineSpacingExtra();
+                int maxLines = Math.max(1, textAreaH / Math.max(1, lineHeight));
+
+                button.setMaxLines(maxLines);
+                button.setEllipsize(TextUtils.TruncateAt.END);
+                button.setSingleLine(false);
+                button.setHorizontallyScrolling(false);
                 button.setTextColor(mButtonTextColor);
                 button.setBackgroundTintList(ColorStateList.valueOf(mButtonBackgroundColor));
-                button.setCornerRadius((int) (BUTTON_CORNER_RADIUS_DP * getResources().getDisplayMetrics().density));
+                button.setCornerRadius((int) (mButtonCornerRadiusDp * getResources().getDisplayMetrics().density));
                 button.setAllCaps(mButtonTextAllCaps);
                 button.setPadding(0, 0, 0, 0);
                 button.setMinHeight(0);
@@ -485,14 +595,20 @@ public final class ExtraKeysView extends GridLayout {
                 button.setInsetBottom(0);
 
                 button.setOnClickListener(view -> {
-                    performExtraKeyButtonHapticFeedback(view, buttonInfo, button);
+                    performExtraKeyButtonHapticFeedback(view, buttonInfo, button, false);
                     onAnyExtraKeyButtonClick(view, buttonInfo, button);
                 });
 
                 button.setOnTouchListener((view, event) -> {
                     switch (event.getAction()) {
                         case MotionEvent.ACTION_DOWN:
+                            // Save touch start position for swipe detection
+                            mTouchDownX = event.getX();
+                            mTouchDownY = event.getY();
+                            mRuntimeSwipeDirection = null;
+
                             button.setBackgroundTintList(ColorStateList.valueOf(mButtonActiveBackgroundColor));
+
                             // In HOLD mode a special button activates immediately on touch and stays
                             // active only while held. There is no long-press competition, so we do not
                             // start any scheduled executors and just engage the hold.
@@ -509,21 +625,41 @@ public final class ExtraKeysView extends GridLayout {
                             return true;
 
                         case MotionEvent.ACTION_MOVE:
-                            if (buttonInfo.getPopup() != null) {
-                                // Show popup on swipe up
-                                if (mPopupWindow == null && event.getY() < 0) {
-                                    stopScheduledExecutors();
-                                    button.setBackgroundTintList(ColorStateList.valueOf(mButtonBackgroundColor));
-                                    showPopup(view, buttonInfo.getPopup());
+                            // If a swipe was already detected, no further processing needed
+                            if (mRuntimeSwipeDirection != null) return true;
+
+                            // Check for 4-direction swipe: compute displacement from touch down
+                            float dx = event.getX() - mTouchDownX;
+                            float dy = event.getY() - mTouchDownY;
+                            SwipeDirection swipeDir = detectDirection(dx, dy);
+                            if (swipeDir != null && getSwipeExtraKeyButton(buttonInfo, swipeDir) != null) {
+                                mRuntimeSwipeDirection = swipeDir;
+                                stopScheduledExecutors();
+                                button.setBackgroundTintList(ColorStateList.valueOf(mButtonBackgroundColor));
+                                // If in HOLD mode, end the hold since the swipe takes priority
+                                if (mSpecialButtonMode == SpecialButtonMode.HOLD && isSpecialButton(buttonInfo)) {
+                                    endSpecialButtonHold(buttonInfo);
                                 }
-                                if (mPopupWindow != null && event.getY() > 0) {
-                                    button.setBackgroundTintList(ColorStateList.valueOf(mButtonActiveBackgroundColor));
-                                    dismissPopup();
+                                // Execute the swipe action immediately with haptic feedback,
+                                // bypassing onAnyExtraKeyButtonClick to avoid modifier toggle
+                                ExtraKeyButton swipeBtn = getSwipeExtraKeyButton(buttonInfo, swipeDir);
+                                if (isSpecialButton(swipeBtn)) {
+                                    // Single modifier as swipe → activate in ExtraKeysView sticky state
+                                    // so the next tap can consume it via readSpecialButton(autoSetInActive=true)
+                                    SpecialButtonState state = mSpecialButtons.get(SpecialButton.valueOf(swipeBtn.getKey()));
+                                    if (state != null) state.setIsActive(true);
+                                } else {
+                                    // Regular key or macro → send directly to terminal
+                                    onExtraKeyButtonClick(view, swipeBtn, button);
                                 }
+                                performExtraKeyButtonHapticFeedback(view, swipeBtn, button, true);
+                                return true;
                             }
+
                             return true;
 
                         case MotionEvent.ACTION_CANCEL:
+                            mRuntimeSwipeDirection = null;
                             button.setBackgroundTintList(ColorStateList.valueOf(mButtonBackgroundColor));
                             stopScheduledExecutors();
                             // In HOLD mode a cancelled touch ends the hold
@@ -535,22 +671,22 @@ public final class ExtraKeysView extends GridLayout {
                         case MotionEvent.ACTION_UP:
                             button.setBackgroundTintList(ColorStateList.valueOf(mButtonBackgroundColor));
                             stopScheduledExecutors();
+
                             // In HOLD mode a special button deactivates on release
                             if (mSpecialButtonMode == SpecialButtonMode.HOLD && isSpecialButton(buttonInfo)) {
                                 endSpecialButtonHold(buttonInfo);
                                 return true;
                             }
-                            // If ACTION_UP up was not from a repetitive key or was with a key with a popup button
-                            if (mLongPressCount == 0 || mPopupWindow != null) {
-                                // Trigger popup button click if swipe up complete
-                                if (mPopupWindow != null) {
-                                    dismissPopup();
-                                    if (buttonInfo.getPopup() != null) {
-                                        onAnyExtraKeyButtonClick(view, buttonInfo.getPopup(), button);
-                                    }
-                                } else {
-                                    view.performClick();
-                                }
+
+                            // If a swipe was already executed in ACTION_MOVE, just suppress the tap
+                            if (mRuntimeSwipeDirection != null) {
+                                mRuntimeSwipeDirection = null;
+                                return true;
+                            }
+
+                            // If not a long-press repeat, perform normal click
+                            if (mLongPressCount == 0) {
+                                view.performClick();
                             }
                             return true;
 
@@ -586,7 +722,17 @@ public final class ExtraKeysView extends GridLayout {
             mExtraKeysViewClient.onExtraKeyButtonClick(view, buttonInfo, button);
     }
 
-    public void performExtraKeyButtonHapticFeedback(View view, ExtraKeyButton buttonInfo, MaterialButton button) {
+    public void performExtraKeyButtonHapticFeedback(View view, ExtraKeyButton buttonInfo, MaterialButton button, boolean isGesture) {
+        // Check the haptic mode setting
+        int hapticMode = TermuxPropertyConstants.DEFAULT_IVALUE_EXTRA_KEYS_HAPTIC;
+        TermuxAppSharedProperties props = TermuxAppSharedProperties.getProperties();
+        if (props != null) {
+            hapticMode = props.getExtraKeysHaptic();
+        }
+
+        if (hapticMode == TermuxPropertyConstants.IVALUE_EXTRA_KEYS_HAPTIC_OFF) return;
+        if (!isGesture && hapticMode == TermuxPropertyConstants.IVALUE_EXTRA_KEYS_HAPTIC_GESTURES) return;
+
         if (mExtraKeysViewClient != null) {
             // If client handled the feedback, then just return
             if (mExtraKeysViewClient.performExtraKeyButtonHapticFeedback(view, buttonInfo, button))
@@ -776,7 +922,7 @@ public final class ExtraKeysView extends GridLayout {
         MaterialButton button = new MaterialButton(getContext(), null, android.R.attr.buttonBarButtonStyle);
         button.setTextColor(state.isActive ? mButtonActiveTextColor : mButtonTextColor);
         button.setBackgroundTintList(ColorStateList.valueOf(state.isActive ? mButtonActiveBackgroundColor : mButtonBackgroundColor));
-        button.setCornerRadius((int) (BUTTON_CORNER_RADIUS_DP * getResources().getDisplayMetrics().density));
+        button.setCornerRadius((int) (mButtonCornerRadiusDp * getResources().getDisplayMetrics().density));
         button.setPadding(0, 0, 0, 0);
         button.setMinHeight(0);
         button.setMinimumHeight(0);
@@ -790,6 +936,221 @@ public final class ExtraKeysView extends GridLayout {
     }
 
 
+
+    @Nullable
+    private static ExtraKeyButton getSwipeExtraKeyButton(ExtraKeyButton buttonInfo, SwipeDirection direction) {
+        if (buttonInfo == null || direction == null) return null;
+        switch (direction) {
+            case UP:    return buttonInfo.getSwipeUp();
+            case DOWN:  return buttonInfo.getSwipeDown();
+            case LEFT:  return buttonInfo.getSwipeLeft();
+            case RIGHT: return buttonInfo.getSwipeRight();
+        }
+        return null;
+    }
+
+    /** Set the editor gesture listener. Non-null activates editor mode. */
+    public void setEditorGestureListener(@Nullable EditorGestureListener listener) {
+        mEditorListener = listener;
+    }
+
+    /** Cancel any ongoing editor gesture and reset touch state. */
+    public void cancelEditorGesture() {
+        resetTouchState();
+    }
+
+    @Nullable
+    private SwipeDirection detectDirection(float dx, float dy) {
+        float absDx = Math.abs(dx);
+        float absDy = Math.abs(dy);
+        if (Math.max(absDx, absDy) < mSwipeThreshold) return null;
+        if (absDx > absDy) {
+            return dx > 0 ? SwipeDirection.RIGHT : SwipeDirection.LEFT;
+        } else {
+            return dy > 0 ? SwipeDirection.DOWN : SwipeDirection.UP;
+        }
+    }
+
+    @Nullable
+    private View findChildAt(float x, float y) {
+        android.graphics.Rect rect = new android.graphics.Rect();
+        for (int i = getChildCount() - 1; i >= 0; i--) {
+            View child = getChildAt(i);
+            if (child.getVisibility() != VISIBLE) continue;
+            child.getHitRect(rect);
+            if (rect.contains((int) x, (int) y)) return child;
+        }
+        return null;
+    }
+
+    private boolean isInsideView(@Nullable View view, float x, float y) {
+        if (view == null) return false;
+        android.graphics.Rect rect = new android.graphics.Rect();
+        view.getHitRect(rect);
+        return rect.contains((int) x, (int) y);
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent ev) {
+        if (mEditorListener != null) {
+            switch (ev.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    View child = findChildAt(ev.getX(), ev.getY());
+                    if (child != null) {
+                        mActiveChild = child;
+                        return true;
+                    }
+                    return false;
+                case MotionEvent.ACTION_MOVE:
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    if (mActiveChild != null) return true;
+                    return false;
+            }
+            return false;
+        }
+        return super.onInterceptTouchEvent(ev);
+    }
+
+    @Override
+    @SuppressLint("ClickableViewAccessibility")
+    public boolean onTouchEvent(MotionEvent ev) {
+        if (mEditorListener == null) {
+            return super.onTouchEvent(ev);
+        }
+        return handleEditorGesture(ev);
+    }
+
+    private boolean handleEditorGesture(MotionEvent ev) {
+        switch (ev.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN: {
+                if (mActiveChild == null) return false;
+                ViewParent parent = getParent();
+                if (parent != null) parent.requestDisallowInterceptTouchEvent(true);
+
+                mActivePointerId = ev.getPointerId(0);
+                mDownX = ev.getX();
+                mDownY = ev.getY();
+                mGestureConsumed = false;
+
+                mActiveChild.setPressed(true);
+                return true;
+            }
+
+            case MotionEvent.ACTION_MOVE: {
+                if (mActivePointerId == INVALID_POINTER_ID || mGestureConsumed) return true;
+
+                int pointerIndex = ev.findPointerIndex(mActivePointerId);
+                if (pointerIndex < 0) return true;
+
+                float x = ev.getX(pointerIndex);
+                float y = ev.getY(pointerIndex);
+                float dx = x - mDownX;
+                float dy = y - mDownY;
+
+                SwipeDirection direction = detectDirection(dx, dy);
+                if (direction != null) {
+                    fireSwipe(mActiveChild, direction);
+                }
+                return true;
+            }
+
+            case MotionEvent.ACTION_UP: {
+                if (mActivePointerId == INVALID_POINTER_ID) return true;
+
+                int pointerIndex = ev.findPointerIndex(mActivePointerId);
+                if (pointerIndex >= 0 && !mGestureConsumed) {
+                    float x = ev.getX(pointerIndex);
+                    float y = ev.getY(pointerIndex);
+                    float dx = x - mDownX;
+                    float dy = y - mDownY;
+
+                    SwipeDirection direction = detectDirection(dx, dy);
+                    if (direction != null) {
+                        fireSwipe(mActiveChild, direction);
+                    } else if (isInsideView(mActiveChild, x, y)) {
+                        fireTap(mActiveChild);
+                    }
+                }
+
+                resetTouchState();
+                return true;
+            }
+
+            case MotionEvent.ACTION_CANCEL: {
+                resetTouchState();
+                return true;
+            }
+
+            case MotionEvent.ACTION_POINTER_DOWN: {
+                if (!mGestureConsumed) resetTouchState();
+                return true;
+            }
+
+            case MotionEvent.ACTION_POINTER_UP: {
+                int pointerIndexAction = ev.getActionIndex();
+                int pointerId = ev.getPointerId(pointerIndexAction);
+                if (pointerId == mActivePointerId) {
+                    if (!mGestureConsumed) resetTouchState();
+                    else mActivePointerId = INVALID_POINTER_ID;
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void fireTap(@Nullable View button) {
+        if (button == null) return;
+        Object tag = button.getTag();
+        if (!(tag instanceof int[])) return;
+        int[] coord = (int[]) tag;
+
+        final View fButton = button;
+        final int row = coord[0];
+        final int col = coord[1];
+
+        button.post(() -> {
+            if (!isAttachedToWindow() || mEditorListener == null) return;
+            mEditorListener.onKeyTap(fButton, row, col);
+        });
+    }
+
+    private void fireSwipe(@Nullable View button, SwipeDirection direction) {
+        if (button == null) return;
+        Object tag = button.getTag();
+        if (!(tag instanceof int[])) return;
+        int[] coord = (int[]) tag;
+
+        final View fButton = button;
+        final int row = coord[0];
+        final int col = coord[1];
+        final SwipeDirection fDir = direction;
+
+        mGestureConsumed = true;
+
+        button.setPressed(false);
+        button.cancelLongPress();
+
+        button.post(() -> {
+            if (!isAttachedToWindow() || mEditorListener == null) return;
+            mEditorListener.onKeySwipe(fButton, row, col, fDir);
+        });
+    }
+
+    private void resetTouchState() {
+        if (mActiveChild != null) {
+            mActiveChild.setPressed(false);
+        }
+        mActiveChild = null;
+        mActivePointerId = INVALID_POINTER_ID;
+        mGestureConsumed = false;
+
+        ViewParent parent = getParent();
+        if (parent != null) {
+            parent.requestDisallowInterceptTouchEvent(false);
+        }
+    }
 
     /**
      * General util function to compute the longest column length in a matrix.

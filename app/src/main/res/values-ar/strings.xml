@@ -185,6 +185,7 @@
     <string name="termux_api_preferences_title">&TERMUX_API_APP_NAME;</string>
     <string name="termux_button_bg_active_alpha_title" formatted="false">شفافية العنصر النشط</string>
     <string name="termux_button_bg_inactive_alpha_title" formatted="false">شفافية العنصر غير النشط</string>
+    <string name="extra_keys_corner_radius_title">نصف قطر زاوية الأزرار</string>
     <string name="termux_crash_report_notifications_enabled_off">تعطيل الإشعارات لتقارير الأعطال.</string>
     <string name="termux_crash_report_notifications_enabled_on">عرض الإشعارات لتقارير الأعطال. (افتراضي)</string>
     <string name="termux_crash_report_notifications_enabled_title">إشعارات تقارير الأعطال</string>
@@ -268,8 +269,10 @@
     <string name="backup_restore_preferences_title">النسخ الاحتياطي والاستعادة</string>
     <string name="diagnostics_preferences_summary">التسجيل وإشعارات الأعطال</string>
     <string name="diagnostics_preferences_title">التشخيص</string>
-    <string name="display_preferences_summary">السمة، اللغة، شفافية اللوحة، عرض الطرفية، النافذة وعلامات التبويب</string>
+    <string name="display_preferences_summary">السمة، شفافية اللوحة، عرض الطرفية، علامات التبويب، النافذة وملء الشاشة</string>
     <string name="display_preferences_title">العرض</string>
+    <string name="terminal_preferences_title">متقدمة</string>
+    <string name="terminal_preferences_summary">سلوك المفاتيح، الاختصارات، الجلسة، الأمان وإعدادات متنوعة</string>
     <string name="extra_keys_category_title">المفاتيح الإضافية</string>
     <string name="extra_keys_header">المفاتيح الإضافية</string>
     <string name="extra_keys_layout_summary">مصفوفة JSON تحدد صفوف المفاتيح الإضافية ونوافذها المنبثقة.</string>

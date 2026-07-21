@@ -1061,7 +1061,7 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
         int matchLen = 0;
         int maxK = Math.min(caretPos, candidate.length());
         for (int k = maxK; k >= 1; k--) {
-            if (text.regionMatches(caretPos - k, candidate, 0, k)) {
+            if (text.regionMatches(true, caretPos - k, candidate, 0, k)) {
                 matchLen = k;
                 break;
             }

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <Preference
+        app:key="extra_keys_editor_preview"
+        app:layout="@layout/preference_extra_keys_editor_preview"
+        app:selectable="false"
+        app:iconSpaceReserved="false" />
+
+    <SeekBarPreference
+        app:key="extra_keys_editor_columns"
+        app:title="@string/extra_keys_editor_columns_title"
+        app:summary="@string/extra_keys_editor_columns_summary"
+        android:max="10"
+        app:min="1"
+        app:defaultValue="5"
+        app:showSeekBarValue="true"
+        app:iconSpaceReserved="false" />
+
+    <SeekBarPreference
+        app:key="extra_keys_editor_rows"
+        app:title="@string/extra_keys_editor_rows_title"
+        app:summary="@string/extra_keys_editor_rows_summary"
+        android:max="4"
+        app:min="1"
+        app:defaultValue="2"
+        app:showSeekBarValue="true"
+        app:iconSpaceReserved="false" />
+
+    <SeekBarPreference
+        app:key="terminal-toolbar-height"
+        app:title="@string/terminal_toolbar_height_title"
+        app:summary="@string/terminal_toolbar_height_summary"
+        app:min="50"
+        android:max="200"
+        app:defaultValue="100"
+        app:showSeekBarValue="true"
+        app:iconSpaceReserved="false"
+        app:persistent="false" />
+
+    <ListPreference
+        app:key="extra-keys-style"
+        app:defaultValue="default"
+        app:title="@string/extra_keys_style_title"
+        app:summary="@string/extra_keys_style_summary"
+        app:entries="@array/extra_keys_style_entries"
+        app:entryValues="@array/extra_keys_style_values"
+        app:iconSpaceReserved="false" />
+
+    <SwitchPreferenceCompat
+        app:key="extra-keys-text-all-caps"
+        app:defaultValue="true"
+        app:title="@string/extra_keys_text_all_caps_title"
+        app:summary="@string/extra_keys_text_all_caps_summary"
+        app:iconSpaceReserved="false" />
+
+</PreferenceScreen>

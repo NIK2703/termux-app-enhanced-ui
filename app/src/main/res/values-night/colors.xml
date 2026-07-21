@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Translucent overlay no longer used; header colour is defined in termux-shared. -->
+    <color name="signal_picker_underlay_fill">#0DFFFFFF</color>
+    <color name="signal_picker_underlay_stroke">#1AFFFFFF</color>
 </resources>

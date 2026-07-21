@@ -40,6 +40,13 @@
             app:showSeekBarValue="true"
             app:iconSpaceReserved="false" />
 
+        <SeekBarPreference
+            app:key="extra-keys-corner-radius"
+            app:title="@string/extra_keys_corner_radius_title"
+            app:defaultValue="12"
+            app:showSeekBarValue="true"
+            app:iconSpaceReserved="false" />
+
     </PreferenceCategory>
 
     <PreferenceCategory app:key="tabs" app:title="@string/tabs_category_title" app:iconSpaceReserved="false">
@@ -83,6 +90,61 @@
     </PreferenceCategory>
 
     <PreferenceCategory
+        app:title="@string/terminal_category_title"
+        app:iconSpaceReserved="false">
+
+        <SeekBarPreference
+            app:key="terminal-transcript-rows"
+            app:title="@string/terminal_transcript_rows_title"
+            app:summary="@string/terminal_transcript_rows_summary"
+            app:min="100"
+            android:max="50000"
+            app:defaultValue="2000"
+            app:showSeekBarValue="true"
+            app:iconSpaceReserved="false" />
+
+        <ListPreference
+            app:key="terminal-cursor-style"
+            app:defaultValue="block"
+            app:title="@string/terminal_cursor_style_title"
+            app:summary="@string/terminal_cursor_style_summary"
+            app:entries="@array/terminal_cursor_style_entries"
+            app:entryValues="@array/terminal_cursor_style_values"
+            app:iconSpaceReserved="false" />
+
+        <SeekBarPreference
+            app:key="terminal-cursor-blink-rate"
+            app:title="@string/terminal_cursor_blink_rate_title"
+            app:summary="@string/terminal_cursor_blink_rate_summary"
+            app:min="0"
+            android:max="2000"
+            app:defaultValue="0"
+            app:showSeekBarValue="true"
+            app:iconSpaceReserved="false" />
+
+        <SeekBarPreference
+            app:key="terminal-margin-horizontal"
+            app:title="@string/terminal_margin_horizontal_title"
+            app:summary="@string/terminal_margin_horizontal_summary"
+            app:min="0"
+            android:max="100"
+            app:defaultValue="3"
+            app:showSeekBarValue="true"
+            app:iconSpaceReserved="false" />
+
+        <SeekBarPreference
+            app:key="terminal-margin-vertical"
+            app:title="@string/terminal_margin_vertical_title"
+            app:summary="@string/terminal_margin_vertical_summary"
+            app:min="0"
+            android:max="100"
+            app:defaultValue="0"
+            app:showSeekBarValue="true"
+            app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
         app:key="window"
         app:title="@string/window_category_title"
         app:iconSpaceReserved="false">
@@ -101,6 +163,18 @@
             app:entries="@array/screen_orientation_entries"
             app:entryValues="@array/screen_orientation_values"
             app:defaultValue="sensor"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="fullscreen"
+            app:title="@string/fullscreen_title"
+            app:summary="@string/fullscreen_summary"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="use-fullscreen-workaround"
+            app:title="@string/use_fullscreen_workaround_title"
+            app:summary="@string/use_fullscreen_workaround_summary"
             app:iconSpaceReserved="false" />
 
     </PreferenceCategory>

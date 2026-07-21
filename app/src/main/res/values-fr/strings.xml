@@ -259,7 +259,10 @@
     <string name="extra_keys_preferences_title">Touches supplémentaires</string>
     <string name="extra_keys_preferences_summary">Préférences pour la barre de touches supplémentaires</string>
     <string name="display_preferences_title">Affichage</string>
-    <string name="display_preferences_summary">Thème, langue, transparence du panneau, vue du terminal, fenêtre et onglets</string>
+    <string name="display_preferences_summary">Thème, transparence du panneau, vue du terminal, onglets, fenêtre et plein écran</string>
+    <string name="terminal_preferences_title">Avancé</string>
+    <string name="terminal_preferences_summary">Comportement des touches, raccourcis, session, sécurité et divers</string>
+    <string name="extra_keys_corner_radius_title">Arrondi des coins des boutons</string>
     <string name="sessions_history_preferences_title">Sessions</string>
     <string name="sessions_history_preferences_summary">Préférences pour les sessions, onglets et historique</string>
     <string name="backup_restore_preferences_title">Sauvegarde &amp; restauration</string>

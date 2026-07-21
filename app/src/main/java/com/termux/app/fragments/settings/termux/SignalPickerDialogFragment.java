@@ -1,0 +1,309 @@
+package com.termux.app.fragments.settings.termux;
+
+import android.app.Dialog;
+import android.content.Context;
+import android.content.res.ColorStateList;
+import android.os.Bundle;
+import android.text.TextUtils;
+import android.view.Gravity;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
+import android.widget.GridView;
+import android.widget.LinearLayout;
+import android.widget.Toast;
+
+import androidx.annotation.Keep;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+import androidx.fragment.app.DialogFragment;
+
+import com.google.android.material.chip.Chip;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.termux.R;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Keep
+public class SignalPickerDialogFragment extends DialogFragment {
+
+    public static final String REQUEST_KEY = "signal_picker";
+
+    private static final String ARG_ROW = "row";
+    private static final String ARG_COL = "col";
+    private static final String ARG_TARGET = "target";
+    private static final String ARG_SIGNALS = "signals";
+
+    public static final String RESULT_ROW = "row";
+    public static final String RESULT_COL = "col";
+    public static final String RESULT_TARGET = "target";
+    public static final String RESULT_SIGNALS = "signals";
+
+    public enum BindTarget { TAP, SWIPE_UP, SWIPE_DOWN, SWIPE_LEFT, SWIPE_RIGHT }
+
+    private static final Set<String> MODIFIERS = new HashSet<>(Arrays.asList("CTRL", "ALT", "SHIFT", "FN"));
+
+    private ArrayList<String> mSelected;
+    private ViewGroup mChipsContainer;
+    private AlertDialog mDialog;
+
+    public static SignalPickerDialogFragment newInstance(int row, int col, BindTarget target, ArrayList<String> currentSignals) {
+        Bundle args = new Bundle();
+        args.putInt(ARG_ROW, row);
+        args.putInt(ARG_COL, col);
+        args.putString(ARG_TARGET, target.name());
+        args.putStringArrayList(ARG_SIGNALS, currentSignals != null ? currentSignals : new ArrayList<>());
+        SignalPickerDialogFragment f = new SignalPickerDialogFragment();
+        f.setArguments(args);
+        return f;
+    }
+
+    @NonNull
+    @Override
+    public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
+        Bundle args = requireArguments();
+        int row = args.getInt(ARG_ROW);
+        int col = args.getInt(ARG_COL);
+        String targetStr = args.getString(ARG_TARGET, BindTarget.TAP.name());
+        BindTarget target = BindTarget.valueOf(targetStr);
+
+        mSelected = new ArrayList<>(args.getStringArrayList(ARG_SIGNALS));
+        mSelected.removeIf(String::isEmpty);
+
+        Context context = requireContext();
+        String[] entries = getResources().getStringArray(R.array.extra_keys_editor_signal_entries);
+        String[] values = getResources().getStringArray(R.array.extra_keys_editor_signal_values);
+
+        View view = getLayoutInflater().inflate(R.layout.extra_keys_signal_grid, null);
+        mChipsContainer = view.findViewById(R.id.chips_container);
+        GridView grid = view.findViewById(R.id.signal_grid);
+
+        String title;
+        switch (target) {
+            case TAP:
+                title = getString(R.string.extra_keys_editor_signal_dialog_title) + " (Tap)";
+                break;
+            case SWIPE_UP:
+                title = getString(R.string.extra_keys_editor_signal_dialog_title) + " (\u2191)";
+                break;
+            case SWIPE_DOWN:
+                title = getString(R.string.extra_keys_editor_signal_dialog_title) + " (\u2193)";
+                break;
+            case SWIPE_LEFT:
+                title = getString(R.string.extra_keys_editor_signal_dialog_title) + " (\u2190)";
+                break;
+            case SWIPE_RIGHT:
+                title = getString(R.string.extra_keys_editor_signal_dialog_title) + " (\u2192)";
+                break;
+            default:
+                title = getString(R.string.extra_keys_editor_signal_dialog_title);
+        }
+
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(context, R.style.ThemeOverlay_TermuxActivity_Dialog);
+        builder.setTitle(title);
+        builder.setView(view);
+        builder.setPositiveButton(getString(R.string.extra_keys_editor_done), (dialog, which) -> {
+            Bundle result = new Bundle();
+            result.putInt(RESULT_ROW, row);
+            result.putInt(RESULT_COL, col);
+            result.putString(RESULT_TARGET, target.name());
+            result.putStringArrayList(RESULT_SIGNALS, mSelected);
+            getParentFragmentManager().setFragmentResult(REQUEST_KEY, result);
+        });
+        builder.setNegativeButton(android.R.string.cancel, null);
+
+        mDialog = builder.create();
+        mDialog.setCanceledOnTouchOutside(false);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(context, android.R.layout.simple_list_item_1, entries);
+        grid.setAdapter(adapter);
+        grid.setOnItemClickListener((parent, v, position, id) -> {
+            if (position < 0 || position >= values.length) return;
+            String value = values[position];
+
+            if ("__CUSTOM__".equals(value)) {
+                openCustomTextDialog();
+            } else {
+                if (mSelected.size() >= 8) {
+                    Toast.makeText(context, getString(R.string.extra_keys_editor_max_signals), Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                mSelected.add(value);
+                rebuildChipsWithGrouping();
+                updateDoneButton();
+            }
+        });
+
+        rebuildChipsWithGrouping();
+        updateDoneButton();
+
+        return mDialog;
+    }
+
+    private void rebuildChipsWithGrouping() {
+        mChipsContainer.removeAllViews();
+        if (mSelected.isEmpty()) {
+            mChipsContainer.setVisibility(View.GONE);
+            return;
+        }
+        mChipsContainer.setVisibility(View.VISIBLE);
+
+        int i = 0;
+        while (i < mSelected.size()) {
+            int groupStart = i;
+            // Collect consecutive modifiers
+            while (i < mSelected.size() && MODIFIERS.contains(mSelected.get(i))) {
+                i++;
+            }
+            boolean hasModifiers = (i > groupStart);
+            // Check if there's a non-modifier following the modifiers
+            boolean hasTarget = hasModifiers && i < mSelected.size();
+
+            if (hasTarget) {
+                i++; // include the first non-modifier after modifiers in the group
+                addGroupedChips(groupStart, i);
+            } else if (hasModifiers) {
+                // Lone modifier(s) with no following non-modifier — no underlay
+                addStandaloneChip(groupStart);
+                i = groupStart + 1;
+            } else {
+                // No modifiers — standalone chip, no underlay
+                addStandaloneChip(groupStart);
+                i = groupStart + 1;
+            }
+        }
+    }
+
+    private void addGroupedChips(int start, int end) {
+        Context context = mChipsContainer.getContext();
+        int dp4 = dpToPx(context, 4);
+        int dp2 = dpToPx(context, 2);
+
+        LinearLayout groupLayout = new LinearLayout(context);
+        groupLayout.setOrientation(LinearLayout.HORIZONTAL);
+        groupLayout.setGravity(Gravity.CENTER_VERTICAL);
+
+        groupLayout.setBackgroundResource(R.drawable.bg_signal_group_underlay);
+
+        groupLayout.setPadding(dp2, dp2, dp2, dp2);
+
+        LinearLayout.LayoutParams groupLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        groupLp.setMargins(dp4, 0, dp4, 0);
+        groupLayout.setLayoutParams(groupLp);
+
+        for (int j = start; j < end; j++) {
+            final int index = j;
+            Chip chip = createStyledChip(mSelected.get(j), v -> {
+                mSelected.remove(index);
+                rebuildChipsWithGrouping();
+                updateDoneButton();
+            });
+
+            LinearLayout.LayoutParams chipLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+            chipLp.setMargins(dp2, 0, dp2, 0);
+            chip.setLayoutParams(chipLp);
+
+            groupLayout.addView(chip);
+        }
+
+        mChipsContainer.addView(groupLayout);
+    }
+
+    private void addStandaloneChip(int index) {
+        Context context = mChipsContainer.getContext();
+        int dp4 = dpToPx(context, 4);
+
+        Chip chip = createStyledChip(mSelected.get(index), v -> {
+            mSelected.remove(index);
+            rebuildChipsWithGrouping();
+            updateDoneButton();
+        });
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        lp.setMargins(dp4, 0, dp4, 0);
+        chip.setLayoutParams(lp);
+
+        mChipsContainer.addView(chip);
+    }
+
+    private void updateDoneButton() {
+    }
+    private static int dpToPx(Context context, float dp) {
+        return (int) (dp * context.getResources().getDisplayMetrics().density);
+    }
+
+    private Chip createStyledChip(String signal, View.OnClickListener removeListener) {
+        Context context = mChipsContainer.getContext();
+        Chip chip = new Chip(context);
+        chip.setText(signal);
+        chip.setCheckable(false);
+        chip.setCheckedIconVisible(false);
+        chip.setEnsureMinTouchTargetSize(false);
+
+        chip.setCloseIconVisible(true);
+        chip.setCloseIconResource(R.drawable.ic_close);
+        chip.setCloseIconSize(dpToPx(context, 16));
+        chip.setCloseIconTint(ColorStateList.valueOf(
+            chip.getTextColors().getDefaultColor()
+        ));
+        chip.setCloseIconStartPadding(dpToPx(context, 2));
+        chip.setCloseIconEndPadding(dpToPx(context, 2));
+        chip.setCloseIconContentDescription("Remove " + signal);
+        chip.setOnCloseIconClickListener(removeListener);
+
+        float cornerRadius = dpToPx(context, 4);
+        chip.setShapeAppearanceModel(
+            chip.getShapeAppearanceModel().toBuilder()
+                .setAllCornerSizes(cornerRadius)
+                .build()
+        );
+
+        return chip;
+    }
+
+    private void openCustomTextDialog() {
+        Context context = requireContext();
+        EditText editText = new EditText(context);
+        if (mSelected.size() == 1) {
+            editText.setText(mSelected.get(0));
+        }
+
+        new MaterialAlertDialogBuilder(context, R.style.ThemeOverlay_TermuxActivity_Dialog)
+            .setTitle(R.string.extra_keys_editor_custom_text_title)
+            .setMessage(R.string.extra_keys_editor_custom_text_message)
+            .setView(editText)
+            .setPositiveButton(android.R.string.ok, (d, which) -> {
+                String text = editText.getText().toString().trim();
+                if (!text.isEmpty()) {
+                    if (mSelected.size() >= 8) {
+                        Toast.makeText(context, getString(R.string.extra_keys_editor_max_signals), Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    if (text.contains(" ")) {
+                        Toast.makeText(context, getString(R.string.extra_keys_editor_custom_text_no_space), Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    mSelected.add(text);
+                    rebuildChipsWithGrouping();
+                    updateDoneButton();
+                }
+            })
+            .setNegativeButton(android.R.string.cancel, null)
+            .show();
+    }
+}

@@ -257,7 +257,9 @@
     <string name="extra_keys_preferences_title">Zusatztasten</string>
     <string name="extra_keys_preferences_summary">Einstellungen für die Zusatztastenleiste</string>
     <string name="display_preferences_title">Anzeige</string>
-    <string name="display_preferences_summary">Design, Sprache, Panel-Transparenz, Terminalansicht, Fenster und Tabs</string>
+    <string name="display_preferences_summary">Design, Panel-Transparenz, Terminalansicht, Tabs, Fenster und Vollbild</string>
+    <string name="terminal_preferences_title">Erweitert</string>
+    <string name="terminal_preferences_summary">Tastenverhalten, Tastenkürzel, Sitzung, Sicherheit und Sonstiges</string>
     <string name="sessions_history_preferences_title">Sitzungen</string>
     <string name="sessions_history_preferences_summary">Einstellungen für Sitzungen, Tabs und Verlauf</string>
     <string name="backup_restore_preferences_title">Sicherung &amp; Wiederherstellung</string>
@@ -283,6 +285,7 @@
     <string name="extra_keys_style_none">Keine</string>
     <string name="extra_keys_text_all_caps_title">Text in Großbuchstaben</string>
     <string name="extra_keys_text_all_caps_summary">Zusatztastenbeschriftungen in Großbuchstaben anzeigen.</string>
+    <string name="extra_keys_corner_radius_title">Eckenradius der Tasten</string>
     <string name="view_category_title">Ansicht</string>
     <string name="window_category_title">Fenster</string>
     <string name="history_category_title">Verlauf</string>

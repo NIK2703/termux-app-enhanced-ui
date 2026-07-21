@@ -260,9 +260,12 @@
 <string name="extra_keys_style_none">Tidak ada</string>
 <string name="extra_keys_text_all_caps_title">Teks semua huruf kapital</string>
 <string name="extra_keys_text_all_caps_summary">Tampilkan label tombol tambahan dalam huruf kapital.</string>
+<string name="extra_keys_corner_radius_title">Radius sudut tombol</string>
 <string name="appearance_category_title">Tampilan</string>
 <string name="display_preferences_title">Tampilan</string>
-<string name="display_preferences_summary">Tema, bahasa, transparansi panel, tampilan terminal, jendela, dan tab</string>
+<string name="display_preferences_summary">Tema, transparansi panel, tampilan terminal, tab, jendela, dan layar penuh</string>
+<string name="terminal_preferences_title">Lanjutan</string>
+<string name="terminal_preferences_summary">Perilaku tombol, pintasan, sesi, keamanan, dan pengaturan lain</string>
 <string name="sessions_history_preferences_title">Sesi</string>
 <string name="sessions_history_preferences_summary">Preferensi untuk sesi, tab, dan riwayat</string>
 <string name="backup_restore_preferences_title">Cadangan &amp; Pulihkan</string>

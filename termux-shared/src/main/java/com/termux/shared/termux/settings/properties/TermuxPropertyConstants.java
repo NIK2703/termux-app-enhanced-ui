@@ -189,6 +189,26 @@ public final class TermuxPropertyConstants {
             .put(VALUE_BELL_BEHAVIOUR_IGNORE, IVALUE_BELL_BEHAVIOUR_IGNORE)
             .build();
 
+    /** Defines the key for extra keys haptic feedback mode */
+    public static final String KEY_EXTRA_KEYS_HAPTIC = "extra-keys-haptic";
+
+    public static final String VALUE_EXTRA_KEYS_HAPTIC_ALL = "all";
+    public static final String VALUE_EXTRA_KEYS_HAPTIC_GESTURES = "gestures";
+    public static final String VALUE_EXTRA_KEYS_HAPTIC_OFF = "off";
+    public static final String DEFAULT_VALUE_EXTRA_KEYS_HAPTIC = VALUE_EXTRA_KEYS_HAPTIC_ALL;
+
+    public static final int IVALUE_EXTRA_KEYS_HAPTIC_ALL = 0;
+    public static final int IVALUE_EXTRA_KEYS_HAPTIC_GESTURES = 1;
+    public static final int IVALUE_EXTRA_KEYS_HAPTIC_OFF = 2;
+    public static final int DEFAULT_IVALUE_EXTRA_KEYS_HAPTIC = IVALUE_EXTRA_KEYS_HAPTIC_ALL;
+
+    /** Defines the bidirectional map for extra keys haptic values and their internal values */
+    public static final ImmutableBiMap<String, Integer> MAP_EXTRA_KEYS_HAPTIC =
+        new ImmutableBiMap.Builder<String, Integer>()
+            .put(VALUE_EXTRA_KEYS_HAPTIC_ALL, IVALUE_EXTRA_KEYS_HAPTIC_ALL)
+            .put(VALUE_EXTRA_KEYS_HAPTIC_GESTURES, IVALUE_EXTRA_KEYS_HAPTIC_GESTURES)
+            .put(VALUE_EXTRA_KEYS_HAPTIC_OFF, IVALUE_EXTRA_KEYS_HAPTIC_OFF)
+            .build();
 
 
     /** Defines the key for the terminal cursor blink rate */
@@ -267,6 +287,16 @@ public final class TermuxPropertyConstants {
     public static final float DEFAULT_IVALUE_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR = 1;
 
 
+
+
+
+    /* int */
+
+    /** Defines the key for the extra keys button corner radius in dp */
+    public static final String KEY_EXTRA_KEYS_CORNER_RADIUS = "extra-keys-corner-radius";
+    public static final int IVALUE_EXTRA_KEYS_CORNER_RADIUS_MIN = 0;
+    public static final int IVALUE_EXTRA_KEYS_CORNER_RADIUS_MAX = 24;
+    public static final int DEFAULT_IVALUE_EXTRA_KEYS_CORNER_RADIUS = 12;
 
 
 
@@ -511,6 +541,7 @@ public final class TermuxPropertyConstants {
     /** The int keys. */
     public static final Set<String> TERMUX_APP_PROPERTIES_INT_KEYS = new HashSet<>(Arrays.asList(
         KEY_BELL_BEHAVIOUR,
+        KEY_EXTRA_KEYS_HAPTIC,
         KEY_DELETE_TMPDIR_FILES_OLDER_THAN_X_DAYS_ON_EXIT,
         KEY_TERMINAL_CURSOR_BLINK_RATE,
         KEY_TERMINAL_CURSOR_STYLE,

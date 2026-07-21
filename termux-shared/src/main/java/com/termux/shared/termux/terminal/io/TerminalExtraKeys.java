@@ -67,7 +67,11 @@ public class TerminalExtraKeys implements ExtraKeysView.IExtraKeysView {
                     fnDown = true;
                 } else {
                     onTerminalExtraKeyButtonClick(view, key, ctrlDown, altDown, shiftDown, fnDown);
-                    ctrlDown = false; altDown = false; shiftDown = false; fnDown = false;
+                    // Reset modifiers after first non-modifier — subsequent keys get no modifiers
+                    ctrlDown = false;
+                    altDown = false;
+                    shiftDown = false;
+                    fnDown = false;
                 }
             }
         } else {

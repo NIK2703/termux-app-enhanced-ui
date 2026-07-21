@@ -4,6 +4,7 @@ import android.view.View;
 import android.widget.Button;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.google.android.material.button.MaterialButton;
 import com.termux.shared.termux.extrakeys.ExtraKeysConstants.EXTRA_KEY_DISPLAY_MAPS;
@@ -154,17 +155,15 @@ public class ExtraKeysInfo {
 
                 JSONObject jobject = normalizeKeyConfig(key);
 
-                ExtraKeyButton button;
-
-                if (!jobject.has(ExtraKeyButton.KEY_POPUP)) {
-                    // no popup
-                    button = new ExtraKeyButton(jobject, extraKeyDisplayMap, extraKeyAliasMap);
-                } else {
-                    // a popup
-                    JSONObject popupJobject = normalizeKeyConfig(jobject.get(ExtraKeyButton.KEY_POPUP));
-                    ExtraKeyButton popup = new ExtraKeyButton(popupJobject, extraKeyDisplayMap, extraKeyAliasMap);
-                    button = new ExtraKeyButton(jobject, popup, extraKeyDisplayMap, extraKeyAliasMap);
+                ExtraKeyButton swipeUp = parseSwipe(jobject, ExtraKeyButton.KEY_SWIPE_UP, extraKeyDisplayMap, extraKeyAliasMap);
+                if (swipeUp == null) {
+                    swipeUp = parseSwipe(jobject, ExtraKeyButton.KEY_POPUP, extraKeyDisplayMap, extraKeyAliasMap);
                 }
+                ExtraKeyButton swipeDown = parseSwipe(jobject, ExtraKeyButton.KEY_SWIPE_DOWN, extraKeyDisplayMap, extraKeyAliasMap);
+                ExtraKeyButton swipeLeft = parseSwipe(jobject, ExtraKeyButton.KEY_SWIPE_LEFT, extraKeyDisplayMap, extraKeyAliasMap);
+                ExtraKeyButton swipeRight = parseSwipe(jobject, ExtraKeyButton.KEY_SWIPE_RIGHT, extraKeyDisplayMap, extraKeyAliasMap);
+
+                ExtraKeyButton button = new ExtraKeyButton(jobject, swipeUp, swipeDown, swipeLeft, swipeRight, extraKeyDisplayMap, extraKeyAliasMap);
 
                 buttons[i][j] = button;
             }
@@ -188,6 +187,27 @@ public class ExtraKeysInfo {
             throw new JSONException("An key in the extra-key matrix must be a string or an object");
         }
         return jobject;
+    }
+
+    /**
+     * Parse a swipe button from the parent JSON object if the given key exists.
+     *
+     * @param parent The parent {@link JSONObject} containing the button config.
+     * @param key The key name to look up (e.g. "swipeUp", "swipeDown").
+     * @param displayMap The display text mapping.
+     * @param aliasMap The alias mapping.
+     * @return The {@link ExtraKeyButton} or {@code null} if the key is not present or empty.
+     */
+    @Nullable
+    private static ExtraKeyButton parseSwipe(@NonNull JSONObject parent, @NonNull String key,
+                                              @NonNull ExtraKeysConstants.ExtraKeyDisplayMap displayMap,
+                                              @NonNull ExtraKeysConstants.ExtraKeyDisplayMap aliasMap) throws JSONException {
+        if (!parent.has(key)) return null;
+        Object value = parent.get(key);
+        if (value == null || value == JSONObject.NULL) return null;
+        if (value instanceof String && ((String) value).isEmpty()) return null;
+        JSONObject config = normalizeKeyConfig(value);
+        return new ExtraKeyButton(config, displayMap, aliasMap);
     }
 
     public ExtraKeyButton[][] getMatrix() {

@@ -116,6 +116,7 @@
 <string name="termux_terminal_view_view_header">表示</string>
 <string name="termux_button_bg_inactive_alpha_title" formatted="false">非アクティブ項目の背景透明度</string>
 <string name="termux_button_bg_active_alpha_title" formatted="false">アクティブ項目の背景透明度</string>
+<string name="extra_keys_corner_radius_title">ボタンの角の丸み</string>
 <string name="termux_terminal_view_terminal_margin_adjustment_title">ターミナルマージン調整</string>
 <string name="termux_terminal_view_terminal_margin_adjustment_off">ターミナルのマージン調整を無効にします。</string>
 <string name="termux_terminal_view_terminal_margin_adjustment_on">ターミナルのマージン調整を有効にします。ソフトウェアキーボードが追加キーやターミナル表示の一部を覆う問題を修正するには有効にする必要があります。デバイスで画面のちらつきが発生する場合は無効にしてください。(デフォルト)</string>
@@ -252,7 +253,9 @@
 <string name="diagnostics_preferences_title">診断</string>
 <string name="diagnostics_preferences_summary">ログ記録と失敗通知</string>
 <string name="display_preferences_title">表示</string>
-<string name="display_preferences_summary">テーマ、言語、パネルの透明度、ターミナルビュー、ウィンドウ、タブ</string>
+    <string name="display_preferences_summary">テーマ、パネルの透明度、ターミナルビュー、タブ、ウィンドウと全画面</string>
+<string name="terminal_preferences_title">詳細設定</string>
+<string name="terminal_preferences_summary">キー動作、ショートカット、セッション、セキュリティ、その他の設定</string>
 <string name="extra_keys_preferences_title">拡張キー</string>
 <string name="extra_keys_preferences_summary">拡張キーバーの設定</string>
 <string name="extra_keys_header">拡張キー</string>

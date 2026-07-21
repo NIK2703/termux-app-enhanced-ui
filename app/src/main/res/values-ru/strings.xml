@@ -383,8 +383,8 @@
     <string name="input_preferences_summary">Настройки ввода текста и клавиатуры</string>
     <string name="extra_keys_preferences_title">Дополнительные клавиши</string>
     <string name="extra_keys_preferences_summary">Настройки панели дополнительных клавиш</string>
-    <string name="display_preferences_title">Экран</string>
-    <string name="display_preferences_summary">Тема, язык, прозрачность панели, вид терминала, окно и вкладки</string>
+    <string name="display_preferences_title">Отображение</string>
+    <string name="display_preferences_summary">Тема, прозрачность панели, вид терминала, вкладки, окно и полноэкранный режим</string>
     <string name="sessions_history_preferences_title">Сессии</string>
     <string name="sessions_history_preferences_summary">Настройки сессий, вкладок и истории</string>
     <string name="backup_restore_preferences_title">Резервное копирование и восстановление</string>
@@ -434,8 +434,8 @@
     <string name="screen_orientation_entry_landscape">Альбомная</string>
 
     <!-- Terminal screen (migrated termux.properties) -->
-    <string name="terminal_preferences_title">Терминал</string>
-    <string name="terminal_preferences_summary">Вид терминала, поведение клавиш, экран и прочее</string>
+    <string name="terminal_preferences_title">Дополнительно</string>
+    <string name="terminal_preferences_summary">Поведение клавиш, ярлыки, сессия, безопасность и прочее</string>
 
     <string name="sound_category_title">Звук и уведомления</string>
     <string name="key_behaviour_category_title">Поведение клавиш</string>
@@ -546,4 +546,40 @@
     <string name="night_mode_true">Тёмная</string>
     <string name="night_mode_false">Светлая</string>
     <string name="night_mode_system">Системная</string>
+
+    <!-- Extra keys visibility -->
+    <string name="extra_keys_visibility_title">Показывать панель доп. клавиш</string>
+    <string name="extra_keys_visibility_summary">Когда отображается панель дополнительных клавиш.</string>
+
+    <!-- Extra keys corner radius -->
+    <string name="extra_keys_corner_radius_title">Радиус скругления кнопок</string>
+
+    <!-- Extra Keys Editor -->
+    <string name="extra_keys_editor_title">Редактор доп. клавиш</string>
+    <string name="extra_keys_editor_summary">Визуальное создание панели доп. клавиш: задайте строки и столбцы, затем нажмите на клавишу, чтобы назначить сигнал.</string>
+    <string name="extra_keys_editor_columns_title">Столбцы</string>
+    <string name="extra_keys_editor_columns_summary">Количество кнопок в строке (1–10).</string>
+    <string name="extra_keys_editor_rows_title">Строки</string>
+    <string name="extra_keys_editor_rows_summary">Количество рядов кнопок (1–4).</string>
+    <string name="extra_keys_editor_preview_title">Предпросмотр</string>
+    <string name="extra_keys_editor_preview_summary">Интерактивная панель — нажмите на любую клавишу, чтобы изменить её сигнал.</string>
+    <string name="extra_keys_editor_signal_dialog_title">Назначить сигнал</string>
+    <string name="extra_keys_editor_custom_text_title">Свой текст</string>
+    <string name="extra_keys_editor_custom_text_message">Введите текст для отправки при нажатии этой клавиши:</string>
+    <string name="extra_keys_editor_save_title">Применить к доп. клавишам</string>
+    <string name="extra_keys_editor_save_summary">Сохранить раскладку в настройки доп. клавиш.</string>
+    <string name="extra_keys_editor_empty">(пусто)</string>
+    <string name="extra_keys_editor_max_signals">Максимум 8 сигналов на кнопку</string>
+    <string name="extra_keys_editor_custom_text_no_space">Свой текст с пробелами не поддерживается в комбинациях</string>
+    <string name="extra_keys_editor_done">Готово</string>
+    <string name="extra_keys_editor_open_editor">Редактировать доп. клавиши</string>
+    <string name="extra_keys_editor_open_editor_summary">Настройка раскладки, масштаба и привязки клавиш</string>
+    <string name="extra_keys_editor_hint">Нажмите, чтобы назначить основную клавишу · Смахните ↑ ↓ ← → для назначения жестовых клавиш</string>
+
+    <!-- Haptic feedback for extra keys -->
+    <string name="extra_keys_haptic_title">Тактильная обратная связь</string>
+    <string name="extra_keys_haptic_summary">Вибрация при взаимодействии с панелью доп. клавиш</string>
+    <string name="extra_keys_haptic_all">Нажатия и жесты</string>
+    <string name="extra_keys_haptic_gestures">Только жесты</string>
+    <string name="extra_keys_haptic_off">Отключено</string>
 </resources>

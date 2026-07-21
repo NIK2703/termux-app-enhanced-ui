@@ -79,15 +79,15 @@ android {
                 cFlags "-std=c11", "-Wall", "-Wextra", "-Werror", "-Os", "-fno-stack-protector", "-Wl,--gc-sections"
             }
         }
+    }
 
-        splits {
-            abi {
-                // Per-ABI split APKs: one apk per architecture, no universal.
-                enable splitAPKsForReleaseBuilds.toBoolean()
-                reset ()
-                include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
-                universalApk false
-            }
+    splits {
+        abi {
+            // Per-ABI split APKs: one apk per architecture, no universal.
+            enable splitAPKsForReleaseBuilds.toBoolean()
+            reset ()
+            include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+            universalApk false
         }
     }
 
@@ -334,6 +334,24 @@ afterEvaluate {
         t.name.startsWith("buildNdkBuildRelease") || t.name.startsWith("buildNdkBuildDebug")
     }.configureEach {
         dependsOn downloadBootstraps
+    }
+    // Create empty stub bootstrap zips for ABIs not in abiList so ndkBuild
+    // does not fail with "Could not find incbin file 'bootstrap-<arch>.zip'".
+    tasks.matching { t ->
+        t.name.startsWith("configureNdkBuild") || t.name.startsWith("buildNdkBuild")
+    }.configureEach { t ->
+        def m = t.name =~ /\[(.+?)\]/
+        def abi = m.find() ? m.group(1) : null
+        if (abi && !project.ext.abiList.contains(abi)) {
+            doFirst {
+                def arch = abiToBootstrapArch(abi)
+                def stub = new File(projectDir, "src/main/cpp/bootstrap-" + arch + ".zip")
+                if (!stub.exists()) {
+                    stub.parentFile.mkdirs()
+                    stub.createNewFile()
+                }
+            }
+        }
     }
 }
 

@@ -259,7 +259,10 @@
     <string name="input_preferences_title">इनपुट</string>
     <string name="input_preferences_summary">टेक्स्ट इनपुट और कीबोर्ड के लिए प्राथमिकताएँ</string>
     <string name="display_preferences_title">प्रदर्शन</string>
-    <string name="display_preferences_summary">थीम, भाषा, पैनल पारदर्शिता, टर्मिनल दृश्य, विंडो और टैब</string>
+    <string name="display_preferences_summary">थीम, पैनल पारदर्शिता, टर्मिनल दृश्य, टैब, विंडो और पूर्ण स्क्रीन</string>
+    <string name="terminal_preferences_title">उन्नत</string>
+    <string name="terminal_preferences_summary">कुंजी व्यवहार, शॉर्टकट, सत्र, सुरक्षा और अन्य सेटिंग्स</string>
+    <string name="extra_keys_corner_radius_title">बटन कोने की त्रिज्या</string>
     <string name="extra_keys_special_button_mode_title">विशेष कुंजियों का व्यवहार</string>
     <string name="extra_keys_special_button_mode_summary">संशोधक कुंजियाँ (CTRL, ALT, SHIFT, FN) स्पर्श पर कैसे प्रतिक्रिया करती हैं। स्टिकी: टॉगल करने हेतु टैप, लॉक करने हेतु लंबे समय दबाएँ। होल्ड: केवल तब तक सक्रिय जब तक कुंजी दबी रहे।</string>
     <string name="extra_keys_special_button_mode_sticky">स्टिकी (टॉगल / लॉक)</string>

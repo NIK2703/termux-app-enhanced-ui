@@ -6,39 +6,10 @@
         app:iconSpaceReserved="false">
 
         <Preference
-            app:key="extra_keys_editor_preview"
-            app:layout="@layout/preference_extra_keys_editor_preview"
-            app:selectable="false"
-            app:iconSpaceReserved="false" />
-
-        <SeekBarPreference
-            app:key="extra_keys_editor_columns"
-            app:title="@string/extra_keys_editor_columns_title"
-            app:summary="@string/extra_keys_editor_columns_summary"
-            android:max="10"
-            app:min="1"
-            app:defaultValue="5"
-            app:showSeekBarValue="true"
-            app:iconSpaceReserved="false" />
-
-        <SeekBarPreference
-            app:key="extra_keys_editor_rows"
-            app:title="@string/extra_keys_editor_rows_title"
-            app:summary="@string/extra_keys_editor_rows_summary"
-            android:max="4"
-            app:min="1"
-            app:defaultValue="2"
-            app:showSeekBarValue="true"
-            app:iconSpaceReserved="false" />
-
-        <SeekBarPreference
-            app:key="terminal-toolbar-height"
-            app:title="@string/terminal_toolbar_height_title"
-            app:summary="@string/terminal_toolbar_height_summary"
-            app:min="50"
-            android:max="200"
-            app:defaultValue="100"
-            app:showSeekBarValue="true"
+            app:key="extra_keys_editor"
+            app:title="@string/extra_keys_editor_open_editor"
+            app:summary="@string/extra_keys_editor_open_editor_summary"
+            app:fragment="com.termux.app.fragments.settings.termux.ExtraKeysEditorFragment"
             app:iconSpaceReserved="false" />
 
         <ListPreference
@@ -51,28 +22,21 @@
             app:iconSpaceReserved="false" />
 
         <ListPreference
-            app:key="extra-keys-style"
-            app:defaultValue="default"
-            app:title="@string/extra_keys_style_title"
-            app:summary="@string/extra_keys_style_summary"
-            app:entries="@array/extra_keys_style_entries"
-            app:entryValues="@array/extra_keys_style_values"
-            app:iconSpaceReserved="false" />
-
-        <SwitchPreferenceCompat
-            app:key="extra-keys-text-all-caps"
-            app:defaultValue="true"
-            app:title="@string/extra_keys_text_all_caps_title"
-            app:summary="@string/extra_keys_text_all_caps_summary"
-            app:iconSpaceReserved="false" />
-
-        <ListPreference
             app:key="extra-keys-special-button-mode"
             app:defaultValue="sticky"
             app:title="@string/extra_keys_special_button_mode_title"
             app:summary="@string/extra_keys_special_button_mode_summary"
             app:entries="@array/extra_keys_special_button_mode_entries"
             app:entryValues="@array/extra_keys_special_button_mode_values"
+            app:iconSpaceReserved="false" />
+
+        <ListPreference
+            app:key="extra-keys-haptic"
+            app:defaultValue="all"
+            app:title="@string/extra_keys_haptic_title"
+            app:summary="@string/extra_keys_haptic_summary"
+            app:entries="@array/extra_keys_haptic_entries"
+            app:entryValues="@array/extra_keys_haptic_values"
             app:iconSpaceReserved="false" />
 
     </PreferenceCategory>

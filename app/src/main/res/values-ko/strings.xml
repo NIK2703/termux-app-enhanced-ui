@@ -274,7 +274,10 @@ $HOME/bin/termux-url-opener
     <string name="extra_keys_preferences_title">추가 키</string>
     <string name="extra_keys_preferences_summary">추가 키 표시줄 설정</string>
     <string name="display_preferences_title">화면 표시</string>
-    <string name="display_preferences_summary">테마, 언어, 패널 투명도, 터미널 보기, 창 및 탭</string>
+    <string name="display_preferences_summary">테마, 패널 투명도, 터미널 보기, 탭, 창 및 전체 화면</string>
+    <string name="terminal_preferences_title">고급</string>
+    <string name="terminal_preferences_summary">키 동작, 바로가기, 세션, 보안 및 기타 설정</string>
+    <string name="extra_keys_corner_radius_title">버튼 모서리 반경</string>
     <string name="sessions_history_preferences_title">세션</string>
     <string name="sessions_history_preferences_summary">세션, 탭 및 기록 설정</string>
     <string name="backup_restore_preferences_title">백업 및 복원</string>

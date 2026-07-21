@@ -269,7 +269,10 @@
     <string name="input_preferences_title">Entrada</string>
     <string name="input_preferences_summary">Preferências para entrada de texto e teclado</string>
     <string name="display_preferences_title">Exibição</string>
-    <string name="display_preferences_summary">Tema, idioma, transparência do painel, visualização do terminal, janela e abas</string>
+    <string name="display_preferences_summary">Tema, transparência do painel, visualização do terminal, abas, janela e tela cheia</string>
+    <string name="terminal_preferences_title">Avançado</string>
+    <string name="terminal_preferences_summary">Comportamento das teclas, atalhos, sessão, segurança e outras configurações</string>
+    <string name="extra_keys_corner_radius_title">Raio do canto dos botões</string>
     <string name="sessions_history_preferences_title">Sessões</string>
     <string name="sessions_history_preferences_summary">Preferências para sessões, abas e histórico</string>
     <string name="backup_restore_preferences_title">Backup e Restauração</string>

@@ -5,11 +5,31 @@
     android:orientation="vertical"
     android:padding="8dp">
 
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp">
+
+        <LinearLayout
+            android:id="@+id/chips_container"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical" />
+
+    </HorizontalScrollView>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="?android:attr/listDivider"
+        android:layout_marginBottom="8dp" />
+
     <GridView
         android:id="@+id/signal_grid"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:numColumns="3"
+        android:numColumns="2"
         android:verticalSpacing="8dp"
         android:horizontalSpacing="8dp"
         android:gravity="center"

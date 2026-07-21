@@ -2,61 +2,6 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <PreferenceCategory
-        app:title="@string/appearance_category_title"
-        app:iconSpaceReserved="false">
-
-        <SeekBarPreference
-            app:key="terminal-transcript-rows"
-            app:title="@string/terminal_transcript_rows_title"
-            app:summary="@string/terminal_transcript_rows_summary"
-            app:min="100"
-            android:max="50000"
-            app:defaultValue="2000"
-            app:showSeekBarValue="true"
-            app:iconSpaceReserved="false" />
-
-        <ListPreference
-            app:key="terminal-cursor-style"
-            app:defaultValue="block"
-            app:title="@string/terminal_cursor_style_title"
-            app:summary="@string/terminal_cursor_style_summary"
-            app:entries="@array/terminal_cursor_style_entries"
-            app:entryValues="@array/terminal_cursor_style_values"
-            app:iconSpaceReserved="false" />
-
-        <SeekBarPreference
-            app:key="terminal-cursor-blink-rate"
-            app:title="@string/terminal_cursor_blink_rate_title"
-            app:summary="@string/terminal_cursor_blink_rate_summary"
-            app:min="0"
-            android:max="2000"
-            app:defaultValue="0"
-            app:showSeekBarValue="true"
-            app:iconSpaceReserved="false" />
-
-        <SeekBarPreference
-            app:key="terminal-margin-horizontal"
-            app:title="@string/terminal_margin_horizontal_title"
-            app:summary="@string/terminal_margin_horizontal_summary"
-            app:min="0"
-            android:max="100"
-            app:defaultValue="3"
-            app:showSeekBarValue="true"
-            app:iconSpaceReserved="false" />
-
-        <SeekBarPreference
-            app:key="terminal-margin-vertical"
-            app:title="@string/terminal_margin_vertical_title"
-            app:summary="@string/terminal_margin_vertical_summary"
-            app:min="0"
-            android:max="100"
-            app:defaultValue="0"
-            app:showSeekBarValue="true"
-            app:iconSpaceReserved="false" />
-
-    </PreferenceCategory>
-
-    <PreferenceCategory
         app:title="@string/sound_category_title"
         app:iconSpaceReserved="false">
 
@@ -130,24 +75,6 @@
             app:key="terminal-onclick-url-open"
             app:title="@string/terminal_onclick_url_open_title"
             app:summary="@string/terminal_onclick_url_open_summary"
-            app:iconSpaceReserved="false" />
-
-    </PreferenceCategory>
-
-    <PreferenceCategory
-        app:title="@string/screen_category_title"
-        app:iconSpaceReserved="false">
-
-        <SwitchPreferenceCompat
-            app:key="fullscreen"
-            app:title="@string/fullscreen_title"
-            app:summary="@string/fullscreen_summary"
-            app:iconSpaceReserved="false" />
-
-        <SwitchPreferenceCompat
-            app:key="use-fullscreen-workaround"
-            app:title="@string/use_fullscreen_workaround_title"
-            app:summary="@string/use_fullscreen_workaround_summary"
             app:iconSpaceReserved="false" />
 
     </PreferenceCategory>

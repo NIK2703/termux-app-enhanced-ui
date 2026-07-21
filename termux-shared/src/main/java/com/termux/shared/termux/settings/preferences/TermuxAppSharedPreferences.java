@@ -467,6 +467,17 @@ public class TermuxAppSharedPreferences extends AppSharedPreferences {
     }
 
 
+    public int getExtraKeysHaptic() {
+        return SharedPreferenceUtils.getInt(mSharedPreferences, TERMUX_APP.KEY_EXTRA_KEYS_HAPTIC, TERMUX_APP.DEFAULT_VALUE_EXTRA_KEYS_HAPTIC);
+    }
+
+    public void setExtraKeysHaptic(int value) {
+        if (value < TermuxPropertyConstants.IVALUE_EXTRA_KEYS_HAPTIC_ALL) value = TermuxPropertyConstants.IVALUE_EXTRA_KEYS_HAPTIC_ALL;
+        if (value > TermuxPropertyConstants.IVALUE_EXTRA_KEYS_HAPTIC_OFF) value = TermuxPropertyConstants.IVALUE_EXTRA_KEYS_HAPTIC_OFF;
+        SharedPreferenceUtils.setInt(mSharedPreferences, TERMUX_APP.KEY_EXTRA_KEYS_HAPTIC, value, false);
+    }
+
+
     public int getDeleteTMPDIRFilesOlderThanXDaysOnExit() {
         return SharedPreferenceUtils.getInt(mSharedPreferences, TERMUX_APP.KEY_DELETE_TMPDIR_FILES_OLDER_THAN_X_DAYS_ON_EXIT, TERMUX_APP.DEFAULT_VALUE_DELETE_TMPDIR_FILES_OLDER_THAN_X_DAYS_ON_EXIT);
     }
@@ -543,6 +554,19 @@ public class TermuxAppSharedPreferences extends AppSharedPreferences {
         if (value < TERMUX_APP.MIN_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR) value = TERMUX_APP.MIN_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR;
         if (value > TERMUX_APP.MAX_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR) value = TERMUX_APP.MAX_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR;
         SharedPreferenceUtils.setFloat(mSharedPreferences, TERMUX_APP.KEY_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR, value, false);
+    }
+
+
+    /* int (extra keys corner radius) */
+
+    public int getExtraKeysCornerRadius() {
+        return SharedPreferenceUtils.getInt(mSharedPreferences, TERMUX_APP.KEY_EXTRA_KEYS_CORNER_RADIUS, TERMUX_APP.DEFAULT_VALUE_EXTRA_KEYS_CORNER_RADIUS);
+    }
+
+    public void setExtraKeysCornerRadius(int value) {
+        if (value < TERMUX_APP.MIN_EXTRA_KEYS_CORNER_RADIUS) value = TERMUX_APP.MIN_EXTRA_KEYS_CORNER_RADIUS;
+        if (value > TERMUX_APP.MAX_EXTRA_KEYS_CORNER_RADIUS) value = TERMUX_APP.MAX_EXTRA_KEYS_CORNER_RADIUS;
+        SharedPreferenceUtils.setInt(mSharedPreferences, TERMUX_APP.KEY_EXTRA_KEYS_CORNER_RADIUS, value, false);
     }
 
 

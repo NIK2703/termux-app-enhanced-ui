@@ -109,6 +109,10 @@ public class TermuxAppSharedProperties {
                 // Stored as int, but the legacy file value is a string enum ("vibrate"/"beep"/"ignore").
                 Integer mapped = TermuxPropertyConstants.MAP_BELL_BEHAVIOUR.get(value);
                 prefs.setGenericInt(key, mapped != null ? mapped : TermuxPropertyConstants.DEFAULT_IVALUE_BELL_BEHAVIOUR);
+            } else if (TermuxPropertyConstants.KEY_EXTRA_KEYS_HAPTIC.equals(key)) {
+                // Stored as int, but the legacy file value is a string enum ("all"/"gestures"/"off").
+                Integer mapped = TermuxPropertyConstants.MAP_EXTRA_KEYS_HAPTIC.get(value);
+                prefs.setGenericInt(key, mapped != null ? mapped : TermuxPropertyConstants.DEFAULT_IVALUE_EXTRA_KEYS_HAPTIC);
             } else if (TermuxPropertyConstants.KEY_TERMINAL_CURSOR_STYLE.equals(key)) {
                 // Same as above: legacy value is a string enum ("block"/"underline"/"bar").
                 Integer mapped = TermuxPropertyConstants.MAP_TERMINAL_CURSOR_STYLE.get(value);
@@ -196,6 +200,10 @@ public class TermuxAppSharedProperties {
         return prefs().getBellBehaviour();
     }
 
+    public int getExtraKeysHaptic() {
+        return prefs().getExtraKeysHaptic();
+    }
+
     public int getDeleteTMPDIRFilesOlderThanXDaysOnExit() {
         return prefs().getDeleteTMPDIRFilesOlderThanXDaysOnExit();
     }
@@ -225,6 +233,13 @@ public class TermuxAppSharedProperties {
 
     public float getTerminalToolbarHeightScaleFactor() {
         return prefs().getTerminalToolbarHeightScaleFactor();
+    }
+
+
+    /* int */
+
+    public int getExtraKeysCornerRadius() {
+        return prefs().getExtraKeysCornerRadius();
     }
 
 
@@ -275,6 +290,8 @@ public class TermuxAppSharedProperties {
             /* int */
             case TermuxPropertyConstants.KEY_BELL_BEHAVIOUR:
                 return getBellBehaviour();
+            case TermuxPropertyConstants.KEY_EXTRA_KEYS_HAPTIC:
+                return getExtraKeysHaptic();
             case TermuxPropertyConstants.KEY_DELETE_TMPDIR_FILES_OLDER_THAN_X_DAYS_ON_EXIT:
                 return getDeleteTMPDIRFilesOlderThanXDaysOnExit();
             case TermuxPropertyConstants.KEY_TERMINAL_CURSOR_BLINK_RATE:
@@ -291,6 +308,8 @@ public class TermuxAppSharedProperties {
             /* float */
             case TermuxPropertyConstants.KEY_TERMINAL_TOOLBAR_HEIGHT_SCALE_FACTOR:
                 return getTerminalToolbarHeightScaleFactor();
+            case TermuxPropertyConstants.KEY_EXTRA_KEYS_CORNER_RADIUS:
+                return getExtraKeysCornerRadius();
 
             /* Integer (code point, may be null) */
             case TermuxPropertyConstants.KEY_SHORTCUT_CREATE_SESSION:

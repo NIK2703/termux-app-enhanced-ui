@@ -38,31 +38,14 @@ public class TerminalPreferencesFragment extends TermuxPreferenceFragmentBase {
         if (prefs == null) return;
 
         // --- Terminal: View ---
-        configureSeekBarInt("terminal-transcript-rows", prefs.getTerminalTranscriptRows(),
-            value -> prefs.setTerminalTranscriptRows(value), true);
-
         configureIntEditText("delete-tmpdir-files-older-than-x-days-on-exit",
             prefs.getDeleteTMPDIRFilesOlderThanXDaysOnExit(),
             value -> prefs.setDeleteTMPDIRFilesOlderThanXDaysOnExit(value), false);
-
-        configureListPreference("terminal-cursor-style",
-            cursorStyleToString(prefs.getTerminalCursorStyle()),
-            R.array.terminal_cursor_style_values,
-            value -> prefs.setTerminalCursorStyle(stringToCursorStyle(value)), true);
-
-        configureSeekBarInt("terminal-cursor-blink-rate", prefs.getTerminalCursorBlinkRate(),
-            value -> prefs.setTerminalCursorBlinkRate(value), true);
 
         configureListPreference("bell-character",
             bellBehaviourToString(prefs.getBellBehaviour()),
             R.array.bell_character_values,
             value -> prefs.setBellBehaviour(stringToBellBehaviour(value)), true);
-
-        configureSeekBarInt("terminal-margin-horizontal", prefs.getTerminalMarginHorizontal(),
-            value -> prefs.setTerminalMarginHorizontal(value), true);
-
-        configureSeekBarInt("terminal-margin-vertical", prefs.getTerminalMarginVertical(),
-            value -> prefs.setTerminalMarginVertical(value), true);
 
         configureStringEditText("default-working-directory", prefs.getDefaultWorkingDirectory(),
             value -> prefs.setDefaultWorkingDirectory(value), false);
@@ -92,13 +75,6 @@ public class TerminalPreferencesFragment extends TermuxPreferenceFragmentBase {
 
         configureSwitch("terminal-onclick-url-open", prefs.shouldOpenTerminalTranscriptURLOnClick(),
             value -> prefs.setOpenTerminalTranscriptURLOnClick(value), false);
-
-        // --- Screen ---
-        configureSwitch("fullscreen", prefs.isUsingFullScreen(),
-            value -> prefs.setFullScreen(value), true);
-
-        configureSwitch("use-fullscreen-workaround", prefs.isUsingFullScreenWorkAround(),
-            value -> prefs.setFullScreenWorkAround(value), true);
 
         // Night/theme mode is configured on the Display screen (theme_mode) to avoid a duplicate.
 

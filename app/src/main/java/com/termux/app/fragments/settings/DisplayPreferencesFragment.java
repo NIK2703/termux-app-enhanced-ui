@@ -42,13 +42,14 @@ public class DisplayPreferencesFragment extends TermuxPreferenceFragmentBase {
         setPreferencesFromResource(R.xml.termux_display_preferences, rootKey);
 
         // --- Theme ---
+        final TermuxAppSharedPreferences prefs = TermuxAppSharedPreferences.build(context, true);
+
         configureColorSchemePreference("color_scheme_light", false);
         configureColorSchemePreference("color_scheme_dark", true);
 
         final ListPreference themePref = findPreference("theme_mode");
         if (themePref != null) {
             themePref.setPersistent(false);
-            TermuxAppSharedPreferences prefs = TermuxAppSharedPreferences.build(context, true);
             String currentValue = prefs != null ? prefs.getNightMode() : "system";
             themePref.setValue(!android.text.TextUtils.isEmpty(currentValue) ? currentValue : "system");
 
@@ -82,11 +83,13 @@ public class DisplayPreferencesFragment extends TermuxPreferenceFragmentBase {
         wireSliderListener("button_bg_inactive_alpha", context);
         wireSliderListener("button_bg_active_alpha", context);
 
+        // --- Extra keys corner radius ---
+        configureCornerRadiusPreference(context);
+
         // --- View: terminal margin ---
         final SwitchPreferenceCompat marginPref = findPreference("terminal_margin_adjustment");
         if (marginPref != null) {
             marginPref.setPersistent(false);
-            TermuxAppSharedPreferences prefs = TermuxAppSharedPreferences.build(context, true);
             marginPref.setChecked(prefs != null && prefs.isTerminalMarginAdjustmentEnabled());
             marginPref.setOnPreferenceChangeListener((preference, newValue) -> {
                 if (prefs != null) prefs.setTerminalMarginAdjustment((Boolean) newValue);
@@ -113,12 +116,100 @@ public class DisplayPreferencesFragment extends TermuxPreferenceFragmentBase {
             });
         }
 
+        // --- Window: fullscreen ---
+        configureSwitch("fullscreen", prefs != null && prefs.isUsingFullScreen(),
+            value -> { if (prefs != null) prefs.setFullScreen(value); });
+
+        configureSwitch("use-fullscreen-workaround", prefs != null && prefs.isUsingFullScreenWorkAround(),
+            value -> { if (prefs != null) prefs.setFullScreenWorkAround(value); });
+
         // --- Tabs ---
+        // --- Terminal appearance (moved from Terminal screen) ---
+        configureTerminalAppearancePreferences(prefs);
+
         configureTabPanelPositionPreference();
         configureTabHeightModePreference();
         configureSwipeRightmostNewTabPreference();
         configureRestoreSessionsPreference();
         configureDirectoryHistoryMaxPreference();
+    }
+
+    // -----------------------------------------------------------------------
+    //  Terminal appearance (moved from TerminalPreferencesFragment)
+    // -----------------------------------------------------------------------
+
+    private void configureTerminalAppearancePreferences(TermuxAppSharedPreferences prefs) {
+        configureSeekBarInt("terminal-transcript-rows", prefs.getTerminalTranscriptRows(),
+            value -> prefs.setTerminalTranscriptRows(value));
+
+        final ListPreference cursorPref = findPreference("terminal-cursor-style");
+        if (cursorPref != null) {
+            cursorPref.setPersistent(false);
+            cursorPref.setValue(cursorStyleToString(prefs.getTerminalCursorStyle()));
+            cursorPref.setOnPreferenceChangeListener((preference, newValue) -> {
+                prefs.setTerminalCursorStyle(stringToCursorStyle((String) newValue));
+                updateStyling();
+                return true;
+            });
+        }
+
+        configureSeekBarInt("terminal-cursor-blink-rate", prefs.getTerminalCursorBlinkRate(),
+            value -> prefs.setTerminalCursorBlinkRate(value));
+
+        configureSeekBarInt("terminal-margin-horizontal", prefs.getTerminalMarginHorizontal(),
+            value -> prefs.setTerminalMarginHorizontal(value));
+
+        configureSeekBarInt("terminal-margin-vertical", prefs.getTerminalMarginVertical(),
+            value -> prefs.setTerminalMarginVertical(value));
+    }
+
+    private void configureSeekBarInt(String key, int current,
+                                     PreferenceValueSetter<Integer> setter) {
+        final SeekBarPreference pref = findPreference(key);
+        if (pref == null) return;
+        pref.setPersistent(false);
+        pref.setValue(current);
+        pref.setOnPreferenceChangeListener((preference, newValue) -> {
+            setter.set((Integer) newValue);
+            updateStyling();
+            return true;
+        });
+    }
+
+    private void configureSwitch(String key, boolean current,
+                                  PreferenceValueSetter<Boolean> setter) {
+        final SwitchPreferenceCompat pref = findPreference(key);
+        if (pref == null) return;
+        pref.setPersistent(false);
+        pref.setChecked(current);
+        pref.setOnPreferenceChangeListener((preference, newValue) -> {
+            setter.set((Boolean) newValue);
+            updateStyling();
+            return true;
+        });
+    }
+
+    private interface PreferenceValueSetter<T> {
+        void set(T value);
+    }
+
+    private void updateStyling() {
+        Context ctx = getContext();
+        if (ctx != null) TermuxActivity.updateTermuxActivityStyling(ctx, true);
+    }
+
+    private static String cursorStyleToString(int style) {
+        switch (style) {
+            case 1: return "underline";
+            case 2: return "bar";
+            default: return "block";
+        }
+    }
+
+    private static int stringToCursorStyle(String value) {
+        if ("underline".equals(value)) return 1;
+        if ("bar".equals(value)) return 2;
+        return 0;
     }
 
     private void configureDirectoryHistoryMaxPreference() {
@@ -179,6 +270,29 @@ public class DisplayPreferencesFragment extends TermuxPreferenceFragmentBase {
         SeekBarPreference slider = findPreference(key);
         if (slider == null) return;
         slider.setOnPreferenceChangeListener((preference, newValue) -> {
+            TermuxActivity.updateTermuxActivityStyling(context, false);
+            return true;
+        });
+    }
+
+    // -----------------------------------------------------------------------
+    //  Extra keys corner radius
+    // -----------------------------------------------------------------------
+
+    private void configureCornerRadiusPreference(Context context) {
+        final SeekBarPreference pref = findPreference("extra-keys-corner-radius");
+        if (pref == null) return;
+
+        final TermuxAppSharedPreferences prefs = TermuxAppSharedPreferences.build(context, true);
+        if (prefs == null) return;
+
+        pref.setPersistent(false);
+        pref.setMin(0);
+        pref.setMax(24);
+        pref.setValue(prefs.getExtraKeysCornerRadius());
+
+        pref.setOnPreferenceChangeListener((preference, newValue) -> {
+            prefs.setExtraKeysCornerRadius((Integer) newValue);
             TermuxActivity.updateTermuxActivityStyling(context, false);
             return true;
         });

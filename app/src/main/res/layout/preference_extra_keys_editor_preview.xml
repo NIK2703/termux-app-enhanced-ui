@@ -14,4 +14,18 @@
         android:background="@android:color/transparent"
         android:orientation="horizontal" />
 
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/extra_keys_editor_hint"
+        android:background="@color/settings_header_background"
+        android:paddingStart="?listPreferredItemPaddingStart"
+        android:paddingEnd="?listPreferredItemPaddingEnd"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:layout_marginTop="16dp"
+        android:textSize="14sp"
+        android:textColor="?android:attr/textColorSecondary"
+        android:gravity="center_vertical" />
+
 </LinearLayout>
