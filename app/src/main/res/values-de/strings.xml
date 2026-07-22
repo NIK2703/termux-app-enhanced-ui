@@ -330,7 +330,7 @@
     <string name="extra_keys_editor_done">Fertig</string>
     <string name="extra_keys_editor_open_editor">Zusatztasten bearbeiten</string>
     <string name="extra_keys_editor_open_editor_summary">Layout, Skalierung und Tastenzuweisungen konfigurieren</string>
-    <string name="extra_keys_editor_hint">Tippen, um die Haupttaste zuzuweisen · Wischen ↑ ↓ ← → für Gestentasten</string>
+    <string name="extra_keys_editor_hint">Tippen, um die Hauptaktion zuzuweisen · Wischen ↑ ↓ ← → für Gestenaktionen</string>
 
     <!-- Extra keys haptic feedback -->
     <string name="extra_keys_haptic_title">Haptisches Feedback</string>

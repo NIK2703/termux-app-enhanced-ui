@@ -10,6 +10,8 @@ import android.provider.Settings;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 
+import android.text.Layout;
+import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.text.TextUtils;
 
@@ -170,7 +172,6 @@ public final class ExtraKeysView extends GridLayout {
     private int mButtonCornerRadiusDp = BUTTON_CORNER_RADIUS_DP;
 
 
-
     /** Defines the minimum allowed duration in milliseconds for {@link #mLongPressTimeout}. */
     public static final int MIN_LONG_PRESS_DURATION = 200;
     /** Defines the maximum allowed duration in milliseconds for {@link #mLongPressTimeout}. */
@@ -221,6 +222,9 @@ public final class ExtraKeysView extends GridLayout {
 
     /** Defines whether text for the extra keys button should be all capitalized automatically. */
     protected boolean mButtonTextAllCaps = true;
+
+    /** If true, font size is reduced when column count or macro bind count increases. */
+    private boolean mDynamicFontSize = true;
 
 
     /**
@@ -443,6 +447,10 @@ public final class ExtraKeysView extends GridLayout {
         mButtonTextAllCaps = buttonTextAllCaps;
     }
 
+    public void setDynamicFontSize(boolean enabled) {
+        mDynamicFontSize = enabled;
+    }
+
 
     /** Get {@link #mLongPressTimeout}. */
     public int getLongPressTimeout() {
@@ -515,7 +523,6 @@ public final class ExtraKeysView extends GridLayout {
 
         removeAllViews();
 
-        // Load corner radius from preferences
         TermuxAppSharedProperties props = TermuxAppSharedProperties.getProperties();
         mButtonCornerRadiusDp = props != null ? props.getExtraKeysCornerRadius() : BUTTON_CORNER_RADIUS_DP;
 
@@ -533,66 +540,86 @@ public final class ExtraKeysView extends GridLayout {
                     button = createSpecialButton(buttonInfo.getKey(), true);
                     if (button == null) return;
                 } else {
-                    button = new MaterialButton(getContext(), null, android.R.attr.buttonBarButtonStyle);
+                    button = createDefaultMaterialButton();
                 }
-
                 button.setText(buttonInfo.getDisplay());
-                // Stage 1: choose font size (14sp or 12sp) based on single-line width
-                // Stage 2: compute maxLines from button height, enable ellipsis
-                CharSequence displayText = button.getText();
-                if (button.getTransformationMethod() != null) {
-                    CharSequence transformed = button.getTransformationMethod().getTransformation(displayText, button);
-                    if (transformed != null) displayText = transformed;
+
+                // Font size based on column count: 14sp base for <=7 columns, -1sp per extra column
+                float fontSizeSp = 14f;
+                // Single-character labels keep full 14sp regardless of columns
+                String displayText = buttonInfo.getDisplay();
+                boolean isSingleChar = displayText != null && displayText.length() == 1;
+                if (!isSingleChar) {
+                    if (mDynamicFontSize) {
+                        int totalCols = getColumnCount();
+                        fontSizeSp = 14f - Math.max(0, totalCols - 7);
+                        // Macro keys (multiple sequential binds) get an additional -2sp
+                        if (buttonInfo.isMacro()) fontSizeSp -= 2f;
+                        fontSizeSp = Math.max(fontSizeSp, 8f);
+                    } else {
+                        fontSizeSp = 14f;
+                    }
                 }
-                TextPaint paint = new TextPaint(button.getPaint());
-                float displayDensity = getResources().getDisplayMetrics().density;
 
-                // Subtract margins from total cell height to get actual button content height
-                int vMarginPx = (int) (BUTTON_MARGIN_VERTICAL_DP * displayDensity);
-                int textAreaH = (int) (heightPx + 0.5f) - 2 * vMarginPx
-                    - button.getCompoundPaddingTop() - button.getCompoundPaddingBottom();
-                // Cell width from layout: totalViewWidth / columnCount
-                int totalCols = getColumnCount();
-                int textAreaW = totalCols > 0 && getWidth() > 0
-                    ? (getWidth() / totalCols) - button.getCompoundPaddingStart() - button.getCompoundPaddingEnd()
-                    : Integer.MAX_VALUE;
+                button.setTextSize(TypedValue.COMPLEX_UNIT_SP, fontSizeSp);
 
-                // Try 14sp first
-                float normalPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 14f, getResources().getDisplayMetrics());
-                float smallPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 12f, getResources().getDisplayMetrics());
-                paint.setTextSize(normalPx);
-                boolean tooWide = textAreaW > 0 && (float) Math.ceil(paint.measureText(displayText.toString())) > textAreaW;
-                float chosenSizePx = tooWide ? smallPx : normalPx;
+                if (isSingleChar) {
+                    button.setMaxLines(1);
+                    button.setSingleLine(true);
+                } else {
+                    // Multi-line with ellipsize
+                    button.setSingleLine(false);
+                    button.setHorizontallyScrolling(false);
 
-                // Apply chosen size
-                button.setTextSize(TypedValue.COMPLEX_UNIT_PX, chosenSizePx);
+                    // Calculate max lines from available height
+                    float displayDensity = getResources().getDisplayMetrics().density;
+                    int vMarginPx = (int) (BUTTON_MARGIN_VERTICAL_DP * displayDensity);
+                    int buttonH = (int) (heightPx + 0.5f) - 2 * vMarginPx;
+                    int textAreaH = buttonH;  // padding already zeroed
 
-                // Compute maxLines from available height
-                paint.setTextSize(chosenSizePx);
-                int lineHeight = paint.getFontMetricsInt(null);
-                // Account for button's line spacing
-                float lineSpacing = button.getLineSpacingMultiplier();
-                if (lineSpacing > 0f) {
-                    lineHeight = (int) (lineHeight * lineSpacing);
+                    TextPaint paint = new TextPaint(button.getPaint());
+                    paint.setTextSize(fontSizeSp * displayDensity);
+                    int lineHeight = paint.getFontMetricsInt(null);
+                    float lineSpacing = button.getLineSpacingMultiplier();
+                    if (lineSpacing > 0f) lineHeight = (int) (lineHeight * lineSpacing);
+                    lineHeight += (int) button.getLineSpacingExtra();
+                    int maxLines = Math.max(1, textAreaH / Math.max(1, lineHeight));
+
+                    // For macro buttons: custom truncation at bind boundaries
+                    if (buttonInfo.isMacro() && displayText != null && displayText.contains(" ")) {
+                        int totalCols = getColumnCount();
+                        int marginHPx = (int) (BUTTON_MARGIN_HORIZONTAL_DP * displayDensity);
+                        int cellW = totalCols > 0 && getWidth() > 0
+                            ? getWidth() / totalCols
+                            : Integer.MAX_VALUE;
+                        int buttonW = cellW != Integer.MAX_VALUE
+                            ? cellW - 2 * marginHPx
+                            : Integer.MAX_VALUE;
+                        int textAreaW = buttonW != Integer.MAX_VALUE
+                            ? buttonW  // padding already zeroed
+                            : Integer.MAX_VALUE;
+
+                        if (textAreaW > 0 && textAreaW < Integer.MAX_VALUE) {
+                            String truncated = truncateMacroText(displayText, paint, textAreaW, maxLines);
+                            if (truncated != null) {
+                                button.setText(truncated);
+                                button.setMaxLines(maxLines); // truncated text already fits in maxLines
+                                button.setEllipsize(null);
+                            } else {
+                                button.setMaxLines(maxLines);
+                                button.setEllipsize(TextUtils.TruncateAt.END);
+                            }
+                        } else {
+                            button.setMaxLines(maxLines);
+                        }
+                    } else {
+                        button.setMaxLines(maxLines);
+                    }
                 }
-                lineHeight += (int) button.getLineSpacingExtra();
-                int maxLines = Math.max(1, textAreaH / Math.max(1, lineHeight));
-
-                button.setMaxLines(maxLines);
-                button.setEllipsize(TextUtils.TruncateAt.END);
-                button.setSingleLine(false);
-                button.setHorizontallyScrolling(false);
                 button.setTextColor(mButtonTextColor);
                 button.setBackgroundTintList(ColorStateList.valueOf(mButtonBackgroundColor));
                 button.setCornerRadius((int) (mButtonCornerRadiusDp * getResources().getDisplayMetrics().density));
                 button.setAllCaps(mButtonTextAllCaps);
-                button.setPadding(0, 0, 0, 0);
-                button.setMinHeight(0);
-                button.setMinimumHeight(0);
-                // Remove MaterialButton built-in insets and font padding
-                button.setIncludeFontPadding(false);
-                button.setInsetTop(0);
-                button.setInsetBottom(0);
 
                 button.setOnClickListener(view -> {
                     performExtraKeyButtonHapticFeedback(view, buttonInfo, button, false);
@@ -851,19 +878,11 @@ public final class ExtraKeysView extends GridLayout {
             button = createSpecialButton(extraButton.getKey(), false);
             if (button == null) return;
         } else {
-            button = new MaterialButton(getContext(), null, android.R.attr.buttonBarButtonStyle);
+            button = createDefaultMaterialButton();
             button.setTextColor(mButtonTextColor);
         }
         button.setText(extraButton.getDisplay());
         button.setAllCaps(mButtonTextAllCaps);
-        button.setPadding(0, 0, 0, 0);
-        button.setMinHeight(0);
-        button.setMinWidth(0);
-        button.setMinimumWidth(0);
-        button.setMinimumHeight(0);
-        button.setIncludeFontPadding(false);
-        button.setInsetTop(0);
-        button.setInsetBottom(0);
         button.setWidth(width);
         button.setHeight(height);
         button.setBackgroundTintList(ColorStateList.valueOf(mButtonActiveBackgroundColor));
@@ -915,20 +934,30 @@ public final class ExtraKeysView extends GridLayout {
         return true;
     }
 
+    /**
+     * Create a MaterialButton configured with zero internal padding/insets.
+     * This ensures the text area equals the button area for accurate multi-line
+     * measurement. Boilerplate is defined once here instead of at every creation site.
+     */
+    private MaterialButton createDefaultMaterialButton() {
+        MaterialButton button = new MaterialButton(getContext(), null, android.R.attr.buttonBarButtonStyle);
+        button.setPadding(0, 0, 0, 0);
+        button.setInsetTop(0);
+        button.setInsetBottom(0);
+        button.setMinHeight(0);
+        button.setMinimumHeight(0);
+        button.setIncludeFontPadding(false);
+        return button;
+    }
+
     public MaterialButton createSpecialButton(String buttonKey, boolean needUpdate) {
         SpecialButtonState state = mSpecialButtons.get(SpecialButton.valueOf(buttonKey));
         if (state == null) return null;
         state.setIsCreated(true);
-        MaterialButton button = new MaterialButton(getContext(), null, android.R.attr.buttonBarButtonStyle);
+        MaterialButton button = createDefaultMaterialButton();
         button.setTextColor(state.isActive ? mButtonActiveTextColor : mButtonTextColor);
         button.setBackgroundTintList(ColorStateList.valueOf(state.isActive ? mButtonActiveBackgroundColor : mButtonBackgroundColor));
         button.setCornerRadius((int) (mButtonCornerRadiusDp * getResources().getDisplayMetrics().density));
-        button.setPadding(0, 0, 0, 0);
-        button.setMinHeight(0);
-        button.setMinimumHeight(0);
-        button.setIncludeFontPadding(false);
-        button.setInsetTop(0);
-        button.setInsetBottom(0);
         if (needUpdate) {
             state.buttons.add(button);
         }
@@ -1162,4 +1191,70 @@ public final class ExtraKeysView extends GridLayout {
         return m;
     }
 
+    /**
+     * Truncate a macro button's display text at bind boundaries.
+     * Returns null if the full text fits (no truncation needed).
+     * Returns a shortened string with "+..." suffix if truncation is needed.
+     */
+    private static String truncateMacroText(String fullText, TextPaint paint, int widthPx, int maxLines) {
+        String[] binds = fullText.split(" ");
+        if (binds.length <= 1) return null;
+
+        // Check if full text already fits
+        if (fitsInLines(fullText, paint, widthPx, maxLines)) {
+            return null;
+        }
+
+        // Binary search: find max number of whole binds that fit with "+..."
+        int lo = 1, hi = binds.length - 1;
+        int best = 0;
+        while (lo <= hi) {
+            int mid = (lo + hi) >>> 1;
+            String candidate = joinBinds(binds, mid) + "+...";
+            if (fitsInLines(candidate, paint, widthPx, maxLines)) {
+                best = mid;
+                lo = mid + 1;
+            } else {
+                hi = mid - 1;
+            }
+        }
+
+        if (best > 0) {
+            return joinBinds(binds, best) + "+...";
+        }
+
+        // Even first bind + "+..." doesn't fit — let Android handle truncation
+        return null;
+    }
+
+    /**
+     * Check if text fits within the given width in the given number of lines using StaticLayout.
+     */
+    private static boolean fitsInLines(String text, TextPaint paint, int widthPx, int maxLines) {
+        if (widthPx <= 0 || maxLines <= 0 || text == null || text.isEmpty()) return true;
+        StaticLayout layout;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            layout = StaticLayout.Builder.obtain(text, 0, text.length(), paint, widthPx)
+                .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                .setLineSpacing(0f, 1f)
+                .setIncludePad(false)
+                .build();
+        } else {
+            layout = new StaticLayout(text, paint, widthPx, Layout.Alignment.ALIGN_NORMAL, 1f, 0f, false);
+        }
+        return layout.getLineCount() <= maxLines;
+    }
+
+    /**
+     * Join the first N binds with spaces.
+     */
+    private static String joinBinds(String[] binds, int count) {
+        StringBuilder sb = new StringBuilder();
+        int n = Math.min(count, binds.length);
+        for (int i = 0; i < n; i++) {
+            if (i > 0) sb.append(' ');
+            sb.append(binds[i]);
+        }
+        return sb.toString();
+    }
 }

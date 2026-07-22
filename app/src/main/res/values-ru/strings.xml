@@ -458,6 +458,8 @@
     <string name="terminal_cursor_blink_rate_title">Частота мигания курсора</string>
     <string name="terminal_cursor_blink_rate_summary">Частота мигания курсора в миллисекундах.</string>
 
+    <string name="terminal_cursor_blink_enabled_title">Мигание курсора</string>
+
     <string name="terminal_margin_horizontal_title">Горизонтальный отступ</string>
     <string name="terminal_margin_horizontal_summary">Горизонтальный отступ терминала в dp.</string>
     <string name="terminal_margin_vertical_title">Вертикальный отступ</string>
@@ -558,9 +560,9 @@
     <string name="extra_keys_editor_title">Редактор дополнительных кнопок</string>
     <string name="extra_keys_editor_summary">Визуальное создание панели дополнительных кнопок: задайте строки и столбцы, затем нажмите на кнопку, чтобы назначить сигнал.</string>
     <string name="extra_keys_editor_columns_title">Столбцы</string>
-    <string name="extra_keys_editor_columns_summary">Количество кнопок в строке (1–10).</string>
+    <string name="extra_keys_editor_columns_summary">Количество кнопок в строке.</string>
     <string name="extra_keys_editor_rows_title">Строки</string>
-    <string name="extra_keys_editor_rows_summary">Количество рядов кнопок (1–4).</string>
+    <string name="extra_keys_editor_rows_summary">Количество рядов кнопок.</string>
     <string name="extra_keys_editor_preview_title">Предпросмотр</string>
     <string name="extra_keys_editor_preview_summary">Интерактивная панель — нажмите на любую кнопку, чтобы изменить её сигнал.</string>
     <string name="extra_keys_editor_signal_dialog_title">Назначить сигнал</string>
@@ -574,7 +576,7 @@
     <string name="extra_keys_editor_done">Готово</string>
     <string name="extra_keys_editor_open_editor">Редактировать дополнительные кнопки</string>
     <string name="extra_keys_editor_open_editor_summary">Настройка раскладки, масштаба и привязки кнопок</string>
-    <string name="extra_keys_editor_hint">Нажмите, чтобы назначить основную кнопку · Смахните ↑ ↓ ← → для назначения жестовых кнопок</string>
+    <string name="extra_keys_editor_hint">Нажмите, чтобы назначить основное действие · Смахните ↑ ↓ ← → для назначения действий по жестам</string>
 
     <!-- Haptic feedback for extra keys -->
     <string name="extra_keys_haptic_title">Тактильная обратная связь</string>

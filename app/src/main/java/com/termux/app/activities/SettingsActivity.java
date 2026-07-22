@@ -14,6 +14,7 @@ import androidx.preference.PreferenceFragmentCompat;
 import com.termux.R;
 import com.termux.app.TermuxLocaleUtils;
 import com.termux.app.fragments.settings.DisplayPreferencesFragment;
+import com.termux.app.fragments.settings.TermuxPreferenceFragmentBase;
 import com.termux.shared.activities.ReportActivity;
 import com.termux.shared.file.FileUtils;
 import com.termux.shared.models.ReportInfo;
@@ -101,7 +102,7 @@ public class SettingsActivity extends AppCompatActivity {
         return true;
     }
 
-    public static class RootPreferencesFragment extends PreferenceFragmentCompat {
+    public static class RootPreferencesFragment extends TermuxPreferenceFragmentBase {
         @Override
         public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
             Context context = getContext();

@@ -217,6 +217,11 @@ public final class TermuxPropertyConstants {
     public static final int IVALUE_TERMINAL_CURSOR_BLINK_RATE_MAX = TerminalView.TERMINAL_CURSOR_BLINK_RATE_MAX;
     public static final int DEFAULT_IVALUE_TERMINAL_CURSOR_BLINK_RATE = 0;
 
+    /** Defines the key for the terminal cursor blink enabled state */
+    public static final String KEY_TERMINAL_CURSOR_BLINK_ENABLED = "terminal-cursor-blink-enabled";
+    public static final boolean DEFAULT_IVALUE_TERMINAL_CURSOR_BLINK_ENABLED = false;
+
+
 
 
     /** Defines the key for the terminal cursor style */

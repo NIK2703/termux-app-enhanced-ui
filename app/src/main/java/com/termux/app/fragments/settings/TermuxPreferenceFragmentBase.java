@@ -5,7 +5,9 @@ import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.PreferenceFragmentCompat;
+import androidx.preference.PreferenceScreen;
 
 /**
  * Base class for all Termux settings fragments. Removes the default AndroidX
@@ -18,5 +20,12 @@ public abstract class TermuxPreferenceFragmentBase extends PreferenceFragmentCom
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         setDivider(null);
+
+        // Set the Activity title from the PreferenceScreen title if present.
+        PreferenceScreen screen = getPreferenceScreen();
+        if (screen != null && screen.getTitle() != null) {
+            AppCompatActivity activity = (AppCompatActivity) requireActivity();
+            activity.setTitle(screen.getTitle());
+        }
     }
 }

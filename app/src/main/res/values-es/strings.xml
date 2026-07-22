@@ -328,7 +328,7 @@
     <string name="extra_keys_editor_done">Hecho</string>
     <string name="extra_keys_editor_open_editor">Editar teclas adicionales</string>
     <string name="extra_keys_editor_open_editor_summary">Configurar diseño, escala y asignaciones de teclas</string>
-    <string name="extra_keys_editor_hint">Toque para asignar la tecla principal · Deslice ↑ ↓ ← → para asignar teclas de gestos</string>
+    <string name="extra_keys_editor_hint">Toque para asignar la acción principal · Deslice ↑ ↓ ← → para asignar acciones de gestos</string>
 
     <!-- Extra keys haptic feedback -->
     <string name="extra_keys_haptic_title">Respuesta háptica</string>

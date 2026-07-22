@@ -18,7 +18,15 @@ import com.termux.R;
 import com.termux.app.TermuxActivity;
 import com.termux.shared.termux.extrakeys.ColorSchemeUtils;
 import com.termux.shared.termux.settings.preferences.TermuxAppSharedPreferences;
+import com.termux.shared.termux.settings.preferences.TermuxPreferenceConstants;
 import com.termux.shared.theme.NightMode;
+
+import android.app.AlertDialog;
+import android.text.InputType;
+import android.widget.EditText;
+import android.widget.Toast;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * The single "Display" screen. Subsections:
@@ -83,9 +91,6 @@ public class DisplayPreferencesFragment extends TermuxPreferenceFragmentBase {
         wireSliderListener("button_bg_inactive_alpha", context);
         wireSliderListener("button_bg_active_alpha", context);
 
-        // --- Extra keys corner radius ---
-        configureCornerRadiusPreference(context);
-
         // --- View: terminal margin ---
         final SwitchPreferenceCompat marginPref = findPreference("terminal_margin_adjustment");
         if (marginPref != null) {
@@ -139,8 +144,12 @@ public class DisplayPreferencesFragment extends TermuxPreferenceFragmentBase {
     // -----------------------------------------------------------------------
 
     private void configureTerminalAppearancePreferences(TermuxAppSharedPreferences prefs) {
-        configureSeekBarInt("terminal-transcript-rows", prefs.getTerminalTranscriptRows(),
-            value -> prefs.setTerminalTranscriptRows(value));
+        configureIntEditDialog("terminal-transcript-rows",
+            prefs.getTerminalTranscriptRows(),
+            value -> prefs.setTerminalTranscriptRows(value),
+            R.string.terminal_transcript_rows_title,
+            TermuxPreferenceConstants.TERMUX_APP.MIN_TERMINAL_TRANSCRIPT_ROWS,
+            TermuxPreferenceConstants.TERMUX_APP.MAX_TERMINAL_TRANSCRIPT_ROWS);
 
         final ListPreference cursorPref = findPreference("terminal-cursor-style");
         if (cursorPref != null) {
@@ -153,8 +162,35 @@ public class DisplayPreferencesFragment extends TermuxPreferenceFragmentBase {
             });
         }
 
-        configureSeekBarInt("terminal-cursor-blink-rate", prefs.getTerminalCursorBlinkRate(),
-            value -> prefs.setTerminalCursorBlinkRate(value));
+        // --- Cursor blink enabled ---
+        final SwitchPreferenceCompat blinkPref = findPreference("terminal-cursor-blink-enabled");
+        if (blinkPref != null) {
+            blinkPref.setPersistent(false);
+            blinkPref.setChecked(prefs.getTerminalCursorBlinkRate() != 0);
+            blinkPref.setOnPreferenceChangeListener((preference, newValue) -> {
+                boolean enabled = (Boolean) newValue;
+                if (enabled) {
+                    int rate = prefs.getTerminalCursorBlinkRate();
+                    if (rate == 0) rate = 530;
+                    prefs.setTerminalCursorBlinkRate(rate);
+                } else {
+                    prefs.setTerminalCursorBlinkRate(0);
+                }
+                updateStyling();
+                return true;
+            });
+        }
+
+        configureIntEditDialog("terminal-cursor-blink-rate",
+            prefs.getTerminalCursorBlinkRate(),
+            value -> {
+                prefs.setTerminalCursorBlinkRate(value);
+                SwitchPreferenceCompat bp = findPreference("terminal-cursor-blink-enabled");
+                if (bp != null) bp.setChecked(value != 0);
+            },
+            R.string.terminal_cursor_blink_rate_title,
+            TermuxPreferenceConstants.TERMUX_APP.MIN_TERMINAL_CURSOR_BLINK_RATE,
+            TermuxPreferenceConstants.TERMUX_APP.MAX_TERMINAL_CURSOR_BLINK_RATE);
 
         configureSeekBarInt("terminal-margin-horizontal", prefs.getTerminalMarginHorizontal(),
             value -> prefs.setTerminalMarginHorizontal(value));
@@ -174,6 +210,50 @@ public class DisplayPreferencesFragment extends TermuxPreferenceFragmentBase {
             updateStyling();
             return true;
         });
+    }
+
+    private void configureIntEditDialog(String key, int current,
+                                         PreferenceValueSetter<Integer> setter,
+                                         int titleRes, int min, int max) {
+        final Preference pref = findPreference(key);
+        if (pref == null) return;
+        pref.setPersistent(false);
+        updateIntEditSummary(pref, current, min, max);
+
+        AtomicInteger currentRef = new AtomicInteger(current);
+        pref.setOnPreferenceClickListener(preference -> {
+            Context ctx = getContext();
+            if (ctx == null) return true;
+
+            EditText input = new EditText(ctx);
+            input.setInputType(InputType.TYPE_CLASS_NUMBER);
+            input.setText(String.valueOf(currentRef.get()));
+            input.setSelection(input.getText().length());
+
+            new AlertDialog.Builder(ctx)
+                .setTitle(titleRes)
+                .setView(input)
+                .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                    try {
+                        int value = Integer.parseInt(input.getText().toString());
+                        if (value < min) value = min;
+                        if (value > max) value = max;
+                        setter.set(value);
+                        currentRef.set(value);
+                        updateIntEditSummary(pref, currentRef.get(), min, max);
+                        updateStyling();
+                    } catch (NumberFormatException e) {
+                        Toast.makeText(ctx, R.string.invalid_number, Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+            return true;
+        });
+    }
+
+    private void updateIntEditSummary(Preference pref, int value, int min, int max) {
+        pref.setSummary(String.valueOf(value));
     }
 
     private void configureSwitch(String key, boolean current,
@@ -270,29 +350,6 @@ public class DisplayPreferencesFragment extends TermuxPreferenceFragmentBase {
         SeekBarPreference slider = findPreference(key);
         if (slider == null) return;
         slider.setOnPreferenceChangeListener((preference, newValue) -> {
-            TermuxActivity.updateTermuxActivityStyling(context, false);
-            return true;
-        });
-    }
-
-    // -----------------------------------------------------------------------
-    //  Extra keys corner radius
-    // -----------------------------------------------------------------------
-
-    private void configureCornerRadiusPreference(Context context) {
-        final SeekBarPreference pref = findPreference("extra-keys-corner-radius");
-        if (pref == null) return;
-
-        final TermuxAppSharedPreferences prefs = TermuxAppSharedPreferences.build(context, true);
-        if (prefs == null) return;
-
-        pref.setPersistent(false);
-        pref.setMin(0);
-        pref.setMax(24);
-        pref.setValue(prefs.getExtraKeysCornerRadius());
-
-        pref.setOnPreferenceChangeListener((preference, newValue) -> {
-            prefs.setExtraKeysCornerRadius((Integer) newValue);
             TermuxActivity.updateTermuxActivityStyling(context, false);
             return true;
         });

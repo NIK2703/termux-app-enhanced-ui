@@ -351,7 +351,7 @@
     <string name="extra_keys_editor_done">完成</string>
     <string name="extra_keys_editor_open_editor">编辑额外按键</string>
     <string name="extra_keys_editor_open_editor_summary">配置布局、缩放和按键绑定</string>
-    <string name="extra_keys_editor_hint">点击分配主键 · 滑动 ↑ ↓ ← → 分配手势键</string>
+    <string name="extra_keys_editor_hint">点击分配主操作 · 滑动 ↑ ↓ ← → 分配手势操作</string>
 
     <!-- Extra keys editor signals -->
     <string name="extra_keys_editor_signal_keyboard">键盘切换</string>

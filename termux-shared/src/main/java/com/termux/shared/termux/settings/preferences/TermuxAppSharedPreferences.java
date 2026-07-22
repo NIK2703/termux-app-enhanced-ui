@@ -399,6 +399,17 @@ public class TermuxAppSharedPreferences extends AppSharedPreferences {
         SharedPreferenceUtils.setBoolean(mSharedPreferences, TERMUX_APP.KEY_EXTRA_KEYS_TEXT_ALL_CAPS, value, false);
     }
 
+    public boolean isExtraKeysDynamicFontSizeEnabled(Context context) {
+        boolean isTablet = context.getResources().getConfiguration().smallestScreenWidthDp >= 600;
+        return SharedPreferenceUtils.getBoolean(mSharedPreferences,
+            TERMUX_APP.KEY_EXTRA_KEYS_DYNAMIC_FONT_SIZE, !isTablet);
+    }
+
+    public void setExtraKeysDynamicFontSize(boolean value) {
+        SharedPreferenceUtils.setBoolean(mSharedPreferences,
+            TERMUX_APP.KEY_EXTRA_KEYS_DYNAMIC_FONT_SIZE, value, false);
+    }
+
 
     public boolean shouldSoftKeyboardBeHiddenOnStartup() {
         return SharedPreferenceUtils.getBoolean(mSharedPreferences, TERMUX_APP.KEY_HIDE_SOFT_KEYBOARD_ON_STARTUP, TERMUX_APP.DEFAULT_VALUE_HIDE_SOFT_KEYBOARD_ON_STARTUP);
@@ -494,10 +505,19 @@ public class TermuxAppSharedPreferences extends AppSharedPreferences {
     }
 
     public void setTerminalCursorBlinkRate(int value) {
-        if (value < TERMUX_APP.MIN_TERMINAL_CURSOR_BLINK_RATE) value = TERMUX_APP.MIN_TERMINAL_CURSOR_BLINK_RATE;
+        if (value != 0 && value < TERMUX_APP.MIN_TERMINAL_CURSOR_BLINK_RATE) value = TERMUX_APP.MIN_TERMINAL_CURSOR_BLINK_RATE;
         if (value > TERMUX_APP.MAX_TERMINAL_CURSOR_BLINK_RATE) value = TERMUX_APP.MAX_TERMINAL_CURSOR_BLINK_RATE;
         SharedPreferenceUtils.setInt(mSharedPreferences, TERMUX_APP.KEY_TERMINAL_CURSOR_BLINK_RATE, value, false);
     }
+
+    public boolean getTerminalCursorBlinkEnabled() {
+        return SharedPreferenceUtils.getBoolean(mSharedPreferences, TERMUX_APP.KEY_TERMINAL_CURSOR_BLINK_ENABLED, TERMUX_APP.DEFAULT_VALUE_TERMINAL_CURSOR_BLINK_ENABLED);
+    }
+
+    public void setTerminalCursorBlinkEnabled(boolean value) {
+        SharedPreferenceUtils.setBoolean(mSharedPreferences, TERMUX_APP.KEY_TERMINAL_CURSOR_BLINK_ENABLED, value, false);
+    }
+
 
 
     public int getTerminalCursorStyle() {

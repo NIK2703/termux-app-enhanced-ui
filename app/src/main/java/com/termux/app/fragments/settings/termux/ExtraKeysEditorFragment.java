@@ -108,6 +108,18 @@ public class ExtraKeysEditorFragment extends TermuxPreferenceFragmentBase {
             });
         }
 
+        SeekBarPreference cornerPref = findPreference(TermuxPropertyConstants.KEY_EXTRA_KEYS_CORNER_RADIUS);
+        if (cornerPref != null) {
+            cornerPref.setPersistent(false);
+            cornerPref.setValue(mPrefs.getExtraKeysCornerRadius());
+            cornerPref.setOnPreferenceChangeListener((preference, newValue) -> {
+                mPrefs.setExtraKeysCornerRadius((Integer) newValue);
+                rebuildPreview();
+                TermuxActivity.updateTermuxActivityStyling(requireContext(), false);
+                return true;
+            });
+        }
+
         ListPreference stylePref = findPreference(TermuxPropertyConstants.KEY_EXTRA_KEYS_STYLE);
         if (stylePref != null) {
             stylePref.setOnPreferenceChangeListener((preference, newValue) -> {
@@ -122,6 +134,16 @@ public class ExtraKeysEditorFragment extends TermuxPreferenceFragmentBase {
         if (capsPref != null) {
             capsPref.setOnPreferenceChangeListener((preference, newValue) -> {
                 mPrefs.setExtraKeysTextAllCaps((Boolean) newValue);
+                rebuildPreview();
+                TermuxActivity.updateTermuxActivityStyling(requireContext(), true);
+                return true;
+            });
+        }
+
+        SwitchPreferenceCompat dynFontPref = findPreference("extra-keys-dynamic-font-size");
+        if (dynFontPref != null) {
+            dynFontPref.setOnPreferenceChangeListener((preference, newValue) -> {
+                mPrefs.setExtraKeysDynamicFontSize((Boolean) newValue);
                 rebuildPreview();
                 TermuxActivity.updateTermuxActivityStyling(requireContext(), true);
                 return true;
@@ -206,6 +228,7 @@ public class ExtraKeysEditorFragment extends TermuxPreferenceFragmentBase {
         }
 
         mPreviewView.setButtonTextAllCaps(mPrefs.shouldExtraKeysTextBeAllCaps());
+        mPreviewView.setDynamicFontSize(mPrefs.isExtraKeysDynamicFontSizeEnabled(requireContext()));
         mPreviewView.setSpecialButtonMode("hold".equals(mPrefs.getExtraKeysSpecialButtonMode())
             ? ExtraKeysView.SpecialButtonMode.HOLD
             : ExtraKeysView.SpecialButtonMode.STICKY);

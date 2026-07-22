@@ -265,6 +265,10 @@ public final class TermuxPreferenceConstants {
         public static final String KEY_EXTRA_KEYS_TEXT_ALL_CAPS = "extra-keys-text-all-caps";
         public static final boolean DEFAULT_VALUE_EXTRA_KEYS_TEXT_ALL_CAPS = true;
 
+        // Whether dynamic font size (based on column count and macro bind count) is enabled
+        public static final String KEY_EXTRA_KEYS_DYNAMIC_FONT_SIZE = "extra-keys-dynamic-font-size";
+        public static final boolean DEFAULT_VALUE_EXTRA_KEYS_DYNAMIC_FONT_SIZE = true;
+
         public static final String KEY_HIDE_SOFT_KEYBOARD_ON_STARTUP = "hide-soft-keyboard-on-startup";
         public static final boolean DEFAULT_VALUE_HIDE_SOFT_KEYBOARD_ON_STARTUP = false;
 
@@ -301,6 +305,10 @@ public final class TermuxPreferenceConstants {
         public static final int DEFAULT_VALUE_TERMINAL_CURSOR_BLINK_RATE = TermuxPropertyConstants.DEFAULT_IVALUE_TERMINAL_CURSOR_BLINK_RATE;
         public static final int MIN_TERMINAL_CURSOR_BLINK_RATE = TermuxPropertyConstants.IVALUE_TERMINAL_CURSOR_BLINK_RATE_MIN;
         public static final int MAX_TERMINAL_CURSOR_BLINK_RATE = TermuxPropertyConstants.IVALUE_TERMINAL_CURSOR_BLINK_RATE_MAX;
+
+        public static final String KEY_TERMINAL_CURSOR_BLINK_ENABLED = "terminal-cursor-blink-enabled";
+        public static final boolean DEFAULT_VALUE_TERMINAL_CURSOR_BLINK_ENABLED = TermuxPropertyConstants.DEFAULT_IVALUE_TERMINAL_CURSOR_BLINK_ENABLED;
+
 
         public static final String KEY_TERMINAL_CURSOR_STYLE = "terminal-cursor-style";
         public static final int DEFAULT_VALUE_TERMINAL_CURSOR_STYLE = TermuxPropertyConstants.DEFAULT_IVALUE_TERMINAL_CURSOR_STYLE;

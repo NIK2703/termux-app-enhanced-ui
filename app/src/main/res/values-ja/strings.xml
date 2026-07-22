@@ -326,7 +326,7 @@
     <string name="extra_keys_editor_done">完了</string>
     <string name="extra_keys_editor_open_editor">拡張キーを編集</string>
     <string name="extra_keys_editor_open_editor_summary">レイアウト、スケール、キー割り当てを設定</string>
-    <string name="extra_keys_editor_hint">タップでメインキーを割り当て · スワイプ ↑ ↓ ← → でジェスチャーキーを割り当て</string>
+    <string name="extra_keys_editor_hint">タップでメインアクションを割り当て · スワイプ ↑ ↓ ← → でジェスチャーアクションを割り当て</string>
 
     <!-- Extra keys haptic feedback -->
     <string name="extra_keys_haptic_title">触覚フィードバック</string>

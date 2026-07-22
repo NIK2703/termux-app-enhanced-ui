@@ -333,7 +333,7 @@
     <string name="extra_keys_editor_done">Terminé</string>
     <string name="extra_keys_editor_open_editor">Modifier les touches supplémentaires</string>
     <string name="extra_keys_editor_open_editor_summary">Configurer la disposition, l\'échelle et les raccourcis clavier</string>
-    <string name="extra_keys_editor_hint">Appuyez pour attribuer la touche principale · Glissez ↑ ↓ ← → pour attribuer les touches gestuelles</string>
+    <string name="extra_keys_editor_hint">Appuyez pour attribuer l\'action principale · Glissez ↑ ↓ ← → pour attribuer les actions gestuelles</string>
 
     <!-- Extra keys haptic feedback -->
     <string name="extra_keys_haptic_title">Retour haptique</string>

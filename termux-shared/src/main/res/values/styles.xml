@@ -85,4 +85,13 @@
         <item name="android:background">?android:attr/listDivider</item>
     </style>
 
+
+    <!-- Extra keys button: zero out standard padding/height. Material-specific
+         insets (setInsetTop/Bottom) are applied in Java. -->
+    <style name="Widget.Termux.ExtraKeyButton" parent="Widget.MaterialComponents.Button">
+        <item name="android:padding">0dp</item>
+        <item name="android:minHeight">0dp</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+
 </resources>

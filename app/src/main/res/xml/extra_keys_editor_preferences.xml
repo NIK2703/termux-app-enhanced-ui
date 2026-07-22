@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:title="@string/extra_keys_editor_title">
 
     <Preference
         app:key="extra_keys_editor_preview"
@@ -39,6 +40,15 @@
         app:iconSpaceReserved="false"
         app:persistent="false" />
 
+    <SeekBarPreference
+        app:key="extra-keys-corner-radius"
+        app:title="@string/extra_keys_corner_radius_title"
+        app:min="0"
+        android:max="24"
+        app:defaultValue="12"
+        app:showSeekBarValue="true"
+        app:iconSpaceReserved="false" />
+
     <ListPreference
         app:key="extra-keys-style"
         app:defaultValue="default"
@@ -53,6 +63,13 @@
         app:defaultValue="true"
         app:title="@string/extra_keys_text_all_caps_title"
         app:summary="@string/extra_keys_text_all_caps_summary"
+        app:iconSpaceReserved="false" />
+
+    <SwitchPreferenceCompat
+        app:key="extra-keys-dynamic-font-size"
+        app:defaultValue="true"
+        app:title="@string/extra_keys_dynamic_font_size_title"
+        app:summary="@string/extra_keys_dynamic_font_size_summary"
         app:iconSpaceReserved="false" />
 
 </PreferenceScreen>

@@ -212,6 +212,11 @@ public class TermuxAppSharedProperties {
         return prefs().getTerminalCursorBlinkRate();
     }
 
+    public boolean getTerminalCursorBlinkEnabled() {
+        return prefs().getTerminalCursorBlinkEnabled();
+    }
+
+
     public int getTerminalCursorStyle() {
         return prefs().getTerminalCursorStyle();
     }
@@ -292,6 +297,8 @@ public class TermuxAppSharedProperties {
                 return getBellBehaviour();
             case TermuxPropertyConstants.KEY_EXTRA_KEYS_HAPTIC:
                 return getExtraKeysHaptic();
+            case TermuxPropertyConstants.KEY_TERMINAL_CURSOR_BLINK_ENABLED:
+                return getTerminalCursorBlinkEnabled();
             case TermuxPropertyConstants.KEY_DELETE_TMPDIR_FILES_OLDER_THAN_X_DAYS_ON_EXIT:
                 return getDeleteTMPDIRFilesOlderThanXDaysOnExit();
             case TermuxPropertyConstants.KEY_TERMINAL_CURSOR_BLINK_RATE:

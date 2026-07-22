@@ -154,6 +154,10 @@
 
         <!-- Debugging Preferences -->
         <string name="termux_debugging_preferences_title">Debugging</string>
+        <string name="termux_api_debugging_title">Termux:API Debugging</string>
+        <string name="termux_float_debugging_title">Termux:Float Debugging</string>
+        <string name="termux_tasker_debugging_title">Termux:Tasker Debugging</string>
+        <string name="termux_widget_debugging_title">Termux:Widget Debugging</string>
         <string name="termux_debugging_preferences_summary">Preferences for debugging</string>
 
             <!-- Logging Category -->
@@ -224,6 +228,8 @@
                 <string name="extra_keys_style_none">None</string>
                 <string name="extra_keys_text_all_caps_title">All caps text</string>
                 <string name="extra_keys_text_all_caps_summary">Show extra key labels in uppercase.</string>
+                <string name="extra_keys_dynamic_font_size_title">Dynamic font size</string>
+                <string name="extra_keys_dynamic_font_size_summary">Reduce font size when column count or macro bind count increases</string>
 
                 <!-- Soft Keyboard Only If No Hardware-->
                 <string name="termux_soft_keyboard_enabled_only_if_no_hardware_title">Soft Keyboard Only If No Hardware</string>
@@ -468,6 +474,8 @@
 
     <string name="extra_keys_invalid_json">Invalid JSON for extra keys. Changes were not saved.</string>
 
+    <string name="invalid_number">Please enter a valid number.</string>
+
     <string name="shortcut_invalid_format">Invalid shortcut. Use the format \"ctrl+x\" or leave empty to disable.</string>
 
     <string name="terminal_cursor_style_title">Cursor style</string>
@@ -475,6 +483,8 @@
 
     <string name="terminal_cursor_blink_rate_title">Cursor blink rate</string>
     <string name="terminal_cursor_blink_rate_summary">Cursor blink rate in milliseconds.</string>
+
+    <string name="terminal_cursor_blink_enabled_title">Cursor blinking</string>
 
     <string name="bell_character_title">Bell behaviour</string>
     <string name="bell_character_summary">What happens when the terminal receives a bell (BEL) character.</string>
@@ -571,9 +581,9 @@
     <string name="extra_keys_editor_title">Extra Keys Editor</string>
     <string name="extra_keys_editor_summary">Visually build the extra keys panel: set rows and columns, then tap a key to assign a signal.</string>
     <string name="extra_keys_editor_columns_title">Columns</string>
-    <string name="extra_keys_editor_columns_summary">Number of buttons per row (1 to 10).</string>
+    <string name="extra_keys_editor_columns_summary">Number of buttons per row.</string>
     <string name="extra_keys_editor_rows_title">Rows</string>
-    <string name="extra_keys_editor_rows_summary">Number of button rows (1 to 4).</string>
+    <string name="extra_keys_editor_rows_summary">Number of button rows.</string>
     <string name="extra_keys_editor_preview_title">Preview</string>
     <string name="extra_keys_editor_preview_summary">Live panel — tap any key to change its signal.</string>
     <string name="extra_keys_editor_signal_dialog_title">Assign signal</string>
@@ -587,7 +597,7 @@
     <string name="extra_keys_editor_done">Done</string>
     <string name="extra_keys_editor_open_editor">Edit extra keys</string>
     <string name="extra_keys_editor_open_editor_summary">Configure layout, scale and key bindings</string>
-    <string name="extra_keys_editor_hint">Tap to assign the main key · Swipe ↑ ↓ ← → to assign gesture keys</string>
+    <string name="extra_keys_editor_hint">Tap to assign the main action · Swipe ↑ ↓ ← → to assign gesture actions</string>
 
     <string name="extra_keys_haptic_title">Haptic feedback</string>
     <string name="extra_keys_haptic_summary">Vibrate on extra keys panel interactions</string>

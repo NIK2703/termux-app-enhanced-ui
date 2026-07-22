@@ -962,6 +962,7 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         ExtraKeysView extraKeysView = findViewById(R.id.terminal_toolbar_extra_keys);
         extraKeysView.setExtraKeysViewClient(mTermuxTerminalExtraKeys);
         extraKeysView.setButtonTextAllCaps(mProperties.shouldExtraKeysTextBeAllCaps());
+        extraKeysView.setDynamicFontSize(getPreferences().isExtraKeysDynamicFontSizeEnabled(this));
         setExtraKeysView(extraKeysView);
 
         // apply extra keys fix if enabled in prefs
@@ -2658,6 +2659,7 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
                 if (mTermuxTerminalExtraKeys != null)
                     mTermuxTerminalExtraKeys.reloadExtraKeys();
                 mExtraKeysView.setButtonTextAllCaps(mProperties.shouldExtraKeysTextBeAllCaps());
+                mExtraKeysView.setDynamicFontSize(getPreferences().isExtraKeysDynamicFontSizeEnabled(this));
                 applyExtraKeysSpecialButtonMode();
                 mExtraKeysView.reload(mTermuxTerminalExtraKeys.getExtraKeysInfo(), mTerminalToolbarDefaultHeight);
             }

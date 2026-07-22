@@ -344,7 +344,7 @@
     <string name="extra_keys_editor_done">تم</string>
     <string name="extra_keys_editor_open_editor">تحرير المفاتيح الإضافية</string>
     <string name="extra_keys_editor_open_editor_summary">تكوين التخطيط والتحجيم وربط المفاتيح</string>
-    <string name="extra_keys_editor_hint">اضغط لتعيين المفتاح الرئيسي · اسحب ↑ ↓ ← → لتعيين مفاتيح الإيماءات</string>
+    <string name="extra_keys_editor_hint">اضغط لتعيين الإجراء الرئيسي · اسحب ↑ ↓ ← → لتعيين إجراءات الإيماءات</string>
 
     <!-- Extra keys haptic feedback -->
     <string name="extra_keys_haptic_title">الاستجابة اللمسية</string>
