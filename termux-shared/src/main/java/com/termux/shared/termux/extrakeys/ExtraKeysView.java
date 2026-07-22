@@ -8,6 +8,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
 import android.util.AttributeSet;
+import android.util.ArrayMap;
 import android.util.TypedValue;
 
 import android.graphics.Canvas;
@@ -28,8 +29,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 
-import java.util.Map;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.stream.Collectors;
 
@@ -210,7 +209,7 @@ public final class ExtraKeysView extends GridLayout {
 
     /** The map for the {@link SpecialButton} and their {@link SpecialButtonState}. Defaults to
      * the one returned by {@link #getDefaultSpecialButtons(ExtraKeysView)}. */
-    protected Map<SpecialButton, SpecialButtonState> mSpecialButtons;
+    protected ArrayMap<SpecialButton, SpecialButtonState> mSpecialButtons;
 
     /** The keys for the {@link SpecialButton} added to {@link #mSpecialButtons}. This is automatically
      * set when the call to {@link #setSpecialButtons(Map)} is made. */
@@ -317,6 +316,8 @@ public final class ExtraKeysView extends GridLayout {
 
     private final List<MaterialButton> mButtonPool = new ArrayList<>();
 
+    private final float mDensity;
+
     private final TextPaint mMeasPaint = new TextPaint();
 
     private final RectF mEditorOval = new RectF();
@@ -331,6 +332,8 @@ public final class ExtraKeysView extends GridLayout {
     public ExtraKeysView(Context context, AttributeSet attrs) {
         super(context, attrs);
         setUseDefaultMargins(false);
+
+        mDensity = getResources().getDisplayMetrics().density;
 
         setRepetitiveKeys(ExtraKeysConstants.PRIMARY_REPETITIVE_KEYS);
         setSpecialButtons(getDefaultSpecialButtons(this));
@@ -347,7 +350,7 @@ public final class ExtraKeysView extends GridLayout {
         ViewConfiguration vc = ViewConfiguration.get(context);
         int touchSlop = vc.getScaledTouchSlop();
         int minThresholdDp = 16;
-        int minThresholdPx = (int) (minThresholdDp * getResources().getDisplayMetrics().density);
+        int minThresholdPx = (int) (minThresholdDp * mDensity);
         mSwipeThreshold = Math.max(touchSlop, minThresholdPx);
     }
 
@@ -376,9 +379,9 @@ public final class ExtraKeysView extends GridLayout {
 
 
     /** Get {@link #mSpecialButtons}. */
-    public Map<SpecialButton, SpecialButtonState> getSpecialButtons() {
+    public ArrayMap<SpecialButton, SpecialButtonState> getSpecialButtons() {
         if (mSpecialButtons == null) return null;
-        return mSpecialButtons.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        return mSpecialButtons;
     }
 
     /** Get {@link #mSpecialButtonsKeys}. */
@@ -388,7 +391,7 @@ public final class ExtraKeysView extends GridLayout {
     }
 
     /** Set {@link #mSpecialButtonsKeys}. Must not be {@code null}. */
-    public void setSpecialButtons(@NonNull Map<SpecialButton, SpecialButtonState> specialButtons) {
+    public void setSpecialButtons(@NonNull ArrayMap<SpecialButton, SpecialButtonState> specialButtons) {
         mSpecialButtons = specialButtons;
         mSpecialButtonsKeys = this.mSpecialButtons.keySet().stream().map(SpecialButton::getKey).collect(Collectors.toSet());
     }
@@ -535,13 +538,13 @@ public final class ExtraKeysView extends GridLayout {
 
     /** Get the default map that can be used for {@link #mSpecialButtons}. */
     @NonNull
-    public Map<SpecialButton, SpecialButtonState> getDefaultSpecialButtons(ExtraKeysView extraKeysView) {
-        return new HashMap<SpecialButton, SpecialButtonState>() {{
-            put(SpecialButton.CTRL, new SpecialButtonState(extraKeysView));
-            put(SpecialButton.ALT, new SpecialButtonState(extraKeysView));
-            put(SpecialButton.SHIFT, new SpecialButtonState(extraKeysView));
-            put(SpecialButton.FN, new SpecialButtonState(extraKeysView));
-        }};
+    public ArrayMap<SpecialButton, SpecialButtonState> getDefaultSpecialButtons(ExtraKeysView extraKeysView) {
+        ArrayMap<SpecialButton, SpecialButtonState> map = new ArrayMap<>(4);
+        map.put(SpecialButton.CTRL, new SpecialButtonState(extraKeysView));
+        map.put(SpecialButton.ALT, new SpecialButtonState(extraKeysView));
+        map.put(SpecialButton.SHIFT, new SpecialButtonState(extraKeysView));
+        map.put(SpecialButton.FN, new SpecialButtonState(extraKeysView));
+        return map;
     }
 
 
@@ -582,6 +585,7 @@ public final class ExtraKeysView extends GridLayout {
         setRowCount(buttons.length);
         setColumnCount(maximumLength(buttons));
 
+        int maxCols = getColumnCount();
         for (int row = 0; row < buttons.length; row++) {
             for (int col = 0; col < buttons[row].length; col++) {
                 final ExtraKeyButton buttonInfo = buttons[row][col];
@@ -631,11 +635,11 @@ public final class ExtraKeysView extends GridLayout {
                     button.setHorizontallyScrolling(false);
 
                     // Calculate max lines from available height
-                    int vMarginPx = (int) (mButtonMarginVerticalDp * getResources().getDisplayMetrics().density);
+                    int vMarginPx = (int) (mButtonMarginVerticalDp * mDensity);
                     int buttonH = (int) (heightPx + 0.5f) - 2 * vMarginPx;
                     int textAreaH = buttonH;  // padding already zeroed
 
-                    mMeasPaint.set(button.getPaint());
+                    mMeasPaint.setTypeface(button.getPaint().getTypeface());
                     mMeasPaint.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, fontSizeSp, getResources().getDisplayMetrics()));
                     int lineHeight = mMeasPaint.getFontMetricsInt(null);
                     float lineSpacing = button.getLineSpacingMultiplier();
@@ -643,32 +647,32 @@ public final class ExtraKeysView extends GridLayout {
                     lineHeight += (int) button.getLineSpacingExtra();
                     int maxLines = Math.max(1, (int) Math.floor(textAreaH / (float) Math.max(1, lineHeight)));
 
-                    // For macro buttons: custom truncation at bind boundaries
+                    // For macro buttons: custom truncation at bind boundaries.
+                    // If layout hasn't happened yet (getWidth() == 0), defer truncation
+                    // to a post-layout callback.
                     if (buttonInfo.isMacro() && displayText != null && displayText.contains(" ")) {
-                        int totalCols = getColumnCount();
-                        int marginHPx = (int) (mButtonMarginHorizontalDp * getResources().getDisplayMetrics().density);
-                        int cellW = totalCols > 0 && getWidth() > 0
-                            ? getWidth() / totalCols
-                            : Integer.MAX_VALUE;
-                        int buttonW = cellW != Integer.MAX_VALUE
-                            ? cellW - 2 * marginHPx
-                            : Integer.MAX_VALUE;
-                        int textAreaW = buttonW != Integer.MAX_VALUE
-                            ? buttonW  // padding already zeroed
-                            : Integer.MAX_VALUE;
-
-                        if (textAreaW > 0 && textAreaW < Integer.MAX_VALUE) {
-                            String truncated = truncateMacroText(displayText, mMeasPaint, textAreaW, maxLines);
-                            if (truncated != null) {
-                                button.setText(truncated);
-                                button.setMaxLines(maxLines); // truncated text already fits in maxLines
-                                button.setEllipsize(null);
+                        int totalCols = maxCols;
+                        if (totalCols > 0 && getWidth() > 0) {
+                            int marginHPx = (int) (mButtonMarginHorizontalDp * mDensity);
+                            int cellW = getWidth() / totalCols;
+                            int buttonW = cellW - 2 * marginHPx;
+                            int textAreaW = buttonW;
+                            if (textAreaW > 0) {
+                                String truncated = truncateMacroText(displayText, mMeasPaint, textAreaW, maxLines);
+                                if (truncated != null) {
+                                    button.setText(truncated);
+                                    button.setMaxLines(maxLines);
+                                    button.setEllipsize(null);
+                                } else {
+                                    button.setMaxLines(maxLines);
+                                    button.setEllipsize(TextUtils.TruncateAt.END);
+                                }
                             } else {
                                 button.setMaxLines(maxLines);
-                                button.setEllipsize(TextUtils.TruncateAt.END);
                             }
                         } else {
                             button.setMaxLines(maxLines);
+                            button.setEllipsize(TextUtils.TruncateAt.END);
                         }
                     } else {
                         button.setMaxLines(maxLines);
@@ -677,7 +681,7 @@ public final class ExtraKeysView extends GridLayout {
                 }
                 button.setTextColor(mButtonTextColor);
                 button.setBackgroundTintList(mButtonBgTint);
-                button.setCornerRadius((int) (mButtonCornerRadiusDp * getResources().getDisplayMetrics().density));
+                button.setCornerRadius((int) (mButtonCornerRadiusDp * mDensity));
 
                 button.setOnClickListener(view -> {
                     performExtraKeyButtonHapticFeedback(view, buttonInfo, button, false);
@@ -807,14 +811,9 @@ public final class ExtraKeysView extends GridLayout {
 
                 LayoutParams param = new GridLayout.LayoutParams();
                 param.width = 0;
-                if(Build.VERSION.SDK_INT == Build.VERSION_CODES.LOLLIPOP) {
-                   param.height = (int)(heightPx + 0.5);
-                } else {
-                    param.height = 0;
-                }
-                float density = getResources().getDisplayMetrics().density;
-                int marginHorizontalPx = (int) (mButtonMarginHorizontalDp * density);
-                int marginVerticalPx = (int) (mButtonMarginVerticalDp * density);
+                param.height = 0;
+                int marginHorizontalPx = (int) (mButtonMarginHorizontalDp * mDensity);
+                int marginVerticalPx = (int) (mButtonMarginVerticalDp * mDensity);
                 param.setMargins(marginHorizontalPx, marginVerticalPx, marginHorizontalPx, marginVerticalPx);
                 param.columnSpec = GridLayout.spec(col, GridLayout.FILL, 1.f);
                 param.rowSpec = GridLayout.spec(row, GridLayout.FILL, 1.f);
@@ -823,6 +822,8 @@ public final class ExtraKeysView extends GridLayout {
                 addView(button);
             }
         }
+        // Defer macro text truncation to after layout since getWidth() may be 0 during reload()
+        post(this::applyMacroTruncationAfterLayout);
     }
 
 
@@ -1057,7 +1058,7 @@ public final class ExtraKeysView extends GridLayout {
         MaterialButton button = createDefaultMaterialButton();
         button.setTextColor(state.isActive ? mButtonActiveTextColor : mButtonTextColor);
         button.setBackgroundTintList(state.isActive ? mButtonActiveBgTint : mButtonBgTint);
-        button.setCornerRadius((int) (mButtonCornerRadiusDp * getResources().getDisplayMetrics().density));
+        button.setCornerRadius((int) (mButtonCornerRadiusDp * mDensity));
         if (needUpdate) {
             state.buttons.add(button);
         }
@@ -1094,14 +1095,44 @@ public final class ExtraKeysView extends GridLayout {
         resetTouchState();
     }
 
+    private void applyMacroTruncationAfterLayout() {
+        if (getWidth() <= 0 || getColumnCount() <= 0) return;
+        int cellW = getWidth() / getColumnCount();
+        int marginHPx = (int) (mButtonMarginHorizontalDp * mDensity);
+        int buttonW = cellW - 2 * marginHPx;
+        if (buttonW <= 0) return;
+
+        for (int i = 0; i < getChildCount(); i++) {
+            View child = getChildAt(i);
+            if (!(child instanceof MaterialButton)) continue;
+            MaterialButton button = (MaterialButton) child;
+            CharSequence text = button.getText();
+            if (text == null || text.length() == 0) continue;
+            String display = text.toString();
+            if (!display.contains(" ")) continue;
+
+            int maxLines = button.getMaxLines();
+            if (maxLines <= 0) continue;
+
+            mMeasPaint.setTypeface(button.getPaint().getTypeface());
+            mMeasPaint.setTextSize(button.getTextSize());
+
+            String truncated = truncateMacroText(display, mMeasPaint, buttonW, maxLines);
+            if (truncated != null) {
+                button.setText(truncated);
+                button.setEllipsize(null);
+            }
+        }
+    }
+
     @Override
     public void dispatchDraw(Canvas canvas) {
         super.dispatchDraw(canvas);
         if (!mEditorEdgeIndicatorsEnabled || mEditorListener == null) return;
 
-        float thickness = EDITOR_EDGE_THICKNESS_DP * getResources().getDisplayMetrics().density;
+        float thickness = EDITOR_EDGE_THICKNESS_DP * mDensity;
         float halfThick = thickness / 2f;
-        float cornerPx = mButtonCornerRadiusDp * getResources().getDisplayMetrics().density;
+        float cornerPx = mButtonCornerRadiusDp * mDensity;
         if (cornerPx <= 0) cornerPx = 1f;
         float centerRadius = Math.max(0, cornerPx - halfThick);
 
@@ -1199,7 +1230,7 @@ public final class ExtraKeysView extends GridLayout {
         if (mEditorSwipeDir != null && mActiveChild != null) {
             float cx = mActiveChild.getLeft() + mActiveChild.getWidth() / 2f;
             float cy = mActiveChild.getTop() + mActiveChild.getHeight() / 2f;
-            float arrowSize = 24f * getResources().getDisplayMetrics().density;
+            float arrowSize = 24f * mDensity;
             float half = arrowSize / 2f;
 
             mEditorEdgePaint.setColor(0xFFFF4444);
@@ -1445,22 +1476,12 @@ public final class ExtraKeysView extends GridLayout {
             return null;
         }
 
-        // Binary search: find max number of whole binds that fit with "+..."
-        int lo = 1, hi = binds.length - 1;
-        int best = 0;
-        while (lo <= hi) {
-            int mid = (lo + hi) >>> 1;
-            String candidate = joinBinds(binds, mid) + "+...";
+        // Linear scan from largest to smallest (optimal for typical 2-10 bind macros)
+        for (int n = binds.length - 1; n >= 1; n--) {
+            String candidate = joinBinds(binds, n) + "+...";
             if (fitsInLines(candidate, paint, widthPx, maxLines)) {
-                best = mid;
-                lo = mid + 1;
-            } else {
-                hi = mid - 1;
+                return candidate;
             }
-        }
-
-        if (best > 0) {
-            return joinBinds(binds, best) + "+...";
         }
 
         // Even first bind + "+..." doesn't fit — let Android handle truncation

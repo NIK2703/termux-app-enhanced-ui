@@ -451,16 +451,16 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         // in onTerminalPageSelected() via TermuxSessionTabsController.setCurrentSession().
         updateBackgroundColor();
 
-        // Refresh tab titles for the newly-current session.  This was done by the second
-        // updateTabs() call that used to happen via checkAndScrollToSession() in the legacy
-        // code path.  Without it a freshly-created session keeps its default "Terminal" title
-        // until an unrelated tab redraw happens.  We call updateTabs() directly here (without
-        // the checkAndScrollToSession wrapper) because notifyDataSetChanged+setCurrentItem
-        // would destroy the pager's ViewHolders mid-animation.
-        TermuxService service = mActivity.getTermuxService();
-        if (service != null) {
-            mActivity.getTermuxSessionTabsController().updateTabs(service.getTermuxSessions());
-        }
+        // Tab titles are already populated when the session was created (via
+        // termuxSessionListNotifyUpdated / onTitleChanged).  We deliberately skip
+        // updateTabs() here because calling populateTabView() for ALL tabs triggers
+        // setText() → requestLayout() on every tab, causing a full re-layout pass.
+        // This layout pass runs DURING the pager smooth scroll (onPageSelected fires
+        // at scroll START for setCurrentItem(true), before the animation completes),
+        // shifting tab positions mid-animation and producing the visible "jump" on
+        // non-adjacent tab switches.  The selection highlight is already handled by
+        // setCurrentSession() in onTerminalPageSelected() — see its caller in
+        // SessionPagerManager.onTerminalPageSelected().
 
         // Apply the per-session text input panel visibility state for the new session.
         // This also restores the saved text input content (single restore site — avoids

@@ -2673,12 +2673,22 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         if (mProperties != null) {
             reloadProperties();
 
+            // Cache all UI colours from the (now-updated) COLOR_SCHEME so every consumer reads
+            // fresh values without computing them on the fly.
+            mColorSchemeManager.recompute(getPreferences());
+
             if (mExtraKeysView != null) {
                 if (mTermuxTerminalExtraKeys != null)
                     mTermuxTerminalExtraKeys.reloadExtraKeys();
                 mExtraKeysView.setButtonTextAllCaps(mProperties.shouldExtraKeysTextBeAllCaps());
                 mExtraKeysView.setDynamicFontSize(getPreferences().isExtraKeysDynamicFontSizeEnabled(this));
                 applyExtraKeysSpecialButtonMode();
+                mExtraKeysView.setButtonColors(
+                    mColorSchemeManager.getButtonText(),
+                    deriveActiveTextColor(mColorSchemeManager.getButtonText()),
+                    mColorSchemeManager.getButtonBg(),
+                    mColorSchemeManager.getButtonActiveBg()
+                );
                 mExtraKeysView.reload(mTermuxTerminalExtraKeys.getExtraKeysInfo(), mTerminalToolbarDefaultHeight);
             }
 
@@ -2694,10 +2704,6 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
 
         if (mTermuxTerminalSessionActivityClient != null)
             mTermuxTerminalSessionActivityClient.onReloadActivityStyling();
-
-        // Cache all UI colours from the (now-updated) COLOR_SCHEME so every consumer reads
-        // fresh values without computing them on the fly.
-        mColorSchemeManager.recompute(getPreferences());
 
         // Restyle the whole activity (window, status bar, open popups) from the new scheme.
         applySchemeColors();
