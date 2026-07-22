@@ -13,29 +13,28 @@
 
 <resources>
 
-    <string name="application_name">TermuxEnhanced</string>
-    <string name="shared_user_label">Пользователь &TERMUX_APP_NAME;</string>
+    <string name="shared_user_label">Пользователь Termux</string>
 
-    <!-- Termux RUN_COMMAND permission -->
-    <string name="permission_run_command_label">Запуск команд в окружении &TERMUX_APP_NAME;</string>
-    <string name="permission_run_command_description">выполнение произвольных команд в окружении &TERMUX_APP_NAME;
+    
+    <string name="permission_run_command_label">Запуск команд в окружении Termux</string>
+    <string name="permission_run_command_description">выполнение произвольных команд в окружении Termux
         и доступ к файлам</string>
 
-    <!-- Termux Bootstrap Packages Installation -->
+    
     <string name="bootstrap_installer_body">Установка пакетов начальной загрузки…</string>
     <string name="bootstrap_error_title">Не удалось установить начальную загрузку</string>
-    <string name="bootstrap_error_body">&TERMUX_APP_NAME; не удалось установить пакеты начальной загрузки.</string>
+    <string name="bootstrap_error_body">Termux не удалось установить пакеты начальной загрузки.</string>
     <string name="bootstrap_error_abort">Прервать</string>
     <string name="bootstrap_error_try_again">Повторить</string>
-    <string name="bootstrap_error_not_primary_user_message">&TERMUX_APP_NAME; может работать только от имени основного пользователя.
-        \nСкомпилированные двоичные файлы &TERMUX_APP_NAME; имеют жестко заданный путь $PREFIX и не могут быть установлены
+    <string name="bootstrap_error_not_primary_user_message">Termux может работать только от имени основного пользователя.
+        \nСкомпилированные двоичные файлы Termux имеют жестко заданный путь $PREFIX и не могут быть установлены
         по пути, отличному от:\n%1$s.</string>
-    <string name="bootstrap_error_installed_on_portable_sd">&TERMUX_APP_NAME; не может быть установлен на
+    <string name="bootstrap_error_installed_on_portable_sd">Termux не может быть установлен на
         портативную/внешнюю/съёмную SD-карту вашего устройства.
-        \nСкомпилированные двоичные файлы &TERMUX_APP_NAME; имеют жестко заданный путь $PREFIX и не могут быть установлены
+        \nСкомпилированные двоичные файлы Termux имеют жестко заданный путь $PREFIX и не могут быть установлены
         по пути, отличному от:\n%1$s.</string>
 
-    <!-- Terminal Sidebar and Shortcuts -->
+    
     <string name="action_new_session">Новый сеанс</string>
     <string name="action_new_session_failsafe">Аварийный режим</string>
     <string name="title_max_terminals_reached">Максимум терминалов</string>
@@ -52,7 +51,7 @@
     <string name="msg_enabling_terminal_toolbar">Включение панели терминала</string>
     <string name="msg_disabling_terminal_toolbar">Отключение панели терминала</string>
 
-    <!-- Terminal Popup -->
+    
     <string name="action_select_url">Выбрать URL</string>
     <string name="title_select_url_dialog">Нажмите на URL, чтобы скопировать, или долгое нажатие, чтобы открыть</string>
     <string name="title_select_url_none_found">URL не найден в терминале.</string>
@@ -88,153 +87,148 @@
     <string name="msg_generating_report">Формирование отчёта</string>
     <string name="msg_add_termux_debug_info">Добавить отладочную информацию Termux в отчёт?</string>
 
-    <string name="error_styling_not_installed">Плагин &TERMUX_STYLING_APP_NAME; не установлен.</string>
+    <string name="error_styling_not_installed">Плагин Termux:Styling не установлен.</string>
     <string name="action_styling_install">Установить</string>
 
-    <!-- Termux Notifications -->
+    
     <string name="notification_action_exit">Выход</string>
     <string name="notification_action_wake_lock">Захват блокировки</string>
     <string name="notification_action_wake_unlock">Снятие блокировки</string>
 
-    <!-- TermuxService -->
-    <string name="error_display_over_other_apps_permission_not_granted_to_start_terminal">&TERMUX_APP_NAME; требуется
-        разрешение «Поверх других приложений» для запуска сеансов терминала из фона на Android >= 10.
-        Предоставьте его в Настройки → Приложения → &TERMUX_APP_NAME; → Дополнительно</string>
+    
+    <string name="error_display_over_other_apps_permission_not_granted_to_start_terminal">Termux требуется
+        разрешение «Поверх других приложений» для запуска сеансов терминала из фона на Android &gt;= 10.
+        Предоставьте его в Настройках → Приложения → Termux → Дополнительно</string>
     <string name="error_termux_service_invalid_execution_command_runner">Неверный исполнитель команды для TermuxService: `%1$s`</string>
     <string name="error_termux_service_unsupported_execution_command_runner">Неподдерживаемый исполнитель команды для TermuxService: `%1$s`</string>
     <string name="error_termux_service_unsupported_execution_command_shell_create_mode">Неподдерживаемый режим создания оболочки для TermuxService: `%1$s`</string>
     <string name="error_termux_service_execution_command_shell_name_unset">Имя оболочки не задано, но передан режим создания `%1$s`</string>
 
-    <!-- Termux RunCommandService -->
+    
     <string name="error_run_command_service_invalid_intent_action">Неверное действие Intent для RunCommandService: `%1$s`</string>
     <string name="error_run_command_service_invalid_execution_command_runner">Неверный исполнитель команды для RunCommandService: `%1$s`</string>
     <string name="error_run_command_service_mandatory_extra_missing">Отсутствует обязательное дополнение RunCommandService: «%1$s»</string>
     <string name="error_run_command_service_api_help">Посетите %1$s для подробностей об использовании Intent RUN_COMMAND.</string>
 
-    <!-- Termux File Receiver -->
+    
     <string name="title_file_received">Сохранить файл в ~/downloads/</string>
     <string name="action_file_received_edit">Редактировать</string>
     <string name="action_file_received_open_directory">Открыть папку</string>
 
-    <!-- Miscellaneous -->
+    
     <string name="error_termux_service_start_failed_general">Не удалось запустить TermuxService. Проверьте logcat на наличие сообщения об исключении.</string>
     <string name="error_termux_service_start_failed_bg">Не удалось запустить TermuxService в фоне из-за ограничений Android для фоновых приложений.</string>
 
-    <!-- Termux Settings -->
-    <string name="title_activity_termux_settings">Настройки &TERMUX_APP_NAME;</string>
+    
+    <string name="title_activity_termux_settings">Настройки Termux</string>
 
-    <!-- Termux App Preferences -->
+    
     <string name="appearance_preferences_title">Внешний вид</string>
     <string name="appearance_preferences_summary">Настройки внешнего вида приложения и прозрачности панели</string>
     <string name="theme_title">Тема</string>
     <string name="panel_transparency_title">Прозрачность панели</string>
     <string name="appearance_category_title">Внешний вид</string>
 
-    <string name="termux_preferences_title">&TERMUX_APP_NAME;</string>
-    <string name="termux_preferences_summary">Настройки приложения &TERMUX_APP_NAME;</string>
+    <string name="termux_preferences_summary">Настройки приложения Termux</string>
 
-        <!-- Debugging Preferences -->
+        
         <string name="termux_debugging_preferences_title">Отладка</string>
         <string name="termux_debugging_preferences_summary">Настройки отладки</string>
 
-            <!-- Logging Category -->
+            
             <string name="termux_logging_header">Журналирование</string>
 
-                <!-- Log Level -->
+                
                 <string name="termux_log_level_title">Уровень журнала</string>
 
-                <!-- Terminal View Key Logging -->
+                
                 <string name="termux_terminal_view_key_logging_enabled_title">Журнал клавиш терминала</string>
                 <string name="termux_terminal_view_key_logging_enabled_off">Журнал не будет содержать записи о клавишах терминала. (По умолчанию)</string>
                 <string name="termux_terminal_view_key_logging_enabled_on">Журнал logcat будет содержать записи о клавишах терминала.
                     Они очень подробные и должны быть отключены при обычном использовании, иначе это вызовет проблемы с производительностью.</string>
 
-                <!-- Plugin Error Notifications -->
+                
                 <string name="termux_plugin_error_notifications_enabled_title">Уведомления об ошибках плагинов</string>
                 <string name="termux_plugin_error_notifications_enabled_off">Отключить всплывающие уведомления об ошибках плагинов.</string>
                 <string name="termux_plugin_error_notifications_enabled_on">Показывать всплывающие уведомления об ошибках плагинов. (По умолчанию)</string>
 
-                <!-- Crash Report Notifications -->
+                
                 <string name="termux_crash_report_notifications_enabled_title">Уведомления об отчётах о сбоях</string>
                 <string name="termux_crash_report_notifications_enabled_off">Отключить уведомления об отчётах о сбоях.</string>
                 <string name="termux_crash_report_notifications_enabled_on">Показывать уведомления об отчётах о сбоях. (По умолчанию)</string>
 
-        <!-- Terminal IO Preferences -->
+        
         <string name="termux_terminal_io_preferences_title">Ввод-вывод терминала</string>
         <string name="termux_terminal_io_preferences_summary">Настройки ввода-вывода терминала</string>
 
-            <!-- Keyboard Category -->
+            
             <string name="termux_keyboard_header">Клавиатура</string>
 
-                <!-- Soft Keyboard -->
+                
                 <string name="termux_soft_keyboard_enabled_title">Экранная клавиатура включена</string>
                 <string name="termux_soft_keyboard_enabled_off">Экранная клавиатура будет отключена.</string>
                 <string name="termux_soft_keyboard_enabled_on">Экранная клавиатура будет включена. (По умолчанию)</string>
 
-                <!-- Soft Keyboard Only If No Hardware -->
-                <string name="termux_soft_keyboard_enabled_only_if_no_hardware_title">Экранная клавиатура только без аппаратной</string>
+                
+                <string name="termux_soft_keyboard_enabled_only_if_no_hardware_title">Экранная клавиатура: только при отсутствии аппаратной</string>
                 <string name="termux_soft_keyboard_enabled_only_if_no_hardware_off">Экранная клавиатура будет включена, даже если
                     подключена аппаратная клавиатура. (По умолчанию)</string>
                 <string name="termux_soft_keyboard_enabled_only_if_no_hardware_on">Экранная клавиатура будет включена, только если
                     не подключена аппаратная клавиатура.</string>
 
-        <!-- Terminal View Preferences -->
+        
         <string name="termux_terminal_view_preferences_title">Вид терминала</string>
         <string name="termux_terminal_view_preferences_summary">Настройки вида терминала</string>
 
-            <!-- View Category -->
+            
             <string name="termux_terminal_view_view_header">Вид</string>
 
-                <!-- Button Background Inactive Alpha -->
+                
                 <string name="termux_button_bg_inactive_alpha_title" formatted="false">Прозрачность фона неактивных элементов</string>
 
-                <!-- Button Background Active Alpha -->
+                
                 <string name="termux_button_bg_active_alpha_title" formatted="false">Прозрачность фона активных элементов</string>
 
-                <!-- Terminal View Margin Adjustment -->
+                
                 <string name="termux_terminal_view_terminal_margin_adjustment_title">Корректировка отступов терминала</string>
                 <string name="termux_terminal_view_terminal_margin_adjustment_off">Корректировка отступов терминала будет отключена.</string>
                 <string name="termux_terminal_view_terminal_margin_adjustment_on">Корректировка отступов терминала будет включена.
                     Следует включить, чтобы исправить проблему, когда экранная клавиатура перекрывает часть дополнительных кнопок/терминала.
                     Если это вызывает мерцание экрана на вашем устройстве, отключите. (По умолчанию)</string>
 
-    <!-- Termux:API App Preferences -->
-    <string name="termux_api_preferences_title">&TERMUX_API_APP_NAME;</string>
-    <string name="termux_api_preferences_summary">Настройки приложения &TERMUX_API_APP_NAME;</string>
+    
+    <string name="termux_api_preferences_summary">Настройки приложения Termux:API</string>
 
-    <!-- Termux:Float App Preferences -->
-    <string name="termux_float_preferences_title">&TERMUX_FLOAT_APP_NAME;</string>
-    <string name="termux_float_preferences_summary">Настройки приложения &TERMUX_FLOAT_APP_NAME;</string>
+    
+    <string name="termux_float_preferences_summary">Настройки приложения Termux:Float</string>
 
-    <!-- Termux:Tasker App Preferences -->
-    <string name="termux_tasker_preferences_title">&TERMUX_TASKER_APP_NAME;</string>
-    <string name="termux_tasker_preferences_summary">Настройки приложения &TERMUX_TASKER_APP_NAME;</string>
+    
+    <string name="termux_tasker_preferences_summary">Настройки приложения Termux:Tasker</string>
 
-    <!-- Termux:Widget App Preferences -->
-    <string name="termux_widget_preferences_title">&TERMUX_WIDGET_APP_NAME;</string>
-    <string name="termux_widget_preferences_summary">Настройки приложения &TERMUX_WIDGET_APP_NAME;</string>
+    
+    <string name="termux_widget_preferences_summary">Настройки приложения Termux:Widget</string>
 
-    <!-- About Preference -->
+    
     <string name="about_preference_title">О программе</string>
 
-    <!-- Theme Preference -->
+    
     <string name="theme_mode_title">Тема приложения</string>
     <string name="theme_mode_summary">Выберите тему приложения и терминала</string>
 
-    <!-- Color scheme preferences (per app theme) -->
+    
     <string name="color_scheme_dialog_title">Цветовая схема терминала</string>
     <string name="color_scheme_light_title">Цветовая схема терминала (Светлая тема)</string>
     <string name="color_scheme_light_summary">Цветовая схема, применяемая при светлой теме приложения</string>
     <string name="color_scheme_dark_title">Цветовая схема терминала (Тёмная тема)</string>
     <string name="color_scheme_dark_summary">Цветовая схема, применяемая при тёмной теме приложения</string>
 
-    <!-- Message history preferences -->
+    
     <string name="message_history_title">История сообщений</string>
     <string name="message_history_max_title">Максимум сохранённых сообщений</string>
     <string name="per_directory_message_history_title">История сообщений по папкам</string>
     <string name="per_directory_message_history_summary">Вести отдельную историю сообщений для каждой рабочей папки. При выключении все сеансы используют одну общую историю.</string>
 
-    <!-- Text input preferences -->
+    
     <string name="input_panel_title">Панель ввода</string>
     <string name="text_input_append_enter_title">Добавлять Enter при отправке</string>
     <string name="text_input_append_enter_summary">При отправке из панели ввода также отправлять перевод строки (Enter). Отключите, чтобы отправлять текст без завершающего переноса строки.</string>
@@ -242,30 +236,29 @@
     <string name="text_input_hide_on_send_title">Скрывать панель ввода после отправки</string>
     <string name="text_input_hide_on_send_summary">При включении панель ввода закрывается и фокус переходит в терминал после отправки. Отключите, чтобы панель оставалась открытой для последовательных команд.</string>
 
-    <!-- Directory history preferences -->
+    
     <string name="directory_history_title">История папок</string>
     <string name="directory_history_max_title">Максимум сохранённых папок</string>
 
-    <!-- Session restore preferences -->
+    
     <string name="restore_sessions_title">Восстанавливать вкладки при запуске</string>
     <string name="restore_sessions_summary">Повторно открывать все вкладки и их папки при запуске приложения</string>
 
-    <!-- Screen orientation preference -->
+    
     <string name="screen_orientation_title">Ориентация экрана</string>
-    <string name="screen_orientation_summary">Варианты «По датчику» вращаются между двумя ориентациями (например, 0°/180° книжная).</string>
+    <string name="screen_orientation_summary">Варианты «По датчику» переключаются между двумя ориентациями (например, 0°/180° книжная).</string>
 
-    <!-- Donate Preference -->
+    
     <string name="donate_preference_title">Пожертвовать</string>
 
-    <!-- Backup / Restore Preference -->
+    
     <string name="backup_preference_title">Резервное копирование данных Termux</string>
     <string name="backup_preference_summary">Сохранить каталог данных Termux (установленные пакеты + домашний каталог) в файл tar.gz</string>
     <string name="restore_preference_title">Восстановление данных Termux</string>
     <string name="restore_preference_summary">Восстановить каталог данных Termux из файла резервной копии tar.gz</string>
-    <string name="backup_restore_backup_filename">termux-data-backup.tar.gz</string>
     <string name="backup_restore_dialog_title">Резервное копирование / Восстановление данных Termux</string>
     <string name="backup_restore_warning_backup">Будет создан сжатый архив вашего каталога данных Termux (установленные пакеты и окружение вместе с домашним каталогом).\n\nВыберите файл назначения для сохранения резервной копии.</string>
-    <string name="backup_restore_warning_restore">Восстановление ПЕРЕЗАПИШЕТ текущий каталог данных Termux (установленные пакеты и домашний каталог) содержимым выбранного файла резервной копии. Существующие данные будут УТЕРЯНЫ.\n\n⚠ Если восстановление не удастся — из-за повреждения файла резервной копии, неполноты или прерывания соединения во время процесса — ваше окружение Termux останется ПУСТЫМ. Восстановить исходные данные будет невозможно.\n\nЭто действие нельзя отменить. Настоятельно рекомендуется сначала СДЕЛАТЬ РЕЗЕРВНУЮ КОПИЮ и проверить, что файл копии действителен.</string>
+    <string name="backup_restore_warning_restore">Восстановление ПЕРЕЗАПИШЕТ текущий каталог данных Termux (установленные пакеты и домашний каталог) содержимым выбранного файла резервной копии. Существующие данные будут УТЕРЯНЫ.\n\n⚠ Если восстановление не удастся — из-за повреждения файла резервной копии, неполноты или прерывания соединения во время процесса — ваше окружение Termux останется ПУСТЫМ. Восстановить исходные данные будет невозможно.\n\nЭто действие нельзя отменить. Настоятельно рекомендуется сначала СДЕЛАТЬ РЕЗЕРВНУЮ КОПИЮ и проверить, что файл резервной копии действителен.</string>
     <string name="backup_restore_backup_started">Создание резервной копии…</string>
     <string name="backup_restore_restore_started">Восстановление из резервной копии…</string>
     <string name="backup_restore_backup_success">Резервная копия успешно создана</string>
@@ -276,7 +269,6 @@
     <string name="backup_service_channel_name">Резервное копирование / Восстановление Termux</string>
     <string name="backup_service_notification_title">Резервное копирование данных Termux</string>
     <string name="backup_service_notification_restore_title">Восстановление данных Termux</string>
-    <string name="backup_service_notification_progress">%1$d%%</string>
     <string name="backup_service_notification_success">Резервная копия успешно создана</string>
     <string name="backup_service_notification_restore_success">Данные успешно восстановлены</string>
     <string name="backup_service_notification_failed">Резервное копирование не удалось</string>
@@ -286,9 +278,9 @@
     <string name="backup_service_notification_cancel">Отмена</string>
     <string name="backup_restore_cancelled">Операция отменена</string>
 
-    <!-- NEW STRINGS FOR HARDCODED VALUES -->
+    
 
-    <!-- Session tabs -->
+    
     <string name="tab_close_description">Закрыть вкладку</string>
     <string name="session_default_title">Терминал</string>
     <string name="new_tab_placeholder_hint">Новый сеанс</string>
@@ -302,17 +294,17 @@
     <string name="termux_tab_panel_position_top">Сверху</string>
     <string name="termux_tab_panel_position_bottom">Снизу</string>
 
-    <!-- Text input show preference -->
+    
     <string name="text_input_show_title">Показывать панель ввода текста</string>
     <string name="text_input_show_summary_on">Панель ввода текста отображается над дополнительными кнопками</string>
     <string name="text_input_show_summary_off">Панель ввода текста скрыта</string>
 
-    <!-- Message history -->
+    
     <string name="message_history_empty">Нет истории сообщений</string>
     <string name="message_history_clear_all">ОЧИСТИТЬ ИСТОРИЮ…</string>
     <string name="message_history_clear">Очистить</string>
 
-    <!-- Message history clear dialogs -->
+    
     <string name="message_history_clear_dialog_title">Очистить историю сообщений</string>
     <string name="message_history_clear_question">Очистить историю сообщений?</string>
     <string name="message_history_clear_confirm_current">Очистить все сохранённые сообщения для текущей папки? Это действие необратимо.</string>
@@ -323,12 +315,12 @@
     <string name="message_history_clear_all_question">Это навсегда удалит все сохранённые сообщения.</string>
     <string name="message_history_cleared">История сообщений очищена</string>
 
-    <!-- Directory history -->
+    
     <string name="directory_history_clear_dialog_title">Очистить историю папок</string>
     <string name="directory_history_clear_confirm">Очистить всю историю папок? Это действие необратимо.</string>
     <string name="directory_history_cleared">История папок очищена</string>
 
-    <!-- FileReceiverActivity сообщения об ошибках -->
+    
     <string name="file_receiver_error_no_content">Действие отправки без содержимого — нечего сохранять.</string>
     <string name="file_receiver_error_no_data_uri">URI данных не передан.</string>
     <string name="file_receiver_error_invalid_path">Путь к файлу из URI данных равен null, пуст или недействителен.</string>
@@ -341,7 +333,7 @@
     <string name="file_receiver_error_cannot_create_dir">Не удаётся создать каталог: %s</string>
     <string name="file_receiver_error_saving_file">Ошибка сохранения файла:\n\n%s</string>
 
-    <!-- Строки уведомления службы -->
+    
     <plurals name="notification_sessions">
         <item quantity="one">%d сеанс</item>
         <item quantity="few">%d сеанса</item>
@@ -356,28 +348,28 @@
     </plurals>
     <string name="notification_wake_lock_held"> (блокировка пробуждения активна)</string>
 
-    <!-- Список сеансов -->
+    
     <string name="session_null_title">null сеанс</string>
 
-    <!-- Дополнительные кнопки -->
+    
     <string name="msg_extra_keys_load_failed">Не удалось загрузить и установить свойство «%1$s» из файла свойств: %2$s</string>
     <string name="msg_extra_keys_create_failed">Не удаётся создать дополнительные кнопки по умолчанию</string>
 
 
-    <!-- App language override -->
+    
     <string name="locale_override_title">Язык приложения</string>
     <string name="locale_override_summary">Переопределить язык приложения</string>
     <string name="locale_override_entry_system">Системный (автоперевод может быть неточным)</string>
     <string name="locale_override_entry_english">Английский</string>
-    <!-- Hide extra keys with keyboard -->
-    <string name="hide_extra_keys_with_keyboard_title">Прятать кнопки с клавиатурой</string>
+    
+    <string name="hide_extra_keys_with_keyboard_title">Скрывать кнопки с клавиатурой</string>
     <string name="hide_extra_keys_with_keyboard_summary">Автоматически скрывать дополнительные кнопки при закрытии клавиатуры, показывать при открытии</string>
 
-    <!-- Text input auto-complete -->
+    
     <string name="suggestions_max_count_title">Максимум подсказок</string>
     <string name="suggestions_max_count_summary">Автодополнение из истории сообщений (1–10)</string>
 
-    <!-- Restructured settings: screen titles -->
+    
     <string name="language_category_title">Язык</string>
     <string name="input_preferences_title">Ввод</string>
     <string name="input_preferences_summary">Настройки ввода текста и клавиатуры</string>
@@ -394,7 +386,7 @@
     <string name="plugin_logging_category_title">Журналирование</string>
     <string name="failure_notifications_category_title">Уведомления об ошибках</string>
 
-    <!-- Extra keys subsection -->
+    
     <string name="extra_keys_header">Дополнительные кнопки</string>
     <string name="extra_keys_category_title">Дополнительные кнопки</string>
     <string name="extra_keys_layout_title">Раскладка кнопок</string>
@@ -413,27 +405,27 @@
     <string name="extra_keys_special_button_mode_sticky">Залипающий (переключение / блокировка)</string>
     <string name="extra_keys_special_button_mode_hold">Удержание (пока нажата)</string>
 
-    <!-- Display subsections -->
+    
     <string name="view_category_title">Вид</string>
     <string name="window_category_title">Окно</string>
 
-    <!-- History & Tabs subsections -->
+    
     <string name="history_category_title">История</string>
     <string name="tabs_category_title">Вкладки</string>
 
-    <!-- Theme mode entries -->
+    
     <string name="theme_mode_entry_dark">Тёмная</string>
     <string name="theme_mode_entry_light">Светлая</string>
     <string name="theme_mode_entry_system">Системная</string>
 
-    <!-- Screen orientation entries -->
+    
     <string name="screen_orientation_entry_follow_sensor">По датчику</string>
     <string name="screen_orientation_entry_portrait_follow_sensor">Книжная (по датчику)</string>
     <string name="screen_orientation_entry_landscape_follow_sensor">Альбомная (по датчику)</string>
     <string name="screen_orientation_entry_portrait">Книжная</string>
     <string name="screen_orientation_entry_landscape">Альбомная</string>
 
-    <!-- Terminal screen (migrated termux.properties) -->
+    
     <string name="terminal_preferences_title">Дополнительно</string>
     <string name="terminal_preferences_summary">Поведение клавиш, ярлыки, сессия, безопасность и прочее</string>
 
@@ -542,21 +534,21 @@
     <string name="empty_value_summary">Не задано</string>
     <string name="extra_keys_invalid_json">Неверный JSON для дополнительных кнопок. Изменения не сохранены.</string>
 
-    <!-- Legacy night-mode entries (kept for reference; theme is on Display screen) -->
+    
     <string name="night_mode_legacy_title">Ночной режим (устаревший night-mode)</string>
     <string name="night_mode_legacy_summary">Управляет устаревшим свойством ночного режима. Лучше используйте тему на экране «Дисплей».</string>
     <string name="night_mode_true">Тёмная</string>
     <string name="night_mode_false">Светлая</string>
     <string name="night_mode_system">Системная</string>
 
-    <!-- Extra keys visibility -->
+    
     <string name="extra_keys_visibility_title">Показывать панель дополнительных кнопок</string>
     <string name="extra_keys_visibility_summary">Когда отображается панель дополнительных кнопок.</string>
 
-    <!-- Extra keys corner radius -->
+    
     <string name="extra_keys_corner_radius_title">Радиус скругления кнопок</string>
 
-    <!-- Extra Keys Editor -->
+    
     <string name="extra_keys_editor_title">Редактор дополнительных кнопок</string>
     <string name="extra_keys_editor_summary">Визуальное создание панели дополнительных кнопок: задайте строки и столбцы, затем нажмите на кнопку, чтобы назначить сигнал.</string>
     <string name="extra_keys_editor_columns_title">Столбцы</string>
@@ -578,51 +570,51 @@
     <string name="extra_keys_editor_open_editor_summary">Настройка раскладки, масштаба и привязки кнопок</string>
     <string name="extra_keys_editor_hint">Нажмите, чтобы назначить основное действие · Смахните ↑ ↓ ← → для назначения действий по жестам</string>
 
-    <!-- Haptic feedback for extra keys -->
+    
     <string name="extra_keys_haptic_title">Тактильная обратная связь</string>
     <string name="extra_keys_haptic_summary">Вибрация при взаимодействии с панелью дополнительных кнопок</string>
     <string name="extra_keys_haptic_all">Нажатия и жесты</string>
     <string name="extra_keys_haptic_gestures">Только жесты</string>
     <string name="extra_keys_haptic_off">Отключено</string>
 
-    <!-- Extra keys visibility entries -->
+    
     <string name="extra_keys_visibility_always">Всегда</string>
     <string name="extra_keys_visibility_keyboard">Только при открытой клавиатуре</string>
     <string name="extra_keys_visibility_never">Никогда</string>
 
-    <!-- Extra keys editor signal entries -->
+    
     <string name="extra_keys_editor_signal_keyboard">Переключатель клавиатуры</string>
     <string name="extra_keys_editor_signal_paste">Вставить</string>
     <string name="extra_keys_editor_signal_scroll">Блокировка прокрутки</string>
     <string name="extra_keys_editor_signal_space">Пробел</string>
-    <string name="extra_keys_editor_signal_esc">Esc</string>
-    <string name="extra_keys_editor_signal_tab">Tab</string>
-    <string name="extra_keys_editor_signal_home">Home</string>
-    <string name="extra_keys_editor_signal_end">End</string>
-    <string name="extra_keys_editor_signal_page_up">Page Up</string>
-    <string name="extra_keys_editor_signal_page_down">Page Down</string>
-    <string name="extra_keys_editor_signal_insert">Insert</string>
-    <string name="extra_keys_editor_signal_delete">Delete</string>
-    <string name="extra_keys_editor_signal_backspace">Backspace</string>
     <string name="extra_keys_editor_signal_up">Вверх</string>
     <string name="extra_keys_editor_signal_left">Влево</string>
     <string name="extra_keys_editor_signal_right">Вправо</string>
     <string name="extra_keys_editor_signal_down">Вниз</string>
-    <string name="extra_keys_editor_signal_enter">Enter</string>
-    <string name="extra_keys_editor_signal_f1">F1</string>
-    <string name="extra_keys_editor_signal_f2">F2</string>
-    <string name="extra_keys_editor_signal_f3">F3</string>
-    <string name="extra_keys_editor_signal_f4">F4</string>
-    <string name="extra_keys_editor_signal_f5">F5</string>
-    <string name="extra_keys_editor_signal_f6">F6</string>
-    <string name="extra_keys_editor_signal_f7">F7</string>
-    <string name="extra_keys_editor_signal_f8">F8</string>
-    <string name="extra_keys_editor_signal_f9">F9</string>
-    <string name="extra_keys_editor_signal_f10">F10</string>
-    <string name="extra_keys_editor_signal_f11">F11</string>
-    <string name="extra_keys_editor_signal_f12">F12</string>
     <string name="extra_keys_editor_signal_backslash">Обратная косая черта (\\)</string>
     <string name="extra_keys_editor_signal_quote">Кавычка (\")</string>
     <string name="extra_keys_editor_signal_apostrophe">Апостроф (\')</string>
     <string name="extra_keys_editor_signal_custom">Своя привязка…</string>
+
+    
+    <string name="report_issue_title">Termux — Сообщить о проблеме</string>
+    <string name="report_issue_transcript_header">## Журнал\n</string>
+    <string name="backup_error_open_output">Не удалось открыть выходной файл</string>
+
+    
+    <string name="extra_keys_button_margin_title">Отступы между кнопками</string>
+    <string name="extra_keys_button_margin_summary">Расстояние между кнопками</string>
+
+    
+    <string name="extra_keys_dynamic_font_size_title">Динамический размер шрифта</string>
+    <string name="extra_keys_dynamic_font_size_summary">Уменьшать размер шрифта при увеличении числа столбцов или макросов</string>
+
+    
+    <string name="termux_api_debugging_title">Отладка Termux:API</string>
+    <string name="termux_float_debugging_title">Отладка Termux:Float</string>
+    <string name="termux_tasker_debugging_title">Отладка Termux:Tasker</string>
+    <string name="termux_widget_debugging_title">Отладка Termux:Widget</string>
+
+    
+    <string name="invalid_number">Пожалуйста, введите допустимое число.</string>
 </resources>

@@ -91,17 +91,6 @@ public class DisplayPreferencesFragment extends TermuxPreferenceFragmentBase {
         wireSliderListener("button_bg_inactive_alpha", context);
         wireSliderListener("button_bg_active_alpha", context);
 
-        // --- View: terminal margin ---
-        final SwitchPreferenceCompat marginPref = findPreference("terminal_margin_adjustment");
-        if (marginPref != null) {
-            marginPref.setPersistent(false);
-            marginPref.setChecked(prefs != null && prefs.isTerminalMarginAdjustmentEnabled());
-            marginPref.setOnPreferenceChangeListener((preference, newValue) -> {
-                if (prefs != null) prefs.setTerminalMarginAdjustment((Boolean) newValue);
-                return true;
-            });
-        }
-
         // --- Window: screen orientation ---
         final ListPreference orientationPref = findPreference("screen_orientation");
         if (orientationPref != null) {
@@ -127,6 +116,17 @@ public class DisplayPreferencesFragment extends TermuxPreferenceFragmentBase {
 
         configureSwitch("use-fullscreen-workaround", prefs != null && prefs.isUsingFullScreenWorkAround(),
             value -> { if (prefs != null) prefs.setFullScreenWorkAround(value); });
+
+        // --- Window: terminal margin ---
+        final SwitchPreferenceCompat marginPref = findPreference("terminal_margin_adjustment");
+        if (marginPref != null) {
+            marginPref.setPersistent(false);
+            marginPref.setChecked(prefs != null && prefs.isTerminalMarginAdjustmentEnabled());
+            marginPref.setOnPreferenceChangeListener((preference, newValue) -> {
+                if (prefs != null) prefs.setTerminalMarginAdjustment((Boolean) newValue);
+                return true;
+            });
+        }
 
         // --- Tabs ---
         // --- Terminal appearance (moved from Terminal screen) ---
@@ -166,16 +166,12 @@ public class DisplayPreferencesFragment extends TermuxPreferenceFragmentBase {
         final SwitchPreferenceCompat blinkPref = findPreference("terminal-cursor-blink-enabled");
         if (blinkPref != null) {
             blinkPref.setPersistent(false);
-            blinkPref.setChecked(prefs.getTerminalCursorBlinkRate() != 0);
+            blinkPref.setChecked(prefs.getTerminalCursorBlinkEnabled());
             blinkPref.setOnPreferenceChangeListener((preference, newValue) -> {
                 boolean enabled = (Boolean) newValue;
-                if (enabled) {
-                    int rate = prefs.getTerminalCursorBlinkRate();
-                    if (rate == 0) rate = 530;
-                    prefs.setTerminalCursorBlinkRate(rate);
-                } else {
-                    prefs.setTerminalCursorBlinkRate(0);
-                }
+                prefs.setTerminalCursorBlinkEnabled(enabled);
+                Preference ratePref = findPreference("terminal-cursor-blink-rate");
+                if (ratePref != null) ratePref.setEnabled(enabled);
                 updateStyling();
                 return true;
             });
@@ -183,14 +179,14 @@ public class DisplayPreferencesFragment extends TermuxPreferenceFragmentBase {
 
         configureIntEditDialog("terminal-cursor-blink-rate",
             prefs.getTerminalCursorBlinkRate(),
-            value -> {
-                prefs.setTerminalCursorBlinkRate(value);
-                SwitchPreferenceCompat bp = findPreference("terminal-cursor-blink-enabled");
-                if (bp != null) bp.setChecked(value != 0);
-            },
+            value -> prefs.setTerminalCursorBlinkRate(value),
             R.string.terminal_cursor_blink_rate_title,
             TermuxPreferenceConstants.TERMUX_APP.MIN_TERMINAL_CURSOR_BLINK_RATE,
             TermuxPreferenceConstants.TERMUX_APP.MAX_TERMINAL_CURSOR_BLINK_RATE);
+
+        // Sync initial rate pref enabled state
+        Preference ratePref = findPreference("terminal-cursor-blink-rate");
+        if (ratePref != null) ratePref.setEnabled(prefs.getTerminalCursorBlinkEnabled());
 
         configureSeekBarInt("terminal-margin-horizontal", prefs.getTerminalMarginHorizontal(),
             value -> prefs.setTerminalMarginHorizontal(value));
@@ -222,6 +218,7 @@ public class DisplayPreferencesFragment extends TermuxPreferenceFragmentBase {
 
         AtomicInteger currentRef = new AtomicInteger(current);
         pref.setOnPreferenceClickListener(preference -> {
+            if (!preference.isEnabled()) return false;
             Context ctx = getContext();
             if (ctx == null) return true;
 

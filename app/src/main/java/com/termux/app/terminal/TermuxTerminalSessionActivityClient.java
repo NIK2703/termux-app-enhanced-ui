@@ -1171,29 +1171,18 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
      * Returns a {@link Properties} describing a light terminal color scheme (white background,
      * black foreground, readable 16-color palette) used when the app is in light mode and the
      * user has not defined a custom {@code ~/.termux/colors.properties}.
+     *
+     * Reads color values from {@code R.array.light_terminal_color_scheme_keys} and
+     * {@code R.array.light_terminal_color_scheme_values} arrays.
      */
     private Properties getLightTerminalColorScheme() {
         Properties props = new Properties();
-        props.setProperty("background", "#ffffff");
-        props.setProperty("foreground", "#000000");
-        // First 8 (dim) colors, brightened for readability on a white background.
-        props.setProperty("color0",  "#000000");
-        props.setProperty("color1",  "#cd0000");
-        props.setProperty("color2",  "#00cd00");
-        props.setProperty("color3",  "#cdcd00");
-        props.setProperty("color4",  "#1060c0");
-        props.setProperty("color5",  "#cd00cd");
-        props.setProperty("color6",  "#00cdcd");
-        props.setProperty("color7",  "#404040");
-        // Second 8 (bright) colors.
-        props.setProperty("color8",  "#808080");
-        props.setProperty("color9",  "#ff0000");
-        props.setProperty("color10", "#00ff00");
-        props.setProperty("color11", "#ffff00");
-        props.setProperty("color12", "#6969ff");
-        props.setProperty("color13", "#ff00ff");
-        props.setProperty("color14", "#00ffff");
-        props.setProperty("color15", "#ffffff");
+        String[] keys = mActivity.getResources().getStringArray(R.array.light_terminal_color_scheme_keys);
+        String[] values = mActivity.getResources().getStringArray(R.array.light_terminal_color_scheme_values);
+        int len = Math.min(keys.length, values.length);
+        for (int i = 0; i < len; i++) {
+            props.setProperty(keys[i], values[i]);
+        }
         // cursor color is auto-picked based on background brightness by TerminalColorScheme.
         return props;
     }

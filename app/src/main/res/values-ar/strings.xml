@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <!DOCTYPE resources [
     <!ENTITY TERMUX_PACKAGE_NAME "com.termux">
     <!ENTITY TERMUX_APP_NAME "Termux">
     <!ENTITY TERMUX_API_APP_NAME "Termux:API">
+    <!ENTITY TERMUX_BOOT_APP_NAME "Termux:Boot">
     <!ENTITY TERMUX_FLOAT_APP_NAME "Termux:Float">
+    <!ENTITY TERMUX_STYLING_APP_NAME "Termux:Styling">
     <!ENTITY TERMUX_TASKER_APP_NAME "Termux:Tasker">
     <!ENTITY TERMUX_WIDGET_APP_NAME "Termux:Widget">
-    <!ENTITY TERMUX_STYLING_APP_NAME "Termux:Styling">
-]>
+    ]>
+
 <resources>
 
         <string name="about_preference_title">حول</string>
@@ -35,12 +38,10 @@
     <string name="action_toggle_text_input">تبديل إدخال النص</string>
     <string name="appearance_preferences_summary">تفضيلات مظهر التطبيق وشفافية اللوحة</string>
     <string name="appearance_preferences_title">المظهر</string>
-    <string name="application_name">TermuxEnhanced</string>
     <string name="backup_dialog_background">الخلفية</string>
     <string name="backup_dialog_cancel">إلغاء</string>
     <string name="backup_preference_summary">حفظ مجلد بيانات Termux (الحزم المثبتة + المجلد الرئيسي) في ملف tar.gz</string>
     <string name="backup_preference_title">نسخ بيانات Termux احتياطيًا</string>
-    <string name="backup_restore_backup_filename">termux-data-backup.tar.gz</string>
     <string name="backup_restore_backup_started">جاري إنشاء النسخة الاحتياطية…</string>
     <string name="backup_restore_backup_success">تم إنشاء النسخة الاحتياطية بنجاح</string>
     <string name="backup_restore_cancelled">تم إلغاء العملية</string>
@@ -55,20 +56,19 @@
     <string name="backup_service_channel_name">نسخ احتياطي / استعادة Termux</string>
     <string name="backup_service_notification_cancel">إلغاء</string>
     <string name="backup_service_notification_failed">فشل النسخ الاحتياطي</string>
-    <string name="backup_service_notification_progress">%1$d%%</string>
     <string name="backup_service_notification_restore_failed">فشلت الاستعادة</string>
     <string name="backup_service_notification_restore_success">تمت استعادة البيانات بنجاح</string>
     <string name="backup_service_notification_restore_title">استعادة بيانات Termux</string>
     <string name="backup_service_notification_success">تم إنشاء النسخة الاحتياطية بنجاح</string>
     <string name="backup_service_notification_title">نسخ احتياطي لبيانات Termux</string>
     <string name="bootstrap_error_abort">إيقاف</string>
-    <string name="bootstrap_error_body">&TERMUX_APP_NAME; غير قادر على تثبيت حزم التمهيد.</string>
-    <string name="bootstrap_error_installed_on_portable_sd">&TERMUX_APP_NAME; لا يمكن تثبيته على
+    <string name="bootstrap_error_body">Termux غير قادر على تثبيت حزم التمهيد.</string>
+    <string name="bootstrap_error_installed_on_portable_sd">Termux لا يمكن تثبيته على
         بطاقة sd محمولة/خارجية/قابلة للإزالة على جهازك.
-        \nالبرامج الثنائية للتمهيد المترجمة لـ &TERMUX_APP_NAME; لها مسار $PREFIX ثابت ولا يمكن تثبيتها
+        \nالبرامج الثنائية للتمهيد المترجمة لـ Termux لها مسار $PREFIX ثابت ولا يمكن تثبيتها
         تحت أي مسار غير:\n%1$s.</string>
-    <string name="bootstrap_error_not_primary_user_message">&TERMUX_APP_NAME; يمكن تشغيله فقط كمستخدم أساسي.
-        \nالبرامج الثنائية للتمهيد المترجمة لـ &TERMUX_APP_NAME; لها مسار $PREFIX ثابت ولا يمكن تثبيتها
+    <string name="bootstrap_error_not_primary_user_message">Termux يمكن تشغيله فقط كمستخدم أساسي.
+        \nالبرامج الثنائية للتمهيد المترجمة لـ Termux لها مسار $PREFIX ثابت ولا يمكن تثبيتها
         تحت أي مسار آخر غير:\n%1$s.</string>
     <string name="bootstrap_error_title">تعذر تثبيت التمهيد</string>
     <string name="bootstrap_error_try_again">حاول مرة أخرى</string>
@@ -81,23 +81,23 @@
     <string name="directory_history_clear_confirm">مسح سجل الدليل بالكامل؟ لا يمكن التراجع عن هذا.</string>
     <string name="directory_history_clear_dialog_title">مسح سجل الدليل</string>
     <string name="directory_history_cleared">تم مسح سجل الدليل</string>
-    <string name="directory_history_max_title">الحد الأقصى للأدلة المتذكرة</string>
+    <string name="directory_history_max_title">الحد الأقصى للأدلة المحفوظة</string>
     <string name="directory_history_title">سجل الدليل</string>
     <string name="donate_preference_title">تبرع</string>
-    <string name="error_display_over_other_apps_permission_not_granted_to_start_terminal">&TERMUX_APP_NAME; يتطلب
-        "العرض فوق التطبيقات الأخرى" لبدء جلسات الطرفية من الخلفية على Android >= 10.
-        قم بمنحه من الإعدادات -> التطبيقات -> &TERMUX_APP_NAME; -> خيارات متقدمة</string>
+    <string name="error_display_over_other_apps_permission_not_granted_to_start_terminal">Termux يتطلب
+        "العرض فوق التطبيقات الأخرى" لبدء جلسات الطرفية من الخلفية على Android &gt;= 10.
+        قم بمنحه من الإعدادات -&gt; التطبيقات -&gt; Termux -&gt; خيارات متقدمة</string>
     <string name="error_font_copy_failed">فشل تطبيق الخط</string>
     <string name="error_run_command_service_api_help">قم بزيارة %1$s لمزيد من المعلومات حول استخدام Intent RUN_COMMAND.</string>
-    <string name="error_run_command_service_invalid_execution_command_runner">رنر أمر تنفيذ غير صالح لـ RunCommandService: `%1$s`</string>
+    <string name="error_run_command_service_invalid_execution_command_runner">مُشغّل أمر تنفيذ غير صالح لـ RunCommandService: `%1$s`</string>
     <string name="error_run_command_service_invalid_intent_action">إجراء نية غير صالح لـ RunCommandService: `%1$s`</string>
     <string name="error_run_command_service_mandatory_extra_missing">حقل إضافي إلزامي مفقود لـ RunCommandService: \"%1$s\"</string>
-    <string name="error_styling_not_installed">تطبيق الملحق &TERMUX_STYLING_APP_NAME; غير مثبت.</string>
+    <string name="error_styling_not_installed">تطبيق الملحق Termux:Styling غير مثبت.</string>
     <string name="error_termux_service_execution_command_shell_name_unset">لم يتم تعيين اسم الصدفة ولكن تم تمرير وضع إنشاء الصدفة `%1$s`</string>
-    <string name="error_termux_service_invalid_execution_command_runner">رنر أمر تنفيذ غير صالح لـ TermuxService: `%1$s`</string>
+    <string name="error_termux_service_invalid_execution_command_runner">مُشغّل أمر تنفيذ غير صالح لـ TermuxService: `%1$s`</string>
     <string name="error_termux_service_start_failed_bg">فشل بدء TermuxService أثناء وجود التطبيق في الخلفية بسبب قيود الخلفية في أندرويد.</string>
     <string name="error_termux_service_start_failed_general">فشل بدء TermuxService. تحقق من سجل النظام (logcat) لرسالة الاستثناء.</string>
-    <string name="error_termux_service_unsupported_execution_command_runner">رنر أمر تنفيذ غير مدعوم لـ TermuxService: `%1$s`</string>
+    <string name="error_termux_service_unsupported_execution_command_runner">مُشغّل أمر تنفيذ غير مدعوم لـ TermuxService: `%1$s`</string>
     <string name="error_termux_service_unsupported_execution_command_shell_create_mode">وضع إنشاء صدفة أمر تنفيذ غير مدعوم لـ TermuxService: `%1$s`</string>
     <string name="file_receiver_error_cannot_create_dir">لا يمكن إنشاء المجلد: %s</string>
     <string name="file_receiver_error_cannot_open">لا يمكن فتح الملف: %s</string>
@@ -158,13 +158,13 @@
     <string name="panel_transparency_title">شفافية اللوحة</string>
     <string name="per_directory_message_history_summary">الاحتفاظ بسجل رسائل منفصل لكل مجلد عمل. عند الإيقاف، تشارك جميع الجلسات سجلًا واحدًا عامًا.</string>
     <string name="per_directory_message_history_title">سجل الرسائل حسب المجلد</string>
-    <string name="permission_run_command_description">تنفيذ أوامر عشوائية داخل بيئة &TERMUX_APP_NAME; والوصول إلى الملفات</string>
-    <string name="permission_run_command_label">تشغيل الأوامر في بيئة &TERMUX_APP_NAME;</string>
+    <string name="permission_run_command_description">تنفيذ أوامر عشوائية داخل بيئة Termux والوصول إلى الملفات</string>
+    <string name="permission_run_command_label">تشغيل الأوامر في بيئة Termux</string>
     <string name="restore_preference_summary">استعادة دليل بيانات Termux من ملف نسخ احتياطي tar.gz</string>
     <string name="restore_preference_title">استعادة بيانات Termux</string>
     <string name="restore_sessions_summary">إعادة فتح جميع علامات التبويب وأدلتها عند بدء التطبيق</string>
     <string name="restore_sessions_title">استعادة علامات التبويب عند التشغيل</string>
-    <string name="screen_orientation_summary">تتنوع المتغيرات "تابع المستشعر" بين اتجاهين (مثل ٠°/١٨٠° عمودي).</string>
+    <string name="screen_orientation_summary">تتنوع المتغيرات "تابع المستشعر" بين اتجاهين (مثل 0°/180° عمودي).</string>
     <string name="screen_orientation_title">اتجاه الشاشة</string>
 
     <string name="session_default_title">طرفية</string>
@@ -173,7 +173,7 @@
     <string name="session_tabs_title">علامات تبويب الجلسات</string>
     <string name="swipe_rightmost_new_tab_title">اسحب علامة التبويب الأخيرة لجلسة جديدة</string>
     <string name="swipe_rightmost_new_tab_summary">في علامة التبويب الأخيرة، اسحب لليمين لإظهار وفتح جلسة طرفية جديدة</string>
-    <string name="shared_user_label">مستخدم &TERMUX_APP_NAME;</string>
+    <string name="shared_user_label">مستخدم Termux</string>
     <string name="tab_close_description">إغلاق علامة التبويب</string>
     <string name="termux_tab_height_mode_title">ارتفاع علامة التبويب</string>
     <string name="termux_tab_height_mode_single">سطر واحد</string>
@@ -181,8 +181,7 @@
     <string name="termux_tab_panel_position_title">موضع لوحة علامات التبويب</string>
     <string name="termux_tab_panel_position_top">أعلى</string>
     <string name="termux_tab_panel_position_bottom">أسفل</string>
-    <string name="termux_api_preferences_summary">تفضيلات تطبيق &TERMUX_API_APP_NAME;</string>
-    <string name="termux_api_preferences_title">&TERMUX_API_APP_NAME;</string>
+    <string name="termux_api_preferences_summary">تفضيلات تطبيق Termux:API</string>
     <string name="termux_button_bg_active_alpha_title" formatted="false">شفافية العنصر النشط</string>
     <string name="termux_button_bg_inactive_alpha_title" formatted="false">شفافية العنصر غير النشط</string>
     <string name="extra_keys_corner_radius_title">نصف قطر زاوية الأزرار</string>
@@ -191,17 +190,15 @@
     <string name="termux_crash_report_notifications_enabled_title">إشعارات تقارير الأعطال</string>
     <string name="termux_debugging_preferences_summary">تفضيلات التصحيح</string>
     <string name="termux_debugging_preferences_title">التصحيح</string>
-    <string name="termux_float_preferences_summary">تفضيلات تطبيق &TERMUX_FLOAT_APP_NAME;</string>
-    <string name="termux_float_preferences_title">&TERMUX_FLOAT_APP_NAME;</string>
+    <string name="termux_float_preferences_summary">تفضيلات تطبيق Termux:Float</string>
     <string name="termux_keyboard_header">لوحة المفاتيح</string>
     <string name="termux_log_level_title">مستوى السجل</string>
     <string name="termux_logging_header">التسجيل</string>
     <string name="termux_plugin_error_notifications_enabled_off">تعطيل الوميض والإشعارات لأخطاء الإضافات.</string>
     <string name="termux_plugin_error_notifications_enabled_on">عرض الوميض والإشعارات لأخطاء الإضافات. (افتراضي)</string>
     <string name="termux_plugin_error_notifications_enabled_title">إشعارات أخطاء الإضافات</string>
-    <string name="termux_preferences_summary">تفضيلات تطبيق &TERMUX_APP_NAME;</string>
-    <string name="termux_preferences_title">&TERMUX_APP_NAME;</string>
-    <string name="termux_settings_button_enabled_off">زر الإعدادات مخفي. افتح الإعدادات بالضغط المطول على الطرفية &#8594; المزيد… &#8594; الإعدادات.</string>
+    <string name="termux_preferences_summary">تفضيلات تطبيق Termux</string>
+    <string name="termux_settings_button_enabled_off">زر الإعدادات مخفي. افتح الإعدادات بالضغط المطول على الطرفية → المزيد… → الإعدادات.</string>
     <string name="termux_settings_button_enabled_on">زر الإعدادات ظاهر في لوحة علامات التبويب. (افتراضي)</string>
     <string name="termux_settings_button_enabled_title">إظهار زر الإعدادات</string>
     <string name="termux_soft_keyboard_enabled_off">سيتم تعطيل لوحة المفاتيح البرمجية.</string>
@@ -210,12 +207,11 @@
     <string name="termux_soft_keyboard_enabled_only_if_no_hardware_on">سيتم تمكين لوحة المفاتيح البرمجية فقط في حالة\nعدم اتصال لوحة مفاتيح فعلية.</string>
     <string name="termux_soft_keyboard_enabled_only_if_no_hardware_title">لوحة مفاتيح برمجية فقط عند عدم وجود لوحة مفاتيح فعلية</string>
     <string name="termux_soft_keyboard_enabled_title">تمكين لوحة المفاتيح البرمجية</string>
-    <string name="termux_tasker_preferences_summary">تفضيلات تطبيق &TERMUX_TASKER_APP_NAME;</string>
-    <string name="termux_tasker_preferences_title">&TERMUX_TASKER_APP_NAME;</string>
+    <string name="termux_tasker_preferences_summary">تفضيلات تطبيق Termux:Tasker</string>
     <string name="termux_terminal_io_preferences_summary">تفضيلات الإدخال/الإخراج للطرفية</string>
     <string name="termux_terminal_io_preferences_title">إدخال/إخراج الطرفية</string>
     <string name="termux_terminal_view_key_logging_enabled_off">لن تحتوي السجلات على مدخلات لمفاتيح عرض الطرفية. (افتراضي)</string>
-    <string name="termux_terminal_view_key_logging_enabled_on">ستحتوي سجلات Logcat على مدخلات لمفاتيح عرض الطرفية.\nهذه مفصلة جداً ويجب تعطيلها في الظروف العادية أو ستسبب مشاكل في الأداء.</string>
+    <string name="termux_terminal_view_key_logging_enabled_on">ستحتوي سجلات Logcat على مدخلات لمفاتيح عرض الطرفية.\nهذه مُطوّلة جداً ويجب تعطيلها في الظروف العادية وإلا ستسبب مشاكل في الأداء.</string>
     <string name="termux_terminal_view_key_logging_enabled_title">تسجيل مفاتيح عرض الطرفية</string>
     <string name="termux_terminal_view_preferences_summary">تفضيلات عرض الطرفية</string>
     <string name="termux_terminal_view_preferences_title">عرض الطرفية</string>
@@ -225,10 +221,9 @@
                     إذا تسبب في وميض الشاشة على جهازك، فقم بتعطيله. (افتراضي)</string>
     <string name="termux_terminal_view_terminal_margin_adjustment_title">ضبط هامش الطرفية</string>
     <string name="termux_terminal_view_view_header">عرض</string>
-    <string name="termux_widget_preferences_summary">تفضيلات تطبيق &TERMUX_WIDGET_APP_NAME;</string>
-    <string name="termux_widget_preferences_title">&TERMUX_WIDGET_APP_NAME;</string>
+    <string name="termux_widget_preferences_summary">تفضيلات تطبيق Termux:Widget</string>
     <string name="text_input_append_enter_summary">عند الإرسال من حقل الإدخال، يتم أيضًا إرسال السطر (الضغط على Enter). قم بتعطيله لإرسال نص خام بدون سطر جديد في النهاية.</string>
-    <string name="text_input_append_enter_title">إضافة إدخال عند الإرسال</string>
+    <string name="text_input_append_enter_title">إضافة Enter عند الإرسال</string>
     <string name="text_input_show_summary_off">حقل إدخال النص مخفي</string>
     <string name="text_input_show_summary_on">حقل إدخال النص ظاهر فوق المفاتيح الإضافية</string>
     <string name="text_input_show_title">إظهار حقل إدخال النص</string>
@@ -238,7 +233,7 @@
     <string name="theme_mode_summary">اختر سمة التطبيق والطرفية</string>
     <string name="theme_mode_title">سمة التطبيق</string>
     <string name="theme_title">السمة</string>
-    <string name="title_activity_termux_settings">إعدادات &TERMUX_APP_NAME;</string>
+    <string name="title_activity_termux_settings">إعدادات Termux</string>
     <string name="title_confirm_kill_process">هل تريد إنهاء هذه الجلسة؟</string>
     <string name="title_create_named_session">جلسة مسماة جديدة</string>
     <string name="title_file_received">حفظ الملف في ~/downloads/</string>
@@ -251,16 +246,16 @@
     <string name="title_share_transcript">سجل الطرفية</string>
     <string name="title_share_transcript_with">إرسال السجل إلى:</string>
 
-    <!-- App language override -->
+    
     <string name="locale_override_title">لغة التطبيق</string>
     <string name="locale_override_summary">تجاوز لغة التطبيق</string>
     <string name="locale_override_entry_system">لغة النظام (ترجمة آلية، قد تكون غير دقيقة)</string>
     <string name="locale_override_entry_english">الإنجليزية</string>
-    <!-- Hide extra keys with keyboard -->
+    
     <string name="hide_extra_keys_with_keyboard_title">إخفاء المفاتيح الإضافية مع لوحة المفاتيح</string>
-    <string name="hide_extra_keys_with_keyboard_summary">إخفاء الأزرار الإضافية تلقائيًا عند إغلاق لوحة المفاتيح، أظهرها عند الفتح</string>
+    <string name="hide_extra_keys_with_keyboard_summary">إخفاء المفاتيح الإضافية تلقائيًا عند إغلاق لوحة المفاتيح، أظهرها عند الفتح</string>
 
-    <!-- Text input auto-complete -->
+    
     <string name="suggestions_max_count_title">أقصى اقتراحات</string>
     <string name="suggestions_max_count_summary">الإكمال التلقائي من سجل الرسائل (1–10)</string>
 
@@ -314,17 +309,17 @@
     <string name="screen_orientation_entry_portrait">عمودي</string>
     <string name="screen_orientation_entry_landscape">أفقي</string>
 
-    <!-- Extra keys visibility -->
+    
     <string name="extra_keys_visibility_title">إظهار لوحة المفاتيح الإضافية</string>
     <string name="extra_keys_visibility_summary">متى يتم إظهار شريط الأزرار الإضافية.</string>
     <string name="extra_keys_visibility_always">دائمًا</string>
     <string name="extra_keys_visibility_keyboard">فقط عند فتح لوحة المفاتيح</string>
     <string name="extra_keys_visibility_never">أبدًا</string>
 
-    <!-- Extra keys invalid JSON -->
+    
     <string name="extra_keys_invalid_json">JSON غير صالح للمفاتيح الإضافية. لم يتم حفظ التغييرات.</string>
 
-    <!-- Extra keys editor -->
+    
     <string name="extra_keys_editor_title">محرر المفاتيح الإضافية</string>
     <string name="extra_keys_editor_summary">أنشئ لوحة المفاتيح الإضافية بصريًا: حدد الصفوف والأعمدة، ثم اضغط على مفتاح لتعيين إشارة.</string>
     <string name="extra_keys_editor_columns_title">الأعمدة</string>
@@ -334,8 +329,8 @@
     <string name="extra_keys_editor_preview_title">معاينة</string>
     <string name="extra_keys_editor_preview_summary">لوحة حية — اضغط على أي مفتاح لتغيير إشارته.</string>
     <string name="extra_keys_editor_signal_dialog_title">تعيين إشارة</string>
-    <string name="extra_keys_editor_custom_text_title">Custom bind</string>
-    <string name="extra_keys_editor_custom_text_message">Press any key to bind:</string>
+    <string name="extra_keys_editor_custom_text_title">ربط مخصص</string>
+    <string name="extra_keys_editor_custom_text_message">اضغط أي مفتاح للربط:</string>
     <string name="extra_keys_editor_save_title">تطبيق على المفاتيح الإضافية</string>
     <string name="extra_keys_editor_save_summary">احفظ هذا التخطيط في إعداد المفاتيح الإضافية.</string>
     <string name="extra_keys_editor_empty">(فارغ)</string>
@@ -346,46 +341,116 @@
     <string name="extra_keys_editor_open_editor_summary">تكوين التخطيط والتحجيم وربط المفاتيح</string>
     <string name="extra_keys_editor_hint">اضغط لتعيين الإجراء الرئيسي · اسحب ↑ ↓ ← → لتعيين إجراءات الإيماءات</string>
 
-    <!-- Extra keys haptic feedback -->
+    
     <string name="extra_keys_haptic_title">الاستجابة اللمسية</string>
     <string name="extra_keys_haptic_summary">الاهتزاز عند التفاعل مع لوحة المفاتيح الإضافية</string>
     <string name="extra_keys_haptic_all">الضغط والإيماءات</string>
     <string name="extra_keys_haptic_gestures">الإيماءات فقط</string>
     <string name="extra_keys_haptic_off">معطل</string>
 
-    <!-- Extra keys editor signals -->
+    
     <string name="extra_keys_editor_signal_keyboard">تبديل لوحة المفاتيح</string>
     <string name="extra_keys_editor_signal_paste">لصق</string>
     <string name="extra_keys_editor_signal_scroll">قفل التمرير</string>
     <string name="extra_keys_editor_signal_space">مسافة</string>
-    <string name="extra_keys_editor_signal_esc">Esc</string>
-    <string name="extra_keys_editor_signal_tab">Tab</string>
-    <string name="extra_keys_editor_signal_home">Home</string>
-    <string name="extra_keys_editor_signal_end">End</string>
-    <string name="extra_keys_editor_signal_page_up">Page Up</string>
-    <string name="extra_keys_editor_signal_page_down">Page Down</string>
-    <string name="extra_keys_editor_signal_insert">Insert</string>
-    <string name="extra_keys_editor_signal_delete">Delete</string>
-    <string name="extra_keys_editor_signal_backspace">Backspace</string>
-    <string name="extra_keys_editor_signal_up">Up</string>
-    <string name="extra_keys_editor_signal_left">Left</string>
-    <string name="extra_keys_editor_signal_right">Right</string>
-    <string name="extra_keys_editor_signal_down">Down</string>
-    <string name="extra_keys_editor_signal_enter">Enter</string>
-    <string name="extra_keys_editor_signal_f1">F1</string>
-    <string name="extra_keys_editor_signal_f2">F2</string>
-    <string name="extra_keys_editor_signal_f3">F3</string>
-    <string name="extra_keys_editor_signal_f4">F4</string>
-    <string name="extra_keys_editor_signal_f5">F5</string>
-    <string name="extra_keys_editor_signal_f6">F6</string>
-    <string name="extra_keys_editor_signal_f7">F7</string>
-    <string name="extra_keys_editor_signal_f8">F8</string>
-    <string name="extra_keys_editor_signal_f9">F9</string>
-    <string name="extra_keys_editor_signal_f10">F10</string>
-    <string name="extra_keys_editor_signal_f11">F11</string>
-    <string name="extra_keys_editor_signal_f12">F12</string>
     <string name="extra_keys_editor_signal_backslash">خط مائل عكسي (\\)</string>
     <string name="extra_keys_editor_signal_quote">اقتباس (\")</string>
     <string name="extra_keys_editor_signal_apostrophe">فاصلة عليا (\')</string>
-    <string name="extra_keys_editor_signal_custom">Custom bind…</string>
-</resources>
+    <string name="extra_keys_editor_signal_custom">ربط مخصص…</string>
+
+    
+    <string name="termux_api_debugging_title">تصحيح أخطاء Termux:API</string>
+    <string name="termux_float_debugging_title">تصحيح أخطاء Termux:Float</string>
+    <string name="termux_tasker_debugging_title">تصحيح أخطاء Termux:Tasker</string>
+    <string name="termux_widget_debugging_title">تصحيح أخطاء Termux:Widget</string>
+    <string name="extra_keys_button_margin_title">تباعد الأزرار</string>
+    <string name="extra_keys_button_margin_summary">المسافة بين الأزرار</string>
+    <string name="extra_keys_dynamic_font_size_title">حجم خط ديناميكي</string>
+    <string name="extra_keys_dynamic_font_size_summary">تقليل حجم الخط عند زيادة عدد الأعمدة أو عدد روابط الماكرو</string>
+    <string name="terminal_category_title">الطرفية</string>
+    <string name="key_behaviour_category_title">سلوك المفاتيح</string>
+    <string name="screen_category_title">الشاشة</string>
+    <string name="shortcuts_category_title">الاختصارات</string>
+    <string name="misc_category_title">متنوع</string>
+    <string name="security_category_title">الأمان</string>
+    <string name="sound_category_title">الصوت &amp; الإشعارات</string>
+    <string name="session_category_title">الجلسة</string>
+    <string name="empty_value_summary">غير مضبوط</string>
+    <string name="shortcut_empty_summary">غير مضبوط (اتركه فارغًا للتعطيل)</string>
+    <string name="terminal_transcript_rows_title">أسطر سجل الطرفية</string>
+    <string name="terminal_transcript_rows_summary">عدد الأسطر المحفوظة في سجل التمرير الخلفي.</string>
+    <string name="delete_tmpdir_files_older_than_x_days_on_exit_title">حذف ملفات TMPDIR القديمة عند الخروج</string>
+    <string name="delete_tmpdir_files_older_than_x_days_on_exit_summary">حذف الملفات الأقدم من N يومًا من TMPDIR للجلسة عند الخروج (-1 = عدم الحذف أبدًا).</string>
+    <string name="invalid_number">الرجاء إدخال رقم صحيح.</string>
+    <string name="shortcut_invalid_format">اختصار غير صالح. استخدم التنسيق \"ctrl+x\" أو اتركه فارغًا للتعطيل.</string>
+    <string name="terminal_cursor_style_title">نمط المؤشر</string>
+    <string name="terminal_cursor_style_summary">كيفية رسم مؤشر الطرفية.</string>
+    <string name="terminal_cursor_blink_rate_title">معدل وميض المؤشر</string>
+    <string name="terminal_cursor_blink_rate_summary">معدل وميض المؤشر بالميلي ثانية.</string>
+    <string name="terminal_cursor_blink_enabled_title">وميض المؤشر</string>
+    <string name="bell_character_title">سلوك الجرس</string>
+    <string name="bell_character_summary">ماذا يحدث عندما تستقبل الطرفية حرف الجرس (BEL).</string>
+    <string name="terminal_margin_horizontal_title">الهامش الأفقي</string>
+    <string name="terminal_margin_horizontal_summary">الهامش الأفقي للطرفية بوحدة dp.</string>
+    <string name="terminal_margin_vertical_title">الهامش الرأسي</string>
+    <string name="terminal_margin_vertical_summary">الهامش الرأسي للطرفية بوحدة dp.</string>
+    <string name="terminal_toolbar_height_title">تحجيم ارتفاع شريط الأدوات</string>
+    <string name="terminal_toolbar_height_summary">عامل تحجيم ارتفاع شريط أدوات الطرفية/المفاتيح الإضافية.</string>
+    <string name="default_working_directory_title">مجلد العمل الافتراضي</string>
+    <string name="default_working_directory_summary">المجلد الذي يُفتح للجلسات الجديدة (اتركه فارغًا للمجلد الرئيسي).</string>
+    <string name="back_key_title">سلوك زر الرجوع</string>
+    <string name="back_key_summary">ما يفعله زر الرجوع (المادي/البرمجي) في الطرفية.</string>
+    <string name="volume_keys_title">سلوك مفاتيح الصوت</string>
+    <string name="volume_keys_summary">ما إذا كانت مفاتيح الصوت تتحكم في مستوى الصوت أو تعمل كمفاتيح افتراضية.</string>
+    <string name="soft_keyboard_toggle_behaviour_title">سلوك تبديل لوحة المفاتيح</string>
+    <string name="soft_keyboard_toggle_behaviour_summary">ما إذا كان تبديل لوحة المفاتيح يُظهر/يُخفي أو يُمكن/يُعطل لوحة المفاتيح البرمجية.</string>
+    <string name="ctrl_space_workaround_title">حل بديل لـ Ctrl+Space</string>
+    <string name="ctrl_space_workaround_summary">استخدام حل بديل لتسليم Ctrl+Space بشكل صحيح.</string>
+    <string name="enforce_char_based_input_title">فرض الإدخال القائم على الأحرف</string>
+    <string name="enforce_char_based_input_summary">فرض إرسال الأحرف بايتًا واحدًا في كل مرة.</string>
+    <string name="disable_hardware_keyboard_shortcuts_title">تعطيل اختصارات لوحة المفاتيح الفعلية</string>
+    <string name="disable_hardware_keyboard_shortcuts_summary">تجاهل اختصارات لوحة المفاتيح من لوحة مفاتيح فعلية/خارجية.</string>
+    <string name="disable_terminal_session_change_toast_title">تعطيل رسالة تغيير الجلسة</string>
+    <string name="disable_terminal_session_change_toast_summary">عدم إظهار رسالة منبثقة عند تبديل جلسات الطرفية.</string>
+    <string name="terminal_onclick_url_open_title">فتح URL عند النقر</string>
+    <string name="terminal_onclick_url_open_summary">فتح عناوين URL في سجل الطرفية عند النقر عليها.</string>
+    <string name="fullscreen_title">ملء الشاشة</string>
+    <string name="fullscreen_summary">تشغيل Termux في وضع ملء الشاشة.</string>
+    <string name="use_fullscreen_workaround_title">حل بديل لملء الشاشة</string>
+    <string name="use_fullscreen_workaround_summary">استخدام حل بديل لملء الشاشة على الأجهزة التي تخفيه بشكل غير صحيح.</string>
+    <string name="night_mode_legacy_title">الوضع الليلي (night-mode قديم)</string>
+    <string name="night_mode_legacy_summary">يتحكم في خاصية الوضع الليلي القديمة. يُفضل استخدام إعداد السمة في شاشة العرض.</string>
+    <string name="shortcut_summary">التنسيق: Ctrl+KEY (مثل Ctrl+a). اتركه فارغًا للتعطيل.</string>
+    <string name="shortcut_create_session_title">اختصار إنشاء جلسة</string>
+    <string name="shortcut_next_session_title">اختصار الجلسة التالية</string>
+    <string name="shortcut_previous_session_title">اختصار الجلسة السابقة</string>
+    <string name="shortcut_rename_session_title">اختصار إعادة تسمية الجلسة</string>
+    <string name="allow_external_apps_title">السماح للتطبيقات الخارجية</string>
+    <string name="allow_external_apps_summary">السماح للتطبيقات الأخرى بتشغيل أوامر Termux عبر RUN_COMMAND.</string>
+    <string name="disable_file_share_receiver_title">تعطيل مستقبل مشاركة الملفات</string>
+    <string name="disable_file_share_receiver_summary">عدم قبول الملفات المشتركة إلى Termux.</string>
+    <string name="disable_file_view_receiver_title">تعطيل مستقبل عرض الملفات</string>
+    <string name="disable_file_view_receiver_summary">عدم فتح الملفات المرسلة إلى Termux للعرض.</string>
+    <string name="run_termux_am_socket_server_title">تشغيل خادم socket termux-am</string>
+    <string name="run_termux_am_socket_server_summary">تشغيل خادم socket termux-am للأوامر بين العمليات.</string>
+    <string name="hide_soft_keyboard_on_startup_title">إخفاء لوحة المفاتيح البرمجية عند بدء التشغيل</string>
+    <string name="hide_soft_keyboard_on_startup_summary">إبقاء لوحة المفاتيح البرمجية مخفية عند بدء تشغيل Termux.</string>
+    <string name="terminal_cursor_style_block">كتلة</string>
+    <string name="terminal_cursor_style_underline">تسطير</string>
+    <string name="terminal_cursor_style_bar">شريط</string>
+    <string name="bell_character_vibrate">اهتزاز</string>
+    <string name="bell_character_beep">صوت تنبيه</string>
+    <string name="bell_character_ignore">تجاهل</string>
+    <string name="back_key_back">زر الرجوع</string>
+    <string name="back_key_escape">مفتاح Escape</string>
+    <string name="volume_keys_virtual">افتراضية (مفاتيح الصوت تعمل كمفاتيح)</string>
+    <string name="volume_keys_volume">مستوى الصوت (التحكم في مستوى صوت الجهاز)</string>
+    <string name="soft_keyboard_toggle_show_hide">إظهار / إخفاء</string>
+    <string name="soft_keyboard_toggle_enable_disable">تمكين / تعطيل</string>
+    <string name="night_mode_true">داكن</string>
+    <string name="night_mode_false">فاتح</string>
+    <string name="night_mode_system">النظام الافتراضي</string>
+    <string name="backup_error_open_output">فشل فتح ملف الإخراج</string>
+    <string name="report_issue_title">Termux الإبلاغ عن مشكلة</string>
+    <string name="report_issue_transcript_header">## سجل النص\n</string>
+    </resources>

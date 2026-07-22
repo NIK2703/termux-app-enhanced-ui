@@ -590,6 +590,20 @@ public class TermuxAppSharedPreferences extends AppSharedPreferences {
     }
 
 
+    /* float (extra keys button margin in dp) - stored as int (value × 10) */
+
+    public float getExtraKeysButtonMargin() {
+        int stored = SharedPreferenceUtils.getInt(mSharedPreferences, TERMUX_APP.KEY_EXTRA_KEYS_BUTTON_MARGIN, Math.round(TERMUX_APP.DEFAULT_VALUE_EXTRA_KEYS_BUTTON_MARGIN * 10f));
+        return stored / 10f;
+    }
+
+    public void setExtraKeysButtonMargin(float value) {
+        if (value < TERMUX_APP.MIN_EXTRA_KEYS_BUTTON_MARGIN) value = TERMUX_APP.MIN_EXTRA_KEYS_BUTTON_MARGIN;
+        if (value > TERMUX_APP.MAX_EXTRA_KEYS_BUTTON_MARGIN) value = TERMUX_APP.MAX_EXTRA_KEYS_BUTTON_MARGIN;
+        SharedPreferenceUtils.setInt(mSharedPreferences, TERMUX_APP.KEY_EXTRA_KEYS_BUTTON_MARGIN, Math.round(value * 10f), false);
+    }
+
+
     /* String (session shortcuts, raw "Ctrl+KEY" form) */
 
     public String getShortcutString(String key) {

@@ -248,6 +248,13 @@ public class TermuxAppSharedProperties {
     }
 
 
+    /* float */
+
+    public float getExtraKeysButtonMargin() {
+        return prefs().getExtraKeysButtonMargin();
+    }
+
+
     /* String */
 
     public boolean isBackKeyTheEscapeKey() {

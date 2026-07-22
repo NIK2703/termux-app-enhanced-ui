@@ -10,6 +10,11 @@ import android.provider.Settings;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.RectF;
+
 import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextPaint;
@@ -170,6 +175,16 @@ public final class ExtraKeysView extends GridLayout {
 
     /** Current button corner radius in dp, loaded from preferences. */
     private int mButtonCornerRadiusDp = BUTTON_CORNER_RADIUS_DP;
+
+    /** Current button margin horizontal in dp, loaded from preferences. */
+    private float mButtonMarginHorizontalDp = BUTTON_MARGIN_HORIZONTAL_DP;
+    /** Current button margin vertical in dp, loaded from preferences. */
+    private float mButtonMarginVerticalDp = BUTTON_MARGIN_VERTICAL_DP;
+
+    private boolean mEditorEdgeIndicatorsEnabled;
+    private int mEditorEdgeColor = 0xFF888888;
+    private final Paint mEditorEdgePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private static final float EDITOR_EDGE_THICKNESS_DP = 2f;
 
 
     /** Defines the minimum allowed duration in milliseconds for {@link #mLongPressTimeout}. */
@@ -451,6 +466,11 @@ public final class ExtraKeysView extends GridLayout {
         mDynamicFontSize = enabled;
     }
 
+    public void setButtonMargins(float dp) {
+        mButtonMarginHorizontalDp = dp;
+        mButtonMarginVerticalDp = dp;
+    }
+
 
     /** Get {@link #mLongPressTimeout}. */
     public int getLongPressTimeout() {
@@ -525,6 +545,8 @@ public final class ExtraKeysView extends GridLayout {
 
         TermuxAppSharedProperties props = TermuxAppSharedProperties.getProperties();
         mButtonCornerRadiusDp = props != null ? props.getExtraKeysCornerRadius() : BUTTON_CORNER_RADIUS_DP;
+        mButtonMarginHorizontalDp = props != null ? props.getExtraKeysButtonMargin() : BUTTON_MARGIN_HORIZONTAL_DP;
+        mButtonMarginVerticalDp = mButtonMarginHorizontalDp;
 
         ExtraKeyButton[][] buttons = extraKeysInfo.getMatrix();
 
@@ -573,7 +595,7 @@ public final class ExtraKeysView extends GridLayout {
 
                     // Calculate max lines from available height
                     float displayDensity = getResources().getDisplayMetrics().density;
-                    int vMarginPx = (int) (BUTTON_MARGIN_VERTICAL_DP * displayDensity);
+                    int vMarginPx = (int) (mButtonMarginVerticalDp * displayDensity);
                     int buttonH = (int) (heightPx + 0.5f) - 2 * vMarginPx;
                     int textAreaH = buttonH;  // padding already zeroed
 
@@ -588,7 +610,7 @@ public final class ExtraKeysView extends GridLayout {
                     // For macro buttons: custom truncation at bind boundaries
                     if (buttonInfo.isMacro() && displayText != null && displayText.contains(" ")) {
                         int totalCols = getColumnCount();
-                        int marginHPx = (int) (BUTTON_MARGIN_HORIZONTAL_DP * displayDensity);
+                        int marginHPx = (int) (mButtonMarginHorizontalDp * displayDensity);
                         int cellW = totalCols > 0 && getWidth() > 0
                             ? getWidth() / totalCols
                             : Integer.MAX_VALUE;
@@ -730,8 +752,8 @@ public final class ExtraKeysView extends GridLayout {
                     param.height = 0;
                 }
                 float density = getResources().getDisplayMetrics().density;
-                int marginHorizontalPx = (int) (BUTTON_MARGIN_HORIZONTAL_DP * density);
-                int marginVerticalPx = (int) (BUTTON_MARGIN_VERTICAL_DP * density);
+                int marginHorizontalPx = (int) (mButtonMarginHorizontalDp * density);
+                int marginVerticalPx = (int) (mButtonMarginVerticalDp * density);
                 param.setMargins(marginHorizontalPx, marginVerticalPx, marginHorizontalPx, marginVerticalPx);
                 param.columnSpec = GridLayout.spec(col, GridLayout.FILL, 1.f);
                 param.rowSpec = GridLayout.spec(row, GridLayout.FILL, 1.f);
@@ -983,9 +1005,91 @@ public final class ExtraKeysView extends GridLayout {
         mEditorListener = listener;
     }
 
+    /** Set the editor edge indicator color and enable edge indicators. */
+    public void setEditorEdgeColor(int color) {
+        mEditorEdgeColor = color;
+        mEditorEdgeIndicatorsEnabled = true;
+    }
+
     /** Cancel any ongoing editor gesture and reset touch state. */
     public void cancelEditorGesture() {
         resetTouchState();
+    }
+
+    @Override
+    public void dispatchDraw(Canvas canvas) {
+        super.dispatchDraw(canvas);
+        if (!mEditorEdgeIndicatorsEnabled || mEditorListener == null) return;
+
+        float thickness = EDITOR_EDGE_THICKNESS_DP * getResources().getDisplayMetrics().density;
+        float halfThick = thickness / 2f;
+        float cornerPx = mButtonCornerRadiusDp * getResources().getDisplayMetrics().density;
+        if (cornerPx <= 0) cornerPx = 1f;
+        float centerRadius = Math.max(0, cornerPx - halfThick);
+
+        mEditorEdgePaint.setColor(mEditorEdgeColor);
+        mEditorEdgePaint.setStyle(Paint.Style.STROKE);
+        mEditorEdgePaint.setStrokeWidth(thickness);
+        mEditorEdgePaint.setStrokeCap(Paint.Cap.BUTT);
+        mEditorEdgePaint.setAntiAlias(true);
+
+        RectF oval = new RectF();
+        Path path = new Path();
+
+        for (int i = 0; i < getChildCount(); i++) {
+            View child = getChildAt(i);
+            Object tag = child.getTag();
+            if (!(tag instanceof int[])) continue;
+            int[] arr = (int[]) tag;
+            if (arr.length < 3) continue;
+            int flags = arr[2];
+
+            float l = child.getLeft();
+            float t = child.getTop();
+            float r = child.getRight();
+            float b = child.getBottom();
+
+            if ((flags & 1) != 0) {
+                path.reset();
+                oval.set(l + cornerPx - centerRadius, t + cornerPx - centerRadius,
+                         l + cornerPx + centerRadius, t + cornerPx + centerRadius);
+                path.arcTo(oval, 240f, 30f, true);
+                oval.set(r - cornerPx - centerRadius, t + cornerPx - centerRadius,
+                         r - cornerPx + centerRadius, t + cornerPx + centerRadius);
+                path.arcTo(oval, 270f, 30f, false);
+                canvas.drawPath(path, mEditorEdgePaint);
+            }
+            if ((flags & 2) != 0) {
+                path.reset();
+                oval.set(r - cornerPx - centerRadius, b - cornerPx - centerRadius,
+                         r - cornerPx + centerRadius, b - cornerPx + centerRadius);
+                path.arcTo(oval, 60f, 30f, true);
+                oval.set(l + cornerPx - centerRadius, b - cornerPx - centerRadius,
+                         l + cornerPx + centerRadius, b - cornerPx + centerRadius);
+                path.arcTo(oval, 90f, 30f, false);
+                canvas.drawPath(path, mEditorEdgePaint);
+            }
+            if ((flags & 4) != 0) {
+                path.reset();
+                oval.set(l + cornerPx - centerRadius, t + cornerPx - centerRadius,
+                         l + cornerPx + centerRadius, t + cornerPx + centerRadius);
+                path.arcTo(oval, 210f, -30f, true);
+                oval.set(l + cornerPx - centerRadius, b - cornerPx - centerRadius,
+                         l + cornerPx + centerRadius, b - cornerPx + centerRadius);
+                path.arcTo(oval, 180f, -30f, false);
+                canvas.drawPath(path, mEditorEdgePaint);
+            }
+            if ((flags & 8) != 0) {
+                path.reset();
+                oval.set(r - cornerPx - centerRadius, b - cornerPx - centerRadius,
+                         r - cornerPx + centerRadius, b - cornerPx + centerRadius);
+                path.arcTo(oval, 30f, -30f, true);
+                oval.set(r - cornerPx - centerRadius, t + cornerPx - centerRadius,
+                         r - cornerPx + centerRadius, t + cornerPx + centerRadius);
+                path.arcTo(oval, 360f, -30f, false);
+                canvas.drawPath(path, mEditorEdgePaint);
+            }
+        }
     }
 
     @Nullable

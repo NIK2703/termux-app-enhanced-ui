@@ -104,8 +104,7 @@ public final class TermuxActivityPopupController {
     // History popup synthetic-row tags (mirrors TermuxActivity definitions).
     private static final int MESSAGE_HISTORY_CLEAR_TAG = -2;
     private static final int MESSAGE_HISTORY_CLEAR_ALL_TAG = -3;
-    private static final int MESSAGE_HISTORY_POPUP_MAX_HEIGHT_DP = 520;
-    private static final int MESSAGE_HISTORY_POPUP_GAP_DP = 24;
+
 
     public TermuxActivityPopupController(@NonNull Context context, @NonNull Host host,
                                           @NonNull TermuxColorSchemeManager colorSchemeManager) {
@@ -329,9 +328,9 @@ public final class TermuxActivityPopupController {
         int[] anchorLoc = new int[2];
         anchor.getLocationOnScreen(anchorLoc);
         // Gap between the button's top and the popup's bottom edge.
-        int popupGap = TermuxActivityUtils.dpToPx(mContext, MESSAGE_HISTORY_POPUP_GAP_DP);
+        int popupGap = mContext.getResources().getDimensionPixelSize(R.dimen.message_history_popup_gap);
         int roomAbove = Math.max(TermuxActivityUtils.dpToPx(mContext, 48), anchorLoc[1] - TermuxActivityUtils.dpToPx(mContext, 8) - popupGap);
-        int maxHeight = Math.min(TermuxActivityUtils.dpToPx(mContext, MESSAGE_HISTORY_POPUP_MAX_HEIGHT_DP), roomAbove);
+        int maxHeight = Math.min(mContext.getResources().getDimensionPixelSize(R.dimen.message_history_popup_max_height), roomAbove);
         int popupHeight = Math.min(contentHeight, maxHeight);
         mHistoryPopup.update(anchor,
                 0,

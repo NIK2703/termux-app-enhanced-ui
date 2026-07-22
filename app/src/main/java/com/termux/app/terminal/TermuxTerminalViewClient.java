@@ -757,7 +757,7 @@ public class TermuxTerminalViewClient extends TermuxTerminalViewClientBase {
     public void setTerminalCursorBlinkerState(boolean start) {
         TerminalView terminalView = mActivity.getTerminalView();
         if (terminalView == null) return; // page not selected yet; onEmulatorSet() will set it later
-        if (start) {
+        if (start && mActivity.getProperties().getTerminalCursorBlinkEnabled()) {
             // If set/update the cursor blinking rate is successful, then enable cursor blinker
             if (terminalView.setTerminalCursorBlinkerRate(mActivity.getProperties().getTerminalCursorBlinkRate()))
                 terminalView.setTerminalCursorBlinkerState(true, true);
@@ -838,7 +838,7 @@ public class TermuxTerminalViewClient extends TermuxTerminalViewClientBase {
         final String transcriptText = ShellUtils.getTerminalSessionTranscriptText(session, false, true);
         if (transcriptText == null) return;
 
-        MessageDialogUtils.showMessage(mActivity, TermuxConstants.TERMUX_APP_NAME + " Report Issue",
+        MessageDialogUtils.showMessage(mActivity, mActivity.getString(R.string.report_issue_title),
             mActivity.getString(R.string.msg_add_termux_debug_info),
             mActivity.getString(com.termux.shared.R.string.action_yes), (dialog, which) -> reportIssueFromTranscript(transcriptText, true),
             mActivity.getString(com.termux.shared.R.string.action_no), (dialog, which) -> reportIssueFromTranscript(transcriptText, false),
@@ -853,11 +853,11 @@ public class TermuxTerminalViewClient extends TermuxTerminalViewClientBase {
             public void run() {
                 StringBuilder reportString = new StringBuilder();
 
-                String title = TermuxConstants.TERMUX_APP_NAME + " Report Issue";
+                String title = mActivity.getString(R.string.report_issue_title);
 
-                reportString.append("## Transcript\n");
+                reportString.append(mActivity.getString(R.string.report_issue_transcript_header));
                 reportString.append("\n").append(MarkdownUtils.getMarkdownCodeForString(transcriptText, true));
-                reportString.append("\n##\n");
+                reportString.append(mActivity.getString(R.string.report_issue_transcript_footer));
 
                 if (addTermuxDebugInfo) {
                     reportString.append("\n\n").append(TermuxUtils.getAppInfoMarkdownString(mActivity, TermuxUtils.AppInfoMode.TERMUX_AND_PLUGIN_PACKAGES));

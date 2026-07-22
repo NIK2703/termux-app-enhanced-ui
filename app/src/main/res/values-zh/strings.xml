@@ -14,18 +14,18 @@
 <resources>
 
     <string name="application_name">Termux 增强版</string>
-    <string name="shared_user_label">&TERMUX_APP_NAME; 用户</string>
-    <string name="permission_run_command_label">在 &TERMUX_APP_NAME; 环境中运行命令</string>
-    <string name="permission_run_command_description">在 &TERMUX_APP_NAME; 环境中执行任意命令并访问文件</string>
+    <string name="shared_user_label">Termux 用户</string>
+    <string name="permission_run_command_label">在 Termux 环境中运行命令</string>
+    <string name="permission_run_command_description">在 Termux 环境中执行任意命令并访问文件</string>
     <string name="bootstrap_installer_body">正在安装引导包…</string>
     <string name="bootstrap_error_title">无法安装引导包</string>
-    <string name="bootstrap_error_body">&TERMUX_APP_NAME; 无法安装引导包。</string>
+    <string name="bootstrap_error_body">Termux 无法安装引导包。</string>
     <string name="bootstrap_error_abort">中止</string>
     <string name="bootstrap_error_try_again">重试</string>
-    <string name="bootstrap_error_not_primary_user_message">&TERMUX_APP_NAME; 只能以主要用户身份运行。
-        \n为 &TERMUX_APP_NAME; 编译的引导二进制文件已硬编码 $PREFIX 路径，只能安装到以下路径：\n%1$s。</string>
-    <string name="bootstrap_error_installed_on_portable_sd">&TERMUX_APP_NAME; 无法安装在设备的便携/外部/可移除 SD 卡上。
-        \n为 &TERMUX_APP_NAME; 编译的引导二进制文件已硬编码 $PREFIX 路径，只能安装到以下路径：\n%1$s。</string>
+    <string name="bootstrap_error_not_primary_user_message">Termux 只能以主要用户身份运行。
+        \n为 Termux 编译的引导二进制文件已硬编码 $PREFIX 路径，只能安装到以下路径：\n%1$s。</string>
+    <string name="bootstrap_error_installed_on_portable_sd">Termux 无法安装在设备的便携/外部/可移除 SD 卡上。
+        \n为 Termux 编译的引导二进制文件已硬编码 $PREFIX 路径，只能安装到以下路径：\n%1$s。</string>
     <string name="action_new_session">新建会话</string>
     <string name="action_new_session_failsafe">故障保护</string>
     <string name="new_tab_placeholder_hint">新建会话</string>
@@ -70,14 +70,14 @@
     <string name="action_report_issue">报告问题</string>
     <string name="msg_generating_report">正在生成报告</string>
     <string name="msg_add_termux_debug_info">是否将 Termux 调试信息添加到报告？</string>
-    <string name="error_styling_not_installed">&TERMUX_STYLING_APP_NAME; 插件应用未安装。</string>
+    <string name="error_styling_not_installed">Termux:Styling 插件应用未安装。</string>
     <string name="action_styling_install">安装</string>
     <string name="notification_action_exit">退出</string>
     <string name="notification_action_wake_lock">获取唤醒锁</string>
     <string name="notification_action_wake_unlock">释放唤醒锁</string>
-    <string name="error_display_over_other_apps_permission_not_granted_to_start_terminal">&TERMUX_APP_NAME; 需要
-        \"在其他应用上层显示\" 权限才能在 Android >= 10 的后台启动终端会话。
-        请在设置 -> 应用 -> &TERMUX_APP_NAME; -> 高级 中授予。</string>
+    <string name="error_display_over_other_apps_permission_not_granted_to_start_terminal">Termux 需要
+        \"在其他应用上层显示\" 权限才能在 Android &gt;= 10 的后台启动终端会话。
+        请在设置 -&gt; 应用 -&gt; Termux -&gt; 高级 中授予。</string>
     <string name="error_termux_service_invalid_execution_command_runner">TermuxService 的执行命令运行器无效：`%1$s`</string>
     <string name="error_termux_service_unsupported_execution_command_runner">TermuxService 不支持的执行命令运行器：`%1$s`</string>
     <string name="error_termux_service_unsupported_execution_command_shell_create_mode">TermuxService 不支持的执行命令 shell 创建模式：`%1$s`</string>
@@ -92,13 +92,12 @@
     <string name="action_file_received_open_directory">打开目录</string>
     <string name="error_termux_service_start_failed_general">启动 TermuxService 失败。检查 logcat 中的异常消息。</string>
     <string name="error_termux_service_start_failed_bg">由于 Android 后台限制，应用在后台时启动 TermuxService 失败。</string>
-    <string name="title_activity_termux_settings">&TERMUX_APP_NAME; 设置</string>
+    <string name="title_activity_termux_settings">Termux 设置</string>
     <string name="appearance_preferences_title">外观</string>
     <string name="appearance_preferences_summary">应用外观和面板透明度偏好设置</string>
     <string name="theme_title">主题</string>
     <string name="panel_transparency_title">面板透明度</string>
-    <string name="termux_preferences_title">&TERMUX_APP_NAME;</string>
-    <string name="termux_preferences_summary">&TERMUX_APP_NAME; 应用偏好设置</string>
+    <string name="termux_preferences_summary">Termux 应用偏好设置</string>
     <string name="termux_debugging_preferences_title">调试</string>
     <string name="termux_debugging_preferences_summary">调试偏好设置</string>
     <string name="termux_logging_header">日志记录</string>
@@ -121,7 +120,7 @@
     <string name="termux_soft_keyboard_enabled_on">软键盘将启用。（默认）</string>
     <string name="termux_settings_button_enabled_title">显示设置按钮</string>
     <string name="termux_settings_button_enabled_on">设置按钮显示在标签面板中。（默认）</string>
-    <string name="termux_settings_button_enabled_off">设置按钮已隐藏。长按终端 &#8594; 更多… &#8594; 设置 打开设置。</string>
+    <string name="termux_settings_button_enabled_off">设置按钮已隐藏。长按终端 → 更多… → 设置 打开设置。</string>
     <string name="termux_soft_keyboard_enabled_only_if_no_hardware_title">仅无硬件键盘时启用软键盘</string>
     <string name="termux_soft_keyboard_enabled_only_if_no_hardware_off">即使连接了硬件键盘，软键盘也将启用。（默认）</string>
     <string name="termux_soft_keyboard_enabled_only_if_no_hardware_on">仅当未连接硬件键盘时，软键盘才启用。</string>
@@ -135,14 +134,14 @@
     <string name="termux_terminal_view_terminal_margin_adjustment_on">终端边距调整将启用。
         应启用此项以尝试修复软键盘遮挡部分扩展键/终端视图的问题。
         如果在您的设备上导致屏幕闪烁，请禁用它。（默认）</string>
-    <string name="termux_api_preferences_title">&TERMUX_API_APP_NAME; 偏好设置</string>
-    <string name="termux_api_preferences_summary">&TERMUX_API_APP_NAME; 应用的偏好设置</string>
-    <string name="termux_float_preferences_title">&TERMUX_FLOAT_APP_NAME; 偏好设置</string>
-    <string name="termux_float_preferences_summary">&TERMUX_FLOAT_APP_NAME; 应用的偏好设置</string>
-    <string name="termux_tasker_preferences_title">&TERMUX_TASKER_APP_NAME; 偏好设置</string>
-    <string name="termux_tasker_preferences_summary">&TERMUX_TASKER_APP_NAME; 应用的偏好设置</string>
-    <string name="termux_widget_preferences_title">&TERMUX_WIDGET_APP_NAME; 偏好设置</string>
-    <string name="termux_widget_preferences_summary">&TERMUX_WIDGET_APP_NAME; 应用的偏好设置</string>
+    <string name="termux_api_preferences_title">Termux:API 偏好设置</string>
+    <string name="termux_api_preferences_summary">Termux:API 应用的偏好设置</string>
+    <string name="termux_float_preferences_title">Termux:Float 偏好设置</string>
+    <string name="termux_float_preferences_summary">Termux:Float 应用的偏好设置</string>
+    <string name="termux_tasker_preferences_title">Termux:Tasker 偏好设置</string>
+    <string name="termux_tasker_preferences_summary">Termux:Tasker 应用的偏好设置</string>
+    <string name="termux_widget_preferences_title">Termux:Widget 偏好设置</string>
+    <string name="termux_widget_preferences_summary">Termux:Widget 应用的偏好设置</string>
     <string name="about_preference_title">关于</string>
     <string name="theme_mode_title">应用主题</string>
     <string name="theme_mode_summary">选择应用和终端主题</string>
@@ -171,7 +170,6 @@
     <string name="backup_preference_summary">将 Termux 数据目录（已安装的软件包 + 主目录）保存为 tar.gz 文件</string>
     <string name="restore_preference_title">恢复 Termux 数据</string>
     <string name="restore_preference_summary">从 tar.gz 备份文件恢复 Termux 数据目录</string>
-    <string name="backup_restore_backup_filename">termux-data-backup.tar.gz</string>
     <string name="backup_restore_dialog_title">Termux 数据备份 / 恢复</string>
     <string name="backup_restore_warning_backup">这为您的 Termux 数据目录（已安装的软件包和环境以及您的主目录）创建压缩归档。\n\n选择目标文件以保存备份。</string>
 
@@ -186,7 +184,6 @@
     <string name="backup_service_channel_name">Termux 备份 / 恢复</string>
     <string name="backup_service_notification_title">Termux 数据备份</string>
     <string name="backup_service_notification_restore_title">Termux 数据恢复</string>
-    <string name="backup_service_notification_progress">%1$d%%</string>
     <string name="backup_service_notification_success">备份创建成功</string>
     <string name="backup_service_notification_restore_success">数据恢复成功</string>
     <string name="backup_service_notification_failed">备份失败</string>
@@ -242,16 +239,16 @@
     <string name="msg_extra_keys_create_failed">无法创建默认额外按键</string>
 
 
-    <!-- App language override -->
+    
     <string name="locale_override_title">应用语言</string>
     <string name="locale_override_summary">覆盖应用语言</string>
     <string name="locale_override_entry_system">系统默认（自动翻译，可能不准确）</string>
     <string name="locale_override_entry_english">英语</string>
-    <!-- Hide extra keys with keyboard -->
+    
     <string name="hide_extra_keys_with_keyboard_title">随键盘隐藏额外按键</string>
     <string name="hide_extra_keys_with_keyboard_summary">键盘关闭时自动隐藏额外按键，打开时显示</string>
 
-    <!-- Tab height mode -->
+    
     <string name="termux_tab_height_mode_title">标签高度</string>
     <string name="termux_tab_height_mode_single">单行（默认）</string>
     <string name="termux_tab_height_mode_double">两行</string>
@@ -259,7 +256,7 @@
     <string name="termux_tab_panel_position_top">顶部（默认）</string>
     <string name="termux_tab_panel_position_bottom">底部</string>
 
-    <!-- Text input auto-complete -->
+    
     <string name="suggestions_max_count_title">最大建议数</string>
     <string name="suggestions_max_count_summary">从消息历史中自动补全（1–10）</string>
 
@@ -314,24 +311,24 @@
     <string name="screen_orientation_entry_portrait">竖屏</string>
     <string name="screen_orientation_entry_landscape">横屏</string>
 
-    <!-- Extra keys visibility -->
+    
     <string name="extra_keys_visibility_title">显示额外按键面板</string>
     <string name="extra_keys_visibility_summary">控制额外按键栏的显示时机。</string>
     <string name="extra_keys_visibility_always">始终显示</string>
     <string name="extra_keys_visibility_keyboard">仅键盘打开时</string>
     <string name="extra_keys_visibility_never">从不显示</string>
 
-    <!-- Extra keys invalid JSON -->
+    
     <string name="extra_keys_invalid_json">额外按键的 JSON 格式无效，更改未保存。</string>
 
-    <!-- Extra keys haptic feedback -->
+    
     <string name="extra_keys_haptic_title">触觉反馈</string>
     <string name="extra_keys_haptic_summary">操作额外按键面板时震动</string>
     <string name="extra_keys_haptic_all">点击与手势</string>
     <string name="extra_keys_haptic_gestures">仅手势</string>
     <string name="extra_keys_haptic_off">已禁用</string>
 
-    <!-- Extra keys editor -->
+    
     <string name="extra_keys_editor_title">额外按键编辑器</string>
     <string name="extra_keys_editor_summary">可视化构建额外按键面板：设置行数和列数，然后点击按键分配信号。</string>
     <string name="extra_keys_editor_columns_title">列数</string>
@@ -341,8 +338,8 @@
     <string name="extra_keys_editor_preview_title">预览</string>
     <string name="extra_keys_editor_preview_summary">实时面板 — 点击任意按键更改其信号。</string>
     <string name="extra_keys_editor_signal_dialog_title">分配信号</string>
-    <string name="extra_keys_editor_custom_text_title">Custom bind</string>
-    <string name="extra_keys_editor_custom_text_message">Press any key to bind:</string>
+    <string name="extra_keys_editor_custom_text_title">自定义绑定</string>
+    <string name="extra_keys_editor_custom_text_message">按下任意键以绑定：</string>
     <string name="extra_keys_editor_save_title">应用到额外按键</string>
     <string name="extra_keys_editor_save_summary">将此布局保存到额外按键设置。</string>
     <string name="extra_keys_editor_empty">（空）</string>
@@ -353,39 +350,140 @@
     <string name="extra_keys_editor_open_editor_summary">配置布局、缩放和按键绑定</string>
     <string name="extra_keys_editor_hint">点击分配主操作 · 滑动 ↑ ↓ ← → 分配手势操作</string>
 
-    <!-- Extra keys editor signals -->
+    
     <string name="extra_keys_editor_signal_keyboard">键盘切换</string>
     <string name="extra_keys_editor_signal_paste">粘贴</string>
     <string name="extra_keys_editor_signal_scroll">滚动锁定</string>
     <string name="extra_keys_editor_signal_space">空格</string>
-    <string name="extra_keys_editor_signal_esc">Esc</string>
-    <string name="extra_keys_editor_signal_tab">Tab</string>
-    <string name="extra_keys_editor_signal_home">Home</string>
-    <string name="extra_keys_editor_signal_end">End</string>
-    <string name="extra_keys_editor_signal_page_up">Page Up</string>
-    <string name="extra_keys_editor_signal_page_down">Page Down</string>
-    <string name="extra_keys_editor_signal_insert">Insert</string>
-    <string name="extra_keys_editor_signal_delete">Delete</string>
-    <string name="extra_keys_editor_signal_backspace">Backspace</string>
     <string name="extra_keys_editor_signal_up">↑</string>
     <string name="extra_keys_editor_signal_left">←</string>
     <string name="extra_keys_editor_signal_right">→</string>
     <string name="extra_keys_editor_signal_down">↓</string>
-    <string name="extra_keys_editor_signal_enter">Enter</string>
-    <string name="extra_keys_editor_signal_f1">F1</string>
-    <string name="extra_keys_editor_signal_f2">F2</string>
-    <string name="extra_keys_editor_signal_f3">F3</string>
-    <string name="extra_keys_editor_signal_f4">F4</string>
-    <string name="extra_keys_editor_signal_f5">F5</string>
-    <string name="extra_keys_editor_signal_f6">F6</string>
-    <string name="extra_keys_editor_signal_f7">F7</string>
-    <string name="extra_keys_editor_signal_f8">F8</string>
-    <string name="extra_keys_editor_signal_f9">F9</string>
-    <string name="extra_keys_editor_signal_f10">F10</string>
-    <string name="extra_keys_editor_signal_f11">F11</string>
-    <string name="extra_keys_editor_signal_f12">F12</string>
     <string name="extra_keys_editor_signal_backslash">反斜杠（\\）</string>
     <string name="extra_keys_editor_signal_quote">引号（\"）</string>
     <string name="extra_keys_editor_signal_apostrophe">撇号（\'）</string>
-    <string name="extra_keys_editor_signal_custom">Custom bind…</string>
+    <string name="extra_keys_editor_signal_custom">自定义绑定…</string>
+
+    <string name="terminal_category_title">终端</string>
+    <string name="key_behaviour_category_title">按键行为</string>
+    <string name="screen_category_title">屏幕</string>
+    <string name="shortcuts_category_title">快捷键</string>
+    <string name="misc_category_title">杂项</string>
+    <string name="security_category_title">安全</string>
+    <string name="sound_category_title">声音与通知</string>
+    <string name="session_category_title">会话</string>
+    <string name="empty_value_summary">未设置</string>
+    <string name="shortcut_empty_summary">未设置（留空禁用）</string>
+    <string name="shortcut_summary">格式：Ctrl+KEY（例如 Ctrl+a）。留空禁用。</string>
+    <string name="shortcut_create_session_title">创建会话快捷键</string>
+    <string name="shortcut_next_session_title">下一个会话快捷键</string>
+    <string name="shortcut_previous_session_title">上一个会话快捷键</string>
+    <string name="shortcut_rename_session_title">重命名会话快捷键</string>
+    <string name="shortcut_invalid_format">快捷键无效。请使用格式 \"ctrl+x\" 或留空禁用。</string>
+
+    <string name="terminal_transcript_rows_title">终端回滚行数</string>
+    <string name="terminal_transcript_rows_summary">保持在回滚转录中的行数。</string>
+
+    <string name="delete_tmpdir_files_older_than_x_days_on_exit_title">退出时删除旧的 TMPDIR 文件</string>
+    <string name="delete_tmpdir_files_older_than_x_days_on_exit_summary">退出时删除会话 TMPDIR 中超过 N 天的文件（-1 = 从不删除）。</string>
+
+    <string name="invalid_number">请输入有效数字。</string>
+
+    <string name="terminal_cursor_style_title">光标样式</string>
+    <string name="terminal_cursor_style_summary">终端光标的绘制方式。</string>
+    <string name="terminal_cursor_style_block">方块</string>
+    <string name="terminal_cursor_style_underline">下划线</string>
+    <string name="terminal_cursor_style_bar">竖线</string>
+    <string name="terminal_cursor_blink_rate_title">光标闪烁频率</string>
+    <string name="terminal_cursor_blink_rate_summary">光标闪烁频率（毫秒）。</string>
+    <string name="terminal_cursor_blink_enabled_title">光标闪烁</string>
+
+    <string name="bell_character_title">响铃行为</string>
+    <string name="bell_character_summary">终端收到响铃（BEL）字符时的行为。</string>
+    <string name="bell_character_vibrate">震动</string>
+    <string name="bell_character_beep">蜂鸣</string>
+    <string name="bell_character_ignore">忽略</string>
+
+    <string name="terminal_margin_horizontal_title">水平边距</string>
+    <string name="terminal_margin_horizontal_summary">终端水平边距（dp）。</string>
+    <string name="terminal_margin_vertical_title">垂直边距</string>
+    <string name="terminal_margin_vertical_summary">终端垂直边距（dp）。</string>
+
+    <string name="terminal_toolbar_height_title">工具栏高度比例</string>
+    <string name="terminal_toolbar_height_summary">额外按键/终端工具栏高度比例因子。</string>
+
+    <string name="default_working_directory_title">默认工作目录</string>
+    <string name="default_working_directory_summary">新会话打开的目录（留空为主目录）。</string>
+
+    <string name="back_key_title">返回键行为</string>
+    <string name="back_key_summary">硬件/软件返回键在终端中的行为。</string>
+    <string name="back_key_back">返回按钮</string>
+    <string name="back_key_escape">Esc 键</string>
+
+    <string name="volume_keys_title">音量键行为</string>
+    <string name="volume_keys_summary">音量键控制音量还是充当虚拟键。</string>
+    <string name="volume_keys_virtual">虚拟（音量键充当按键）</string>
+    <string name="volume_keys_volume">音量（控制设备音量）</string>
+
+    <string name="soft_keyboard_toggle_behaviour_title">键盘切换行为</string>
+    <string name="soft_keyboard_toggle_behaviour_summary">键盘切换是显示/隐藏还是启用/禁用软键盘。</string>
+    <string name="soft_keyboard_toggle_show_hide">显示/隐藏</string>
+    <string name="soft_keyboard_toggle_enable_disable">启用/禁用</string>
+
+    <string name="ctrl_space_workaround_title">Ctrl+Space 变通方案</string>
+    <string name="ctrl_space_workaround_summary">使用变通方案以确保正确发送 Ctrl+Space。</string>
+
+    <string name="enforce_char_based_input_title">强制基于字符的输入</string>
+    <string name="enforce_char_based_input_summary">强制每次发送一个字节。</string>
+
+    <string name="disable_hardware_keyboard_shortcuts_title">禁用硬件键盘快捷键</string>
+    <string name="disable_hardware_keyboard_shortcuts_summary">忽略来自硬件/外部键盘的快捷键。</string>
+
+    <string name="disable_terminal_session_change_toast_title">禁用切换会话提示</string>
+    <string name="disable_terminal_session_change_toast_summary">切换终端会话时不显示提示。</string>
+
+    <string name="terminal_onclick_url_open_title">点击打开链接</string>
+    <string name="terminal_onclick_url_open_summary">点击终端回滚中的链接时打开。</string>
+
+    <string name="fullscreen_title">全屏</string>
+    <string name="fullscreen_summary">以全屏模式运行 Termux。</string>
+
+    <string name="use_fullscreen_workaround_title">全屏变通方案</string>
+    <string name="use_fullscreen_workaround_summary">对错误隐藏全屏的设备使用变通方案。</string>
+
+    <string name="night_mode_legacy_title">夜间模式（旧版）</string>
+    <string name="night_mode_legacy_summary">控制旧版夜间模式属性。建议使用显示屏幕中的主题设置。</string>
+    <string name="night_mode_true">深色</string>
+    <string name="night_mode_false">浅色</string>
+    <string name="night_mode_system">系统默认</string>
+
+    <string name="allow_external_apps_title">允许外部应用</string>
+    <string name="allow_external_apps_summary">允许其他应用通过 RUN_COMMAND 启动 Termux 命令。</string>
+
+    <string name="disable_file_share_receiver_title">禁用文件共享接收器</string>
+    <string name="disable_file_share_receiver_summary">不接受共享到 Termux 的文件。</string>
+
+    <string name="disable_file_view_receiver_title">禁用文件查看接收器</string>
+    <string name="disable_file_view_receiver_summary">不打开发送到 Termux 查看的文件。</string>
+
+    <string name="run_termux_am_socket_server_title">运行 termux-am socket 服务器</string>
+    <string name="run_termux_am_socket_server_summary">启动 termux-am socket 服务器以处理进程间命令。</string>
+
+    <string name="hide_soft_keyboard_on_startup_title">启动时隐藏软键盘</string>
+    <string name="hide_soft_keyboard_on_startup_summary">启动 Termux 时保持软键盘隐藏。</string>
+
+    <string name="extra_keys_button_margin_title">按钮间距</string>
+    <string name="extra_keys_button_margin_summary">按钮之间的间距</string>
+
+    <string name="extra_keys_dynamic_font_size_title">动态字体大小</string>
+    <string name="extra_keys_dynamic_font_size_summary">列数或宏绑定数量增加时减小字体大小</string>
+
+    <string name="backup_error_open_output">无法打开输出文件</string>
+
+    <string name="report_issue_title">Termux 报告问题</string>
+    <string name="report_issue_transcript_header">## 转录内容\n</string>
+    <string name="termux_api_debugging_title">Termux:API 调试</string>
+    <string name="termux_float_debugging_title">Termux:Float 调试</string>
+    <string name="termux_tasker_debugging_title">Termux:Tasker 调试</string>
+    <string name="termux_widget_debugging_title">Termux:Widget 调试</string>
 </resources>

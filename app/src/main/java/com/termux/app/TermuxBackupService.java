@@ -354,7 +354,7 @@ public final class TermuxBackupService extends Service {
     private void runBackup(Uri uri, long estimatedSize, AtomicReference<Error> out) {
         try (OutputStream os = getContentResolver().openOutputStream(uri)) {
             if (os == null) {
-                out.set(new Error("Failed to open output file"));
+                out.set(new Error(getString(R.string.backup_error_open_output)));
                 return;
             }
             // Run du -sb in a SEPARATE thread so it does not delay the start of the

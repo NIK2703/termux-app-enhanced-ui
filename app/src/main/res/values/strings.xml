@@ -256,6 +256,10 @@
                 <!-- Extra Keys Corner Radius -->
                 <string name="extra_keys_corner_radius_title">Button corner radius</string>
 
+                <!-- Extra Keys Button Margin -->
+                <string name="extra_keys_button_margin_title">Button spacing</string>
+                <string name="extra_keys_button_margin_summary">Space between buttons</string>
+
                 <!-- Terminal View Margin Adjustment -->
                 <string name="termux_terminal_view_terminal_margin_adjustment_title">Terminal Margin Adjustment</string>
                 <string name="termux_terminal_view_terminal_margin_adjustment_off">Terminal margin adjustment will be disabled.</string>
@@ -368,6 +372,14 @@
     <string name="backup_restore_cancelled">Operation cancelled</string>
 
     <!-- NEW STRINGS (extracted from hardcoded text) -->
+
+    <!-- Report Issue -->
+    <string name="report_issue_title">&TERMUX_APP_NAME; Report Issue</string>
+    <string name="report_issue_transcript_header">## Transcript\n</string>
+    <string name="report_issue_transcript_footer">\n##\n</string>
+
+    <!-- Backup -->
+    <string name="backup_error_open_output">Failed to open output file</string>
 
     <!-- Session tabs -->
     <string name="tab_close_description">Close tab</string>

@@ -4,11 +4,12 @@
     <!ENTITY TERMUX_PACKAGE_NAME "com.termux">
     <!ENTITY TERMUX_APP_NAME "Termux">
     <!ENTITY TERMUX_API_APP_NAME "Termux:API">
+    <!ENTITY TERMUX_BOOT_APP_NAME "Termux:Boot">
     <!ENTITY TERMUX_FLOAT_APP_NAME "Termux:Float">
+    <!ENTITY TERMUX_STYLING_APP_NAME "Termux:Styling">
     <!ENTITY TERMUX_TASKER_APP_NAME "Termux:Tasker">
     <!ENTITY TERMUX_WIDGET_APP_NAME "Termux:Widget">
-    <!ENTITY TERMUX_STYLING_APP_NAME "Termux:Styling">
-]>
+    ]>
 
 <resources>
 <string name="action_autofill_password">Passwort automatisch ausfüllen</string>
@@ -19,7 +20,6 @@
     <string name="action_font_terminal">Schriftart</string>
     <string name="action_kill_process">Prozess beenden (%d)</string>
     <string name="action_new_session">Neue Sitzung</string>
-    <string name="action_new_session_failsafe">Failsafe</string>
     <string name="action_open_help">Hilfe</string>
     <string name="action_open_settings">Einstellungen</string>
     <string name="action_rename_session_confirm">Festlegen</string>
@@ -35,12 +35,10 @@
     <string name="action_toggle_text_input">Texteingabe umschalten</string>
     <string name="appearance_preferences_summary">App-Erscheinungsbild und Panel-Transparenzeinstellungen</string>
     <string name="appearance_preferences_title">Erscheinungsbild</string>
-    <string name="application_name">TermuxEnhanced</string>
     <string name="backup_dialog_background">Hintergrund</string>
     <string name="backup_dialog_cancel">Abbrechen</string>
     <string name="backup_preference_summary">Termux-Datenverzeichnis (installierte Pakete + Home) in eine tar.gz-Backupdatei speichern</string>
     <string name="backup_preference_title">Termux-Daten sichern</string>
-    <string name="backup_restore_backup_filename">termux-data-backup.tar.gz</string>
     <string name="backup_restore_backup_started">Backup wird erstellt…</string>
     <string name="backup_restore_backup_success">Backup erfolgreich erstellt</string>
     <string name="backup_restore_cancelled">Vorgang abgebrochen</string>
@@ -55,16 +53,15 @@
     <string name="backup_service_channel_name">Termux-Backup/-Wiederherstellung</string>
     <string name="backup_service_notification_cancel">Abbrechen</string>
     <string name="backup_service_notification_failed">Backup fehlgeschlagen</string>
-    <string name="backup_service_notification_progress">%1$d%%</string>
     <string name="backup_service_notification_restore_failed">Wiederherstellung fehlgeschlagen</string>
     <string name="backup_service_notification_restore_success">Daten erfolgreich wiederhergestellt</string>
     <string name="backup_service_notification_restore_title">Termux-Daten-Wiederherstellung</string>
     <string name="backup_service_notification_success">Backup erfolgreich erstellt</string>
     <string name="backup_service_notification_title">Termux-Daten-Backup</string>
     <string name="bootstrap_error_abort">Abbrechen</string>
-    <string name="bootstrap_error_body">&TERMUX_APP_NAME; konnte die Bootstrap-Pakete nicht installieren.</string>
-    <string name="bootstrap_error_installed_on_portable_sd">&TERMUX_APP_NAME; kann nicht auf einer tragbaren/externen/entfernbaren SD-Karte installiert werden.\nDie kompilierten Bootstrap-Binärdateien für &TERMUX_APP_NAME; haben den $PREFIX-Pfad fest codiert und können nicht unter einem anderen Pfad installiert werden als:\n%1$s.</string>
-    <string name="bootstrap_error_not_primary_user_message">&TERMUX_APP_NAME; kann nur als primärer Benutzer ausgeführt werden.\nDie kompilierten Bootstrap-Binärdateien für &TERMUX_APP_NAME; haben den $PREFIX-Pfad fest codiert und können nicht unter einem anderen Pfad installiert werden als:\n%1$s.</string>
+    <string name="bootstrap_error_body">Termux konnte die Bootstrap-Pakete nicht installieren.</string>
+    <string name="bootstrap_error_installed_on_portable_sd">Termux kann nicht auf einer tragbaren/externen/entfernbaren SD-Karte installiert werden.\nDie kompilierten Bootstrap-Binärdateien für Termux haben den $PREFIX-Pfad fest codiert und können nicht unter einem anderen Pfad installiert werden als:\n%1$s.</string>
+    <string name="bootstrap_error_not_primary_user_message">Termux kann nur als primärer Benutzer ausgeführt werden.\nDie kompilierten Bootstrap-Binärdateien für Termux haben den $PREFIX-Pfad fest codiert und können nicht unter einem anderen Pfad installiert werden als:\n%1$s.</string>
     <string name="bootstrap_error_title">Bootstrap kann nicht installiert werden</string>
     <string name="bootstrap_error_try_again">Erneut versuchen</string>
     <string name="bootstrap_installer_body">Bootstrap-Pakete werden installiert…</string>
@@ -78,15 +75,15 @@
     <string name="directory_history_max_title">Max. gespeicherte Verzeichnisse</string>
     <string name="directory_history_title">Verzeichnisverlauf</string>
     <string name="donate_preference_title">Spenden</string>
-    <string name="error_display_over_other_apps_permission_not_granted_to_start_terminal">&TERMUX_APP_NAME; benötigt die Berechtigung \"Über anderen Apps einblenden\"
-        um Terminalsitzungen aus dem Hintergrund auf Android >= 10 zu starten.
-        Gewähren Sie diese unter Einstellungen -> Apps -> &TERMUX_APP_NAME; -> Erweitert</string>
+    <string name="error_display_over_other_apps_permission_not_granted_to_start_terminal">Termux benötigt die Berechtigung \"Über anderen Apps einblenden\"
+        um Terminalsitzungen aus dem Hintergrund auf Android &gt;= 10 zu starten.
+        Gewähren Sie diese unter Einstellungen -&gt; Apps -&gt; Termux -&gt; Erweitert</string>
     <string name="error_font_copy_failed">Schriftart konnte nicht angewendet werden</string>
     <string name="error_run_command_service_api_help">Besuchen Sie %1$s für weitere Informationen zur Verwendung des RUN_COMMAND-Intents.</string>
     <string name="error_run_command_service_invalid_execution_command_runner">Ungültiger Ausführungsbefehl-Runner für RunCommandService: `%1$s`</string>
     <string name="error_run_command_service_invalid_intent_action">Ungültige Intent-Aktion für RunCommandService: `%1$s`</string>
     <string name="error_run_command_service_mandatory_extra_missing">Erforderliches Extra fehlt für RunCommandService: \"%1$s\"</string>
-    <string name="error_styling_not_installed">Die &TERMUX_STYLING_APP_NAME;-Plugin-App ist nicht installiert.</string>
+    <string name="error_styling_not_installed">Die Termux:Styling-Plugin-App ist nicht installiert.</string>
     <string name="error_termux_service_execution_command_shell_name_unset">Shell-Name nicht gesetzt, aber Shell-Erstellungsmodus `%1$s` wurde übergeben</string>
     <string name="error_termux_service_invalid_execution_command_runner">Ungültiger Ausführungsbefehl-Runner für TermuxService: `%1$s`</string>
     <string name="error_termux_service_start_failed_bg">TermuxService konnte nicht gestartet werden, während die App aufgrund von Android-Hintergrundbeschränkungen im Hintergrund läuft.</string>
@@ -112,7 +109,6 @@
     <string name="message_history_clear_confirm_current">Alle gespeicherten Nachrichten des aktuellen Verzeichnisses löschen? Dieser Vorgang kann nicht rückgängig gemacht werden.</string>
     <string name="message_history_clear_current_only_question">Nur Verlauf des aktuellen Verzeichnisses löschen?</string>
     <string name="message_history_clear_dialog_title">Nachrichtenverlauf löschen</string>
-    <string name="message_history_clear_ok">OK</string>
     <string name="message_history_clear_question">Nachrichtenverlauf löschen?</string>
     <string name="message_history_cleared">Nachrichtenverlauf gelöscht</string>
     <string name="message_history_empty">Kein Nachrichtenverlauf</string>
@@ -133,61 +129,51 @@
     <string name="notification_action_wake_unlock">Wake-Lock freigeben</string>
     <string name="notification_wake_lock_held"> (Wake-Lock gehalten)</string>
     <string name="panel_transparency_title">Panel-Transparenz</string>
-<string name="per_directory_message_history_summary">Einen separaten Nachrichtenverlauf für jedes Arbeitsverzeichnis führen. Wenn deaktiviert, teilen sich alle Sitzungen einen globalen Verlauf.</string>
+    <string name="per_directory_message_history_summary">Für jedes Arbeitsverzeichnis einen separaten Nachrichtenverlauf führen. Wenn deaktiviert, teilen sich alle Sitzungen einen globalen Verlauf.</string>
     <string name="per_directory_message_history_title">Nachrichtenverlauf pro Verzeichnis</string>
-    <string name="permission_run_command_description">beliebige Befehle in der &TERMUX_APP_NAME;-Umgebung ausführen und auf Dateien zugreifen</string>
-    <string name="permission_run_command_label">Befehle in der &TERMUX_APP_NAME;-Umgebung ausführen</string>
+    <string name="permission_run_command_description">beliebige Befehle in der Termux-Umgebung ausführen und auf Dateien zugreifen</string>
+    <string name="permission_run_command_label">Befehle in der Termux-Umgebung ausführen</string>
     <string name="restore_preference_summary">Termux-Datenverzeichnis aus einer tar.gz-Backupdatei wiederherstellen</string>
     <string name="restore_preference_title">Termux-Daten wiederherstellen</string>
     <string name="restore_sessions_summary">Alle Tabs und deren Verzeichnisse beim App-Start erneut öffnen</string>
     <string name="restore_sessions_title">Tabs beim Start wiederherstellen</string>
-    <string name="screen_orientation_summary">"Folge Sensor"-Varianten rotieren zwischen den beiden Ausrichtungen (z. B. 0°/180° Hochformat).</string>
+    <string name="screen_orientation_summary">"Sensor"-Varianten rotieren zwischen den beiden Ausrichtungen (z. B. 0°/180° Hochformat).</string>
     <string name="screen_orientation_title">Bildschirmausrichtung</string>
-    <string name="session_default_title">Terminal</string>
     <string name="session_null_title">null-Sitzung</string>
     <string name="new_tab_placeholder_hint">Neue Sitzung</string>
     <string name="session_tabs_title">Sitzungs-Tabs</string>
-    <string name="swipe_rightmost_new_tab_title">Rechten Tab wischen für neue Sitzung</string>
-    <string name="swipe_rightmost_new_tab_summary">Bei dem letzten Tab nach rechts wischen, um eine neue Terminalsitzung aufzudecken und zu öffnen</string>
+    <string name="swipe_rightmost_new_tab_title">Am rechten Tab wischen für neue Sitzung</string>
+    <string name="swipe_rightmost_new_tab_summary">Beim letzten Tab nach rechts wischen, um eine neue Terminalsitzung einzublenden und zu öffnen</string>
     <string name="termux_tab_height_mode_title">Tab-Höhe</string>
     <string name="termux_tab_height_mode_single">Eine Zeile (Standard)</string>
     <string name="termux_tab_height_mode_double">Zwei Zeilen</string>
     <string name="termux_tab_panel_position_title">Tab-Panel-Position</string>
     <string name="termux_tab_panel_position_top">Oben (Standard)</string>
     <string name="termux_tab_panel_position_bottom">Unten</string>
-    <string name="shared_user_label">&TERMUX_APP_NAME;-Benutzer</string>
+    <string name="shared_user_label">Termux-Benutzer</string>
     <string name="tab_close_description">Tab schließen</string>
-    <string name="termux_api_preferences_summary">Einstellungen für die &TERMUX_API_APP_NAME;-App</string>
-    <string name="termux_api_preferences_title">&TERMUX_API_APP_NAME;</string>
+    <string name="termux_api_preferences_summary">Einstellungen für die Termux:API-App</string>
     <string name="termux_button_bg_active_alpha_title" formatted="false">Hintergrundtransparenz des aktiven Elements</string>
     <string name="termux_button_bg_inactive_alpha_title" formatted="false">Hintergrundtransparenz des inaktiven Elements</string>
     <string name="termux_crash_report_notifications_enabled_off">Benachrichtigungen für Absturzberichte deaktivieren.</string>
     <string name="termux_crash_report_notifications_enabled_on">Benachrichtigungen für Absturzberichte anzeigen. (Standard)</string>
     <string name="termux_crash_report_notifications_enabled_title">Absturzbericht-Benachrichtigungen</string>
     <string name="termux_debugging_preferences_summary">Debugging-Einstellungen</string>
-    <string name="termux_debugging_preferences_title">Debugging</string>
-    <string name="termux_float_preferences_summary">Einstellungen für die &TERMUX_FLOAT_APP_NAME;-App</string>
-    <string name="termux_float_preferences_title">&TERMUX_FLOAT_APP_NAME;</string>
+    <string name="termux_float_preferences_summary">Einstellungen für die Termux:Float-App</string>
     <string name="termux_log_level_title">Protokollebene</string>
     <string name="termux_logging_header">Protokollierung</string>
     <string name="termux_plugin_error_notifications_enabled_off">Kurzanzeigen und Benachrichtigungen für Plugin-Fehler deaktivieren.</string>
     <string name="termux_plugin_error_notifications_enabled_on">Kurzanzeigen und Benachrichtigungen für Plugin-Fehler anzeigen. (Standard)</string>
     <string name="termux_plugin_error_notifications_enabled_title">Plugin-Fehlerbenachrichtigungen</string>
-    <string name="termux_preferences_summary">&TERMUX_APP_NAME;-App-Einstellungen</string>
-    <string name="termux_preferences_title">&TERMUX_APP_NAME;</string>
-    <string name="termux_settings_button_enabled_off">Die Einstellungs-Schaltfläche ist ausgeblendet. Öffnen Sie die Einstellungen durch langes Drücken auf das Terminal &#8594; Mehr… &#8594; Einstellungen.</string>
-    <string name="termux_settings_button_enabled_on">Die Einstellungs-Schaltfläche wird im Tab-Bereich angezeigt. (Standard)</string>
-    <string name="termux_settings_button_enabled_title">Einstellungs-Schaltfläche anzeigen</string>
+    <string name="termux_preferences_summary">Termux-App-Einstellungen</string>
     <string name="termux_soft_keyboard_enabled_off">Die Soft-Tastatur wird deaktiviert.</string>
     <string name="termux_soft_keyboard_enabled_on">Die Soft-Tastatur wird aktiviert. (Standard)</string>
     <string name="termux_soft_keyboard_enabled_only_if_no_hardware_off">Die Soft-Tastatur wird auch bei angeschlossener Hardware-Tastatur aktiviert. (Standard)</string>
     <string name="termux_soft_keyboard_enabled_only_if_no_hardware_on">Die Soft-Tastatur wird nur aktiviert, wenn keine Hardware-Tastatur angeschlossen ist.</string>
     <string name="termux_soft_keyboard_enabled_only_if_no_hardware_title">Soft-Tastatur nur ohne Hardware-Tastatur</string>
     <string name="termux_soft_keyboard_enabled_title">Soft-Tastatur aktiviert</string>
-    <string name="termux_tasker_preferences_summary">Einstellungen für die &TERMUX_TASKER_APP_NAME;-App</string>
-    <string name="termux_tasker_preferences_title">&TERMUX_TASKER_APP_NAME;</string>
+    <string name="termux_tasker_preferences_summary">Einstellungen für die Termux:Tasker-App</string>
     <string name="termux_terminal_io_preferences_summary">Terminal I/O-Einstellungen</string>
-    <string name="termux_terminal_io_preferences_title">Terminal I/O</string>
     <string name="termux_terminal_view_key_logging_enabled_off">Protokolle enthalten keine Terminal-View-Key-Einträge. (Standard)</string>
     <string name="termux_terminal_view_key_logging_enabled_on">Logcat-Protokolle enthalten Terminal-View-Key-Einträge. Diese sind sehr ausführlich und sollten unter normalen Umständen deaktiviert sein, da sie sonst Leistungsprobleme verursachen.</string>
     <string name="termux_terminal_view_key_logging_enabled_title">Terminal-View-Key-Protokollierung</string>
@@ -197,18 +183,16 @@
     <string name="termux_terminal_view_terminal_margin_adjustment_on">Die Terminalrand-Anpassung wird aktiviert. Muss aktiviert sein, um zu versuchen, das Problem zu beheben, bei dem die Soft-Tastatur einen Teil der Zusatztasten/Terminalansicht verdeckt. Falls sie auf Ihrem Gerät zu Bildschirmflackern führt, deaktivieren Sie sie. (Standard)</string>
     <string name="termux_terminal_view_terminal_margin_adjustment_title">Terminalrand-Anpassung</string>
     <string name="termux_terminal_view_view_header">Ansicht</string>
-    <string name="termux_widget_preferences_summary">Einstellungen für die &TERMUX_WIDGET_APP_NAME;-App</string>
-    <string name="termux_widget_preferences_title">&TERMUX_WIDGET_APP_NAME;</string>
+    <string name="termux_widget_preferences_summary">Einstellungen für die Termux:Widget-App</string>
     <string name="text_input_append_enter_summary">Beim Senden aus dem Eingabefeld auch die Zeile absenden (Eingabetaste drücken). Deaktivieren, um Rohtext ohne abschließende neue Zeile zu senden.</string>
     <string name="text_input_append_enter_title">Eingabetaste beim Senden anhängen</string>
     <string name="text_input_show_summary_off">Texteingabefeld ist ausgeblendet</string>
     <string name="text_input_show_summary_on">Texteingabefeld ist über den Zusatztasten sichtbar</string>
     <string name="text_input_show_title">Texteingabefeld anzeigen</string>
-    <string name="text_input_title">Texteingabe</string>
     <string name="text_input_hide_on_send_title">Eingabepanel nach Senden ausblenden</string>
     <string name="text_input_hide_on_send_summary">Wenn aktiviert, schließt sich das Eingabepanel und der Fokus wechselt nach dem Senden zum Terminal. Deaktivieren, um das Panel für aufeinanderfolgende Befehle geöffnet zu lassen.</string>
     <string name="theme_title">Design</string>
-    <string name="title_activity_termux_settings">&TERMUX_APP_NAME;-Einstellungen</string>
+    <string name="title_activity_termux_settings">Termux-Einstellungen</string>
     <string name="title_confirm_kill_process">Diese Sitzung wirklich beenden?</string>
     <string name="title_create_named_session">Neue benannte Sitzung</string>
     <string name="title_file_received">Datei in ~/downloads/ speichern</string>
@@ -238,16 +222,14 @@
     <string name="theme_mode_title">App-Design</string>
 
 
-    <!-- App language override -->
+    
     <string name="locale_override_title">App-Sprache</string>
     <string name="locale_override_summary">App-Sprache überschreiben</string>
     <string name="locale_override_entry_system">Systemsprache (automatische Übersetzung, mögliche Ungenauigkeiten)</string>
     <string name="locale_override_entry_english">Englisch</string>
-    <!-- Hide extra keys with keyboard -->
-    <string name="hide_extra_keys_with_keyboard_title">Zusatztasten mit Tastatur ausblenden</string>
-    <string name="hide_extra_keys_with_keyboard_summary">Zusatztasten automatisch ausblenden wenn Tastatur geschlossen, anzeigen wenn geöffnet</string>
 
-    <!-- Text input auto-complete -->
+
+    
     <string name="suggestions_max_count_title">Max. Vorschläge</string>
     <string name="suggestions_max_count_summary">Autovervollständigung aus Nachrichtenverlauf (1–10)</string>
     <string name="language_category_title">Sprache</string>
@@ -280,7 +262,7 @@
     <string name="extra_keys_style_summary">Wie Sonderzeichen auf den Tasten dargestellt werden.</string>
     <string name="extra_keys_style_default">Standard</string>
     <string name="extra_keys_style_arrows_only">Nur Pfeile</string>
-    <string name="extra_keys_style_arrows_all">Pfeile alle</string>
+    <string name="extra_keys_style_arrows_all">Alle Pfeile</string>
     <string name="extra_keys_style_all">Alle</string>
     <string name="extra_keys_style_none">Keine</string>
     <string name="extra_keys_text_all_caps_title">Text in Großbuchstaben</string>
@@ -289,7 +271,6 @@
     <string name="view_category_title">Ansicht</string>
     <string name="window_category_title">Fenster</string>
     <string name="history_category_title">Verlauf</string>
-    <string name="tabs_category_title">Tabs</string>
     <string name="input_panel_title">Eingabepanel</string>
     <string name="theme_mode_entry_dark">Dunkel</string>
     <string name="theme_mode_entry_light">Hell</string>
@@ -300,17 +281,17 @@
     <string name="screen_orientation_entry_portrait">Hochformat</string>
     <string name="screen_orientation_entry_landscape">Querformat</string>
 
-    <!-- Extra keys visibility -->
+    
     <string name="extra_keys_visibility_title">Zusatztasten-Panel anzeigen</string>
     <string name="extra_keys_visibility_summary">Legt fest, wann die Zusatztastenleiste angezeigt wird.</string>
     <string name="extra_keys_visibility_always">Immer</string>
     <string name="extra_keys_visibility_keyboard">Nur bei geöffneter Tastatur</string>
     <string name="extra_keys_visibility_never">Nie</string>
 
-    <!-- Extra keys invalid JSON -->
+    
     <string name="extra_keys_invalid_json">Ungültiges JSON für Zusatztasten. Änderungen wurden nicht gespeichert.</string>
 
-    <!-- Extra keys editor -->
+    
     <string name="extra_keys_editor_title">Zusatztasten-Editor</string>
     <string name="extra_keys_editor_summary">Zusatztasten-Panel visuell erstellen: Zeilen und Spalten festlegen, dann auf eine Taste tippen, um ein Signal zuzuweisen.</string>
     <string name="extra_keys_editor_columns_title">Spalten</string>
@@ -320,8 +301,8 @@
     <string name="extra_keys_editor_preview_title">Vorschau</string>
     <string name="extra_keys_editor_preview_summary">Live-Panel — Tippen Sie auf eine Taste, um ihr Signal zu ändern.</string>
     <string name="extra_keys_editor_signal_dialog_title">Signal zuweisen</string>
-    <string name="extra_keys_editor_custom_text_title">Custom bind</string>
-    <string name="extra_keys_editor_custom_text_message">Press any key to bind:</string>
+    <string name="extra_keys_editor_custom_text_title">Eigene Belegung</string>
+    <string name="extra_keys_editor_custom_text_message">Taste zum Belegen drücken:</string>
     <string name="extra_keys_editor_save_title">Auf Zusatztasten anwenden</string>
     <string name="extra_keys_editor_save_summary">Dieses Layout in der Zusatztasten-Einstellung speichern.</string>
     <string name="extra_keys_editor_empty">(leer)</string>
@@ -332,21 +313,18 @@
     <string name="extra_keys_editor_open_editor_summary">Layout, Skalierung und Tastenzuweisungen konfigurieren</string>
     <string name="extra_keys_editor_hint">Tippen, um die Hauptaktion zuzuweisen · Wischen ↑ ↓ ← → für Gestenaktionen</string>
 
-    <!-- Extra keys haptic feedback -->
+    
     <string name="extra_keys_haptic_title">Haptisches Feedback</string>
     <string name="extra_keys_haptic_summary">Vibration bei Interaktion mit dem Zusatztasten-Panel</string>
     <string name="extra_keys_haptic_all">Tippen und Gesten</string>
     <string name="extra_keys_haptic_gestures">Nur Gesten</string>
     <string name="extra_keys_haptic_off">Deaktiviert</string>
 
-    <!-- Extra keys editor signal names -->
+    
     <string name="extra_keys_editor_signal_keyboard">Tastatur umschalten</string>
     <string name="extra_keys_editor_signal_paste">Einfügen</string>
     <string name="extra_keys_editor_signal_scroll">Scrollen sperren</string>
     <string name="extra_keys_editor_signal_space">Leertaste</string>
-    <string name="extra_keys_editor_signal_esc">Esc</string>
-    <string name="extra_keys_editor_signal_tab">Tab</string>
-    <string name="extra_keys_editor_signal_home">Home</string>
     <string name="extra_keys_editor_signal_end">Ende</string>
     <string name="extra_keys_editor_signal_page_up">Bild ↑</string>
     <string name="extra_keys_editor_signal_page_down">Bild ↓</string>
@@ -358,20 +336,150 @@
     <string name="extra_keys_editor_signal_right">→</string>
     <string name="extra_keys_editor_signal_down">↓</string>
     <string name="extra_keys_editor_signal_enter">Eingabe</string>
-    <string name="extra_keys_editor_signal_f1">F1</string>
-    <string name="extra_keys_editor_signal_f2">F2</string>
-    <string name="extra_keys_editor_signal_f3">F3</string>
-    <string name="extra_keys_editor_signal_f4">F4</string>
-    <string name="extra_keys_editor_signal_f5">F5</string>
-    <string name="extra_keys_editor_signal_f6">F6</string>
-    <string name="extra_keys_editor_signal_f7">F7</string>
-    <string name="extra_keys_editor_signal_f8">F8</string>
-    <string name="extra_keys_editor_signal_f9">F9</string>
-    <string name="extra_keys_editor_signal_f10">F10</string>
-    <string name="extra_keys_editor_signal_f11">F11</string>
-    <string name="extra_keys_editor_signal_f12">F12</string>
-    <string name="extra_keys_editor_signal_backslash">Backslash (\\)</string>
     <string name="extra_keys_editor_signal_quote">Anführungszeichen (\")</string>
     <string name="extra_keys_editor_signal_apostrophe">Apostroph (\')</string>
-    <string name="extra_keys_editor_signal_custom">Custom bind…</string>
+    <string name="extra_keys_editor_signal_custom">Eigene Belegung…</string>
+
+    <string name="key_behaviour_category_title">Tastenverhalten</string>
+    <string name="screen_category_title">Bildschirm</string>
+    <string name="shortcuts_category_title">Tastenkürzel</string>
+    <string name="misc_category_title">Sonstiges</string>
+    <string name="security_category_title">Sicherheit</string>
+    <string name="sound_category_title">Sound &amp; Benachrichtigungen</string>
+    <string name="session_category_title">Sitzung</string>
+
+    <string name="empty_value_summary">Nicht gesetzt</string>
+    <string name="shortcut_empty_summary">Nicht gesetzt (leer lassen zum Deaktivieren)</string>
+
+    <string name="terminal_transcript_rows_title">Terminal-Protokollzeilen</string>
+    <string name="terminal_transcript_rows_summary">Anzahl der Zeilen, die im Rücklaufprotokoll behalten werden.</string>
+
+    <string name="delete_tmpdir_files_older_than_x_days_on_exit_title">Alte TMPDIR-Dateien beim Beenden löschen</string>
+    <string name="delete_tmpdir_files_older_than_x_days_on_exit_summary">Dateien älter als N Tage aus dem Sitzungs-TMPDIR beim Beenden löschen (-1 = nie löschen).</string>
+
+    <string name="invalid_number">Bitte geben Sie eine gültige Zahl ein.</string>
+
+    <string name="shortcut_invalid_format">Ungültiges Kürzel. Verwenden Sie das Format \"ctrl+x\" oder lassen Sie es leer zum Deaktivieren.</string>
+
+    <string name="terminal_cursor_style_title">Cursor-Stil</string>
+    <string name="terminal_cursor_style_summary">Wie der Terminal-Cursor dargestellt wird.</string>
+
+    <string name="terminal_cursor_blink_rate_title">Cursor-Blinkrate</string>
+    <string name="terminal_cursor_blink_rate_summary">Cursor-Blinkrate in Millisekunden.</string>
+
+    <string name="terminal_cursor_blink_enabled_title">Cursor blinken</string>
+
+    <string name="bell_character_title">Verhalten bei Bell</string>
+    <string name="bell_character_summary">Was passiert, wenn das Terminal ein Bell-Zeichen (BEL) empfängt.</string>
+
+    <string name="terminal_margin_horizontal_title">Horizontaler Rand</string>
+    <string name="terminal_margin_horizontal_summary">Horizontaler Terminal-Rand in dp.</string>
+
+    <string name="terminal_margin_vertical_title">Vertikaler Rand</string>
+    <string name="terminal_margin_vertical_summary">Vertikaler Terminal-Rand in dp.</string>
+
+    <string name="terminal_toolbar_height_title">Symbolleisten-Höhenskalierung</string>
+    <string name="terminal_toolbar_height_summary">Skalierungsfaktor für die Höhe der Zusatztasten-/Terminal-Symbolleiste.</string>
+
+    <string name="default_working_directory_title">Standard-Arbeitsverzeichnis</string>
+    <string name="default_working_directory_summary">Verzeichnis, das für neue Sitzungen geöffnet wird (leer lassen für Home).</string>
+
+    <string name="back_key_title">Verhalten der Zurück-Taste</string>
+    <string name="back_key_summary">Was die Hardware-/Software-Zurück-Taste im Terminal tut.</string>
+
+    <string name="volume_keys_title">Verhalten der Lautstärketasten</string>
+    <string name="volume_keys_summary">Ob die Lautstärketasten die Lautstärke regeln oder als virtuelle Tasten fungieren.</string>
+
+    <string name="soft_keyboard_toggle_behaviour_title">Verhalten des Tastatur-Umschalters</string>
+    <string name="soft_keyboard_toggle_behaviour_summary">Ob der Tastatur-Umschalter die Soft-Tastatur ein-/ausblendet oder aktiviert/deaktiviert.</string>
+
+    <string name="ctrl_space_workaround_title">Ctrl+Space-Workaround</string>
+    <string name="ctrl_space_workaround_summary">Einen Workaround verwenden, damit Ctrl+Space korrekt gesendet wird.</string>
+
+    <string name="enforce_char_based_input_title">Zeichenbasierte Eingabe erzwingen</string>
+    <string name="enforce_char_based_input_summary">Erzwingen, dass Zeichen einzeln Byte für Byte gesendet werden.</string>
+
+    <string name="disable_hardware_keyboard_shortcuts_title">Hardware-Tastaturkürzel deaktivieren</string>
+    <string name="disable_hardware_keyboard_shortcuts_summary">Tastaturkürzel von einer Hardware-/externen Tastatur ignorieren.</string>
+
+    <string name="disable_terminal_session_change_toast_title">Sitzungswechsel-Toast deaktivieren</string>
+    <string name="disable_terminal_session_change_toast_summary">Keinen Toast beim Wechseln von Terminalsitzungen anzeigen.</string>
+
+    <string name="terminal_onclick_url_open_title">URL bei Klick öffnen</string>
+    <string name="terminal_onclick_url_open_summary">URLs im Terminal-Protokoll bei Antippen öffnen.</string>
+
+    <string name="fullscreen_title">Vollbild</string>
+    <string name="fullscreen_summary">Termux im Vollbildmodus ausführen.</string>
+
+    <string name="use_fullscreen_workaround_title">Vollbild-Workaround</string>
+    <string name="use_fullscreen_workaround_summary">Einen Workaround für Vollbild auf Geräten verwenden, die es falsch ausblenden.</string>
+
+    <string name="night_mode_legacy_title">Nachtmodus (veraltet)</string>
+    <string name="night_mode_legacy_summary">Steuert die veraltete Nachtmodus-Eigenschaft. Bevorzugen Sie die Design-Einstellung im Anzeige-Bildschirm.</string>
+
+    <string name="shortcut_summary">Format: Ctrl+TASTE (z. B. Ctrl+a). Leer lassen zum Deaktivieren.</string>
+    <string name="shortcut_create_session_title">Kürzel zum Erstellen einer Sitzung</string>
+    <string name="shortcut_next_session_title">Kürzel für nächste Sitzung</string>
+    <string name="shortcut_previous_session_title">Kürzel für vorherige Sitzung</string>
+    <string name="shortcut_rename_session_title">Kürzel zum Umbenennen einer Sitzung</string>
+
+    <string name="allow_external_apps_title">Externe Apps erlauben</string>
+    <string name="allow_external_apps_summary">Anderen Apps erlauben, Termux-Befehle über RUN_COMMAND zu starten.</string>
+
+    <string name="disable_file_share_receiver_title">Datei-Empfang deaktivieren</string>
+    <string name="disable_file_share_receiver_summary">Keine an Termux gesendeten Dateien akzeptieren.</string>
+
+    <string name="disable_file_view_receiver_title">Datei-Anzeige-Empfang deaktivieren</string>
+    <string name="disable_file_view_receiver_summary">Keine an Termux gesendeten Dateien zum Anzeigen öffnen.</string>
+
+    <string name="run_termux_am_socket_server_title">termux-am-Socket-Server ausführen</string>
+    <string name="run_termux_am_socket_server_summary">Den termux-am-Socket-Server für prozessübergreifende Befehle starten.</string>
+
+    <string name="hide_soft_keyboard_on_startup_title">Soft-Tastatur beim Start ausblenden</string>
+    <string name="hide_soft_keyboard_on_startup_summary">Die Soft-Tastatur beim Start von Termux ausgeblendet lassen.</string>
+
+    
+    <string name="terminal_cursor_style_underline">Unterstrichen</string>
+    <string name="terminal_cursor_style_bar">Balken</string>
+
+    
+    <string name="bell_character_vibrate">Vibrieren</string>
+    <string name="bell_character_beep">Signalton</string>
+    <string name="bell_character_ignore">Ignorieren</string>
+
+    
+    <string name="back_key_back">Zurück-Taste</string>
+    <string name="back_key_escape">Escape-Taste</string>
+
+    
+    <string name="volume_keys_virtual">Virtuell (Lautstärketasten fungieren als Tasten)</string>
+    <string name="volume_keys_volume">Lautstärke (Gerätelautstärke regeln)</string>
+
+    
+    <string name="soft_keyboard_toggle_show_hide">Anzeigen / ausblenden</string>
+    <string name="soft_keyboard_toggle_enable_disable">Aktivieren / deaktivieren</string>
+
+    
+    <string name="night_mode_true">Dunkel</string>
+    <string name="night_mode_false">Hell</string>
+    <string name="night_mode_system">Systemstandard</string>
+
+    
+    <string name="termux_api_debugging_title">Termux:API-Debugging</string>
+    <string name="termux_float_debugging_title">Termux:Float-Debugging</string>
+    <string name="termux_tasker_debugging_title">Termux:Tasker-Debugging</string>
+    <string name="termux_widget_debugging_title">Termux:Widget-Debugging</string>
+
+    
+    <string name="report_issue_title">Termux Problem melden</string>
+    <string name="report_issue_transcript_header">## Protokoll\n</string>
+    <string name="backup_error_open_output">Ausgabedatei konnte nicht geöffnet werden</string>
+
+    
+    <string name="extra_keys_button_margin_title">Tastenabstand</string>
+    <string name="extra_keys_button_margin_summary">Abstand zwischen den Tasten</string>
+
+    
+    <string name="extra_keys_dynamic_font_size_title">Dynamische Schriftgröße</string>
+    <string name="extra_keys_dynamic_font_size_summary">Schriftgröße reduzieren, wenn die Spaltenanzahl oder Makrobindungen zunehmen</string>
 </resources>

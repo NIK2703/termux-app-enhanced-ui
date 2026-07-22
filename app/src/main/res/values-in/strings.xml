@@ -6,22 +6,21 @@
     <!ENTITY TERMUX_API_APP_NAME "Termux:API">
     <!ENTITY TERMUX_BOOT_APP_NAME "Termux:Boot">
     <!ENTITY TERMUX_FLOAT_APP_NAME "Termux:Float">
+    <!ENTITY TERMUX_STYLING_APP_NAME "Termux:Styling">
     <!ENTITY TERMUX_TASKER_APP_NAME "Termux:Tasker">
     <!ENTITY TERMUX_WIDGET_APP_NAME "Termux:Widget">
-    <!ENTITY TERMUX_STYLING_APP_NAME "Termux:Styling">
-]>
+    ]>
 
 <resources>
 <string name="about_preference_title">Tentang</string>
 <string name="action_autofill_password">Isi otomatis kata sandi</string>
 <string name="action_autofill_username">Isi otomatis nama pengguna</string>
 <string name="action_create_named_session_confirm">Buat</string>
-<string name="action_file_received_edit">Edit file yang diterima</string>
-<string name="action_file_received_open_directory">Buka direktori tujuan</string>
+<string name="action_file_received_edit">Sunting</string>
+<string name="action_file_received_open_directory">Buka direktori</string>
 <string name="action_font_terminal">Fonta</string>
 <string name="action_kill_process">Hentikan proses (%d)</string>
 <string name="action_new_session">Sesi Baru</string>
-<string name="action_new_session_failsafe">Failsafe</string>
 <string name="action_open_help">Bantuan</string>
 <string name="action_open_settings">Pengaturan</string>
 <string name="action_rename_session_confirm">Ganti Nama</string>
@@ -33,16 +32,13 @@
 <string name="action_style_terminal">Gaya</string>
 <string name="action_styling_install">Pasang</string>
 <string name="action_toggle_keep_screen_on">Jaga layar tetap menyala</string>
-<string name="action_toggle_soft_keyboard">Keyboard</string>
 <string name="action_toggle_text_input">Alihkan Input Teks</string>
 <string name="appearance_preferences_summary">Preferensi untuk tampilan aplikasi dan transparansi panel</string>
 <string name="appearance_preferences_title">Tampilan</string>
-<string name="application_name">TermuxEnhanced</string>
 <string name="backup_dialog_background">Latar Belakang</string>
-<string name="backup_dialog_cancel">Batalkan pencadangan</string>
-<string name="backup_preference_summary">Menyimpan direktori data Termux (paket terinstal + rumah) ke file .tar.gz</string>
+<string name="backup_dialog_cancel">Batal</string>
+<string name="backup_preference_summary">Menyimpan direktori data Termux (paket terinstal + home) ke file .tar.gz</string>
 <string name="backup_preference_title">Cadangan Data Termux</string>
-<string name="backup_restore_backup_filename">termux-data-backup.tar.gz</string>
 <string name="backup_restore_backup_started">Mencadangkan data…</string>
 <string name="backup_restore_backup_success">Data berhasil dicadangkan</string>
 <string name="backup_restore_cancelled">Operasi dibatalkan</string>
@@ -54,34 +50,33 @@
 <string name="backup_restore_restore_success">Data berhasil dipulihkan</string>
 <string name="backup_restore_warning_backup">Ini akan membuat arsip terkompresi dari direktori data Termux Anda (paket terinstal dan lingkungan bersama dengan direktori home Anda).\n\nPilih file tujuan untuk menyimpan cadangan.</string>
 <string name="backup_restore_warning_restore">Memulihkan akan MENIMPA direktori data Termux saat ini (paket yang diinstal plus direktori home Anda) dengan konten dari file cadangan yang dipilih. Data yang ada akan HILANG.\n\n⚠ Jika pemulihan gagal — karena file cadangan rusak, tidak lengkap, atau koneksi terputus selama proses — lingkungan Termux Anda akan KOSONG. Tidak ada cara untuk memulihkan data asli.\n\nTindakan ini tidak dapat dibatalkan. Sangat disarankan untuk mencadangkan TERLEBIH DAHULU dan memverifikasi bahwa file cadangan valid.</string>
-<string name="backup_service_channel_name">Layanan Pencadangan</string>
+<string name="backup_service_channel_name">Cadangan &amp; Pemulihan Termux</string>
 <string name="backup_service_notification_cancel">Batal</string>
 <string name="backup_service_notification_failed">Pencadangan gagal</string>
-<string name="backup_service_notification_progress">%1$d%%</string>
 <string name="backup_service_notification_restore_failed">Pemulihan gagal</string>
-<string name="backup_service_notification_restore_success">Pemulihan selesai</string>
-<string name="backup_service_notification_restore_title">Memulihkan pencadangan</string>
-<string name="backup_service_notification_success">Pencadangan selesai</string>
+<string name="backup_service_notification_restore_success">Data berhasil dipulihkan</string>
+<string name="backup_service_notification_restore_title">Pemulihan data Termux</string>
+<string name="backup_service_notification_success">Pencadangan berhasil</string>
 <string name="backup_service_notification_title">Cadangan data Termux</string>
 <string name="bootstrap_error_abort">Batalkan</string>
-<string name="bootstrap_error_body">&TERMUX_APP_NAME; tidak dapat memasang paket bootstrap.</string>
-<string name="bootstrap_error_installed_on_portable_sd">&TERMUX_APP_NAME; tidak dapat dipasang di kartu SD portabel/eksternal/lepas-pasang perangkat Anda.\nBiner bootstrap yang dikompilasi untuk &TERMUX_APP_NAME; memiliki jalur $PREFIX yang hardcoded dan tidak dapat dipasang di jalur yang berbeda dari:\n%1$s.</string>
-<string name="bootstrap_error_not_primary_user_message">&TERMUX_APP_NAME; hanya dapat dijalankan sebagai pengguna utama.\nBiner bootstrap yang dikompilasi untuk &TERMUX_APP_NAME; memiliki jalur $PREFIX yang hardcoded dan tidak dapat dipasang di jalur yang berbeda dari:\n%1$s.</string>
+<string name="bootstrap_error_body">Termux tidak dapat memasang paket bootstrap.</string>
+<string name="bootstrap_error_installed_on_portable_sd">Termux tidak dapat dipasang di kartu SD portabel/eksternal/lepas-pasang perangkat Anda.\nBiner bootstrap yang dikompilasi untuk Termux memiliki jalur $PREFIX yang hardcoded dan tidak dapat dipasang di jalur yang berbeda dari:\n%1$s.</string>
+<string name="bootstrap_error_not_primary_user_message">Termux hanya dapat dijalankan sebagai pengguna utama.\nBiner bootstrap yang dikompilasi untuk Termux memiliki jalur $PREFIX yang hardcoded dan tidak dapat dipasang di jalur yang berbeda dari:\n%1$s.</string>
 <string name="bootstrap_error_title">Tidak dapat memasang bootstrap</string>
 <string name="bootstrap_error_try_again">Coba lagi</string>
 <string name="bootstrap_installer_body">Memasang paket bootstrap…</string>
 <string name="color_scheme_dark_summary">Skema warna yang diterapkan saat tema aplikasi gelap</string>
-<string name="color_scheme_dark_title">Skema Warna Gelap</string>
+<string name="color_scheme_dark_title">Skema Warna Terminal (Tema Gelap)</string>
 <string name="color_scheme_dialog_title">Skema Warna Terminal</string>
 <string name="color_scheme_light_summary">Skema warna yang diterapkan saat tema aplikasi terang</string>
-<string name="color_scheme_light_title">Skema Warna Terang</string>
+<string name="color_scheme_light_title">Skema Warna Terminal (Tema Terang)</string>
 <string name="directory_history_clear_confirm">Hapus seluruh riwayat direktori? Tindakan ini tidak dapat dibatalkan.</string>
 <string name="directory_history_clear_dialog_title">Hapus Riwayat Direktori</string>
 <string name="directory_history_cleared">Riwayat direktori dihapus</string>
 <string name="directory_history_max_title">Maks. direktori tersimpan</string>
 <string name="directory_history_title">Riwayat Direktori</string>
 <string name="donate_preference_title">Donasi</string>
-<string name="error_display_over_other_apps_permission_not_granted_to_start_terminal">&TERMUX_APP_NAME; memerlukan izin "Tampil di atas aplikasi lain" untuk memulai sesi terminal dari latar belakang pada Android >= 10. Berikan izin dari Pengaturan -> Aplikasi -> &TERMUX_APP_NAME; -> Tampil di atas aplikasi lain.</string>
+<string name="error_display_over_other_apps_permission_not_granted_to_start_terminal">Termux memerlukan izin "Tampil di atas aplikasi lain" untuk memulai sesi terminal dari latar belakang pada Android &gt;= 10. Berikan izin dari Pengaturan -&gt; Aplikasi -&gt; Termux -&gt; Tampil di atas aplikasi lain.</string>
 <string name="error_font_copy_failed">Gagal menerapkan fonta</string>
 <string name="font_picker_title">Pilih fonta (.ttf)</string>
 <string name="msg_add_termux_debug_info">Sertakan info debug termux ke laporan?</string>
@@ -89,13 +84,13 @@
 <string name="error_run_command_service_invalid_execution_command_runner">Runner perintah eksekusi tidak valid untuk RunCommandService: `%1$s`</string>
 <string name="error_run_command_service_invalid_intent_action">Aksi intent tidak valid untuk RunCommandService: `%1$s`</string>
 <string name="error_run_command_service_mandatory_extra_missing">Ekstra wajib tidak ditemukan untuk RunCommandService: \"%1$s\"</string>
-<string name="error_styling_not_installed">Aplikasi Plugin &TERMUX_STYLING_APP_NAME; belum terinstal.</string>
+<string name="error_styling_not_installed">Aplikasi Plugin Termux:Styling belum terinstal.</string>
 <string name="error_termux_service_execution_command_shell_name_unset">Nama shell tidak ditetapkan tetapi mode pembuatan shell `%1$s` diteruskan</string>
-<string name="error_termux_service_invalid_execution_command_runner">Runner perintah eksekusi tidak valid: %1$s</string>
+<string name="error_termux_service_invalid_execution_command_runner">Runner perintah eksekusi tidak valid untuk TermuxService: `%1$s`</string>
 <string name="error_termux_service_start_failed_bg">Gagal memulai TermuxService saat aplikasi di latar belakang karena batasan latar belakang android.</string>
 <string name="error_termux_service_start_failed_general">Gagal memulai TermuxService. Periksa logcat untuk pesan pengecualian.</string>
-<string name="error_termux_service_unsupported_execution_command_runner">Runner perintah eksekusi tidak didukung: %1$s</string>
-<string name="error_termux_service_unsupported_execution_command_shell_create_mode">Mode pembuatan shell tidak didukung: %1$s</string>
+<string name="error_termux_service_unsupported_execution_command_runner">Runner perintah eksekusi tidak didukung untuk TermuxService: `%1$s`</string>
+<string name="error_termux_service_unsupported_execution_command_shell_create_mode">Mode pembuatan shell tidak didukung untuk TermuxService: `%1$s`</string>
 <string name="file_receiver_error_cannot_create_dir">Tidak dapat membuat direktori: %s</string>
 <string name="file_receiver_error_cannot_open">Tidak dapat membuka file: %s</string>
 <string name="file_receiver_error_cannot_receive">Tidak dapat menerima file atau URL apa pun.</string>
@@ -107,15 +102,14 @@
 <string name="file_receiver_error_no_editor">Berkas berikut tidak ada:\n$HOME/bin/termux-file-editor\n\nBuat berkas ini sebagai skrip atau tautan simbolis — berkas tersebut akan dipanggil dengan file yang diterima sebagai satu-satunya argumen.</string>
 <string name="file_receiver_error_no_url_opener">Berkas berikut tidak ada:\n$HOME/bin/termux-url-opener\n\nBuat berkas ini sebagai skrip atau tautan simbolis — berkas tersebut akan dipanggil dengan URL yang dibagikan sebagai argumen pertamanya.</string>
 <string name="file_receiver_error_saving_file">Galat saat menyimpan file:\n\n%s</string>
-<string name="message_history_clear">Hapus riwayat</string>
-<string name="message_history_clear_all">Hapus semua riwayat</string>
+<string name="message_history_clear">Hapus</string>
+<string name="message_history_clear_all">HAPUS RIWAYAT…</string>
 <string name="message_history_clear_all_btn">Semua</string>
 <string name="message_history_clear_all_question">Anda yakin ingin menghapus semua riwayat pesan?</string>
 <string name="message_history_clear_confirm_all">Hapus seluruh riwayat pesan? Tindakan ini tidak dapat dibatalkan.</string>
 <string name="message_history_clear_confirm_current">Hapus semua pesan yang tersimpan untuk direktori saat ini? Tindakan ini tidak dapat dibatalkan.</string>
 <string name="message_history_clear_current_only_question">Anda yakin ingin menghapus riwayat pesan direktori saat ini?</string>
 <string name="message_history_clear_dialog_title">Hapus riwayat pesan</string>
-<string name="message_history_clear_ok">OK</string>
 <string name="message_history_clear_question">Hapus riwayat pesan?</string>
 <string name="message_history_cleared">Riwayat pesan dihapus</string>
 <string name="message_history_empty">Tidak ada riwayat pesan</string>
@@ -133,21 +127,19 @@
 <string name="notification_action_exit">Keluar</string>
 <string name="notification_action_wake_lock">Dapatkan wakelock</string>
 <string name="notification_action_wake_unlock">Lepaskan wakelock</string>
-<string name="notification_wake_lock_held">(wakelock ditahan)</string>
+<string name="notification_wake_lock_held"> (wakelock ditahan)</string>
 <string name="panel_transparency_title">Transparansi Panel</string>
 <string name="per_directory_message_history_summary">Menyimpan riwayat pesan terpisah untuk setiap direktori kerja. Jika dinonaktifkan, semua sesi berbagi riwayat global.</string>
 <string name="per_directory_message_history_title">Riwayat Pesan per Direktori</string>
-<string name="permission_run_command_description">jalankan perintah sembarang di lingkungan &TERMUX_APP_NAME; dan akses file</string>
-<string name="permission_run_command_label">jalankan perintah di lingkungan &TERMUX_APP_NAME;</string>
+<string name="permission_run_command_description">jalankan perintah sembarang di lingkungan Termux dan akses file</string>
+<string name="permission_run_command_label">jalankan perintah di lingkungan Termux</string>
 <string name="restore_preference_summary">Pulihkan direktori data Termux dari berkas cadangan .tar.gz</string>
 <string name="restore_preference_title">Pulihkan Data Termux</string>
 <string name="restore_sessions_summary">Pulihkan semua tab yang dibuka di sesi sebelumnya saat aplikasi dimulai.</string>
 <string name="restore_sessions_title">Pulihkan tab saat diluncurkan</string>
 <string name="screen_orientation_summary">Varian \"Ikuti sensor\" beralih di antara dua orientasi (mis. potret 0°/180°).</string>
 <string name="screen_orientation_title">Orientasi Layar</string>
-<string name="session_default_title">Terminal</string>
-<string name="session_null_title">null session</string>
-<string name="shared_user_label">&TERMUX_APP_NAME; Pengguna</string>
+<string name="shared_user_label">Termux Pengguna</string>
 <string name="new_tab_placeholder_hint">Sesi baru</string>
 <string name="session_tabs_title">Tab sesi</string>
 <string name="swipe_rightmost_new_tab_title">Geser tab paling kanan untuk sesi baru</string>
@@ -159,26 +151,21 @@
 <string name="termux_tab_panel_position_top">Atas</string>
 <string name="termux_tab_panel_position_bottom">Bawah</string>
 <string name="tab_close_description">Tutup tab</string>
-<string name="termux_api_preferences_summary">Preferensi untuk aplikasi &TERMUX_API_APP_NAME;</string>
-<string name="termux_api_preferences_title">&TERMUX_API_APP_NAME;</string>
+<string name="termux_api_preferences_summary">Preferensi untuk aplikasi Termux:API</string>
 <string name="termux_button_bg_active_alpha_title" formatted="false">Transparansi Latar Belakang Elemen Aktif</string>
 <string name="termux_button_bg_inactive_alpha_title" formatted="false">Transparansi Latar Belakang Elemen Tidak Aktif</string>
-<string name="termux_crash_report_notifications_enabled_off">Notifikasi laporan kerusakan dinonaktifkan.</string>
-<string name="termux_crash_report_notifications_enabled_on">Notifikasi laporan kerusakan diaktifkan. (Default)</string>
+<string name="termux_crash_report_notifications_enabled_off">Nonaktifkan notifikasi untuk laporan kerusakan.</string>
+<string name="termux_crash_report_notifications_enabled_on">Tampilkan notifikasi untuk laporan kerusakan. (Default)</string>
 <string name="termux_crash_report_notifications_enabled_title">Notifikasi Laporan Kerusakan</string>
 <string name="termux_debugging_preferences_summary">Preferensi terkait debugging Termux</string>
-<string name="termux_debugging_preferences_title">Preferensi Debugging</string>
-<string name="termux_float_preferences_summary">Preferensi untuk aplikasi &TERMUX_FLOAT_APP_NAME;</string>
-<string name="termux_float_preferences_title">&TERMUX_FLOAT_APP_NAME;</string>
-<string name="termux_keyboard_header">Keyboard</string>
+<string name="termux_float_preferences_summary">Preferensi untuk aplikasi Termux:Float</string>
 <string name="termux_log_level_title">Level Log</string>
 <string name="termux_logging_header">Pencatatan Log</string>
 <string name="termux_plugin_error_notifications_enabled_off">Nonaktifkan pop-up toast dan notifikasi untuk error plugin.</string>
 <string name="termux_plugin_error_notifications_enabled_on">Tampilkan pop-up toast dan notifikasi untuk error plugin. (Default)</string>
 <string name="termux_plugin_error_notifications_enabled_title">Notifikasi Error Plugin</string>
-<string name="termux_preferences_summary">Preferensi aplikasi &TERMUX_APP_NAME;</string>
-<string name="termux_preferences_title">&TERMUX_APP_NAME;</string>
-<string name="termux_settings_button_enabled_off">Tombol pengaturan disembunyikan. Buka Pengaturan dengan tekan lama pada terminal &#8594; Lainnya&#8230; &#8594; Pengaturan.</string>
+<string name="termux_preferences_summary">Preferensi aplikasi Termux</string>
+<string name="termux_settings_button_enabled_off">Tombol pengaturan disembunyikan. Buka Pengaturan dengan tekan lama pada terminal → Lainnya… → Pengaturan.</string>
 <string name="termux_settings_button_enabled_on">Tombol pengaturan ditampilkan di panel tab. (Default)</string>
 <string name="termux_settings_button_enabled_title">Tampilkan Tombol Pengaturan</string>
 <string name="termux_soft_keyboard_enabled_off">Keyboard lunak akan dinonaktifkan.</string>
@@ -187,21 +174,19 @@
 <string name="termux_soft_keyboard_enabled_only_if_no_hardware_on">Keyboard lunak akan diaktifkan hanya jika tidak ada keyboard fisik yang terhubung.</string>
 <string name="termux_soft_keyboard_enabled_only_if_no_hardware_title">Keyboard Lunak Hanya Tanpa Keyboard Fisik</string>
 <string name="termux_soft_keyboard_enabled_title">Keyboard Lunak Diaktifkan</string>
-<string name="termux_tasker_preferences_summary">Preferensi untuk aplikasi &TERMUX_TASKER_APP_NAME;</string>
-<string name="termux_tasker_preferences_title">&TERMUX_TASKER_APP_NAME;</string>
+<string name="termux_tasker_preferences_summary">Preferensi untuk aplikasi Termux:Tasker</string>
 <string name="termux_terminal_io_preferences_summary">Preferensi I/O terminal</string>
 <string name="termux_terminal_io_preferences_title">I/O Terminal</string>
 <string name="termux_terminal_view_key_logging_enabled_off">Log tidak akan memiliki entri untuk tombol tampilan terminal. (Default)</string>
 <string name="termux_terminal_view_key_logging_enabled_on">Log logcat akan memiliki entri untuk tombol tampilan terminal. Ini sangat verbose dan harus dinonaktifkan dalam keadaan normal atau akan menyebabkan masalah kinerja.</string>
 <string name="termux_terminal_view_key_logging_enabled_title">Pencatatan Log Tombol Tampilan Terminal</string>
 <string name="termux_terminal_view_preferences_summary">Preferensi tampilan terminal</string>
-<string name="termux_terminal_view_preferences_title">Tampilan terminal</string>
+<string name="termux_terminal_view_preferences_title">Tampilan Terminal</string>
 <string name="termux_terminal_view_terminal_margin_adjustment_off">Penyesuaian margin terminal akan dinonaktifkan.</string>
 <string name="termux_terminal_view_terminal_margin_adjustment_on">Penyesuaian margin terminal akan diaktifkan. Harus diaktifkan untuk mencoba memperbaiki masalah dimana keyboard lunak menutupi sebagian tombol ekstra/tampilan terminal. Jika menyebabkan kedipan layar pada perangkat Anda, nonaktifkan. (Default)</string>
 <string name="termux_terminal_view_terminal_margin_adjustment_title">Penyesuaian Margin Terminal</string>
-<string name="termux_terminal_view_view_header">Tampilan Terminal</string>
-<string name="termux_widget_preferences_summary">Preferensi untuk aplikasi &TERMUX_WIDGET_APP_NAME;</string>
-<string name="termux_widget_preferences_title">&TERMUX_WIDGET_APP_NAME;</string>
+<string name="termux_terminal_view_view_header">Tampilan</string>
+<string name="termux_widget_preferences_summary">Preferensi untuk aplikasi Termux:Widget</string>
 <string name="text_input_append_enter_summary">Saat mengirim dari kolom input teks, kirimkan juga baris baru (tekan Enter). Nonaktifkan untuk mengirim teks tanpa baris baru di akhir.</string>
 <string name="text_input_append_enter_title">Tambahkan Enter saat Kirim</string>
 <string name="text_input_show_summary_off">Kolom input teks disembunyikan</string>
@@ -213,7 +198,7 @@
 <string name="theme_mode_summary">Pilih tema aplikasi dan terminal</string>
 <string name="theme_mode_title">Tema Aplikasi</string>
 <string name="theme_title">Tema</string>
-<string name="title_activity_termux_settings">&TERMUX_APP_NAME; Pengaturan</string>
+<string name="title_activity_termux_settings">Termux Pengaturan</string>
 <string name="title_confirm_kill_process">Yakin ingin menghentikan sesi ini?</string>
 <string name="title_create_named_session">Buat Sesi Bernama</string>
 <string name="title_file_received">Simpan file di ~/downloads/</string>
@@ -245,7 +230,7 @@
 <string name="extra_keys_preferences_summary">Preferensi untuk bilah tombol tambahan</string>
 <string name="extra_keys_special_button_mode_title">Perilaku tombol khusus</string>
 <string name="extra_keys_special_button_mode_summary">Cara tombol pengubah (CTRL, ALT, SHIFT, FN) merespons sentuhan. Sticky: ketuk untuk mengalihkan, tekan lama untuk mengunci. Hold: aktif hanya saat tombol ditekan.</string>
-<string name="extra_keys_special_button_mode_sticky">Sticky (alih/ kunci)</string>
+<string name="extra_keys_special_button_mode_sticky">Sticky (alih/kunci)</string>
 <string name="extra_keys_special_button_mode_hold">Hold (saat ditekan)</string>
 <string name="extra_keys_header">Tombol Tambahan</string>
 <string name="extra_keys_category_title">Tombol Tambahan</string>
@@ -276,7 +261,6 @@
 <string name="failure_notifications_category_title">Notifikasi Kegagalan</string>
 <string name="history_category_title">Riwayat</string>
 <string name="tabs_category_title">Tab</string>
-<string name="input_preferences_title">Input</string>
 <string name="input_preferences_summary">Preferensi untuk input teks dan keyboard</string>
 <string name="language_category_title">Bahasa</string>
 <string name="window_category_title">Jendela</string>
@@ -290,17 +274,17 @@
 <string name="screen_orientation_entry_portrait">Potret</string>
     <string name="screen_orientation_entry_landscape">Lanskap</string>
 
-    <!-- Extra keys visibility -->
+    
     <string name="extra_keys_visibility_title">Tampilkan panel tombol tambahan</string>
     <string name="extra_keys_visibility_summary">Kapan panel tombol tambahan ditampilkan.</string>
     <string name="extra_keys_visibility_always">Selalu</string>
     <string name="extra_keys_visibility_keyboard">Hanya saat keyboard terbuka</string>
     <string name="extra_keys_visibility_never">Tidak pernah</string>
 
-    <!-- Extra keys invalid JSON -->
+    
     <string name="extra_keys_invalid_json">JSON untuk tombol tambahan tidak valid. Perubahan tidak disimpan.</string>
 
-    <!-- Extra Keys Editor -->
+    
     <string name="extra_keys_editor_title">Editor Tombol Tambahan</string>
     <string name="extra_keys_editor_summary">Bangun panel tombol tambahan secara visual: atur baris dan kolom, lalu ketuk tombol untuk menetapkan sinyal.</string>
     <string name="extra_keys_editor_columns_title">Kolom</string>
@@ -310,8 +294,6 @@
     <string name="extra_keys_editor_preview_title">Pratinjau</string>
     <string name="extra_keys_editor_preview_summary">Panel langsung — ketuk tombol apa pun untuk mengubah sinyalnya.</string>
     <string name="extra_keys_editor_signal_dialog_title">Tetapkan sinyal</string>
-    <string name="extra_keys_editor_custom_text_title">Custom bind</string>
-    <string name="extra_keys_editor_custom_text_message">Press any key to bind:</string>
     <string name="extra_keys_editor_save_title">Terapkan ke tombol tambahan</string>
     <string name="extra_keys_editor_save_summary">Simpan tata letak ini ke pengaturan tombol tambahan.</string>
     <string name="extra_keys_editor_empty">(kosong)</string>
@@ -322,45 +304,168 @@
     <string name="extra_keys_editor_open_editor_summary">Konfigurasikan tata letak, skala, dan pemetaan tombol</string>
     <string name="extra_keys_editor_hint">Ketuk untuk menetapkan tindakan utama · Geser ↑ ↓ ← → untuk menetapkan tindakan isyarat</string>
 
-    <!-- Extra keys haptic feedback -->
+    
     <string name="extra_keys_haptic_title">Umpan balik haptik</string>
     <string name="extra_keys_haptic_summary">Getaran pada interaksi panel tombol tambahan</string>
     <string name="extra_keys_haptic_all">Ketuk dan isyarat</string>
     <string name="extra_keys_haptic_gestures">Hanya isyarat</string>
     <string name="extra_keys_haptic_off">Nonaktif</string>
 
-    <string name="extra_keys_editor_signal_keyboard">Keyboard toggle</string>
-    <string name="extra_keys_editor_signal_paste">Paste</string>
-    <string name="extra_keys_editor_signal_scroll">Scroll lock</string>
-    <string name="extra_keys_editor_signal_space">Space</string>
-    <string name="extra_keys_editor_signal_esc">Esc</string>
-    <string name="extra_keys_editor_signal_tab">Tab</string>
-    <string name="extra_keys_editor_signal_home">Home</string>
-    <string name="extra_keys_editor_signal_end">End</string>
-    <string name="extra_keys_editor_signal_page_up">Page Up</string>
-    <string name="extra_keys_editor_signal_page_down">Page Down</string>
-    <string name="extra_keys_editor_signal_insert">Insert</string>
-    <string name="extra_keys_editor_signal_delete">Delete</string>
-    <string name="extra_keys_editor_signal_backspace">Backspace</string>
-    <string name="extra_keys_editor_signal_up">Up</string>
-    <string name="extra_keys_editor_signal_left">Left</string>
-    <string name="extra_keys_editor_signal_right">Right</string>
-    <string name="extra_keys_editor_signal_down">Down</string>
-    <string name="extra_keys_editor_signal_enter">Enter</string>
-    <string name="extra_keys_editor_signal_f1">F1</string>
-    <string name="extra_keys_editor_signal_f2">F2</string>
-    <string name="extra_keys_editor_signal_f3">F3</string>
-    <string name="extra_keys_editor_signal_f4">F4</string>
-    <string name="extra_keys_editor_signal_f5">F5</string>
-    <string name="extra_keys_editor_signal_f6">F6</string>
-    <string name="extra_keys_editor_signal_f7">F7</string>
-    <string name="extra_keys_editor_signal_f8">F8</string>
-    <string name="extra_keys_editor_signal_f9">F9</string>
-    <string name="extra_keys_editor_signal_f10">F10</string>
-    <string name="extra_keys_editor_signal_f11">F11</string>
-    <string name="extra_keys_editor_signal_f12">F12</string>
-    <string name="extra_keys_editor_signal_backslash">Backslash (\\)</string>
-    <string name="extra_keys_editor_signal_quote">Quote (\")</string>
-    <string name="extra_keys_editor_signal_apostrophe">Apostrophe (\')</string>
-    <string name="extra_keys_editor_signal_custom">Custom bind…</string>
-</resources>
+    <string name="termux_api_debugging_title">Debugging Termux:API</string>
+    <string name="termux_float_debugging_title">Debugging Termux:Float</string>
+    <string name="termux_tasker_debugging_title">Debugging Termux:Tasker</string>
+    <string name="termux_widget_debugging_title">Debugging Termux:Widget</string>
+
+    
+    <string name="extra_keys_dynamic_font_size_title">Ukuran fonta dinamis</string>
+    <string name="extra_keys_dynamic_font_size_summary">Kurangi ukuran fonta saat jumlah kolom atau ikatan makro bertambah</string>
+
+    
+    <string name="extra_keys_button_margin_title">Jarak antar tombol</string>
+    <string name="extra_keys_button_margin_summary">Ruang antar tombol</string>
+
+    
+    <string name="input_panel_title">Panel Input</string>
+
+    
+    <string name="report_issue_title">Termux Laporkan Masalah</string>
+    <string name="report_issue_transcript_header">## Transkrip\n</string>
+    <string name="backup_error_open_output">Gagal membuka file keluaran</string>
+
+    
+    <string name="key_behaviour_category_title">Perilaku tombol</string>
+    <string name="screen_category_title">Layar</string>
+    <string name="shortcuts_category_title">Pintasan</string>
+    <string name="misc_category_title">Lain-lain</string>
+    <string name="security_category_title">Keamanan</string>
+    <string name="sound_category_title">Suara &amp; notifikasi</string>
+    <string name="session_category_title">Sesi</string>
+
+    
+    <string name="empty_value_summary">Tidak diatur</string>
+    <string name="shortcut_empty_summary">Tidak diatur (kosongkan untuk menonaktifkan)</string>
+
+    
+    <string name="terminal_transcript_rows_title">Baris transkrip terminal</string>
+    <string name="terminal_transcript_rows_summary">Jumlah baris yang disimpan dalam transkrip scrollback.</string>
+
+    
+    <string name="delete_tmpdir_files_older_than_x_days_on_exit_title">Hapus file TMPDIR lama saat keluar</string>
+    <string name="delete_tmpdir_files_older_than_x_days_on_exit_summary">Hapus file yang lebih lama dari N hari dari TMPDIR sesi saat keluar (-1 = jangan pernah hapus).</string>
+
+    
+    <string name="invalid_number">Harap masukkan angka yang valid.</string>
+    <string name="shortcut_invalid_format">Pintasan tidak valid. Gunakan format \"ctrl+x\" atau kosongkan untuk menonaktifkan.</string>
+
+    
+    <string name="terminal_cursor_style_title">Gaya kursor</string>
+    <string name="terminal_cursor_style_summary">Cara kursor terminal digambar.</string>
+    <string name="terminal_cursor_blink_rate_title">Kecepatan kedip kursor</string>
+    <string name="terminal_cursor_blink_rate_summary">Kecepatan kedip kursor dalam milidetik.</string>
+    <string name="terminal_cursor_blink_enabled_title">Kedip kursor</string>
+
+    
+    <string name="bell_character_title">Perilaku bel</string>
+    <string name="bell_character_summary">Apa yang terjadi saat terminal menerima karakter bel (BEL).</string>
+
+    
+    <string name="terminal_margin_horizontal_title">Margin horizontal</string>
+    <string name="terminal_margin_horizontal_summary">Margin horizontal terminal dalam dp.</string>
+    <string name="terminal_margin_vertical_title">Margin vertikal</string>
+    <string name="terminal_margin_vertical_summary">Margin vertikal terminal dalam dp.</string>
+
+    
+    <string name="terminal_toolbar_height_title">Skala tinggi bilah alat</string>
+    <string name="terminal_toolbar_height_summary">Faktor skala tinggi bilah alat terminal / tombol tambahan.</string>
+
+    
+    <string name="default_working_directory_title">Direktori kerja bawaan</string>
+    <string name="default_working_directory_summary">Direktori yang dibuka untuk sesi baru (kosongkan untuk direktori home).</string>
+
+    
+    <string name="back_key_title">Perilaku tombol kembali</string>
+    <string name="back_key_summary">Apa yang dilakukan tombol kembali hardware/software di terminal.</string>
+    <string name="volume_keys_title">Perilaku tombol volume</string>
+    <string name="volume_keys_summary">Apakah tombol volume mengontrol volume atau bertindak sebagai tombol virtual.</string>
+    <string name="soft_keyboard_toggle_behaviour_title">Perilaku alih keyboard</string>
+    <string name="soft_keyboard_toggle_behaviour_summary">Apakah alih keyboard menampilkan/menyembunyikan atau mengaktifkan/menonaktifkan keyboard lunak.</string>
+
+    
+    <string name="ctrl_space_workaround_title">Solusi Ctrl+Space</string>
+    <string name="ctrl_space_workaround_summary">Gunakan solusi agar Ctrl+Space terkirim dengan benar.</string>
+
+    
+    <string name="enforce_char_based_input_title">Paksa input berbasis karakter</string>
+    <string name="enforce_char_based_input_summary">Paksa karakter dikirim satu byte setiap kali.</string>
+
+    
+    <string name="disable_hardware_keyboard_shortcuts_title">Nonaktifkan pintasan keyboard fisik</string>
+    <string name="disable_hardware_keyboard_shortcuts_summary">Abaikan pintasan keyboard dari keyboard fisik/eksternal.</string>
+
+    
+    <string name="disable_terminal_session_change_toast_title">Nonaktifkan toast ganti sesi</string>
+    <string name="disable_terminal_session_change_toast_summary">Jangan tampilkan toast saat mengganti sesi terminal.</string>
+
+    
+    <string name="terminal_onclick_url_open_title">Buka URL saat diklik</string>
+    <string name="terminal_onclick_url_open_summary">Buka URL di transkrip terminal saat diketuk.</string>
+
+    
+    <string name="fullscreen_title">Layar penuh</string>
+    <string name="fullscreen_summary">Jalankan Termux dalam mode layar penuh.</string>
+    <string name="use_fullscreen_workaround_title">Solusi layar penuh</string>
+    <string name="use_fullscreen_workaround_summary">Gunakan solusi untuk layar penuh pada perangkat yang menyembunyikannya secara tidak benar.</string>
+
+    
+    <string name="night_mode_legacy_title">Mode malam (night-mode lama)</string>
+    <string name="night_mode_legacy_summary">Mengontrol properti night-mode lama. Utamakan pengaturan tema di layar Tampilan.</string>
+
+    
+    <string name="shortcut_summary">Format: Ctrl+KEY (mis. Ctrl+a). Kosongkan untuk menonaktifkan.</string>
+    <string name="shortcut_create_session_title">Pintasan buat sesi</string>
+    <string name="shortcut_next_session_title">Pintasan sesi berikutnya</string>
+    <string name="shortcut_previous_session_title">Pintasan sesi sebelumnya</string>
+    <string name="shortcut_rename_session_title">Pintasan ganti nama sesi</string>
+
+    
+    <string name="allow_external_apps_title">Izinkan aplikasi eksternal</string>
+    <string name="allow_external_apps_summary">Izinkan aplikasi lain memulai perintah Termux melalui RUN_COMMAND.</string>
+
+    
+    <string name="disable_file_share_receiver_title">Nonaktifkan penerima file bersama</string>
+    <string name="disable_file_share_receiver_summary">Jangan terima file yang dibagikan ke Termux.</string>
+    <string name="disable_file_view_receiver_title">Nonaktifkan penerima tampilan file</string>
+    <string name="disable_file_view_receiver_summary">Jangan buka file yang dikirim ke Termux untuk dilihat.</string>
+
+    
+    <string name="run_termux_am_socket_server_title">Jalankan server soket termux-am</string>
+    <string name="run_termux_am_socket_server_summary">Mulai server soket termux-am untuk perintah antar-proses.</string>
+
+    
+    <string name="hide_soft_keyboard_on_startup_title">Sembunyikan keyboard lunak saat startup</string>
+    <string name="hide_soft_keyboard_on_startup_summary">Jaga keyboard lunak tetap tersembunyi saat Termux dimulai.</string>
+
+    
+    <string name="terminal_cursor_style_block">Blok</string>
+    <string name="terminal_cursor_style_underline">Garis bawah</string>
+    <string name="terminal_cursor_style_bar">Batang</string>
+
+    <string name="bell_character_vibrate">Getar</string>
+    <string name="bell_character_beep">Bip</string>
+    <string name="bell_character_ignore">Abaikan</string>
+
+    <string name="back_key_back">Tombol kembali</string>
+    <string name="back_key_escape">Tombol Escape</string>
+
+    <string name="volume_keys_virtual">Virtual (tombol volume bertindak sebagai tombol)</string>
+    <string name="volume_keys_volume">Volume (kontrol volume perangkat)</string>
+
+    <string name="soft_keyboard_toggle_show_hide">Tampilkan / sembunyikan</string>
+    <string name="soft_keyboard_toggle_enable_disable">Aktifkan / nonaktifkan</string>
+
+    <string name="night_mode_true">Gelap</string>
+    <string name="night_mode_false">Terang</string>
+    <string name="night_mode_system">Bawaan sistem</string>
+
+    
+    </resources>

@@ -49,6 +49,17 @@
         app:showSeekBarValue="true"
         app:iconSpaceReserved="false" />
 
+    <SeekBarPreference
+        app:key="extra-keys-button-margin"
+        app:title="@string/extra_keys_button_margin_title"
+        app:summary="@string/extra_keys_button_margin_summary"
+        app:min="1"
+        android:max="40"
+        app:defaultValue="20"
+        app:showSeekBarValue="true"
+        app:iconSpaceReserved="false"
+        app:persistent="false" />
+
     <ListPreference
         app:key="extra-keys-style"
         app:defaultValue="default"

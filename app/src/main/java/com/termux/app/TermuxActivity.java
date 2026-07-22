@@ -345,12 +345,6 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
 
 
 
-    /** Max popup height in dp (bounded, never edge-to-edge); scrolls beyond this. */
-    private static final int MESSAGE_HISTORY_POPUP_MAX_HEIGHT_DP = 520;
-
-    /** Gap in dp between the button's top and the popup's bottom edge. */
-    private static final int MESSAGE_HISTORY_POPUP_GAP_DP = 24;
-
     /** Directory history controller — owns visited-CWD list. */
     private DirectoryHistoryController mDirectoryHistoryCtrl = null;
 
@@ -425,8 +419,9 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
             mTextInputState.restoreFromBundle(savedInstanceState);
         }
 
-        // Delete ReportInfo serialized object files from cache older than 14 days
-        ReportActivity.deleteReportInfoFilesOlderThanXDays(this, 14, false);
+        // Delete ReportInfo serialized object files from cache older than N days
+        int cleanupDays = getResources().getInteger(R.integer.report_cleanup_days);
+        ReportActivity.deleteReportInfoFilesOlderThanXDays(this, cleanupDays, false);
 
         // Load Termux app SharedProperties from disk
         mProperties = TermuxAppSharedProperties.getProperties();
@@ -457,7 +452,8 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
                         mDirectoryHistoryCtrl.clear();
                         showToast(getString(R.string.directory_history_cleared), true);
                     }
-                }, MESSAGE_HISTORY_POPUP_GAP_DP, MESSAGE_HISTORY_POPUP_MAX_HEIGHT_DP);
+                }, (int) (getResources().getDimension(R.dimen.message_history_popup_gap) / getResources().getDisplayMetrics().density),
+                        (int) (getResources().getDimension(R.dimen.message_history_popup_max_height) / getResources().getDisplayMetrics().density));
 
         applyTermuxTheme();
 

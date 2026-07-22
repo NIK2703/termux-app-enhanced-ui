@@ -345,6 +345,14 @@ public final class TermuxPreferenceConstants {
         public static final int MAX_EXTRA_KEYS_CORNER_RADIUS = TermuxPropertyConstants.IVALUE_EXTRA_KEYS_CORNER_RADIUS_MAX;
 
 
+        /* float (extra keys button margin in dp) */
+
+        public static final String KEY_EXTRA_KEYS_BUTTON_MARGIN = "extra-keys-button-margin";
+        public static final float DEFAULT_VALUE_EXTRA_KEYS_BUTTON_MARGIN = 2.0f;
+        public static final float MIN_EXTRA_KEYS_BUTTON_MARGIN = 0.1f;
+        public static final float MAX_EXTRA_KEYS_BUTTON_MARGIN = 4.0f;
+
+
         /* Integer (session shortcuts, may be null/0) */
 
         public static final String KEY_SHORTCUT_CREATE_SESSION = "shortcut.create-session";

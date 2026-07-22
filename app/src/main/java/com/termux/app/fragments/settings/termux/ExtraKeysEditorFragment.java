@@ -120,6 +120,20 @@ public class ExtraKeysEditorFragment extends TermuxPreferenceFragmentBase {
             });
         }
 
+        SeekBarPreference marginPref = findPreference("extra-keys-button-margin");
+        if (marginPref != null) {
+            marginPref.setPersistent(false);
+            marginPref.setValue(Math.round(mPrefs.getExtraKeysButtonMargin() * 10f));
+            marginPref.setOnPreferenceChangeListener((preference, newValue) -> {
+                float margin = ((Integer) newValue) / 10f;
+                mPrefs.setExtraKeysButtonMargin(margin);
+                if (mPreviewView != null) mPreviewView.setButtonMargins(margin);
+                rebuildPreview();
+                TermuxActivity.updateTermuxActivityStyling(requireContext(), true);
+                return true;
+            });
+        }
+
         ListPreference stylePref = findPreference(TermuxPropertyConstants.KEY_EXTRA_KEYS_STYLE);
         if (stylePref != null) {
             stylePref.setOnPreferenceChangeListener((preference, newValue) -> {
@@ -229,12 +243,16 @@ public class ExtraKeysEditorFragment extends TermuxPreferenceFragmentBase {
 
         mPreviewView.setButtonTextAllCaps(mPrefs.shouldExtraKeysTextBeAllCaps());
         mPreviewView.setDynamicFontSize(mPrefs.isExtraKeysDynamicFontSizeEnabled(requireContext()));
+        mPreviewView.setButtonMargins(mPrefs.getExtraKeysButtonMargin());
         mPreviewView.setSpecialButtonMode("hold".equals(mPrefs.getExtraKeysSpecialButtonMode())
             ? ExtraKeysView.SpecialButtonMode.HOLD
             : ExtraKeysView.SpecialButtonMode.STICKY);
 
         TermuxColorSchemeManager cm = new TermuxColorSchemeManager();
         cm.recompute(mPrefs);
+
+        int edgeGray = cm.isSchemeLight() ? 0xFF555555 : 0xFFAAAAAA;
+        mPreviewView.setEditorEdgeColor(edgeGray);
 
         mPreviewView.setBackgroundColor(cm.getSchemeBackground());
 
@@ -255,7 +273,14 @@ public class ExtraKeysEditorFragment extends TermuxPreferenceFragmentBase {
         for (int i = 0; i < childCount; i++) {
             View child = mPreviewView.getChildAt(i);
             if (child instanceof com.google.android.material.button.MaterialButton) {
-                child.setTag(new int[]{i / mCols, i % mCols});
+                int row = i / mCols;
+                int col = i % mCols;
+                KeyCell cell = mGrid[visibleRowStart() + row][visibleColStart() + col];
+                int flags = (cell.swipeUp.isEmpty() ? 0 : 1)
+                          | (cell.swipeDown.isEmpty() ? 0 : 2)
+                          | (cell.swipeLeft.isEmpty() ? 0 : 4)
+                          | (cell.swipeRight.isEmpty() ? 0 : 8);
+                child.setTag(new int[]{row, col, flags});
             }
         }
 
