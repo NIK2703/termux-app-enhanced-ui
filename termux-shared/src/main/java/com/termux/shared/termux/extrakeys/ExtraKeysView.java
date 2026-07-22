@@ -1226,32 +1226,7 @@ public final class ExtraKeysView extends GridLayout {
             }
         }
 
-        // Draw swipe direction arrow indicator for editor mode
-        if (mEditorSwipeDir != null && mActiveChild != null) {
-            float cx = mActiveChild.getLeft() + mActiveChild.getWidth() / 2f;
-            float cy = mActiveChild.getTop() + mActiveChild.getHeight() / 2f;
-            float arrowSize = 24f * mDensity;
-            float half = arrowSize / 2f;
 
-            mEditorEdgePaint.setColor(0xFFFF4444);
-            mEditorEdgePaint.setStyle(Paint.Style.FILL);
-            mEditorEdgePaint.setStrokeWidth(0);
-
-            switch (mEditorSwipeDir) {
-                case UP:
-                    canvas.drawRect(cx - half, cy - half, cx + half, cy, mEditorEdgePaint);
-                    break;
-                case DOWN:
-                    canvas.drawRect(cx - half, cy, cx + half, cy + half, mEditorEdgePaint);
-                    break;
-                case LEFT:
-                    canvas.drawRect(cx - half, cy - half, cx, cy + half, mEditorEdgePaint);
-                    break;
-                case RIGHT:
-                    canvas.drawRect(cx, cy - half, cx + half, cy + half, mEditorEdgePaint);
-                    break;
-            }
-        }
     }
 
     @Nullable
@@ -1382,7 +1357,7 @@ public final class ExtraKeysView extends GridLayout {
             }
 
             case MotionEvent.ACTION_POINTER_DOWN: {
-                if (!mGestureConsumed) resetTouchState();
+                resetTouchState();
                 return true;
             }
 
@@ -1390,8 +1365,7 @@ public final class ExtraKeysView extends GridLayout {
                 int pointerIndexAction = ev.getActionIndex();
                 int pointerId = ev.getPointerId(pointerIndexAction);
                 if (pointerId == mActivePointerId) {
-                    if (!mGestureConsumed) resetTouchState();
-                    else mActivePointerId = INVALID_POINTER_ID;
+                    resetTouchState();
                 }
                 return true;
             }

@@ -21,6 +21,10 @@ public final class TerminalRenderer {
     private static final int CLS_FIT = 0;
     private static final int CLS_NATURAL = 1;
     private static final int CLS_NORMAL = 2;
+    private static final int CLS_TEXT_FIT = 3;
+
+    private static final int PAINT_TEXT = 0;
+    private static final int PAINT_EMOJI = 1;
 
     final int mTextSize;
     final Typeface mTypeface;
@@ -37,8 +41,10 @@ public final class TerminalRenderer {
     private final SparseArray<Float> mTextCodePointWidths = new SparseArray<>();
     private final SparseArray<Float> mEmojiCodePointWidths = new SparseArray<>();
     private final HashMap<String, GlyphMetric> mSequenceMetrics = new HashMap<>();
+    private final HashMap<Integer, Float> mInkWidths = new HashMap<>();
 
     private final Rect mTempRect = new Rect();
+    private final Paint.FontMetrics mTempFontMetrics = new Paint.FontMetrics();
 
     private static final class GlyphMetric {
         final float advance;
@@ -90,8 +96,10 @@ public final class TerminalRenderer {
         }
     }
 
-    private static int classify(int codePoint) {
-        if (isEmojiPresentation(codePoint)) return CLS_FIT;
+    private static int classify(int codePoint, boolean vs16Forced, boolean vs15Forced) {
+        if (vs16Forced) return CLS_FIT;
+        if (vs15Forced) return CLS_NORMAL;
+        if (EmojiData.isEmojiPresentation(codePoint)) return CLS_FIT;
         if ((codePoint >= 0x2500 && codePoint <= 0x257F) ||
             (codePoint >= 0x2580 && codePoint <= 0x259F) ||
             (codePoint >= 0x25A0 && codePoint <= 0x25FF) ||
@@ -100,70 +108,6 @@ public final class TerminalRenderer {
             return CLS_NATURAL;
         }
         return CLS_NORMAL;
-    }
-
-    private static boolean isEmojiPresentation(int cp) {
-        if (cp >= 0x1F300 && cp <= 0x1F5FF) return true;
-        if (cp >= 0x1F600 && cp <= 0x1F64F) return true;
-        if (cp >= 0x1F680 && cp <= 0x1F6FF) return true;
-        if (cp >= 0x1F900 && cp <= 0x1F9FF) return true;
-        if (cp >= 0x1FA00 && cp <= 0x1FAFF) return true;
-        if (cp >= 0x2600 && cp <= 0x26FF) return true;
-        if (cp >= 0x2700 && cp <= 0x27BF) return true;
-        if (cp >= 0x1F1E6 && cp <= 0x1F1FF) return true;
-        if (cp >= 0x1F000 && cp <= 0x1F0FF) return true;
-        if (cp >= 0xFE00 && cp <= 0xFE0F) return true;
-        if (cp == 0x200D) return true;
-        if (cp == 0x20E3) return true;
-        if (cp >= 0x1F3FB && cp <= 0x1F3FF) return true;
-        if (cp >= 0xE0020 && cp <= 0xE007F) return true;
-        if (cp >= 0x2B50 && cp <= 0x2B55) return true;
-        if (cp >= 0x231A && cp <= 0x231B) return true;
-        if (cp >= 0x23E9 && cp <= 0x23F3) return true;
-        if (cp >= 0x2934 && cp <= 0x2935) return true;
-        if (cp >= 0x2B05 && cp <= 0x2B07) return true;
-        if (cp >= 0x2B1B && cp <= 0x2B1C) return true;
-        if (cp == 0x3030) return true;
-        if (cp == 0x303D) return true;
-        if (cp == 0x3297) return true;
-        if (cp == 0x3299) return true;
-        if (cp == 0x00A9 || cp == 0x00AE) return true;
-        if (cp == 0x2122) return true;
-        if (cp >= 0x2648 && cp <= 0x2653) return true;
-        if (cp == 0x2693) return true;
-        if (cp == 0x26A1) return true;
-        if (cp >= 0x26AA && cp <= 0x26AB) return true;
-        if (cp >= 0x26BD && cp <= 0x26BE) return true;
-        if (cp >= 0x26C4 && cp <= 0x26C5) return true;
-        if (cp == 0x26D4) return true;
-        if (cp == 0x26EA) return true;
-        if (cp >= 0x26F2 && cp <= 0x26F3) return true;
-        if (cp == 0x26F5) return true;
-        if (cp == 0x26FA) return true;
-        if (cp == 0x26FD) return true;
-        if (cp == 0x2702) return true;
-        if (cp == 0x2705) return true;
-        if (cp >= 0x2708 && cp <= 0x270D) return true;
-        if (cp == 0x270F) return true;
-        if (cp == 0x2712) return true;
-        if (cp == 0x2714) return true;
-        if (cp == 0x2716) return true;
-        if (cp == 0x271D) return true;
-        if (cp == 0x2721) return true;
-        if (cp == 0x2728) return true;
-        if (cp >= 0x2733 && cp <= 0x2734) return true;
-        if (cp == 0x2744) return true;
-        if (cp == 0x2747) return true;
-        if (cp == 0x274C) return true;
-        if (cp == 0x274E) return true;
-        if (cp >= 0x2753 && cp <= 0x2755) return true;
-        if (cp == 0x2757) return true;
-        if (cp >= 0x2763 && cp <= 0x2764) return true;
-        if (cp >= 0x2795 && cp <= 0x2797) return true;
-        if (cp == 0x27A1) return true;
-        if (cp == 0x27B0) return true;
-        if (cp == 0x27BF) return true;
-        return false;
     }
 
     private static boolean isClusterExtender(int codePoint) {
@@ -203,7 +147,6 @@ public final class TerminalRenderer {
         while (idx < limit) {
             int nextCp = codePointAt(line, idx, limit);
             int nextLen = Character.charCount(nextCp);
-
             if (nextCp == 0x200D) {
                 idx += nextLen;
                 if (idx < limit) {
@@ -226,6 +169,15 @@ public final class TerminalRenderer {
         return idx - charIndex;
     }
 
+    private static int lastCodePointInCluster(char[] line, int start, int len) {
+        if (len <= 0) return 0;
+        int end = start + len;
+        if (end >= 2 && Character.isLowSurrogate(line[end - 1]) && Character.isHighSurrogate(line[end - 2])) {
+            return Character.toCodePoint(line[end - 2], line[end - 1]);
+        }
+        return line[end - 1];
+    }
+
     private static int codePointAt(char[] chars, int index, int limit) {
         char c = chars[index];
         if (Character.isHighSurrogate(c) && (index + 1) < limit && Character.isLowSurrogate(chars[index + 1])) {
@@ -246,6 +198,7 @@ public final class TerminalRenderer {
         Float cached = mTextCodePointWidths.get(codePoint);
         if (cached != null) return cached;
         char[] chars = Character.toChars(codePoint);
+        resetPaintEffects(mTextPaint);
         float w = measureWithPaint(mTextPaint, chars, 0, chars.length);
         mTextCodePointWidths.put(codePoint, w);
         return w;
@@ -261,14 +214,32 @@ public final class TerminalRenderer {
         return w;
     }
 
-    private GlyphMetric measureCluster(char[] line, int start, int len) {
-        String key = new String(line, start, len);
+    /** Returns the ink (glyph bounding box) width for a single code point using mTextPaint. */
+    private float getInkWidth(int codePoint) {
+        Float cached = mInkWidths.get(codePoint);
+        if (cached != null) return cached;
+        char[] chars = Character.toChars(codePoint);
+        resetPaintEffects(mTextPaint);
+        mTextPaint.getTextBounds(chars, 0, chars.length, mTempRect);
+        float w = mTempRect.width();
+        // getTextBounds returns 0 when primary typeface lacks glyph.
+        // Fall back to advance as an estimate.
+        if (w <= 0) {
+            w = mTextPaint.measureText(chars, 0, chars.length);
+        }
+        mInkWidths.put(codePoint, w);
+        return w;
+    }
+
+    private GlyphMetric measureCluster(char[] line, int start, int len, Paint paint, int paintId) {
+        String key = paintId + ":" + new String(line, start, len);
         GlyphMetric cached = mSequenceMetrics.get(key);
         if (cached != null) return cached;
 
-        float advance = measureWithPaint(mEmojiPaint, line, start, len);
-        mEmojiPaint.getTextBounds(line, start, len, mTempRect);
-        GlyphMetric metric = new GlyphMetric(advance, 1, mTempRect);
+        resetPaintEffects(paint);
+        float advance = measureWithPaint(paint, line, start, len);
+        paint.getTextBounds(line, start, len, mTempRect);
+        GlyphMetric metric = new GlyphMetric(advance, paintId, mTempRect);
         mSequenceMetrics.put(key, metric);
         return metric;
     }
@@ -335,16 +306,26 @@ public final class TerminalRenderer {
                 final boolean insideSelection = (selx1 >= 0 && column >= selx1 && column <= selx2);
                 final long style = lineObject.getStyle(column);
 
-                final int cls;
-                if (isMultiCpCluster) {
-                    cls = CLS_FIT;
+                final boolean hasVS16, hasVS15;
+                if (clusterLen > 0 && isMultiCpCluster) {
+                    int lastCp = lastCodePointInCluster(line, currentCharIndex, clusterLen);
+                    hasVS16 = (lastCp == 0xFE0F);
+                    hasVS15 = (lastCp == 0xFE0E);
                 } else {
-                    cls = classify(codePoint);
+                    hasVS16 = false;
+                    hasVS15 = false;
+                }
+
+                final int originalCls;
+                if (isMultiCpCluster) {
+                    originalCls = CLS_FIT;
+                } else {
+                    originalCls = classify(codePoint, hasVS16, hasVS15);
                 }
 
                 final float measuredWidth;
-                if (cls == CLS_FIT) {
-                    GlyphMetric gm = measureCluster(line, currentCharIndex, clusterLen);
+                if (originalCls == CLS_FIT) {
+                    GlyphMetric gm = measureCluster(line, currentCharIndex, clusterLen, mEmojiPaint, PAINT_EMOJI);
                     measuredWidth = gm.advance;
                 } else if (codePoint < asciiMeasures.length && clusterLen == 1) {
                     measuredWidth = asciiMeasures[codePoint];
@@ -355,7 +336,29 @@ public final class TerminalRenderer {
                 final boolean fontWidthMismatch =
                         Math.abs(measuredWidth / mFontWidth - codePointWcWidth) > 0.01;
 
-                final boolean forceBreak = (cls != CLS_NORMAL);
+                final boolean uniformNormalOverride = (originalCls == CLS_NORMAL
+                    && !isMultiCpCluster && codePoint > 0x7F && fontWidthMismatch
+                    && !hasVS15
+                    && !isTextLike(codePoint));
+
+                final int cls = uniformNormalOverride ? CLS_FIT : originalCls;
+
+                // CLS_TEXT_FIT: for text-like CLS_NORMAL characters whose ink is
+                // significantly narrower than the cell. Advance matches cell width
+                // but glyph doesn't fill it.
+                int effectiveCls = cls;
+                if (cls == CLS_NORMAL && !isMultiCpCluster && codePoint > 0x7F
+                        && !hasVS15 && clusterLen == 1
+                        && isNarrowEnclosedSymbol(codePoint)) {
+                    float inkW = getInkWidth(codePoint);
+                    float cellW = codePointWcWidth * mFontWidth;
+                    // Apply TEXT_FIT when ink is 0 (font lacks glyph) or narrower than 85% of cell
+                    if (inkW <= 0 || inkW < cellW * 0.85f) {
+                        effectiveCls = CLS_TEXT_FIT;
+                    }
+                }
+
+                final boolean forceBreak = (effectiveCls != CLS_NORMAL);
 
                 if (style != lastRunStyle || insideCursor != lastRunInsideCursor ||
                     insideSelection != lastRunInsideSelection ||
@@ -376,10 +379,14 @@ public final class TerminalRenderer {
                     lastRunFontWidthMismatch = fontWidthMismatch;
                 }
 
-                if (cls == CLS_FIT) {
-                    drawEmojiCell(canvas, line, currentCharIndex, clusterLen, palette,
+                if (effectiveCls == CLS_FIT) {
+                    Paint paint = uniformNormalOverride ? mTextPaint : mEmojiPaint;
+                    int paintId = uniformNormalOverride ? PAINT_TEXT : PAINT_EMOJI;
+                    drawUniformCell(canvas, line, currentCharIndex, clusterLen, palette,
                             heightOffset, column, codePointWcWidth, style,
-                            insideCursor, insideSelection, cursorShape, reverseVideo, mEmulator);
+                            insideCursor, insideSelection, cursorShape, reverseVideo, mEmulator,
+                            paint, paintId);
+
                     lastRunStartColumn = column + codePointWcWidth;
                     lastRunStartIndex = currentCharIndex + clusterLen;
                     measuredWidthForRun = 0.f;
@@ -387,10 +394,23 @@ public final class TerminalRenderer {
                     lastRunInsideCursor = false;
                     lastRunInsideSelection = false;
                     lastRunFontWidthMismatch = false;
-                } else if (cls == CLS_NATURAL) {
+                } else if (effectiveCls == CLS_NATURAL) {
                     drawNaturalCell(canvas, line, currentCharIndex, clusterLen, palette,
                             heightOffset, column, codePointWcWidth, style,
                             insideCursor, insideSelection, cursorShape, reverseVideo, mEmulator);
+
+                    lastRunStartColumn = column + codePointWcWidth;
+                    lastRunStartIndex = currentCharIndex + clusterLen;
+                    measuredWidthForRun = 0.f;
+                    lastRunStyle = 0;
+                    lastRunInsideCursor = false;
+                    lastRunInsideSelection = false;
+                    lastRunFontWidthMismatch = false;
+                } else if (effectiveCls == CLS_TEXT_FIT) {
+                    drawTextFitCell(canvas, line, currentCharIndex, clusterLen, palette,
+                            heightOffset, column, codePointWcWidth, style,
+                            insideCursor, insideSelection, cursorShape, reverseVideo, mEmulator);
+
                     lastRunStartColumn = column + codePointWcWidth;
                     lastRunStartIndex = currentCharIndex + clusterLen;
                     measuredWidthForRun = 0.f;
@@ -440,13 +460,15 @@ public final class TerminalRenderer {
                 cursorColor, cursorShape, style, rev);
     }
 
-    private void drawEmojiCell(Canvas canvas, char[] line, int start, int len,
-                               int[] palette, float y, int startColumn, int cellCols,
-                               long style, boolean insideCursor, boolean insideSelection,
-                               int cursorShape, boolean reverseVideo, TerminalEmulator emulator) {
+    private void drawUniformCell(Canvas canvas, char[] line, int start, int len,
+                                 int[] palette, float y, int startColumn, int cellCols,
+                                 long style, boolean insideCursor, boolean insideSelection,
+                                 int cursorShape, boolean reverseVideo, TerminalEmulator emulator,
+                                 Paint paint, int paintId) {
         int foreColor = TextStyle.decodeForeColor(style);
         int effect = TextStyle.decodeEffect(style);
         int backColor = TextStyle.decodeBackColor(style);
+
         boolean bold = (effect & (TextStyle.CHARACTER_ATTRIBUTE_BOLD | TextStyle.CHARACTER_ATTRIBUTE_BLINK)) != 0;
         boolean underline = (effect & TextStyle.CHARACTER_ATTRIBUTE_UNDERLINE) != 0;
         boolean italic = (effect & TextStyle.CHARACTER_ATTRIBUTE_ITALIC) != 0;
@@ -467,7 +489,9 @@ public final class TerminalRenderer {
             reverseVideoHere = true;
         }
         if (reverseVideoHere) {
-            int tmp = foreColor; foreColor = backColor; backColor = tmp;
+            int tmp = foreColor;
+            foreColor = backColor;
+            backColor = tmp;
         }
 
         float cellLeft = startColumn * mFontWidth;
@@ -485,38 +509,61 @@ public final class TerminalRenderer {
             int cursorColor = emulator.mColors.mCurrentColors[TextStyle.COLOR_INDEX_CURSOR];
             mTextPaint.setColor(cursorColor);
             resetPaintEffects(mTextPaint);
-            float cLeft = cellLeft, cRight = cellRight, cTop = cellTop, cBottom = cellBottom;
+
+            float cLeft = cellLeft;
+            float cRight = cellRight;
+            float cTop = cellTop;
+            float cBottom = cellBottom;
+
             if (cursorShape == TerminalEmulator.TERMINAL_CURSOR_STYLE_UNDERLINE) {
                 cTop = cellBottom - (cellBottom - cellTop) / 4.f;
             } else if (cursorShape == TerminalEmulator.TERMINAL_CURSOR_STYLE_BAR) {
                 cRight = cLeft + (cRight - cLeft) / 4.f;
             }
+
             canvas.drawRect(cLeft, cTop, cRight, cBottom, mTextPaint);
         }
 
         if ((effect & TextStyle.CHARACTER_ATTRIBUTE_INVISIBLE) != 0) return;
         if (dim) foreColor = applyDim(foreColor);
 
-        GlyphMetric gm = measureCluster(line, start, len);
+        GlyphMetric gm = measureCluster(line, start, len, paint, paintId);
+
+        paint.setFakeBoldText(paintId == PAINT_TEXT && bold);
+        paint.setUnderlineText(underline);
+        paint.setTextSkewX(italic ? -0.35f : 0.f);
+        paint.setStrikeThruText(strikeThrough);
+        paint.setColor(foreColor);
+
         float inkW = gm.inkWidth();
         float inkH = gm.inkHeight();
-
-        mEmojiPaint.setFakeBoldText(false);
-        mEmojiPaint.setUnderlineText(underline);
-        mEmojiPaint.setTextSkewX(italic ? -0.35f : 0.f);
-        mEmojiPaint.setStrikeThruText(strikeThrough);
-        mEmojiPaint.setColor(foreColor);
-
-        if (inkW <= 0 || inkH <= 0) {
-            float baselineY = y - mFontLineSpacingAndAscent;
-            canvas.drawTextRun(line, start, len, start, len, cellLeft, baselineY, false, mEmojiPaint);
-            return;
-        }
 
         float cellW = cellCols * mFontWidth;
         float cellH = mFontLineSpacing;
         float cellCenterX = cellLeft + cellW / 2.f;
         float cellCenterY = cellTop + cellH / 2.f;
+
+        if (inkW <= 0 || inkH <= 0) {
+            float advance = measureWithPaint(paint, line, start, len);
+            paint.getFontMetrics(mTempFontMetrics);
+
+            float fontHeight = mTempFontMetrics.descent - mTempFontMetrics.ascent;
+            if (advance <= 0.f) advance = cellW;
+            if (fontHeight <= 0.f) fontHeight = cellH;
+
+            float s = Math.min(cellW / advance, cellH / fontHeight);
+            if (s > 1.f) s = 1.f;
+
+            float baselineCenterOffset = (mTempFontMetrics.ascent + mTempFontMetrics.descent) / 2.f;
+
+            canvas.save();
+            canvas.translate(cellCenterX, cellCenterY);
+            canvas.scale(s, s);
+            canvas.drawTextRun(line, start, len, start, len,
+                    -advance / 2.f, -baselineCenterOffset, false, paint);
+            canvas.restore();
+            return;
+        }
 
         float s = Math.min(cellW / inkW, cellH / inkH);
         if (s > 1.f) s = 1.f;
@@ -527,7 +574,7 @@ public final class TerminalRenderer {
         canvas.save();
         canvas.translate(cellCenterX, cellCenterY);
         canvas.scale(s, s);
-        canvas.drawTextRun(line, start, len, start, len, -inkCX, -inkCY, false, mEmojiPaint);
+        canvas.drawTextRun(line, start, len, start, len, -inkCX, -inkCY, false, paint);
         canvas.restore();
     }
 
@@ -538,6 +585,7 @@ public final class TerminalRenderer {
         int foreColor = TextStyle.decodeForeColor(style);
         int effect = TextStyle.decodeEffect(style);
         int backColor = TextStyle.decodeBackColor(style);
+
         boolean bold = (effect & (TextStyle.CHARACTER_ATTRIBUTE_BOLD | TextStyle.CHARACTER_ATTRIBUTE_BLINK)) != 0;
         boolean underline = (effect & TextStyle.CHARACTER_ATTRIBUTE_UNDERLINE) != 0;
         boolean italic = (effect & TextStyle.CHARACTER_ATTRIBUTE_ITALIC) != 0;
@@ -558,7 +606,9 @@ public final class TerminalRenderer {
             reverseVideoHere = true;
         }
         if (reverseVideoHere) {
-            int tmp = foreColor; foreColor = backColor; backColor = tmp;
+            int tmp = foreColor;
+            foreColor = backColor;
+            backColor = tmp;
         }
 
         float cellLeft = startColumn * mFontWidth;
@@ -576,12 +626,18 @@ public final class TerminalRenderer {
             int cursorColor = emulator.mColors.mCurrentColors[TextStyle.COLOR_INDEX_CURSOR];
             mTextPaint.setColor(cursorColor);
             resetPaintEffects(mTextPaint);
-            float cLeft = cellLeft, cRight = cellRight, cTop = cellTop, cBottom = cellBottom;
+
+            float cLeft = cellLeft;
+            float cRight = cellRight;
+            float cTop = cellTop;
+            float cBottom = cellBottom;
+
             if (cursorShape == TerminalEmulator.TERMINAL_CURSOR_STYLE_UNDERLINE) {
                 cTop = cellBottom - (cellBottom - cellTop) / 4.f;
             } else if (cursorShape == TerminalEmulator.TERMINAL_CURSOR_STYLE_BAR) {
                 cRight = cLeft + (cRight - cLeft) / 4.f;
             }
+
             canvas.drawRect(cLeft, cTop, cRight, cBottom, mTextPaint);
         }
 
@@ -598,6 +654,125 @@ public final class TerminalRenderer {
         canvas.drawTextRun(line, start, len, start, len, cellLeft, baselineY, false, mTextPaint);
     }
 
+    /**
+     * Renders a text-like symbol (circled number, Roman numeral) so its ink
+     * fills the cell while preserving aspect ratio as much as possible.
+     * Unlike drawUniformCell: uses mTextPaint, allows upscale.
+     * Unlike drawTextRun: scales by ink bounds, not advance width.
+     */
+    private void drawTextFitCell(Canvas canvas, char[] line, int start, int len,
+                                 int[] palette, float y, int startColumn, int cellCols,
+                                 long style, boolean insideCursor, boolean insideSelection,
+                                 int cursorShape, boolean reverseVideo, TerminalEmulator emulator) {
+        int foreColor = TextStyle.decodeForeColor(style);
+        int effect = TextStyle.decodeEffect(style);
+        int backColor = TextStyle.decodeBackColor(style);
+        boolean bold = (effect & (TextStyle.CHARACTER_ATTRIBUTE_BOLD | TextStyle.CHARACTER_ATTRIBUTE_BLINK)) != 0;
+        boolean italic = (effect & TextStyle.CHARACTER_ATTRIBUTE_ITALIC) != 0;
+        if ((foreColor & 0xff000000) != 0xff000000) {
+            if (bold && foreColor >= 0 && foreColor < 8) foreColor += 8;
+            foreColor = palette[foreColor];
+        }
+        if ((backColor & 0xff000000) != 0xff000000) {
+            backColor = palette[backColor];
+        }
+        boolean reverseVideoHere = reverseVideo ^ ((effect & TextStyle.CHARACTER_ATTRIBUTE_INVERSE) != 0);
+        if (insideSelection) reverseVideoHere = true;
+        if (insideCursor && cursorShape == TerminalEmulator.TERMINAL_CURSOR_STYLE_BLOCK) {
+            reverseVideoHere = true;
+        }
+        if (reverseVideoHere) {
+            int tmp = foreColor; foreColor = backColor; backColor = tmp;
+        }
+
+        float cellLeft = startColumn * mFontWidth;
+        float cellRight = cellLeft + cellCols * mFontWidth;
+        float cellTop = y - mFontLineSpacing;
+        float cellBottom = y;
+        float cellW = cellCols * mFontWidth;
+        float cellH = mFontLineSpacing;
+
+        // Background
+        if (backColor != palette[TextStyle.COLOR_INDEX_BACKGROUND]) {
+            mTextPaint.setColor(backColor);
+            resetPaintEffects(mTextPaint);
+            canvas.drawRect(cellLeft, cellTop, cellRight, cellBottom, mTextPaint);
+        }
+
+        // Cursor
+        if (insideCursor) {
+            int cursorColor = emulator.mColors.mCurrentColors[TextStyle.COLOR_INDEX_CURSOR];
+            mTextPaint.setColor(cursorColor);
+            resetPaintEffects(mTextPaint);
+            float cLeft = cellLeft, cRight = cellRight, cTop = cellTop, cBottom = cellBottom;
+            if (cursorShape == TerminalEmulator.TERMINAL_CURSOR_STYLE_UNDERLINE) {
+                cTop = cellBottom - (cellBottom - cellTop) / 4.f;
+            } else if (cursorShape == TerminalEmulator.TERMINAL_CURSOR_STYLE_BAR) {
+                cRight = cLeft + (cRight - cLeft) / 4.f;
+            }
+            canvas.drawRect(cLeft, cTop, cRight, cBottom, mTextPaint);
+        }
+
+        if ((effect & TextStyle.CHARACTER_ATTRIBUTE_INVISIBLE) != 0) return;
+        if ((effect & TextStyle.CHARACTER_ATTRIBUTE_DIM) != 0) foreColor = applyDim(foreColor);
+
+        // Measure ink using mTextPaint (monospace + fallback)
+        GlyphMetric gm = measureCluster(line, start, len, mTextPaint, PAINT_TEXT);
+        float inkW = gm.inkWidth();
+        float inkH = gm.inkHeight();
+        float inkCX, inkCY;
+
+        if (inkW <= 0 || inkH <= 0) {
+            float advance = gm.advance;
+            mTextPaint.getFontMetrics(mTempFontMetrics);
+            float ascent = Math.abs(mTempFontMetrics.ascent);
+            float descent = mTempFontMetrics.descent;
+            float fontH = ascent + descent;
+
+            inkW = (advance > 0) ? advance : cellW * 0.6f;
+            inkH = (fontH > 0) ? fontH : cellH * 0.7f;
+
+            // Synthesized ink center
+            inkCX = inkW * 0.5f;
+            inkCY = -ascent + inkH * 0.5f;
+        } else {
+            inkCX = gm.inkCenterX();
+            inkCY = gm.inkCenterY();
+        }
+
+        // Compute uniform scale to fill cell
+        float scaleX = cellW / inkW;
+        float scaleY = cellH / inkH;
+        float s = Math.min(scaleX, scaleY);  // uniform: preserve aspect ratio
+
+        // Allow upscale (these glyphs are meant to fill the cell) but cap at 2x
+        if (s > 2.0f) s = 2.0f;
+        if (s < 1.0f) s = 1.0f;  // never shrink below natural size
+
+        // If after uniform scaling the ink still doesn't fill width,
+        // apply additional horizontal stretch (gentle oval)
+        float hStretch = 1.0f;
+        float effectiveInkW = inkW * s;
+        if (effectiveInkW < cellW * 0.92f) {
+            hStretch = cellW / effectiveInkW;
+            if (hStretch > 1.5f) hStretch = 1.5f;
+        }
+
+        // Draw with transform
+        mTextPaint.setFakeBoldText(bold);
+        mTextPaint.setTextSkewX(italic ? -0.35f : 0.f);
+        mTextPaint.setColor(foreColor);
+
+        float cellCenterX = cellLeft + cellW / 2.f;
+        float cellCenterY = cellTop + cellH / 2.f;
+
+        canvas.save();
+        canvas.translate(cellCenterX, cellCenterY);
+        canvas.scale(s * hStretch, s);
+        canvas.drawTextRun(line, start, len, start, len, -inkCX, -inkCY, false, mTextPaint);
+        canvas.restore();
+    }
+
     private void drawTextRun(Canvas canvas, char[] text, int[] palette, float y,
                              int startColumn, int runWidthColumns,
                              int startCharIndex, int runWidthChars, float mes,
@@ -606,6 +781,7 @@ public final class TerminalRenderer {
         int foreColor = TextStyle.decodeForeColor(textStyle);
         final int effect = TextStyle.decodeEffect(textStyle);
         int backColor = TextStyle.decodeBackColor(textStyle);
+
         final boolean bold = (effect & (TextStyle.CHARACTER_ATTRIBUTE_BOLD | TextStyle.CHARACTER_ATTRIBUTE_BLINK)) != 0;
         final boolean underline = (effect & TextStyle.CHARACTER_ATTRIBUTE_UNDERLINE) != 0;
         final boolean italic = (effect & TextStyle.CHARACTER_ATTRIBUTE_ITALIC) != 0;
@@ -642,12 +818,18 @@ public final class TerminalRenderer {
         if (cursor != 0) {
             mTextPaint.setColor(cursor);
             resetPaintEffects(mTextPaint);
-            float cLeft = cellLeft, cRight = cellRight, cTop = cellTop, cBottom = cellBottom;
+
+            float cLeft = cellLeft;
+            float cRight = cellRight;
+            float cTop = cellTop;
+            float cBottom = cellBottom;
+
             if (cursorStyle == TerminalEmulator.TERMINAL_CURSOR_STYLE_UNDERLINE) {
                 cTop = cellBottom - (cellBottom - cellTop) / 4.f;
             } else if (cursorStyle == TerminalEmulator.TERMINAL_CURSOR_STYLE_BAR) {
                 cRight = cLeft + (cRight - cLeft) / 4.f;
             }
+
             canvas.drawRect(cLeft, cTop, cRight, cBottom, mTextPaint);
         }
 
@@ -673,6 +855,66 @@ public final class TerminalRenderer {
             canvas.drawTextRun(text, startCharIndex, runWidthChars, startCharIndex, runWidthChars,
                     cellLeft, baselineY, false, mTextPaint);
         }
+    }
+
+    private static boolean isNarrowEnclosedSymbol(int cp) {
+        // Enclosed Alphanumerics (U+2460-U+24FF): circled numbers/letters
+        if (cp >= 0x2460 && cp <= 0x24FF) return true;
+        // Number Forms (U+2150-U+218F): Roman numerals Ⅰ-Ⅻ, ⅰ-ⅻ, fractions
+        if (cp >= 0x2150 && cp <= 0x218F) return true;
+        // Dingbat circled numbers (U+2776-U+2793): ❶-❿, ➊-➓, ➀-➉
+        if (cp >= 0x2776 && cp <= 0x2793) return true;
+        // Enclosed CJK Letters and Months (U+3200-U+32FF)
+        if (cp >= 0x3200 && cp <= 0x32FF) return true;
+        // Enclosed Alphanumeric Supplement (U+1F100-U+1F1FF)
+        if (cp >= 0x1F100 && cp <= 0x1F1FF) return true;
+        // Enclosed Ideographic Supplement (U+1F200-U+1F2FF)
+        if (cp >= 0x1F200 && cp <= 0x1F2FF) return true;
+        return false;
+    }
+
+    private static boolean isTextLike(int cp) {
+        final int type = Character.getType(cp);
+
+        // Unicode general categories that should be treated as text-like:
+        // L*: all letters, Nd: decimal digits, Nl: Roman numerals, No: circled digits/fractions
+        switch (type) {
+            case Character.UPPERCASE_LETTER:
+            case Character.LOWERCASE_LETTER:
+            case Character.TITLECASE_LETTER:
+            case Character.MODIFIER_LETTER:
+            case Character.OTHER_LETTER:
+            case Character.LETTER_NUMBER:
+            case Character.DECIMAL_DIGIT_NUMBER:
+            case Character.OTHER_NUMBER:
+                return true;
+        }
+
+        // Enclosed alphanumeric symbols that Unicode classifies as So (Other_Symbol)
+        // but are actually text-like, not emoji.
+        if (cp >= 0x2460 && cp <= 0x24FF) return true;  // Enclosed Alphanumerics
+        if (cp >= 0x3200 && cp <= 0x32FF) return true;  // Enclosed CJK Letters and Months
+        if (cp >= 0x2776 && cp <= 0x2793) return true;  // Dingbat circled numbers
+        if (cp >= 0x1F100 && cp <= 0x1F10C) return true; // Negative circled numbers
+
+        // Keep explicit CJK/Hangul/Kana ranges for safety (redundant but harmless)
+        if (cp >= 0x4E00 && cp <= 0x9FFF) return true;
+        if (cp >= 0x3400 && cp <= 0x4DBF) return true;
+        if (cp >= 0x20000 && cp <= 0x2A6DF) return true;
+        if (cp >= 0x2A700 && cp <= 0x2B73F) return true;
+        if (cp >= 0x2B740 && cp <= 0x2B81F) return true;
+        if (cp >= 0x2B820 && cp <= 0x2CEAF) return true;
+        if (cp >= 0x2CEB0 && cp <= 0x2EBE0) return true;
+        if (cp >= 0x30000 && cp <= 0x3134F) return true;
+        if (cp >= 0x31350 && cp <= 0x323AF) return true;
+        if (cp >= 0xAC00 && cp <= 0xD7A3) return true;
+        if (cp >= 0x1100 && cp <= 0x11FF) return true;
+        if (cp >= 0xA960 && cp <= 0xA97C) return true;
+        if (cp >= 0xD7B0 && cp <= 0xD7FF) return true;
+        if (cp >= 0x3041 && cp <= 0x3096) return true;
+        if (cp >= 0x30A1 && cp <= 0x30FA) return true;
+
+        return false;
     }
 
     private static void resetPaintEffects(Paint p) {

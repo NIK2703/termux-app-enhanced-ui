@@ -88,9 +88,6 @@ public final class SessionPagerManager {
      * placeholder slot does not spawn a phantom duplicate session.
      */
     private boolean mUserScrollInProgress = false;
-    private boolean mWasDragging = false;
-    private boolean mSmoothScrollPending = false;
-    private int mPreviousPage = 0;
 
     public boolean isColdStartSessionPending() {
         return mColdStartSessionPending;
@@ -138,37 +135,37 @@ public final class SessionPagerManager {
         mTerminalPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageScrollStateChanged(int state) {
-                switch (state) {
-                    case ViewPager2.SCROLL_STATE_DRAGGING:
-                        mUserScrollInProgress = true;
-                        mWasDragging = true;
-                        mSmoothScrollPending = false;
-                        withTabsController(tabs -> tabs.setEndScrollReserved(false));
-                        withTabsController(tabs -> tabs.onDragStarted());
-                        mActivity.setTerminalPageSwitchInProgress(true);
-                        break;
+                // Track whether the user is physically dragging the pager (a real swipe gesture).
+                // A programmatic setCurrentItem() never passes through DRAGGING, so this flag lets
+                // onPageSelected() tell a user swipe onto the placeholder apart from a programmatic
+                // scroll that merely lands on the placeholder's index.
+                if (state == ViewPager2.SCROLL_STATE_DRAGGING) {
+                    mUserScrollInProgress = true;
+                    // A user-initiated swipe starts a genuine tab navigation: release the reserved
+                    // end-scroll so onPageScrolled()'s finger-follow instant scroll is re-enabled and
+                    // the strip can move with the swipe. The end-scroll (if any) already fired once
+                    // the label was set; a manual swipe means the user is taking over.
+                    withTabsController(tabs -> tabs.setEndScrollReserved(false));
+                } else if (state == ViewPager2.SCROLL_STATE_IDLE) {
+                    mUserScrollInProgress = false;
+                }
 
-                    case ViewPager2.SCROLL_STATE_SETTLING:
-                        if (!mWasDragging) {
-                            int targetPage = mTerminalPager.getCurrentItem();
-                            int distance = Math.abs(targetPage - mPreviousPage);
-                            if (distance > 1) {
-                                withTabsController(tabs -> tabs.onProgrammaticScrollStarted(targetPage, mPreviousPage));
-                            } else {
-                                withTabsController(tabs -> tabs.onAdjacentScrollStarted());
-                            }
-                        }
-                        mActivity.setTerminalPageSwitchInProgress(true);
-                        break;
-
-                    case ViewPager2.SCROLL_STATE_IDLE:
-                        mUserScrollInProgress = false;
-                        mWasDragging = false;
-                        mSmoothScrollPending = false;
-                        mPreviousPage = mTerminalPager.getCurrentItem();
-                        withTabsController(tabs -> tabs.onScrollFinished(mTerminalPager.getCurrentItem()));
-                        mTerminalPager.post(() -> mActivity.setTerminalPageSwitchInProgress(false));
-                        break;
+                // Suppress IME hide/show churn for the ENTIRE swipe gesture, not just after
+                // onPageSelected() fires. onPageSelected() only runs at the end of the settle, by
+                // which point the old page has already lost focus and its focus listener (if the
+                // guard were still false) would have hidden the keyboard mid-swipe — that is the
+                // keyboard flicker when switching tabs/sessions. Raise the guard on DRAGGING and
+                // SETTLING (the whole transition) and lower it on IDLE (after the settle, posted so
+                // it does not clear while a late focus event is still in flight).
+                if (state == ViewPager2.SCROLL_STATE_DRAGGING
+                        || state == ViewPager2.SCROLL_STATE_SETTLING) {
+                    mActivity.setTerminalPageSwitchInProgress(true);
+                } else if (state == ViewPager2.SCROLL_STATE_IDLE) {
+                    mTerminalPager.post(() -> mActivity.setTerminalPageSwitchInProgress(false));
+                    // If the swipe was cancelled (released back to the same page),
+                    // onPageSelected never fires and the tab strip may be left in an
+                    // intermediate blended state. Reset to clean selection state here.
+                    withTabsController(tabs -> tabs.resetPageSelection(mTerminalPager.getCurrentItem()));
                 }
             }
 
@@ -177,7 +174,7 @@ public final class SessionPagerManager {
                 // Forward the intermediate scroll progress to the tab strip so the
                 // selection highlight and scroll position follow the user's finger
                 // smoothly rather than snapping at the end of the settle.
-                withTabsController(tabs -> tabs.onPageScrolled(position, positionOffset, positionOffsetPixels));
+                withTabsController(tabs -> tabs.onPageScrolled(position, positionOffset));
                 // Update floating button margin for intermediate scroll state
                 updateFloatingButtonMarginForScroll(position, positionOffset);
 

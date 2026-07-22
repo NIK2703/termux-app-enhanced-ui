@@ -16,6 +16,7 @@ import android.text.SpannableString;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewOutlineProvider;
@@ -124,6 +125,12 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
     /** Force a full rescan (Path A) on the next update — set after a swipe commits
      *  arbitrary text, which the incremental additive filter cannot handle. */
     private boolean mForceFullRescan;
+
+    /** Last known caret position, used to detect actual caret movement
+     *  (tap/reposition without text change) without relying on
+     *  setOnSelectionChangedListener (API 29+). Updated from
+     *  {@link #onCaretMoved()} and {@link #afterTextChanged(Editable)}. */
+    private int mLastCaretPosition = -1;
 
     /** Reusable scratch set to avoid per-keystroke HashSet allocations in the hot path. */
     private final HashSet<String> mSeenSet = new HashSet<>();
@@ -358,6 +365,9 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
 
     /** Reposition the popup (e.g. after a caret move with no text change). */
     public void onCaretMoved() {
+        if (mInputField != null) {
+            mLastCaretPosition = mInputField.getSelectionStart();
+        }
         repositionAutoCompletePopup();
     }
 
@@ -461,21 +471,41 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
                 }
                 if (mComposingCoalesce != null) { mImeHandler.removeCallbacks(mComposingCoalesce); mComposingCoalesce = null; }
                 updateAutoCompleteSuggestions(); // a committed character (or a backspace) is computed instantly
+                // Sync last known caret after any text change — the caret
+                // typically moves to the end of the new text.
+                if (mInputField != null) {
+                    mLastCaretPosition = mInputField.getSelectionStart();
+                }
             }
         });
 
-        // Reposition the auto-complete popup when the caret moves without text changes
-        // (e.g. tapping a different position in the text). We use ACTION_UP on the EditText
-        // because setOnSelectionChangedListener is API 29+ and the project targets API 28.
+        // Detect caret-move taps on the EditText. We use ACTION_UP on the
+        // EditText because setOnSelectionChangedListener is API 29+ and the
+        // project targets API 21. We guard by comparing against the last known
+        // caret position so that tapping in the same spot is a no-op.
         mInputField.setOnTouchListener((v, event) -> {
             if (event.getAction() == MotionEvent.ACTION_UP) {
                 v.post(() -> {
                     if (mInputField == null) return;
-                    android.text.Editable t = mInputField.getText();
-                    if (mInputField.getSelectionStart() == t.length()) repositionAutoCompletePopup();
+                    int newCaret = mInputField.getSelectionStart();
+                    if (newCaret < 0 || newCaret == mLastCaretPosition) return;
+                    mLastCaretPosition = newCaret;
+                    onCaretMoved();
                 });
             }
             return false; // don't consume the event, let the EditText handle it
+        });
+
+        // Arrow-key navigation also moves the caret without text changes.
+        // OnKeyListener fires once per key-up; we call onCaretMoved() which
+        // checks the current caret position against the text length.
+        mInputField.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() == KeyEvent.ACTION_UP
+                    && (keyCode == KeyEvent.KEYCODE_DPAD_LEFT
+                        || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT)) {
+                onCaretMoved();
+            }
+            return false; // don't consume, let the EditText handle navigation
         });
     }
 

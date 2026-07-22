@@ -222,6 +222,15 @@ public class TermuxServiceConnectionManager implements ServiceConnection {
         // stored/last session). Safe to call even if sessions were added asynchronously above —
         // it is a no-op when the list is still empty.
         mActivity.syncTerminalPagerToService();
+
+        // Populate the tab strip with existing sessions after activity recreate (theme change
+        // or back-finish + reopen). onStart() ran before the service connected and skipped
+        // termuxSessionListNotifyUpdated() because getTermuxService() was null, so the
+        // freshly-created tabs controller still has only the (+) button. Without this call
+        // the tabs stay empty until a new session is added via the (+) button.
+        if (mTermuxService != null && !mTermuxService.isTermuxSessionsEmpty()) {
+            mActivity.termuxSessionListNotifyUpdated(-1);
+        }
     }
 
     @Override

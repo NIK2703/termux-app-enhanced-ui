@@ -2240,18 +2240,19 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         // now lives in SessionPagerManager. It re-points mTerminalView to the correct page; we then
         // refresh the tab strip and snapshot below.
         //
-        // NOTE: pager sync is done BEFORE updateTabs() so that onTerminalPageSelected — which fires
-        // during the sync — re-points mTerminalView to the correct page. If updateTabs() ran first,
-        // getCurrentSession() would still return the closed session and no tab would be highlighted.
-        if (mSessionPagerManager != null)
-            mSessionPagerManager.termuxSessionListNotifyUpdated(preferredIndex);
-
-        // Update the tab strip AFTER the pager sync, so getCurrentSession() (which reads
-        // mTerminalView — set inside onTerminalPageSelected above) returns the correct session
-        // and the selected tab is properly highlighted.
+        // NOTE: updateTabs() runs BEFORE the pager sync so that scrollStripToEnd() (called when
+        // newCount > sessionCount) sets mEndScrollActive=true before onScrollFinished() fires from
+        // the pager's setCurrentItem(false). This prevents snapToTabCenter() from centering the
+        // new tab just before the end-scroll scrolls to the right edge — which was the root cause of
+        // the jerky "double movement" on tab creation. getCurrentSession() during updateTabs() may
+        // return the old session, but the selection is corrected by setCurrentSession() inside
+        // onTerminalPageSelected() before any frame renders.
         if (mTermuxSessionTabsController != null && mServiceConnectionManager.getTermuxService() != null) {
             mTermuxSessionTabsController.updateTabs(mServiceConnectionManager.getTermuxService().getTermuxSessions());
         }
+
+        if (mSessionPagerManager != null)
+            mSessionPagerManager.termuxSessionListNotifyUpdated(preferredIndex);
 
         // Keep the open-tabs snapshot fresh while sessions are alive, so a later
         // exit (e.g. the notification's Exit action, which kills sessions before

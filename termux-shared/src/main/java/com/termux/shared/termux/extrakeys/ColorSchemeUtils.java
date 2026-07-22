@@ -173,6 +173,34 @@ public final class ColorSchemeUtils {
     }
 
     /**
+     * Ensure the static {@link TerminalColors#COLOR_SCHEME} reflects the given night mode.
+     * <p>
+     * If a per-theme color file exists ({@code colors.light.properties} /
+     * {@code colors.dark.properties}), it is loaded first. Otherwise the built-in default
+     * scheme is applied: the default dark scheme (black background) for night mode, or the
+     * provided {@code lightScheme} for light mode.
+     *
+     * @param isNight     {@code true} for night (dark) mode.
+     * @param lightScheme A {@link Properties} with light color scheme values (background=white,
+     *                    foreground=black, etc.) to use in light mode when no custom file exists.
+     *                    May be {@code null} — in that case dark scheme is used as fallback.
+     * @return {@code true} if a custom per-theme color file was loaded,
+     *         {@code false} if the built-in default scheme was applied instead.
+     */
+    public static boolean ensureColorSchemeForTheme(boolean isNight, Properties lightScheme) {
+        File colorsFile = getColorSchemeFileForTheme(isNight);
+        boolean customApplied = (colorsFile != null) && loadTerminalColorScheme(colorsFile);
+        if (!customApplied) {
+            if (!isNight && lightScheme != null) {
+                TerminalColors.COLOR_SCHEME.updateWith(lightScheme);
+            } else {
+                TerminalColors.COLOR_SCHEME.updateWith(new Properties());
+            }
+        }
+        return customApplied;
+    }
+
+    /**
      * Resolve the color-scheme file to use for the given UI night mode.
      * Per-theme files ({@code colors.light.properties} / {@code colors.dark.properties}) take
      * priority so a light/dark scheme can be assigned independently of the app theme.

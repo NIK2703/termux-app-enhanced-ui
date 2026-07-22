@@ -17,12 +17,14 @@ import com.termux.R;
 import com.termux.app.TermuxActivity;
 import com.termux.app.fragments.settings.TermuxPreferenceFragmentBase;
 import com.termux.app.terminal.TermuxColorSchemeManager;
+import com.termux.shared.termux.extrakeys.ColorSchemeUtils;
 import com.termux.shared.termux.extrakeys.ExtraKeysConstants;
 import com.termux.shared.termux.extrakeys.ExtraKeysInfo;
 import com.termux.shared.termux.extrakeys.ExtraKeyButton;
 import com.termux.shared.termux.extrakeys.ExtraKeysView;
 import com.termux.shared.termux.settings.preferences.TermuxAppSharedPreferences;
 import com.termux.shared.termux.settings.properties.TermuxPropertyConstants;
+import com.termux.shared.theme.ThemeUtils;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -30,6 +32,7 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Properties;
 import java.util.stream.Collectors;
 
 @Keep
@@ -247,6 +250,22 @@ public class ExtraKeysEditorFragment extends TermuxPreferenceFragmentBase {
         mPreviewView.setSpecialButtonMode("hold".equals(mPrefs.getExtraKeysSpecialButtonMode())
             ? ExtraKeysView.SpecialButtonMode.HOLD
             : ExtraKeysView.SpecialButtonMode.STICKY);
+
+        // Reload the terminal color scheme for the current night mode.
+        // This static singleton is otherwise only updated by TermuxActivity, so
+        // we must set it here to get correct preview colors after a theme switch.
+        boolean isNight = ThemeUtils.isNightModeEnabled(requireContext());
+        Properties lightScheme = null;
+        if (!isNight) {
+            lightScheme = new Properties();
+            String[] keys = getResources().getStringArray(R.array.light_terminal_color_scheme_keys);
+            String[] values = getResources().getStringArray(R.array.light_terminal_color_scheme_values);
+            int len = Math.min(keys.length, values.length);
+            for (int i = 0; i < len; i++) {
+                lightScheme.setProperty(keys[i], values[i]);
+            }
+        }
+        ColorSchemeUtils.ensureColorSchemeForTheme(isNight, lightScheme);
 
         TermuxColorSchemeManager cm = new TermuxColorSchemeManager();
         cm.recompute(mPrefs);
