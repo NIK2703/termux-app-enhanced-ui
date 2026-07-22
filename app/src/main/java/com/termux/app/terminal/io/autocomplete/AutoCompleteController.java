@@ -126,6 +126,12 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
      *  arbitrary text, which the incremental additive filter cannot handle. */
     private boolean mForceFullRescan;
 
+    /** Forced rescan flag set by {@link #onCaretMoved()} when the caret returns
+     *  to the end of the text. Overrides the "text unchanged" early-skip guard
+     *  in {@link #updateAutoCompleteSuggestions()}, which would otherwise prevent
+     *  the popup from re-appearing after it was dismissed by a prior caret move. */
+    private boolean mForceRescanOnNextUpdate;
+
     /** Last known caret position, used to detect actual caret movement
      *  (tap/reposition without text change) without relying on
      *  setOnSelectionChangedListener (API 29+). Updated from
@@ -363,12 +369,22 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
         dismissAutoCompleteSuggestions();
     }
 
-    /** Reposition the popup (e.g. after a caret move with no text change). */
+    /** Called when the caret position changes without a text change
+     *  (e.g. tapping a different position or using arrow keys).
+     *  Delegates to {@link #updateAutoCompleteSuggestions()} which
+     *  checks the caret position and either shows or dismisses the
+     *  popup accordingly. When the caret is at the end and the popup
+     *  was previously dismissed, sets {@link #mForceRescanOnNextUpdate}
+     *  to bypass the "text unchanged" early-skip guard. */
     public void onCaretMoved() {
-        if (mInputField != null) {
-            mLastCaretPosition = mInputField.getSelectionStart();
+        if (mInputField == null) return;
+        int newCaret = mInputField.getSelectionStart();
+        int textLen = mInputField.getText().length();
+        mLastCaretPosition = newCaret;
+        if (newCaret >= 0 && newCaret == textLen && !isShowing()) {
+            mForceRescanOnNextUpdate = true;
         }
-        repositionAutoCompletePopup();
+        updateAutoCompleteSuggestions();
     }
 
     /** Triggered by the host when the input text changes (compatibility entry point). */
@@ -658,7 +674,8 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
         // prevText was rewritten to the same committed text — without the match
         // check the stale, mismatched popup would be kept until the next edit.
         CharSequence prevText = mAutoCompletePrevText;
-        if (text.equals(prevText) && mAutoCompleteChangeCount == mAutoCompleteChangeBefore) {
+        boolean unchanged = text.equals(prevText) && mAutoCompleteChangeCount == mAutoCompleteChangeBefore;
+        if (unchanged && !mForceRescanOnNextUpdate) {
             if (mMessageHistoryCtrl.getHistoryVersion() == mLastBuiltHistoryVersion
                     && isShowing()
                     && !mCurrentSuggestions.isEmpty()
@@ -666,6 +683,7 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
                 return;
             }
         }
+        mForceRescanOnNextUpdate = false;
 
         // ── Detect whether this is an additive (append-only) change ──
         // Language/IME-agnostic: the new text must extend prevText by appending

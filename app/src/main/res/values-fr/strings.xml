@@ -399,6 +399,11 @@
     
     <string name="extra_keys_dynamic_font_size_title">Taille de police dynamique</string>
     <string name="extra_keys_dynamic_font_size_summary">Réduire la taille de la police quand le nombre de colonnes ou de macros augmente</string>
+    <string name="extra_keys_font_size_title">Taille de police de base</string>
+    <string name="extra_keys_font_size_summary">Taille de texte de base pour les étiquettes des boutons</string>
+    <string name="extra_keys_editor_tap_suffix"> (Appui)</string>
+
+    <string name="extra_keys_editor_remove_signal">Supprimer %s</string>
 
     
     <string name="fullscreen_title">Plein écran</string>

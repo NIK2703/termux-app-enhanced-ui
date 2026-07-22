@@ -487,6 +487,10 @@ $HOME/bin/termux-url-opener
     <string name="extra_keys_button_margin_summary">버튼 사이의 간격</string>
     <string name="extra_keys_button_margin_title">버튼 간격</string>
     <string name="extra_keys_dynamic_font_size_summary">열 수 또는 매크로 바인드 수가 증가하면 글꼴 크기를 줄입니다</string>
+    <string name="extra_keys_font_size_title">기본 글꼴 크기</string>
+    <string name="extra_keys_font_size_summary">버튼 레이블의 기본 텍스트 크기</string>
+    <string name="extra_keys_editor_tap_suffix"> (탭)</string>
+    <string name="extra_keys_editor_remove_signal">%s 삭제</string>
     <string name="extra_keys_dynamic_font_size_title">동적 글꼴 크기</string>
 
     

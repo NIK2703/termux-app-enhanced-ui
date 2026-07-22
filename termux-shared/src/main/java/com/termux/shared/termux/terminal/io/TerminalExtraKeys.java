@@ -11,9 +11,12 @@ import com.termux.shared.termux.extrakeys.ExtraKeyButton;
 import com.termux.shared.termux.extrakeys.ExtraKeysView;
 import com.termux.shared.termux.extrakeys.SpecialButton;
 import com.termux.terminal.TerminalSession;
+import com.termux.shared.termux.extrakeys.BindingTokenizer;
 import com.termux.view.TerminalView;
 
 import androidx.annotation.NonNull;
+
+import java.util.List;
 import androidx.annotation.Nullable;
 
 import static com.termux.shared.termux.extrakeys.ExtraKeysConstants.PRIMARY_KEY_CODES_FOR_STRINGS;
@@ -22,9 +25,15 @@ import static com.termux.shared.termux.extrakeys.ExtraKeysConstants.PRIMARY_KEY_
 public class TerminalExtraKeys implements ExtraKeysView.IExtraKeysView {
 
     private TerminalView mTerminalView;
+    private MacroRunner mMacroRunner;
+    private boolean mMacroCtrlDown;
+    private boolean mMacroAltDown;
+    private boolean mMacroShiftDown;
+    private boolean mMacroFnDown;
 
     public TerminalExtraKeys(@NonNull TerminalView terminalView) {
         mTerminalView = terminalView;
+        mMacroRunner = new MacroRunner(token -> handleMacroToken(token));
     }
 
     /**
@@ -50,12 +59,18 @@ public class TerminalExtraKeys implements ExtraKeysView.IExtraKeysView {
 
     @Override
     public void onExtraKeyButtonClick(View view, ExtraKeyButton buttonInfo, MaterialButton button) {
-        if (buttonInfo.isMacro()) {
+        if (buttonInfo.hasDelay()) {
+            // Reset modifier state for new macro
+            mMacroCtrlDown = false;
+            mMacroAltDown = false;
+            mMacroShiftDown = false;
+            mMacroFnDown = false;
+            // Use asynchronous macro runner for bindings with delays
+            List<String> tokens = buttonInfo.getParsedTokens();
+            mMacroRunner.start(tokens);
+        } else if (buttonInfo.isMacro()) {
             String[] keys = buttonInfo.getKey().split(" ");
-            boolean ctrlDown = false;
-            boolean altDown = false;
-            boolean shiftDown = false;
-            boolean fnDown = false;
+            boolean ctrlDown = false, altDown = false, shiftDown = false, fnDown = false;
             for (String key : keys) {
                 if (SpecialButton.CTRL.getKey().equals(key)) {
                     ctrlDown = true;
@@ -67,7 +82,6 @@ public class TerminalExtraKeys implements ExtraKeysView.IExtraKeysView {
                     fnDown = true;
                 } else {
                     onTerminalExtraKeyButtonClick(view, key, ctrlDown, altDown, shiftDown, fnDown);
-                    // Reset modifiers after first non-modifier — subsequent keys get no modifiers
                     ctrlDown = false;
                     altDown = false;
                     shiftDown = false;
@@ -76,6 +90,25 @@ public class TerminalExtraKeys implements ExtraKeysView.IExtraKeysView {
             }
         } else {
             onTerminalExtraKeyButtonClick(view, buttonInfo.getKey(), false, false, false, false);
+        }
+    }
+
+    private void handleMacroToken(String token) {
+        if (SpecialButton.CTRL.getKey().equals(token)) {
+            mMacroCtrlDown = true;
+        } else if (SpecialButton.ALT.getKey().equals(token)) {
+            mMacroAltDown = true;
+        } else if (SpecialButton.SHIFT.getKey().equals(token)) {
+            mMacroShiftDown = true;
+        } else if (SpecialButton.FN.getKey().equals(token)) {
+            mMacroFnDown = true;
+        } else {
+            onTerminalExtraKeyButtonClick(null, token,
+                mMacroCtrlDown, mMacroAltDown, mMacroShiftDown, mMacroFnDown);
+            mMacroCtrlDown = false;
+            mMacroAltDown = false;
+            mMacroShiftDown = false;
+            mMacroFnDown = false;
         }
     }
 

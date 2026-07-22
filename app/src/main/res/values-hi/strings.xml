@@ -425,6 +425,10 @@
     <string name="night_mode_system">सिस्टम डिफ़ॉल्ट</string>
     <string name="extra_keys_dynamic_font_size_title">डायनामिक फ़ॉन्ट आकार</string>
     <string name="extra_keys_dynamic_font_size_summary">स्तंभ गणना या मैक्रो बाइंड गणना बढ़ने पर फ़ॉन्ट आकार घटाएँ</string>
+    <string name="extra_keys_font_size_title">आधार फ़ॉन्ट आकार</string>
+    <string name="extra_keys_font_size_summary">बटन लेबल के लिए आधार टेक्स्ट आकार</string>
+    <string name="extra_keys_editor_tap_suffix"> (टैप)</string>
+    <string name="extra_keys_editor_remove_signal">%s हटाएँ</string>
     <string name="extra_keys_button_margin_title">बटन अंतराल</string>
     <string name="extra_keys_button_margin_summary">बटनों के बीच का स्थान</string>
     <string name="failure_notifications_category_title">विफलता सूचनाएँ</string>

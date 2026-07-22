@@ -484,6 +484,10 @@
     
     <string name="extra_keys_dynamic_font_size_title">Dinamik yazı tipi boyutu</string>
     <string name="extra_keys_dynamic_font_size_summary">Sütun sayısı veya makro bağlama sayısı arttığında yazı tipi boyutunu küçült</string>
+    <string name="extra_keys_font_size_title">Temel yazı tipi boyutu</string>
+    <string name="extra_keys_font_size_summary">Düğme etiketleri için temel metin boyutu</string>
+    <string name="extra_keys_editor_tap_suffix"> (Dokunma)</string>
+    <string name="extra_keys_editor_remove_signal">%s kaldır</string>
 
     
     <string name="termux_api_debugging_title">Termux:API Hata Ayıklama</string>

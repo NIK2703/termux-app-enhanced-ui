@@ -424,7 +424,7 @@ public class TermuxSessionTabsController {
         // for the *open* case; here our per-frame requestLayout does the reflow.
         android.animation.ValueAnimator collapse =
                 android.animation.ValueAnimator.ofInt(startWidth, 0);
-        collapse.setDuration(150);
+        collapse.setDuration(100);
         collapse.setInterpolator(new AccelerateDecelerateInterpolator());
         collapse.addUpdateListener(animation -> {
             lp.width = (int) animation.getAnimatedValue();
@@ -435,7 +435,7 @@ public class TermuxSessionTabsController {
 
         android.animation.AnimatorSet set = new android.animation.AnimatorSet();
         set.playTogether(collapse, alpha);
-        set.setDuration(150);
+        set.setDuration(100);
         set.setInterpolator(new AccelerateDecelerateInterpolator());
         set.addListener(new AnimatorListenerAdapter() {
             @Override

@@ -60,6 +60,17 @@
         app:iconSpaceReserved="false"
         app:persistent="false" />
 
+    <SeekBarPreference
+        app:key="extra-keys-font-size"
+        app:title="@string/extra_keys_font_size_title"
+        app:summary="@string/extra_keys_font_size_summary"
+        app:min="12"
+        android:max="16"
+        app:defaultValue="14"
+        app:showSeekBarValue="true"
+        app:iconSpaceReserved="false"
+        app:persistent="false" />
+
     <ListPreference
         app:key="extra-keys-style"
         app:defaultValue="default"

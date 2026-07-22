@@ -255,6 +255,13 @@ public class TermuxAppSharedProperties {
     }
 
 
+    /* int */
+
+    public int getExtraKeysFontSize() {
+        return prefs().getExtraKeysFontSize();
+    }
+
+
     /* String */
 
     public boolean isBackKeyTheEscapeKey() {

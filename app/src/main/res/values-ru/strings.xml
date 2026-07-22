@@ -595,6 +595,11 @@
     <string name="extra_keys_editor_signal_quote">Кавычка (\")</string>
     <string name="extra_keys_editor_signal_apostrophe">Апостроф (\')</string>
     <string name="extra_keys_editor_signal_custom">Своя привязка…</string>
+    <string name="extra_keys_editor_signal_add_delay">Добавить задержку…</string>
+    <string name="extra_keys_editor_delay_dialog_title">Задержка</string>
+    <string name="extra_keys_editor_delay_format">⏱ %d мс</string>
+    <string name="extra_keys_editor_delay_presets">Быстрый выбор:</string>
+    <string name="extra_keys_editor_delay_hint">Задержка (1–1000 мс)</string>
 
     
     <string name="report_issue_title">Termux — Сообщить о проблеме</string>
@@ -608,6 +613,10 @@
     
     <string name="extra_keys_dynamic_font_size_title">Динамический размер шрифта</string>
     <string name="extra_keys_dynamic_font_size_summary">Уменьшать размер шрифта при увеличении числа столбцов или макросов</string>
+    <string name="extra_keys_font_size_title">Базовый размер шрифта</string>
+    <string name="extra_keys_font_size_summary">Базовый размер текста для подписей кнопок</string>
+    <string name="extra_keys_editor_tap_suffix"> (Нажатие)</string>
+    <string name="extra_keys_editor_remove_signal">Удалить %s</string>
 
     
     <string name="termux_api_debugging_title">Отладка Termux:API</string>

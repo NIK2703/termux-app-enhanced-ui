@@ -13,5 +13,4 @@
     <style name="TermuxActivity.Drawer.ButtonBarStyle.Dark" parent="@style/Widget.MaterialComponents.Button.TextButton">
         <item name="android:textColor">?attr/colorControlNormal</item>
     </style>
-
 </resources>

@@ -360,8 +360,6 @@ public final class WcWidth {
         {0x1e8d0, 0x1e8d6},  // Mende Kikakui Combining ..Mende Kikakui Combining
         {0x1e944, 0x1e94a},  // Adlam Alif Lengthener   ..Adlam Nukta
         {0xe0100, 0xe01ef},  // Variation Selector-17   ..Variation Selector-256
-        // Emoji skin tone modifiers are zero-width
-        {0x1F3FB, 0x1F3FF},
     };
 
     // https://github.com/jquast/wcwidth/blob/master/wcwidth/table_wide.py
@@ -481,12 +479,12 @@ public final class WcWidth {
         {0x1f93c, 0x1f945},  // Wrestlers               ..Goal Net
         {0x1f947, 0x1f9ff},  // First Place Medal       ..Nazar Amulet
         {0x1fa70, 0x1fa7c},  // Ballet Shoes            ..Crutch
-        {0x1fa80, 0x1fa8a},  // Yo-yo                   ..(nil)
-        {0x1fa8e, 0x1fac6},  // (nil)                   ..Person With Crown
-        {0x1fac8, 0x1fac8},  // (nil)
-        {0x1facd, 0x1fadc},  // (nil)
-        {0x1fadf, 0x1fae8},  // (nil)                   ..(nil)
-        {0x1faef, 0x1faf8},  // (nil)                   ..(nil)
+        {0x1fa80, 0x1fa88},  // Yo-yo                   ..(nil)
+        {0x1fa90, 0x1fabd},  // Ringed Planet           ..(nil)
+        {0x1fabf, 0x1fac5},  // (nil)                   ..Person With Crown
+        {0x1face, 0x1fadb},  // (nil)                   ..(nil)
+        {0x1fae0, 0x1fae8},  // Melting Face            ..(nil)
+        {0x1faf0, 0x1faf8},  // Hand With Index Finger A..(nil)
         {0x20000, 0x2fffd},  // Cjk Unified Ideograph-20..(nil)
         {0x30000, 0x3fffd},  // Cjk Unified Ideograph-30..(nil)
     };
@@ -512,26 +510,21 @@ public final class WcWidth {
         return false;
     }
 
-    /** Return the terminal display width of a code point: 0, 1 or 2. */
+    /** Return the terminal display width of a code point: 0, 1 || 2. */
     public static int width(int ucs) {
-        if (ucs == 0) return 0;
-        // C0/C1 control characters
-        if (ucs < 32 || (0x07F <= ucs && ucs < 0x0A0)) return 0;
+        if (ucs == 0 ||
+            ucs == 0x034F ||
+            (0x200B <= ucs && ucs <= 0x200F) ||
+            ucs == 0x2028 ||
+            ucs == 0x2029 ||
+            (0x202A <= ucs && ucs <= 0x202E) ||
+            (0x2060 <= ucs && ucs <= 0x2063)) {
+            return 0;
+        }
 
-        // Fast-path for common zero-width codepoints
-        if (ucs == 0x034F) return 0;
-        if (ucs >= 0x200B && ucs <= 0x200F) return 0;
-        if (ucs == 0x2028 || ucs == 0x2029) return 0;
-        if (ucs >= 0x202A && ucs <= 0x202E) return 0;
-        if (ucs >= 0x2060 && ucs <= 0x2063) return 0;
-        if (ucs == 0xFEFF) return 0;
-        if (ucs >= 0xFE00 && ucs <= 0xFE0F) return 0;
-        if (ucs == 0x200D) return 0;
-        if (ucs == 0x20E3) return 0;
-        if (ucs >= 0x1F3FB && ucs <= 0x1F3FF) return 0;
-        if (ucs >= 0xE0020 && ucs <= 0xE007F) return 0;
-        if (ucs >= 0xE0100 && ucs <= 0xE01EF) return 0;
-        if (ucs >= 0x2066 && ucs <= 0x206F) return 0;
+        // C0/C1 control characters
+        // Termux change: Return 0 instead of -1.
+        if (ucs < 32 || (0x07F <= ucs && ucs < 0x0A0)) return 0;
 
         // combining characters with zero width
         if (intable(ZERO_WIDTH, ucs)) return 0;
@@ -568,58 +561,6 @@ public final class WcWidth {
             }
         }
         return count;
-    }
-
-    /** Returns true if the codepoint is an emoji skin tone modifier (U+1F3FB..U+1F3FF). */
-    public static boolean isEmojiModifier(int ucs) {
-        return ucs >= 0x1F3FB && ucs <= 0x1F3FF;
-    }
-
-    /** Returns true if the codepoint is a known emoji base character. */
-    public static boolean isEmojiBase(int ucs) {
-        if (ucs >= 0x1F600 && ucs <= 0x1F64F) return true;
-        if (ucs >= 0x1F300 && ucs <= 0x1F5FF) return true;
-        if (ucs >= 0x1F680 && ucs <= 0x1F6FF) return true;
-        if (ucs >= 0x1F900 && ucs <= 0x1F9FF) return true;
-        if (ucs >= 0x1FA00 && ucs <= 0x1FAFF) return true;
-        if (ucs >= 0x261D && ucs <= 0x270D) return true;
-        if (ucs == 0x270A || ucs == 0x270B || ucs == 0x270C) return true;
-        if (ucs == 0x1F385) return true;
-        if (ucs >= 0x1F3C2 && ucs <= 0x1F3C4) return true;
-        if (ucs == 0x1F3C7) return true;
-        if (ucs >= 0x1F3CA && ucs <= 0x1F3CC) return true;
-        if (ucs >= 0x1F442 && ucs <= 0x1F443) return true;
-        if (ucs >= 0x1F446 && ucs <= 0x1F450) return true;
-        if (ucs >= 0x1F466 && ucs <= 0x1F478) return true;
-        if (ucs == 0x1F47C) return true;
-        if (ucs >= 0x1F481 && ucs <= 0x1F483) return true;
-        if (ucs >= 0x1F485 && ucs <= 0x1F487) return true;
-        if (ucs == 0x1F48F || ucs == 0x1F491) return true;
-        if (ucs == 0x1F4AA) return true;
-        if (ucs >= 0x1F574 && ucs <= 0x1F575) return true;
-        if (ucs == 0x1F57A) return true;
-        if (ucs == 0x1F590) return true;
-        if (ucs >= 0x1F595 && ucs <= 0x1F596) return true;
-        if (ucs >= 0x1F645 && ucs <= 0x1F647) return true;
-        if (ucs >= 0x1F64B && ucs <= 0x1F64F) return true;
-        if (ucs == 0x1F6A3) return true;
-        if (ucs >= 0x1F6B4 && ucs <= 0x1F6B6) return true;
-        if (ucs == 0x1F6C0) return true;
-        if (ucs == 0x1F6CC) return true;
-        if (ucs == 0x1F90C) return true;
-        if (ucs == 0x1F90F) return true;
-        if (ucs >= 0x1F918 && ucs <= 0x1F91F) return true;
-        if (ucs == 0x1F926) return true;
-        if (ucs >= 0x1F930 && ucs <= 0x1F939) return true;
-        if (ucs >= 0x1F93D && ucs <= 0x1F93E) return true;
-        if (ucs == 0x1F977) return true;
-        if (ucs >= 0x1F9B5 && ucs <= 0x1F9B6) return true;
-        if (ucs >= 0x1F9B8 && ucs <= 0x1F9B9) return true;
-        if (ucs == 0x1F9BB) return true;
-        if (ucs >= 0x1F9CD && ucs <= 0x1F9CF) return true;
-        if (ucs >= 0x1F9D1 && ucs <= 0x1F9DD) return true;
-        if (ucs >= 0x1F1E6 && ucs <= 0x1F1FF) return true;
-        return false;
     }
 
 }

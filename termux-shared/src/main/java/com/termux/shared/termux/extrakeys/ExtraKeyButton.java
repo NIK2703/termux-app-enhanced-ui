@@ -9,6 +9,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class ExtraKeyButton {
@@ -84,6 +85,8 @@ public class ExtraKeyButton {
     @Nullable
     private final ExtraKeyButton swipeRight;
 
+    private List<String> mParsedTokens;
+    private boolean mHasDelay;
 
     /**
      * Initialize a {@link ExtraKeyButton}.
@@ -159,6 +162,8 @@ public class ExtraKeyButton {
         }
 
         this.key = TextUtils.join(" ", keys);
+        mParsedTokens = BindingTokenizer.tokenize(this.key);
+        mHasDelay = BindingTokenizer.containsDelay(mParsedTokens);
 
         String displayFromConfig = getStringFromJson(config, KEY_DISPLAY_NAME);
         if (displayFromConfig != null) {
@@ -228,6 +233,14 @@ public class ExtraKeyButton {
     @Nullable
     public ExtraKeyButton getSwipeRight() {
         return swipeRight;
+    }
+
+    public List<String> getParsedTokens() {
+        return mParsedTokens;
+    }
+
+    public boolean hasDelay() {
+        return mHasDelay;
     }
 
     /**

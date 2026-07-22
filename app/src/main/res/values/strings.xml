@@ -230,6 +230,14 @@
                 <string name="extra_keys_text_all_caps_summary">Show extra key labels in uppercase.</string>
                 <string name="extra_keys_dynamic_font_size_title">Dynamic font size</string>
                 <string name="extra_keys_dynamic_font_size_summary">Reduce font size when column count or macro bind count increases</string>
+                <string name="extra_keys_font_size_title">Base font size</string>
+                <string name="extra_keys_font_size_summary">Base text size for button labels</string>
+                <string name="extra_keys_editor_tap_suffix"> (Tap)</string>
+                <string name="extra_keys_editor_swipe_up_suffix"> (↑)</string>
+                <string name="extra_keys_editor_swipe_down_suffix"> (↓)</string>
+                <string name="extra_keys_editor_swipe_left_suffix"> (←)</string>
+                <string name="extra_keys_editor_swipe_right_suffix"> (→)</string>
+                <string name="extra_keys_editor_remove_signal">Remove %s</string>
 
                 <!-- Soft Keyboard Only If No Hardware-->
                 <string name="termux_soft_keyboard_enabled_only_if_no_hardware_title">Soft Keyboard Only If No Hardware</string>
@@ -662,4 +670,9 @@
     <string name="extra_keys_editor_signal_quote">Quote (\")</string>
     <string name="extra_keys_editor_signal_apostrophe">Apostrophe (\')</string>
     <string name="extra_keys_editor_signal_custom">Custom bind…</string>
+    <string name="extra_keys_editor_signal_add_delay">Add delay…</string>
+    <string name="extra_keys_editor_delay_dialog_title">Add delay</string>
+    <string name="extra_keys_editor_delay_format">⏱ %d ms</string>
+    <string name="extra_keys_editor_delay_presets">Quick select:</string>
+    <string name="extra_keys_editor_delay_hint">Delay (1–1000 ms)</string>
 </resources>

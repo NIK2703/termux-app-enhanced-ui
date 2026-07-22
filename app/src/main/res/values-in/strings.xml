@@ -319,6 +319,10 @@
     
     <string name="extra_keys_dynamic_font_size_title">Ukuran fonta dinamis</string>
     <string name="extra_keys_dynamic_font_size_summary">Kurangi ukuran fonta saat jumlah kolom atau ikatan makro bertambah</string>
+    <string name="extra_keys_font_size_title">Ukuran fonta dasar</string>
+    <string name="extra_keys_font_size_summary">Ukuran teks dasar untuk label tombol</string>
+    <string name="extra_keys_editor_tap_suffix"> (Ketuk)</string>
+    <string name="extra_keys_editor_remove_signal">Hapus %s</string>
 
     
     <string name="extra_keys_button_margin_title">Jarak antar tombol</string>

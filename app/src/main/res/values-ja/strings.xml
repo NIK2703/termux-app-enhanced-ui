@@ -342,6 +342,11 @@
     
     <string name="extra_keys_dynamic_font_size_title">動的フォントサイズ</string>
     <string name="extra_keys_dynamic_font_size_summary">列数またはマクロバインディング数が増加したときにフォントサイズを縮小</string>
+    <string name="extra_keys_font_size_title">基本フォントサイズ</string>
+    <string name="extra_keys_font_size_summary">ボタンラベルの基本テキストサイズ</string>
+    <string name="extra_keys_editor_tap_suffix"> (タップ)</string>
+
+    <string name="extra_keys_editor_remove_signal">%sを削除</string>
 
     
     <string name="extra_keys_button_margin_title">ボタンの間隔</string>

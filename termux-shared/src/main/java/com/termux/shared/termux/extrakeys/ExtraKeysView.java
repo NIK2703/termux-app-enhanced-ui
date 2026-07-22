@@ -242,6 +242,9 @@ public final class ExtraKeysView extends GridLayout {
     /** If true, font size is reduced when column count or macro bind count increases. */
     private boolean mDynamicFontSize = true;
 
+    /** The base font size in sp for button labels. Defaults to 14. */
+    private int mBaseFontSizeSp = 14;
+
 
     /**
      * Defines the duration in milliseconds before a press turns into a long press. The default
@@ -489,6 +492,10 @@ public final class ExtraKeysView extends GridLayout {
         mDynamicFontSize = enabled;
     }
 
+    public void setBaseFontSizeSp(int sp) {
+        mBaseFontSizeSp = sp;
+    }
+
     public void setButtonMargins(float dp) {
         mButtonMarginHorizontalDp = dp;
         mButtonMarginVerticalDp = dp;
@@ -579,6 +586,7 @@ public final class ExtraKeysView extends GridLayout {
         mButtonCornerRadiusDp = props != null ? props.getExtraKeysCornerRadius() : BUTTON_CORNER_RADIUS_DP;
         mButtonMarginHorizontalDp = props != null ? props.getExtraKeysButtonMargin() : BUTTON_MARGIN_HORIZONTAL_DP;
         mButtonMarginVerticalDp = mButtonMarginHorizontalDp;
+        mBaseFontSizeSp = props != null ? props.getExtraKeysFontSize() : 14;
 
         ExtraKeyButton[][] buttons = extraKeysInfo.getMatrix();
 
@@ -606,20 +614,20 @@ public final class ExtraKeysView extends GridLayout {
                 }
                 button.setText(buttonInfo.getDisplay());
 
-                // Font size based on column count: 14sp base for <=7 columns, -1sp per extra column
-                float fontSizeSp = 14f;
-                // Single-character labels keep full 14sp regardless of columns
+                // Font size based on column count: base for <=7 columns, -1sp per extra column
+                float fontSizeSp = mBaseFontSizeSp;
+                // Single-character labels keep full base regardless of columns
                 String displayText = buttonInfo.getDisplay();
                 boolean isSingleChar = displayText != null && displayText.codePointCount(0, displayText.length()) == 1;
                 if (!isSingleChar) {
                     if (mDynamicFontSize) {
                         int totalCols = buttons[row].length;
-                        fontSizeSp = 14f - Math.max(0, totalCols - 7);
+                        fontSizeSp = mBaseFontSizeSp - Math.max(0, totalCols - 7);
                         // Macro keys (multiple sequential binds) get an additional -2sp
                         if (buttonInfo.isMacro()) fontSizeSp -= 2f;
                         fontSizeSp = Math.max(fontSizeSp, 8f);
                     } else {
-                        fontSizeSp = 14f;
+                        fontSizeSp = mBaseFontSizeSp;
                     }
                 }
 

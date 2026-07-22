@@ -367,6 +367,10 @@
     <string name="extra_keys_button_margin_summary">Espacio entre botones</string>
     <string name="extra_keys_button_margin_title">Espaciado de botones</string>
     <string name="extra_keys_dynamic_font_size_summary">Reducir tamaño de fuente cuando aumenta el número de columnas o de combinaciones de macros</string>
+    <string name="extra_keys_font_size_title">Tamaño de fuente base</string>
+    <string name="extra_keys_font_size_summary">Tamaño de texto base para etiquetas de botones</string>
+    <string name="extra_keys_editor_tap_suffix"> (Tocar)</string>
+    <string name="extra_keys_editor_remove_signal">Eliminar %s</string>
     <string name="extra_keys_dynamic_font_size_title">Tamaño de fuente dinámico</string>
     <string name="fullscreen_summary">Ejecutar Termux en modo pantalla completa.</string>
     <string name="fullscreen_title">Pantalla completa</string>

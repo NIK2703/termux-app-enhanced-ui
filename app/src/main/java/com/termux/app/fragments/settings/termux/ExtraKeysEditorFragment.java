@@ -22,6 +22,7 @@ import com.termux.shared.termux.extrakeys.ExtraKeysConstants;
 import com.termux.shared.termux.extrakeys.ExtraKeysInfo;
 import com.termux.shared.termux.extrakeys.ExtraKeyButton;
 import com.termux.shared.termux.extrakeys.ExtraKeysView;
+import com.termux.shared.termux.extrakeys.BindingTokenizer;
 import com.termux.shared.termux.settings.preferences.TermuxAppSharedPreferences;
 import com.termux.shared.termux.settings.properties.TermuxPropertyConstants;
 import com.termux.shared.theme.ThemeUtils;
@@ -166,6 +167,20 @@ public class ExtraKeysEditorFragment extends TermuxPreferenceFragmentBase {
                 return true;
             });
         }
+
+        SeekBarPreference fontSizePref = findPreference("extra-keys-font-size");
+        if (fontSizePref != null) {
+            fontSizePref.setPersistent(false);
+            fontSizePref.setValue(mPrefs.getExtraKeysFontSize());
+            fontSizePref.setOnPreferenceChangeListener((preference, newValue) -> {
+                int size = (Integer) newValue;
+                mPrefs.setExtraKeysFontSize(size);
+                if (mPreviewView != null) mPreviewView.setBaseFontSizeSp(size);
+                rebuildPreview();
+                TermuxActivity.updateTermuxActivityStyling(requireContext(), true);
+                return true;
+            });
+        }
     }
 
     @Override
@@ -246,6 +261,7 @@ public class ExtraKeysEditorFragment extends TermuxPreferenceFragmentBase {
 
         mPreviewView.setButtonTextAllCaps(mPrefs.shouldExtraKeysTextBeAllCaps());
         mPreviewView.setDynamicFontSize(mPrefs.isExtraKeysDynamicFontSizeEnabled(requireContext()));
+        mPreviewView.setBaseFontSizeSp(mPrefs.getExtraKeysFontSize());
         mPreviewView.setButtonMargins(mPrefs.getExtraKeysButtonMargin());
         mPreviewView.setSpecialButtonMode("hold".equals(mPrefs.getExtraKeysSpecialButtonMode())
             ? ExtraKeysView.SpecialButtonMode.HOLD
@@ -434,7 +450,14 @@ public class ExtraKeysEditorFragment extends TermuxPreferenceFragmentBase {
     private String computeDisplay(String macroValue) {
         if (macroValue == null || macroValue.isEmpty()) return "";
         return Arrays.stream(macroValue.split(" "))
-            .map(key -> { if (mDisplayMap == null) return key; String d = mDisplayMap.get(key); return d != null ? d : key; })
+            .map(key -> {
+                if (BindingTokenizer.isDelay(key)) {
+                    return "⏱" + BindingTokenizer.parseDelayMs(key) + "ms";
+                }
+                if (mDisplayMap == null) return key;
+                String d = mDisplayMap.get(key);
+                return d != null ? d : key;
+            })
             .collect(Collectors.joining("+"));
     }
 

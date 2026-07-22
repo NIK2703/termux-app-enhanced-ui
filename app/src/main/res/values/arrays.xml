@@ -142,6 +142,7 @@
 
     <string-array name="extra_keys_editor_signal_entries">
         <item>@string/extra_keys_editor_signal_custom</item>
+        <item>@string/extra_keys_editor_signal_add_delay</item>
         <item>@string/extra_keys_editor_signal_ctrl</item>
         <item>@string/extra_keys_editor_signal_alt</item>
         <item>@string/extra_keys_editor_signal_shift</item>
@@ -179,6 +180,7 @@
 
     <string-array name="extra_keys_editor_signal_values">
         <item>__CUSTOM__</item>
+        <item>__DELAY_PICKER__</item>
         <item>CTRL</item>
         <item>ALT</item>
         <item>SHIFT</item>

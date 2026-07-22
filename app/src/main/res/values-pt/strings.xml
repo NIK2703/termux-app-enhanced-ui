@@ -343,6 +343,10 @@
     <string name="termux_widget_debugging_title">Depuração do Termux:Widget</string>
     <string name="extra_keys_dynamic_font_size_title">Tamanho dinâmico da fonte</string>
     <string name="extra_keys_dynamic_font_size_summary">Reduzir o tamanho da fonte quando o número de colunas ou de atalhos macro aumentar</string>
+    <string name="extra_keys_font_size_title">Tamanho base da fonte</string>
+    <string name="extra_keys_font_size_summary">Tamanho base do texto para rótulos dos botões</string>
+    <string name="extra_keys_editor_tap_suffix"> (Toque)</string>
+    <string name="extra_keys_editor_remove_signal">Remover %s</string>
     <string name="extra_keys_button_margin_title">Espaçamento dos botões</string>
     <string name="extra_keys_button_margin_summary">Espaço entre os botões</string>
     <string name="report_issue_title">Termux Relatar Problema</string>

@@ -604,6 +604,22 @@ public class TermuxAppSharedPreferences extends AppSharedPreferences {
     }
 
 
+    /* int (extra keys base font size in sp) */
+
+    public int getExtraKeysFontSize() {
+        return SharedPreferenceUtils.getInt(mSharedPreferences,
+            TERMUX_APP.KEY_EXTRA_KEYS_FONT_SIZE,
+            TERMUX_APP.DEFAULT_VALUE_EXTRA_KEYS_FONT_SIZE);
+    }
+
+    public void setExtraKeysFontSize(int value) {
+        if (value < TERMUX_APP.MIN_EXTRA_KEYS_FONT_SIZE) value = TERMUX_APP.MIN_EXTRA_KEYS_FONT_SIZE;
+        if (value > TERMUX_APP.MAX_EXTRA_KEYS_FONT_SIZE) value = TERMUX_APP.MAX_EXTRA_KEYS_FONT_SIZE;
+        SharedPreferenceUtils.setInt(mSharedPreferences,
+            TERMUX_APP.KEY_EXTRA_KEYS_FONT_SIZE, value, false);
+    }
+
+
     /* String (session shortcuts, raw "Ctrl+KEY" form) */
 
     public String getShortcutString(String key) {

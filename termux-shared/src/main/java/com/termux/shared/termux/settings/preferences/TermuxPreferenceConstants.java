@@ -353,6 +353,14 @@ public final class TermuxPreferenceConstants {
         public static final float MAX_EXTRA_KEYS_BUTTON_MARGIN = 4.0f;
 
 
+        /* int (extra keys base font size in sp) */
+
+        public static final String KEY_EXTRA_KEYS_FONT_SIZE = "extra-keys-font-size";
+        public static final int DEFAULT_VALUE_EXTRA_KEYS_FONT_SIZE = 14;
+        public static final int MIN_EXTRA_KEYS_FONT_SIZE = 12;
+        public static final int MAX_EXTRA_KEYS_FONT_SIZE = 16;
+
+
         /* Integer (session shortcuts, may be null/0) */
 
         public static final String KEY_SHORTCUT_CREATE_SESSION = "shortcut.create-session";
