@@ -1006,7 +1006,7 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         ExtraKeysView extraKeys = mActivity.getExtraKeysView();
         if (extraKeys != null) {
             extraKeys.setBackgroundColor(Color.TRANSPARENT);
-            extraKeys.setButtonColors(buttonText, buttonText, buttonBg, buttonActiveBg);
+            extraKeys.setButtonColors(buttonText, deriveActiveTextColor(buttonText), buttonBg, buttonActiveBg);
         }
 
         // Session tabs panel buttons (new session / toggle text input): the fill is the
@@ -1241,6 +1241,20 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
     /** Apply {@code alpha} (0–255) to the RGB of {@code color}. */
     private static int withAlpha(int color, int alpha) {
         return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color));
+    }
+
+    private static int deriveActiveTextColor(int foreground) {
+        float[] hsv = new float[3];
+        Color.colorToHSV(foreground, hsv);
+        if (hsv[1] < 0.1f) {
+            hsv[0] = 180f;
+            hsv[1] = 0.6f;
+            hsv[2] = Math.min(1f, hsv[2] * 1.3f);
+        } else {
+            hsv[0] = (hsv[0] + 30f) % 360f;
+            hsv[2] = Math.min(1f, hsv[2] * 1.2f);
+        }
+        return Color.HSVToColor(hsv);
     }
 
 }

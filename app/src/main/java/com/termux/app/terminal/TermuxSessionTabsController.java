@@ -669,7 +669,20 @@ public class TermuxSessionTabsController {
                 // re-clamps the in-flight animation to its (possibly changing) content width on
                 // every frame, so the strip could yank left mid-animation on cold start — "криво".
                 final int fromX = mTabsScroll.getScrollX();
-                if (fromX == scrollX) return;
+                // Tolerance in pixels: if we're already within ~3dp of the target,
+                // snap directly instead of starting a 220ms ValueAnimator that
+                // would be perceived as a "jump" (the main fix for the non-adjacent
+                // tab switch animation glitch).  The tolerance covers:
+                //   - rounding differences between onPageScrolled interpolation
+                //     and the exact center measurement here
+                //   - sub-pixel accumulation during multi-page smoothScroll
+                //   - tiny layout shifts from populateTabView called in between
+                final int thresholdPx = Math.max(1,
+                        (int) (3 * mTabsScroll.getResources().getDisplayMetrics().density));
+                if (Math.abs(fromX - scrollX) <= thresholdPx) {
+                    mTabsScroll.scrollTo(scrollX, 0);
+                    return;
+                }
                 final android.animation.ValueAnimator anim =
                         android.animation.ValueAnimator.ofInt(fromX, scrollX);
                 anim.setDuration(220);
@@ -906,9 +919,29 @@ public class TermuxSessionTabsController {
 
         // At offset 0 there is no transition, and at the very first frame of a
         // swipe the blend would be a no-op anyway (ratio ≈ 0). Guard to stay
-        // efficient, but allow offset up to 1.0 so the final frame of a
-        // cancelled gesture is full-strength.
-        if (positionOffset <= 0f) return;
+        // efficient, but DO NOT discard the frame: snap the tab strip to the
+        // exact center of the current page.  ViewPager2 never fires
+        // onPageScrolled with offset == 1.0 — it goes straight from (N, ~0.98)
+        // to (N+1, 0.0).  Without this snap the tab strip is left slightly
+        // off-center at the end of a multi-page smooth scroll, and the
+        // runCentreScroll handler (called ~50ms later from onPageSelected)
+        // detects a 1-3px misalignment and starts a 220ms corrective
+        // ValueAnimator — the visible "jump" on non-adjacent tab switches.
+        if (positionOffset <= 0f) {
+            if (position >= 0 && position < mTabsContainer.getChildCount() - 1) {
+                View tabAtPosition = mTabsContainer.getChildAt(position);
+                if (tabAtPosition != null) {
+                    int center = tabAtPosition.getLeft() + tabAtPosition.getWidth() / 2;
+                    int snapTarget = center - mTabsScroll.getWidth() / 2;
+                    int maxScroll = Math.max(0,
+                            mTabsContainer.getMeasuredWidth() - mTabsScroll.getWidth());
+                    if (snapTarget < 0) snapTarget = 0;
+                    if (snapTarget > maxScroll) snapTarget = maxScroll;
+                    mTabsScroll.scrollTo(snapTarget, 0);
+                }
+            }
+            return;
+        }
         if (leftIdx < 0) return;
         // Normally the (+) add button (last child) is excluded from blending. While the trailing
         // placeholder page is present, allow the last real tab (leftIdx == childCount-2) to blend

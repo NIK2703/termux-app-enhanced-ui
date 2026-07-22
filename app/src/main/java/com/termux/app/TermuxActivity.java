@@ -290,6 +290,7 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
     private TextInputPanelController mTextInputPanel;
     private AutoCompleteController mAutoCompleteCtrl;
     private TermuxActivityPopupController mPopupCtrl;
+    private FullScreenWorkAround mFullScreenWorkAround;
 
     /**
      * True for a short window right after onStart(), i.e. just after the app
@@ -745,6 +746,13 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         // handler so the single-thread shell-fetch worker doesn't leak across
         // activity destruction.
         if (mAutoCompleteCtrl != null) mAutoCompleteCtrl.destroy();
+
+        // Remove the fullscreen workaround global layout listener to prevent
+        // leaking the activity via ViewTreeObserver.
+        if (mFullScreenWorkAround != null) {
+            mFullScreenWorkAround.unregister();
+            mFullScreenWorkAround = null;
+        }
     }
 
     @Override
@@ -963,7 +971,7 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
 
         // apply extra keys fix if enabled in prefs
         if (mProperties.isUsingFullScreen() && mProperties.isUsingFullScreenWorkAround()) {
-            FullScreenWorkAround.apply(this);
+            mFullScreenWorkAround = FullScreenWorkAround.apply(this);
         }
 
         setTerminalToolbarHeight();
@@ -984,7 +992,7 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         if (csm.getButtonBg() == 0) {
             csm.recompute(getPreferences());
         }
-        extraKeysView.setButtonColors(csm.getButtonText(), csm.getButtonText(), csm.getButtonBg(), csm.getButtonActiveBg());
+        extraKeysView.setButtonColors(csm.getButtonText(), deriveActiveTextColor(csm.getButtonText()), csm.getButtonBg(), csm.getButtonActiveBg());
 
         // Setup text input
         final EditText editText = findViewById(R.id.terminal_toolbar_text_input);
@@ -1721,6 +1729,20 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
      */
     private static int compositeColors(int background, int overlay) {
         return TermuxColorSchemeManager.compositeColors(background, overlay);
+    }
+
+    private static int deriveActiveTextColor(int foreground) {
+        float[] hsv = new float[3];
+        Color.colorToHSV(foreground, hsv);
+        if (hsv[1] < 0.1f) {
+            hsv[0] = 180f;
+            hsv[1] = 0.6f;
+            hsv[2] = Math.min(1f, hsv[2] * 1.3f);
+        } else {
+            hsv[0] = (hsv[0] + 30f) % 360f;
+            hsv[2] = Math.min(1f, hsv[2] * 1.2f);
+        }
+        return Color.HSVToColor(hsv);
     }
 
     /**

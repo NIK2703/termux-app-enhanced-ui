@@ -26,9 +26,11 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.stream.Collectors;
 
 import android.view.HapticFeedbackConstants;
@@ -304,14 +306,31 @@ public final class ExtraKeysView extends GridLayout {
     @Nullable
     private SwipeDirection mRuntimeSwipeDirection;
 
-    protected ScheduledExecutorService mScheduledExecutor;
+    protected final ScheduledExecutorService mScheduledExecutor = Executors.newSingleThreadScheduledExecutor();
+    protected ScheduledFuture<?> mRepetitiveFuture;
     protected Handler mHandler;
     protected SpecialButtonsLongHoldRunnable mSpecialButtonsLongHoldRunnable;
     protected int mLongPressCount;
 
+    private ColorStateList mButtonBgTint;
+    private ColorStateList mButtonActiveBgTint;
+
+    private final List<MaterialButton> mButtonPool = new ArrayList<>();
+
+    private final TextPaint mMeasPaint = new TextPaint();
+
+    private final RectF mEditorOval = new RectF();
+    private final Path mEditorPath = new Path();
+
+    private final android.graphics.Rect mHitRect = new android.graphics.Rect();
+
+    @Nullable
+    private SwipeDirection mEditorSwipeDir;
+
 
     public ExtraKeysView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        setUseDefaultMargins(false);
 
         setRepetitiveKeys(ExtraKeysConstants.PRIMARY_REPETITIVE_KEYS);
         setSpecialButtons(getDefaultSpecialButtons(this));
@@ -347,7 +366,7 @@ public final class ExtraKeysView extends GridLayout {
     /** Get {@link #mRepetitiveKeys}. */
     public List<String> getRepetitiveKeys() {
         if (mRepetitiveKeys == null) return null;
-        return mRepetitiveKeys.stream().map(String::new).collect(Collectors.toList());
+        return new ArrayList<>(mRepetitiveKeys);
     }
 
     /** Set {@link #mRepetitiveKeys}. Must not be {@code null}. */
@@ -365,7 +384,7 @@ public final class ExtraKeysView extends GridLayout {
     /** Get {@link #mSpecialButtonsKeys}. */
     public Set<String> getSpecialButtonsKeys() {
         if (mSpecialButtonsKeys == null) return null;
-        return mSpecialButtonsKeys.stream().map(String::new).collect(Collectors.toSet());
+        return new HashSet<>(mSpecialButtonsKeys);
     }
 
     /** Set {@link #mSpecialButtonsKeys}. Must not be {@code null}. */
@@ -388,6 +407,8 @@ public final class ExtraKeysView extends GridLayout {
         mButtonActiveTextColor = buttonActiveTextColor;
         mButtonBackgroundColor = buttonBackgroundColor;
         mButtonActiveBackgroundColor = buttonActiveBackgroundColor;
+        mButtonBgTint = ColorStateList.valueOf(mButtonBackgroundColor);
+        mButtonActiveBgTint = ColorStateList.valueOf(mButtonActiveBackgroundColor);
         // Re-tint any buttons already laid out (e.g. when the color scheme changes at runtime,
         // after reload() has built the buttons). New buttons created by a later reload() read
         // these fields directly.
@@ -401,14 +422,13 @@ public final class ExtraKeysView extends GridLayout {
             if (!(child instanceof MaterialButton)) continue;
             MaterialButton button = (MaterialButton) child;
             button.setTextColor(mButtonTextColor);
-            button.setBackgroundTintList(ColorStateList.valueOf(mButtonBackgroundColor));
+            button.setBackgroundTintList(mButtonBgTint);
         }
         // Keep tinted special buttons consistent with their current active state.
         for (SpecialButtonState state : mSpecialButtons.values()) {
             for (MaterialButton button : state.buttons) {
                 button.setTextColor(state.isActive ? mButtonActiveTextColor : mButtonTextColor);
-                button.setBackgroundTintList(ColorStateList.valueOf(
-                        state.isActive ? mButtonActiveBackgroundColor : mButtonBackgroundColor));
+                button.setBackgroundTintList(state.isActive ? mButtonActiveBgTint : mButtonBgTint);
             }
         }
     }
@@ -538,6 +558,15 @@ public final class ExtraKeysView extends GridLayout {
         if (extraKeysInfo == null)
             return;
 
+        stopScheduledExecutors();
+        mButtonPool.clear();
+        for (int i = 0; i < getChildCount(); i++) {
+            View child = getChildAt(i);
+            if (child instanceof MaterialButton) {
+                mButtonPool.add((MaterialButton) child);
+            }
+        }
+
         for(SpecialButtonState state : mSpecialButtons.values())
             state.buttons = new ArrayList<>();
 
@@ -561,6 +590,13 @@ public final class ExtraKeysView extends GridLayout {
                 if (isSpecialButton(buttonInfo)) {
                     button = createSpecialButton(buttonInfo.getKey(), true);
                     if (button == null) return;
+                } else if (!mButtonPool.isEmpty()) {
+                    button = mButtonPool.remove(0);
+                    button.setText(null);
+                    button.setOnClickListener(null);
+                    button.setOnTouchListener(null);
+                    button.setTag(null);
+                    button.setPressed(false);
                 } else {
                     button = createDefaultMaterialButton();
                 }
@@ -570,10 +606,10 @@ public final class ExtraKeysView extends GridLayout {
                 float fontSizeSp = 14f;
                 // Single-character labels keep full 14sp regardless of columns
                 String displayText = buttonInfo.getDisplay();
-                boolean isSingleChar = displayText != null && displayText.length() == 1;
+                boolean isSingleChar = displayText != null && displayText.codePointCount(0, displayText.length()) == 1;
                 if (!isSingleChar) {
                     if (mDynamicFontSize) {
-                        int totalCols = getColumnCount();
+                        int totalCols = buttons[row].length;
                         fontSizeSp = 14f - Math.max(0, totalCols - 7);
                         // Macro keys (multiple sequential binds) get an additional -2sp
                         if (buttonInfo.isMacro()) fontSizeSp -= 2f;
@@ -583,6 +619,7 @@ public final class ExtraKeysView extends GridLayout {
                     }
                 }
 
+                button.setAllCaps(mButtonTextAllCaps);
                 button.setTextSize(TypedValue.COMPLEX_UNIT_SP, fontSizeSp);
 
                 if (isSingleChar) {
@@ -594,23 +631,22 @@ public final class ExtraKeysView extends GridLayout {
                     button.setHorizontallyScrolling(false);
 
                     // Calculate max lines from available height
-                    float displayDensity = getResources().getDisplayMetrics().density;
-                    int vMarginPx = (int) (mButtonMarginVerticalDp * displayDensity);
+                    int vMarginPx = (int) (mButtonMarginVerticalDp * getResources().getDisplayMetrics().density);
                     int buttonH = (int) (heightPx + 0.5f) - 2 * vMarginPx;
                     int textAreaH = buttonH;  // padding already zeroed
 
-                    TextPaint paint = new TextPaint(button.getPaint());
-                    paint.setTextSize(fontSizeSp * displayDensity);
-                    int lineHeight = paint.getFontMetricsInt(null);
+                    mMeasPaint.set(button.getPaint());
+                    mMeasPaint.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, fontSizeSp, getResources().getDisplayMetrics()));
+                    int lineHeight = mMeasPaint.getFontMetricsInt(null);
                     float lineSpacing = button.getLineSpacingMultiplier();
                     if (lineSpacing > 0f) lineHeight = (int) (lineHeight * lineSpacing);
                     lineHeight += (int) button.getLineSpacingExtra();
-                    int maxLines = Math.max(1, textAreaH / Math.max(1, lineHeight));
+                    int maxLines = Math.max(1, (int) Math.floor(textAreaH / (float) Math.max(1, lineHeight)));
 
                     // For macro buttons: custom truncation at bind boundaries
                     if (buttonInfo.isMacro() && displayText != null && displayText.contains(" ")) {
                         int totalCols = getColumnCount();
-                        int marginHPx = (int) (mButtonMarginHorizontalDp * displayDensity);
+                        int marginHPx = (int) (mButtonMarginHorizontalDp * getResources().getDisplayMetrics().density);
                         int cellW = totalCols > 0 && getWidth() > 0
                             ? getWidth() / totalCols
                             : Integer.MAX_VALUE;
@@ -622,7 +658,7 @@ public final class ExtraKeysView extends GridLayout {
                             : Integer.MAX_VALUE;
 
                         if (textAreaW > 0 && textAreaW < Integer.MAX_VALUE) {
-                            String truncated = truncateMacroText(displayText, paint, textAreaW, maxLines);
+                            String truncated = truncateMacroText(displayText, mMeasPaint, textAreaW, maxLines);
                             if (truncated != null) {
                                 button.setText(truncated);
                                 button.setMaxLines(maxLines); // truncated text already fits in maxLines
@@ -636,12 +672,12 @@ public final class ExtraKeysView extends GridLayout {
                         }
                     } else {
                         button.setMaxLines(maxLines);
+                        button.setEllipsize(TextUtils.TruncateAt.END);
                     }
                 }
                 button.setTextColor(mButtonTextColor);
-                button.setBackgroundTintList(ColorStateList.valueOf(mButtonBackgroundColor));
+                button.setBackgroundTintList(mButtonBgTint);
                 button.setCornerRadius((int) (mButtonCornerRadiusDp * getResources().getDisplayMetrics().density));
-                button.setAllCaps(mButtonTextAllCaps);
 
                 button.setOnClickListener(view -> {
                     performExtraKeyButtonHapticFeedback(view, buttonInfo, button, false);
@@ -656,7 +692,7 @@ public final class ExtraKeysView extends GridLayout {
                             mTouchDownY = event.getY();
                             mRuntimeSwipeDirection = null;
 
-                            button.setBackgroundTintList(ColorStateList.valueOf(mButtonActiveBackgroundColor));
+                            button.setBackgroundTintList(mButtonActiveBgTint);
 
                             // In HOLD mode a special button activates immediately on touch and stays
                             // active only while held. There is no long-press competition, so we do not
@@ -684,7 +720,7 @@ public final class ExtraKeysView extends GridLayout {
                             if (swipeDir != null && getSwipeExtraKeyButton(buttonInfo, swipeDir) != null) {
                                 mRuntimeSwipeDirection = swipeDir;
                                 stopScheduledExecutors();
-                                button.setBackgroundTintList(ColorStateList.valueOf(mButtonBackgroundColor));
+                                button.setBackgroundTintList(mButtonBgTint);
                                 // If in HOLD mode, end the hold since the swipe takes priority
                                 if (mSpecialButtonMode == SpecialButtonMode.HOLD && isSpecialButton(buttonInfo)) {
                                     endSpecialButtonHold(buttonInfo);
@@ -709,7 +745,7 @@ public final class ExtraKeysView extends GridLayout {
 
                         case MotionEvent.ACTION_CANCEL:
                             mRuntimeSwipeDirection = null;
-                            button.setBackgroundTintList(ColorStateList.valueOf(mButtonBackgroundColor));
+                            button.setBackgroundTintList(mButtonBgTint);
                             stopScheduledExecutors();
                             // In HOLD mode a cancelled touch ends the hold
                             if (mSpecialButtonMode == SpecialButtonMode.HOLD && isSpecialButton(buttonInfo)) {
@@ -718,7 +754,7 @@ public final class ExtraKeysView extends GridLayout {
                             return true;
 
                         case MotionEvent.ACTION_UP:
-                            button.setBackgroundTintList(ColorStateList.valueOf(mButtonBackgroundColor));
+                            button.setBackgroundTintList(mButtonBgTint);
                             stopScheduledExecutors();
 
                             // In HOLD mode a special button deactivates on release
@@ -731,6 +767,31 @@ public final class ExtraKeysView extends GridLayout {
                             if (mRuntimeSwipeDirection != null) {
                                 mRuntimeSwipeDirection = null;
                                 return true;
+                            }
+
+                            // Also check for swipe at release time (may have crossed threshold during liftoff)
+                            if (buttonInfo != null) {
+                                float upDx = event.getX() - mTouchDownX;
+                                float upDy = event.getY() - mTouchDownY;
+                                SwipeDirection upSwipe = detectDirection(upDx, upDy);
+                                if (upSwipe != null) {
+                                    ExtraKeyButton swipeBtn = getSwipeExtraKeyButton(buttonInfo, upSwipe);
+                                    if (swipeBtn != null) {
+                                        mRuntimeSwipeDirection = upSwipe;
+                                        // Execute swipe action with haptic feedback
+                                        if (mSpecialButtonMode == SpecialButtonMode.HOLD && isSpecialButton(buttonInfo)) {
+                                            endSpecialButtonHold(buttonInfo);
+                                        }
+                                        if (isSpecialButton(swipeBtn)) {
+                                            SpecialButtonState state = mSpecialButtons.get(SpecialButton.valueOf(swipeBtn.getKey()));
+                                            if (state != null) state.setIsActive(true);
+                                        } else {
+                                            onExtraKeyButtonClick(view, swipeBtn, button);
+                                        }
+                                        performExtraKeyButtonHapticFeedback(view, swipeBtn, button, true);
+                                        return true;
+                                    }
+                                }
                             }
 
                             // If not a long-press repeat, perform normal click
@@ -829,8 +890,11 @@ public final class ExtraKeysView extends GridLayout {
         if (mRepetitiveKeys.contains(buttonInfo.getKey())) {
             // Auto repeat key if long pressed until ACTION_UP stops it by calling stopScheduledExecutors.
             // Currently, only one (last) repeat key can run at a time. Old ones are stopped.
-            mScheduledExecutor = Executors.newSingleThreadScheduledExecutor();
-            mScheduledExecutor.scheduleWithFixedDelay(() -> {
+            if (mRepetitiveFuture != null) {
+                mRepetitiveFuture.cancel(false);
+                mRepetitiveFuture = null;
+            }
+            mRepetitiveFuture = mScheduledExecutor.scheduleWithFixedDelay(() -> {
                 mLongPressCount++;
                 onExtraKeyButtonClick(view, buttonInfo, button);
             }, mLongPressTimeout, mLongPressRepeatDelay, TimeUnit.MILLISECONDS);
@@ -849,9 +913,9 @@ public final class ExtraKeysView extends GridLayout {
     }
 
     public void stopScheduledExecutors() {
-        if (mScheduledExecutor != null) {
-            mScheduledExecutor.shutdownNow();
-            mScheduledExecutor = null;
+        if (mRepetitiveFuture != null) {
+            mRepetitiveFuture.cancel(false);
+            mRepetitiveFuture = null;
         }
 
         if (mSpecialButtonsLongHoldRunnable != null && mHandler != null) {
@@ -872,6 +936,20 @@ public final class ExtraKeysView extends GridLayout {
         if (state.isHolding) {
             state.setIsHolding(false);
             state.setIsActive(false);
+        }
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        stopScheduledExecutors();
+        if (mHandler != null) {
+            mHandler.removeCallbacksAndMessages(null);
+            mHandler = null;
+        }
+        if (mPopupWindow != null && mPopupWindow.isShowing()) {
+            mPopupWindow.dismiss();
+            mPopupWindow = null;
         }
     }
 
@@ -907,7 +985,7 @@ public final class ExtraKeysView extends GridLayout {
         button.setAllCaps(mButtonTextAllCaps);
         button.setWidth(width);
         button.setHeight(height);
-        button.setBackgroundTintList(ColorStateList.valueOf(mButtonActiveBackgroundColor));
+        button.setBackgroundTintList(mButtonActiveBgTint);
         mPopupWindow = new PopupWindow(this);
         mPopupWindow.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(mButtonBackgroundColor));
         mPopupWindow.setWidth(LayoutParams.WRAP_CONTENT);
@@ -978,7 +1056,7 @@ public final class ExtraKeysView extends GridLayout {
         state.setIsCreated(true);
         MaterialButton button = createDefaultMaterialButton();
         button.setTextColor(state.isActive ? mButtonActiveTextColor : mButtonTextColor);
-        button.setBackgroundTintList(ColorStateList.valueOf(state.isActive ? mButtonActiveBackgroundColor : mButtonBackgroundColor));
+        button.setBackgroundTintList(state.isActive ? mButtonActiveBgTint : mButtonBgTint);
         button.setCornerRadius((int) (mButtonCornerRadiusDp * getResources().getDisplayMetrics().density));
         if (needUpdate) {
             state.buttons.add(button);
@@ -1033,8 +1111,7 @@ public final class ExtraKeysView extends GridLayout {
         mEditorEdgePaint.setStrokeCap(Paint.Cap.BUTT);
         mEditorEdgePaint.setAntiAlias(true);
 
-        RectF oval = new RectF();
-        Path path = new Path();
+        mEditorPath.rewind();
 
         for (int i = 0; i < getChildCount(); i++) {
             View child = getChildAt(i);
@@ -1049,45 +1126,99 @@ public final class ExtraKeysView extends GridLayout {
             float r = child.getRight();
             float b = child.getBottom();
 
+            float bw = r - l;
+            float bh = b - t;
+            float maxR = Math.min(bw, bh) / 2f;
+            float effectiveCornerPx = Math.min(cornerPx, maxR);
+            if (effectiveCornerPx <= 0) effectiveCornerPx = 1f;
+            float effectiveCenterRadius = Math.max(0f, effectiveCornerPx - halfThick);
+
+            if (effectiveCenterRadius <= 0f) {
+                mEditorEdgePaint.setStyle(Paint.Style.FILL);
+                mEditorEdgePaint.setStrokeWidth(0);
+                if ((flags & 1) != 0) { // top
+                    canvas.drawRect(l + halfThick, t, r - halfThick, t + thickness, mEditorEdgePaint);
+                }
+                if ((flags & 2) != 0) { // bottom
+                    canvas.drawRect(l + halfThick, b - thickness, r - halfThick, b, mEditorEdgePaint);
+                }
+                if ((flags & 4) != 0) { // left
+                    canvas.drawRect(l, t + halfThick, l + thickness, b - halfThick, mEditorEdgePaint);
+                }
+                if ((flags & 8) != 0) { // right
+                    canvas.drawRect(r - thickness, t + halfThick, r, b - halfThick, mEditorEdgePaint);
+                }
+                mEditorEdgePaint.setStyle(Paint.Style.STROKE);
+                mEditorEdgePaint.setStrokeWidth(thickness);
+                continue;
+            }
+
             if ((flags & 1) != 0) {
-                path.reset();
-                oval.set(l + cornerPx - centerRadius, t + cornerPx - centerRadius,
-                         l + cornerPx + centerRadius, t + cornerPx + centerRadius);
-                path.arcTo(oval, 240f, 30f, true);
-                oval.set(r - cornerPx - centerRadius, t + cornerPx - centerRadius,
-                         r - cornerPx + centerRadius, t + cornerPx + centerRadius);
-                path.arcTo(oval, 270f, 30f, false);
-                canvas.drawPath(path, mEditorEdgePaint);
+                mEditorPath.reset();
+                mEditorOval.set(l + effectiveCornerPx - effectiveCenterRadius, t + effectiveCornerPx - effectiveCenterRadius,
+                         l + effectiveCornerPx + effectiveCenterRadius, t + effectiveCornerPx + effectiveCenterRadius);
+                mEditorPath.arcTo(mEditorOval, 240f, 30f, true);
+                mEditorOval.set(r - effectiveCornerPx - effectiveCenterRadius, t + effectiveCornerPx - effectiveCenterRadius,
+                         r - effectiveCornerPx + effectiveCenterRadius, t + effectiveCornerPx + effectiveCenterRadius);
+                mEditorPath.arcTo(mEditorOval, 270f, 30f, false);
+                canvas.drawPath(mEditorPath, mEditorEdgePaint);
             }
             if ((flags & 2) != 0) {
-                path.reset();
-                oval.set(r - cornerPx - centerRadius, b - cornerPx - centerRadius,
-                         r - cornerPx + centerRadius, b - cornerPx + centerRadius);
-                path.arcTo(oval, 60f, 30f, true);
-                oval.set(l + cornerPx - centerRadius, b - cornerPx - centerRadius,
-                         l + cornerPx + centerRadius, b - cornerPx + centerRadius);
-                path.arcTo(oval, 90f, 30f, false);
-                canvas.drawPath(path, mEditorEdgePaint);
+                mEditorPath.reset();
+                mEditorOval.set(r - effectiveCornerPx - effectiveCenterRadius, b - effectiveCornerPx - effectiveCenterRadius,
+                         r - effectiveCornerPx + effectiveCenterRadius, b - effectiveCornerPx + effectiveCenterRadius);
+                mEditorPath.arcTo(mEditorOval, 60f, 30f, true);
+                mEditorOval.set(l + effectiveCornerPx - effectiveCenterRadius, b - effectiveCornerPx - effectiveCenterRadius,
+                         l + effectiveCornerPx + effectiveCenterRadius, b - effectiveCornerPx + effectiveCenterRadius);
+                mEditorPath.arcTo(mEditorOval, 90f, 30f, false);
+                canvas.drawPath(mEditorPath, mEditorEdgePaint);
             }
             if ((flags & 4) != 0) {
-                path.reset();
-                oval.set(l + cornerPx - centerRadius, t + cornerPx - centerRadius,
-                         l + cornerPx + centerRadius, t + cornerPx + centerRadius);
-                path.arcTo(oval, 210f, -30f, true);
-                oval.set(l + cornerPx - centerRadius, b - cornerPx - centerRadius,
-                         l + cornerPx + centerRadius, b - cornerPx + centerRadius);
-                path.arcTo(oval, 180f, -30f, false);
-                canvas.drawPath(path, mEditorEdgePaint);
+                mEditorPath.reset();
+                mEditorOval.set(l + effectiveCornerPx - effectiveCenterRadius, t + effectiveCornerPx - effectiveCenterRadius,
+                         l + effectiveCornerPx + effectiveCenterRadius, t + effectiveCornerPx + effectiveCenterRadius);
+                mEditorPath.arcTo(mEditorOval, 210f, -30f, true);
+                mEditorOval.set(l + effectiveCornerPx - effectiveCenterRadius, b - effectiveCornerPx - effectiveCenterRadius,
+                         l + effectiveCornerPx + effectiveCenterRadius, b - effectiveCornerPx + effectiveCenterRadius);
+                mEditorPath.arcTo(mEditorOval, 180f, -30f, false);
+                canvas.drawPath(mEditorPath, mEditorEdgePaint);
             }
             if ((flags & 8) != 0) {
-                path.reset();
-                oval.set(r - cornerPx - centerRadius, b - cornerPx - centerRadius,
-                         r - cornerPx + centerRadius, b - cornerPx + centerRadius);
-                path.arcTo(oval, 30f, -30f, true);
-                oval.set(r - cornerPx - centerRadius, t + cornerPx - centerRadius,
-                         r - cornerPx + centerRadius, t + cornerPx + centerRadius);
-                path.arcTo(oval, 360f, -30f, false);
-                canvas.drawPath(path, mEditorEdgePaint);
+                mEditorPath.reset();
+                mEditorOval.set(r - effectiveCornerPx - effectiveCenterRadius, b - effectiveCornerPx - effectiveCenterRadius,
+                         r - effectiveCornerPx + effectiveCenterRadius, b - effectiveCornerPx + effectiveCenterRadius);
+                mEditorPath.arcTo(mEditorOval, 30f, -30f, true);
+                mEditorOval.set(r - effectiveCornerPx - effectiveCenterRadius, t + effectiveCornerPx - effectiveCenterRadius,
+                         r - effectiveCornerPx + effectiveCenterRadius, t + effectiveCornerPx + effectiveCenterRadius);
+                mEditorPath.arcTo(mEditorOval, 360f, -30f, false);
+                canvas.drawPath(mEditorPath, mEditorEdgePaint);
+            }
+        }
+
+        // Draw swipe direction arrow indicator for editor mode
+        if (mEditorSwipeDir != null && mActiveChild != null) {
+            float cx = mActiveChild.getLeft() + mActiveChild.getWidth() / 2f;
+            float cy = mActiveChild.getTop() + mActiveChild.getHeight() / 2f;
+            float arrowSize = 24f * getResources().getDisplayMetrics().density;
+            float half = arrowSize / 2f;
+
+            mEditorEdgePaint.setColor(0xFFFF4444);
+            mEditorEdgePaint.setStyle(Paint.Style.FILL);
+            mEditorEdgePaint.setStrokeWidth(0);
+
+            switch (mEditorSwipeDir) {
+                case UP:
+                    canvas.drawRect(cx - half, cy - half, cx + half, cy, mEditorEdgePaint);
+                    break;
+                case DOWN:
+                    canvas.drawRect(cx - half, cy, cx + half, cy + half, mEditorEdgePaint);
+                    break;
+                case LEFT:
+                    canvas.drawRect(cx - half, cy - half, cx, cy + half, mEditorEdgePaint);
+                    break;
+                case RIGHT:
+                    canvas.drawRect(cx, cy - half, cx + half, cy + half, mEditorEdgePaint);
+                    break;
             }
         }
     }
@@ -1097,30 +1228,30 @@ public final class ExtraKeysView extends GridLayout {
         float absDx = Math.abs(dx);
         float absDy = Math.abs(dy);
         if (Math.max(absDx, absDy) < mSwipeThreshold) return null;
-        if (absDx > absDy) {
+        if (absDx > absDy * 1.5f) {
             return dx > 0 ? SwipeDirection.RIGHT : SwipeDirection.LEFT;
-        } else {
+        } else if (absDy > absDx * 1.5f) {
             return dy > 0 ? SwipeDirection.DOWN : SwipeDirection.UP;
+        } else {
+            return null; // diagonal — ambiguous, reject
         }
     }
 
     @Nullable
     private View findChildAt(float x, float y) {
-        android.graphics.Rect rect = new android.graphics.Rect();
         for (int i = getChildCount() - 1; i >= 0; i--) {
             View child = getChildAt(i);
             if (child.getVisibility() != VISIBLE) continue;
-            child.getHitRect(rect);
-            if (rect.contains((int) x, (int) y)) return child;
+            child.getHitRect(mHitRect);
+            if (mHitRect.contains((int) x, (int) y)) return child;
         }
         return null;
     }
 
     private boolean isInsideView(@Nullable View view, float x, float y) {
         if (view == null) return false;
-        android.graphics.Rect rect = new android.graphics.Rect();
-        view.getHitRect(rect);
-        return rect.contains((int) x, (int) y);
+        view.getHitRect(mHitRect);
+        return mHitRect.contains((int) x, (int) y);
     }
 
     @Override
@@ -1183,6 +1314,8 @@ public final class ExtraKeysView extends GridLayout {
 
                 SwipeDirection direction = detectDirection(dx, dy);
                 if (direction != null) {
+                    mEditorSwipeDir = direction;
+                    invalidate();
                     fireSwipe(mActiveChild, direction);
                 }
                 return true;
@@ -1200,6 +1333,8 @@ public final class ExtraKeysView extends GridLayout {
 
                     SwipeDirection direction = detectDirection(dx, dy);
                     if (direction != null) {
+                        mEditorSwipeDir = direction;
+                        invalidate();
                         fireSwipe(mActiveChild, direction);
                     } else if (isInsideView(mActiveChild, x, y)) {
                         fireTap(mActiveChild);
@@ -1278,6 +1413,7 @@ public final class ExtraKeysView extends GridLayout {
         mActiveChild = null;
         mActivePointerId = INVALID_POINTER_ID;
         mGestureConsumed = false;
+        mEditorSwipeDir = null;
 
         ViewParent parent = getParent();
         if (parent != null) {

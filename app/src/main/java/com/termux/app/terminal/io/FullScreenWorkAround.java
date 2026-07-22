@@ -4,6 +4,7 @@ import android.content.res.Resources;
 import android.graphics.Rect;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 
 import com.termux.R;
 import com.termux.app.TermuxActivity;
@@ -30,13 +31,14 @@ public class FullScreenWorkAround {
     private final ViewGroup.LayoutParams mViewGroupLayoutParams;
 
     private final int mNavBarHeight;
+    private final ViewTreeObserver.OnGlobalLayoutListener mLayoutListener;
 
     // Layout tolerance (px), loaded lazily from @dimen/root_view_layout_tolerance. Sub-band
     // changes of the reported usable height are ignored (see possiblyResizeChildOfContent()).
     private int mLayoutTolerancePx = -1;
 
-    public static void apply(TermuxActivity activity) {
-        new FullScreenWorkAround(activity);
+    public static FullScreenWorkAround apply(TermuxActivity activity) {
+        return new FullScreenWorkAround(activity);
     }
 
     private FullScreenWorkAround(TermuxActivity activity) {
@@ -44,7 +46,14 @@ public class FullScreenWorkAround {
         mChildOfContent = content.getChildAt(0);
         mViewGroupLayoutParams = mChildOfContent.getLayoutParams();
         mNavBarHeight = activity.getNavBarHeight();
-        mChildOfContent.getViewTreeObserver().addOnGlobalLayoutListener(this::possiblyResizeChildOfContent);
+        mLayoutListener = this::possiblyResizeChildOfContent;
+        mChildOfContent.getViewTreeObserver().addOnGlobalLayoutListener(mLayoutListener);
+    }
+
+    public void unregister() {
+        if (mChildOfContent != null && mLayoutListener != null) {
+            mChildOfContent.getViewTreeObserver().removeOnGlobalLayoutListener(mLayoutListener);
+        }
     }
 
     private void possiblyResizeChildOfContent() {

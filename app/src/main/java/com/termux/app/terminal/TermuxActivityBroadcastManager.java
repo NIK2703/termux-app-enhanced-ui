@@ -108,7 +108,7 @@ public class TermuxActivityBroadcastManager {
             }
 
             if (TERMUX_ACTIVITY.ACTION_RELOAD_STYLE.equals(action)) {
-                termuxActivity.reloadActivityStyling(intent.getBooleanExtra(TERMUX_ACTIVITY.EXTRA_RECREATE_ACTIVITY, true));
+                termuxActivity.reloadActivityStyling(intent.getBooleanExtra(TERMUX_ACTIVITY.EXTRA_RECREATE_ACTIVITY, false));
                 return;
             }
 
