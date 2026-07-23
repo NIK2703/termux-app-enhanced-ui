@@ -331,6 +331,9 @@
     <string name="extra_keys_editor_open_editor">अतिरिक्त कुंजियाँ संपादित करें</string>
     <string name="extra_keys_editor_open_editor_summary">लेआउट, आकार और कुंजी बाइंडिंग कॉन्फ़िगर करें</string>
     <string name="extra_keys_editor_hint">मुख्य क्रिया असाइन करने के लिए दबाएँ · जेस्चर क्रियाएँ असाइन करने के लिए ↑ ↓ ← → स्वाइप करें</string>
+    <string name="extra_keys_editor_mode_assign">निर्दिष्ट करें</string>
+    <string name="extra_keys_editor_mode_move">स्थानांतरित करें</string>
+    <string name="extra_keys_editor_hint_move">किसी कुंजी को दूसरे सेल पर खींचकर उसकी सभी क्रियाओं को स्थानांतरित/स्वैप करें</string>
 
     <string name="extra_keys_editor_signal_keyboard">कीबोर्ड टॉगल</string>
     <string name="extra_keys_editor_signal_paste">पेस्ट करें</string>

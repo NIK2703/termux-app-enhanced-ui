@@ -325,6 +325,9 @@
     <string name="extra_keys_editor_open_editor">Editar teclas adicionales</string>
     <string name="extra_keys_editor_open_editor_summary">Configurar diseño, escala y asignaciones de teclas</string>
     <string name="extra_keys_editor_hint">Toque para asignar la acción principal · Deslice ↑ ↓ ← → para asignar acciones de gestos</string>
+    <string name="extra_keys_editor_mode_assign">Asignar</string>
+    <string name="extra_keys_editor_mode_move">Mover</string>
+    <string name="extra_keys_editor_hint_move">Arrastre una tecla a otra celda para mover/intercambiar todas sus acciones</string>
 
     
     <string name="extra_keys_haptic_title">Respuesta háptica</string>

@@ -317,6 +317,9 @@
     <string name="extra_keys_editor_open_editor">Zusatztasten bearbeiten</string>
     <string name="extra_keys_editor_open_editor_summary">Layout, Skalierung und Tastenzuweisungen konfigurieren</string>
     <string name="extra_keys_editor_hint">Tippen, um die Hauptaktion zuzuweisen · Wischen ↑ ↓ ← → für Gestenaktionen</string>
+    <string name="extra_keys_editor_mode_assign">Zuweisen</string>
+    <string name="extra_keys_editor_mode_move">Verschieben</string>
+    <string name="extra_keys_editor_hint_move">Taste auf andere Zelle ziehen, um Aktionen zu verschieben/auszutauschen</string>
 
     
     <string name="extra_keys_haptic_title">Haptisches Feedback</string>

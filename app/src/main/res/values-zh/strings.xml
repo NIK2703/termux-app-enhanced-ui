@@ -354,6 +354,9 @@
     <string name="extra_keys_editor_open_editor">编辑额外按键</string>
     <string name="extra_keys_editor_open_editor_summary">配置布局、缩放和按键绑定</string>
     <string name="extra_keys_editor_hint">点击分配主操作 · 滑动 ↑ ↓ ← → 分配手势操作</string>
+    <string name="extra_keys_editor_mode_assign">分配</string>
+    <string name="extra_keys_editor_mode_move">移动</string>
+    <string name="extra_keys_editor_hint_move">将键拖到其他单元格以移动/交换其所有操作</string>
 
     
     <string name="extra_keys_editor_signal_keyboard">键盘切换</string>

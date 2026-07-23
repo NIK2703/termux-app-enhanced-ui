@@ -308,6 +308,9 @@
     <string name="extra_keys_editor_open_editor">Edit tombol tambahan</string>
     <string name="extra_keys_editor_open_editor_summary">Konfigurasikan tata letak, skala, dan pemetaan tombol</string>
     <string name="extra_keys_editor_hint">Ketuk untuk menetapkan tindakan utama · Geser ↑ ↓ ← → untuk menetapkan tindakan isyarat</string>
+    <string name="extra_keys_editor_mode_assign">Tetapkan</string>
+    <string name="extra_keys_editor_mode_move">Pindahkan</string>
+    <string name="extra_keys_editor_hint_move">Seret tombol ke sel lain untuk memindahkan/menukar semua tindakannya</string>
 
     
     <string name="extra_keys_haptic_title">Umpan balik haptik</string>

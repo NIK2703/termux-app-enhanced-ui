@@ -345,6 +345,9 @@
     <string name="extra_keys_editor_open_editor">تحرير المفاتيح الإضافية</string>
     <string name="extra_keys_editor_open_editor_summary">تكوين التخطيط والتحجيم وربط المفاتيح</string>
     <string name="extra_keys_editor_hint">اضغط لتعيين الإجراء الرئيسي · اسحب ↑ ↓ ← → لتعيين إجراءات الإيماءات</string>
+    <string name="extra_keys_editor_mode_assign">تعيين</string>
+    <string name="extra_keys_editor_mode_move">نقل</string>
+    <string name="extra_keys_editor_hint_move">اسحب مفتاحاً إلى خلية أخرى لنقل/تبادل جميع إجراءاته</string>
 
     
     <string name="extra_keys_haptic_title">الاستجابة اللمسية</string>

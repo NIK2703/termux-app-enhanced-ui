@@ -339,6 +339,9 @@ $HOME/bin/termux-url-opener
     <string name="extra_keys_editor_open_editor">추가 키 편집</string>
     <string name="extra_keys_editor_open_editor_summary">레이아웃, 크기 및 키 바인딩 구성</string>
     <string name="extra_keys_editor_hint">탭하여 기본 동작 지정 · ↑ ↓ ← → 스와이프하여 제스처 동작 지정</string>
+    <string name="extra_keys_editor_mode_assign">할당</string>
+    <string name="extra_keys_editor_mode_move">이동</string>
+    <string name="extra_keys_editor_hint_move">키를 다른 셀로 드래그하여 모든 동작 이동/교체</string>
 
     
     <string name="extra_keys_haptic_title">햅틱 피드백</string>
