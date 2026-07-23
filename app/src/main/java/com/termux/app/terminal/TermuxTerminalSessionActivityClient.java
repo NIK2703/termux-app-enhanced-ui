@@ -373,9 +373,6 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
     public void setCurrentSession(TerminalSession session, boolean showToast) {
         if (session == null) return;
 
-        // Preserve the text input content of the session we are leaving.
-        mActivity.saveTextInputForCurrentSession();
-
         // Switching sessions invalidates any in-flight shell-completion context
         // (cwd, cwd-bound candidates, running bash subprocess). Dismiss the
         // autocomplete popup so stale candidates from the old session don't linger.
@@ -633,7 +630,6 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         TermuxSession newTermuxSession = service.createTermuxSession(null, null, null, workingDirectory, isFailSafe, sessionName);
         if (newTermuxSession == null) return null;
         TerminalSession newTerminalSession = newTermuxSession.getTerminalSession();
-
         // CALLER_MANAGED (right-swipe gesture): the caller handles selection / pager bookkeeping /
         // its own end-scroll, so just hand back the session.
         if (selectMode == NewSessionSelectMode.CALLER_MANAGED) {
