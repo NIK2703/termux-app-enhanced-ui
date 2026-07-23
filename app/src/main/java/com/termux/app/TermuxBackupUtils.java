@@ -127,7 +127,7 @@ public final class TermuxBackupUtils {
         // spinner. No size estimation needed — archiving starts immediately.
         runTar(context,
             new String[]{TAR_BINARY, "-cpf", "-", "--numeric-owner",
-                "-C", filesDir, "."},
+                "--warning=no-file-changed", "-C", filesDir, "."},
             null, out, listener, progress,
             new File(parentDir), 0L, cancelled);
     }

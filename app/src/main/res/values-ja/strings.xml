@@ -183,7 +183,12 @@
 <string name="text_input_show_summary_on">テキスト入力欄が追加キーの上に表示されています</string>
 <string name="text_input_show_summary_off">テキスト入力欄は非表示です</string>
 <string name="text_input_hide_on_send_title">送信後に入力パネルを隠す</string>
-<string name="text_input_hide_on_send_summary">有効にすると、送信後に入力パネルが閉じてフォーカスがターミナルに移ります。連続したコマンド入力のためにパネルを開いたままにするには無効にしてください。</string>
+    <string name="text_input_hide_on_send_summary">有効にすると、送信後に入力パネルが閉じてフォーカスがターミナルに移ります。連続したコマンド入力のためにパネルを開いたままにするには無効にしてください。</string>
+    <string name="text_input_insert_at_cursor_title">履歴メッセージの復元動作</string>
+    <string name="text_input_insert_at_cursor_summary">タップして選択：カーソル位置に挿入するか、入力フィールド全体を置き換えます</string>
+    <string name="text_input_insert_at_cursor_dialog_title">履歴復元モード</string>
+    <string name="text_input_insert_at_cursor_option_insert">カーソル位置に挿入</string>
+    <string name="text_input_insert_at_cursor_option_replace">入力フィールド全体を置き換え</string>
 <string name="message_history_empty">メッセージ履歴はありません</string>
 <string name="message_history_clear_all">履歴をクリア…</string>
 <string name="message_history_clear">クリア</string>

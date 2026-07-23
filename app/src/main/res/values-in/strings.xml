@@ -195,6 +195,11 @@
 <string name="text_input_hide_on_send_title">Sembunyikan panel input setelah kirim</string>
 <string name="text_input_hide_on_send_summary">Jika diaktifkan, panel input tertutup dan fokus beralih ke terminal setelah mengirim. Nonaktifkan untuk membiarkan panel tetap terbuka guna perintah berturut-turut.</string>
 <string name="text_input_title">Input Teks</string>
+<string name="text_input_insert_at_cursor_title">Perilaku pemulihan pesan riwayat</string>
+<string name="text_input_insert_at_cursor_summary">Ketuk untuk memilih: sisipkan di kursor atau ganti seluruh kolom input</string>
+<string name="text_input_insert_at_cursor_dialog_title">Mode pemulihan riwayat</string>
+<string name="text_input_insert_at_cursor_option_insert">Sisipkan di kursor</string>
+<string name="text_input_insert_at_cursor_option_replace">Ganti seluruh kolom input</string>
 <string name="theme_mode_summary">Pilih tema aplikasi dan terminal</string>
 <string name="theme_mode_title">Tema Aplikasi</string>
 <string name="theme_title">Tema</string>

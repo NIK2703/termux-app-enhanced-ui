@@ -224,6 +224,11 @@ $HOME/bin/termux-url-opener
     <string name="text_input_title">텍스트 입력</string>
     <string name="text_input_hide_on_send_title">전송 후 입력 패널 숨기기</string>
     <string name="text_input_hide_on_send_summary">활성화하면 전송 후 입력 패널이 닫히고 포커스가 터미널로 이동합니다. 연속된 명령을 위해 패널을 열어 두려면 비활성화하세요.</string>
+    <string name="text_input_insert_at_cursor_title">기록 메시지 복원 동작</string>
+    <string name="text_input_insert_at_cursor_summary">탭하여 선택: 커서에 삽입하거나 전체 입력 필드 교체</string>
+    <string name="text_input_insert_at_cursor_dialog_title">기록 복원 모드</string>
+    <string name="text_input_insert_at_cursor_option_insert">커서에 삽입</string>
+    <string name="text_input_insert_at_cursor_option_replace">전체 입력 필드 교체</string>
     <string name="theme_mode_title">앱 테마</string>
     <string name="theme_mode_summary">앱 및 터미널 테마 선택</string>
     <string name="theme_title">테마</string>

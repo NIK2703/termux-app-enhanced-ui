@@ -230,6 +230,11 @@
     <string name="text_input_title">إدخال النص</string>
     <string name="text_input_hide_on_send_title">إخفاء لوحة الإدخال بعد الإرسال</string>
     <string name="text_input_hide_on_send_summary">عند التفعيل، تُغلق لوحة الإدخال وينتقل التركيز إلى الطرفية بعد الإرسال. عطّل ذلك لإبقاء اللوحة مفتوحة لإدخال أوامر متتابعة.</string>
+    <string name="text_input_insert_at_cursor_title">سلوك استعادة سجل الرسائل</string>
+    <string name="text_input_insert_at_cursor_summary">اضغط للاختيار: إدراج عند المؤشر أو استبدال حقل الإدخال بالكامل</string>
+    <string name="text_input_insert_at_cursor_dialog_title">وضع استعادة السجل</string>
+    <string name="text_input_insert_at_cursor_option_insert">إدراج عند المؤشر</string>
+    <string name="text_input_insert_at_cursor_option_replace">استبدال حقل الإدخال بالكامل</string>
     <string name="theme_mode_summary">اختر سمة التطبيق والطرفية</string>
     <string name="theme_mode_title">سمة التطبيق</string>
     <string name="theme_title">السمة</string>

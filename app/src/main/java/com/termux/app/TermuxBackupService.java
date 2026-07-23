@@ -352,7 +352,9 @@ public final class TermuxBackupService extends Service {
     // ------------------------------------------------------------------
 
     private void runBackup(Uri uri, long estimatedSize, AtomicReference<Error> out) {
-        try (OutputStream os = getContentResolver().openOutputStream(uri)) {
+        OutputStream os = null;
+        try {
+            os = getContentResolver().openOutputStream(uri);
             if (os == null) {
                 out.set(new Error(getString(R.string.backup_error_open_output)));
                 return;
@@ -382,6 +384,9 @@ public final class TermuxBackupService extends Service {
                     publishProgress(false, copied, est > 0 ? est : 0);
                 },
                 mCancelled);
+            // The data pump inside TermuxBackupUtils.backup() -> runTar() already closed 'os'.
+            // Prevent the finally block from closing it again.
+            os = null;
             if (holder[0] != null) {
                 // A cancelled or failed backup must not leave a partial destination file behind.
                 try { getContentResolver().delete(uri, null, null); } catch (Exception ignored) { }
@@ -389,7 +394,18 @@ public final class TermuxBackupService extends Service {
             }
         } catch (IOException | RuntimeException e) {
             try { getContentResolver().delete(uri, null, null); } catch (Exception ignored) { }
-            out.set(new Error(e.getMessage(), e));
+            // Don't overwrite a successful backup result with a close error:
+            // the data pump may have already closed 'os', and an IOException on
+            // double-close must not be reported as a backup failure.
+            if (out.get() == null) {
+                out.set(new Error(e.getMessage(), e));
+            }
+        } finally {
+            // Close if backup() never started the data pump (e.g. checkTarHealth failed),
+            // or if an exception occurred before os was handed to the data pump.
+            if (os != null) {
+                try { os.close(); } catch (IOException ignored) { }
+            }
         }
     }
 

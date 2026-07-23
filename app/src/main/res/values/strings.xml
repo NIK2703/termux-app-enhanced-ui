@@ -323,6 +323,12 @@
     <string name="text_input_hide_on_send_title">Hide input panel after send</string>
     <string name="text_input_hide_on_send_summary">When enabled, the input panel closes and focus goes to the terminal after sending. Disable to keep the panel open for consecutive commands.</string>
 
+    <string name="text_input_insert_at_cursor_title">History message restore behavior</string>
+    <string name="text_input_insert_at_cursor_summary">Tap to choose: insert at cursor or replace the entire input field</string>
+    <string name="text_input_insert_at_cursor_dialog_title">History restore mode</string>
+    <string name="text_input_insert_at_cursor_option_insert">Insert at cursor</string>
+    <string name="text_input_insert_at_cursor_option_replace">Replace entire input field</string>
+
     <!-- Directory history preferences -->
     <string name="directory_history_title">Directory History</string>
     <string name="directory_history_max_title">Max remembered directories</string>

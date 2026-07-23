@@ -194,6 +194,11 @@
     <string name="text_input_append_enter_summary">Ao enviar do campo de entrada, também submeter a linha (pressionar Enter). Desative para enviar texto sem uma nova linha no final.</string>
     <string name="text_input_append_enter_title">Adicionar Enter ao Enviar</string>
     <string name="text_input_hide_on_send_summary">Quando ativado, o painel de entrada fecha e o foco vai para o terminal após o envio. Desative para manter o painel aberto para comandos consecutivos.</string>
+    <string name="text_input_insert_at_cursor_title">Comportamento de restauração do histórico</string>
+    <string name="text_input_insert_at_cursor_summary">Toque para escolher: inserir no cursor ou substituir todo o campo de entrada</string>
+    <string name="text_input_insert_at_cursor_dialog_title">Modo de restauração do histórico</string>
+    <string name="text_input_insert_at_cursor_option_insert">Inserir no cursor</string>
+    <string name="text_input_insert_at_cursor_option_replace">Substituir todo o campo de entrada</string>
     <string name="text_input_hide_on_send_title">Ocultar painel de entrada após envio</string>
     <string name="text_input_show_summary_off">O campo de entrada de texto está oculto</string>
     <string name="text_input_show_summary_on">O campo de entrada de texto está visível acima das teclas extras</string>

@@ -46,6 +46,14 @@ public class TerminalIOPreferencesFragment extends TermuxPreferenceFragmentBase 
             });
         }
 
+        Preference historyRestorePref = findPreference("text_input_insert_at_cursor");
+        if (historyRestorePref != null) {
+            historyRestorePref.setOnPreferenceClickListener(pref -> {
+                showHistoryRestoreDialog();
+                return true;
+            });
+        }
+
         configureHistorySlider("message_history_max", 10, 100);
         configureHistorySlider("directory_history_max", 10, 100);
     }
@@ -61,6 +69,28 @@ public class TerminalIOPreferencesFragment extends TermuxPreferenceFragmentBase 
             }
             return true;
         });
+    }
+
+    private void showHistoryRestoreDialog() {
+        Context context = getContext();
+        if (context == null) return;
+
+        TermuxAppSharedPreferences prefs = TermuxAppSharedPreferences.build(context, true);
+
+        String[] items = {
+                context.getString(R.string.text_input_insert_at_cursor_option_replace),
+                context.getString(R.string.text_input_insert_at_cursor_option_insert)
+        };
+        int checkedItem = prefs.shouldInsertAtCursorOnHistoryPick() ? 1 : 0;
+
+        new androidx.appcompat.app.AlertDialog.Builder(context)
+                .setTitle(R.string.text_input_insert_at_cursor_dialog_title)
+                .setSingleChoiceItems(items, checkedItem, (dialog, which) -> {
+                    prefs.setInsertAtCursorOnHistoryPick(which == 1);
+                    dialog.dismiss();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
     }
 
 }
@@ -110,6 +140,9 @@ class TerminalIOPreferencesDataStore extends PreferenceDataStore {
             case "text_input_hide_on_send":
                 if (mPreferences != null) mPreferences.setTextInputHideOnSend(value);
                 break;
+            case "text_input_insert_at_cursor":
+                if (mPreferences != null) mPreferences.setInsertAtCursorOnHistoryPick(value);
+                break;
             case "per_directory_message_history":
                 getTermuxPrefs().edit().putBoolean("per_directory_message_history", value).apply();
                 break;
@@ -155,6 +188,8 @@ class TerminalIOPreferencesDataStore extends PreferenceDataStore {
                 return mPreferences != null && mPreferences.shouldTextInputAppendEnter();
             case "text_input_hide_on_send":
                 return mPreferences != null && mPreferences.shouldTextInputHideOnSend();
+            case "text_input_insert_at_cursor":
+                return mPreferences != null && mPreferences.shouldInsertAtCursorOnHistoryPick();
             case "per_directory_message_history":
                 return getTermuxPrefs().getBoolean("per_directory_message_history", false);
             default:

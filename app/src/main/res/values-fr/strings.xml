@@ -187,6 +187,11 @@
     <string name="text_input_show_summary_off">Le champ de saisie de texte est masqué</string>
     <string name="text_input_hide_on_send_title">Masquer le panneau de saisie après l\'envoi</string>
     <string name="text_input_hide_on_send_summary">Lorsque activé, le panneau de saisie se ferme et le focus revient au terminal après l\'envoi. Désactivez pour garder le panneau ouvert afin d\'enchaîner les commandes.</string>
+    <string name="text_input_insert_at_cursor_title">Comportement de restauration de l\'historique des messages</string>
+    <string name="text_input_insert_at_cursor_summary">Appuyez pour choisir : insérer à la position du curseur ou remplacer tout le champ de saisie</string>
+    <string name="text_input_insert_at_cursor_dialog_title">Mode de restauration de l\'historique</string>
+    <string name="text_input_insert_at_cursor_option_insert">Insérer à la position du curseur</string>
+    <string name="text_input_insert_at_cursor_option_replace">Remplacer tout le champ de saisie</string>
     <string name="message_history_empty">Aucun historique de messages</string>
     <string name="message_history_clear_all">EFFACER L\'HISTORIQUE…</string>
     <string name="message_history_clear">Effacer</string>

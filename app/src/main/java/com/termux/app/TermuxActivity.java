@@ -20,6 +20,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.text.Editable;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.ContextMenu;
@@ -1659,31 +1660,46 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         final EditText editText = findViewById(R.id.terminal_toolbar_text_input);
         if (editText == null) return;
 
-        // Open the panel FIRST if it is closed: setTextInputVisible(true) restores
-        // this session's previously typed (but unsent) text into the field. We read
-        // `existing` only after that, so text saved for a closed panel is not lost.
         if (!isTextInputVisible()) {
             setTextInputVisible(true);
             updateToggleTextInputButtonIcon();
         }
 
-        // If the panel already holds unsent text, push it into the history (dedup)
-        // so it is preserved before we overwrite the field with the picked message.
-        String existing = editText.getText().toString();
-        if (!TextUtils.isEmpty(existing) && !existing.equals(message)) {
-            addToMessageHistory(existing);
+        mAutoCompleteCtrl.invalidateHistoryVersion();
+
+        if (mPreferences.shouldInsertAtCursorOnHistoryPick()) {
+            // NEW behaviour: insert at cursor / replace selection, auto-select inserted text.
+            // Does NOT save existing text to history — that only happens on send and clear.
+            Editable editable = editText.getText();
+            if (editable == null) {
+                editText.setText(message);
+                editText.setSelection(message.length());
+            } else {
+                int selStart = editText.getSelectionStart();
+                int selEnd   = editText.getSelectionEnd();
+
+                if (selStart < 0) selStart = editable.length();
+                if (selEnd   < 0) selEnd   = selStart;
+                if (selStart > selEnd) {
+                    int tmp = selStart;
+                    selStart = selEnd;
+                    selEnd = tmp;
+                }
+
+                editable.replace(selStart, selEnd, message);
+                editText.setSelection(selStart, selStart + message.length());
+            }
+        } else {
+            // LEGACY behaviour: replace the entire field, saving existing text to history.
+            String existing = editText.getText().toString();
+            if (!TextUtils.isEmpty(existing) && !existing.equals(message)) {
+                addToMessageHistory(existing);
+            }
+            editText.setText(message);
+            editText.setSelection(message.length());
         }
 
-        // A history pick replaces the ENTIRE field, so force a full rescan
-        // (Path A) instead of the additive-keystroke heuristic. Without this,
-        // when the field was empty the TextWatcher sees an "appended" change
-        // (before==0) and wrongly takes Path B, which dismisses the popup
-        // instead of showing suggestions for the restored message.
-        mAutoCompleteCtrl.invalidateHistoryVersion(); // force mismatch → Path A on next update
-        editText.setText(message);
-        editText.setSelection(message.length());
         setFocusOnInputForCurrentSession(true);
-        // Persist into the per-session store so the inserted text survives switches.
         saveTextInputForCurrentSession();
 
         editText.requestFocus();

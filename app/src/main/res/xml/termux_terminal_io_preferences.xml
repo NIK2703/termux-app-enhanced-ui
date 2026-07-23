@@ -68,6 +68,12 @@
             app:summary="@string/text_input_hide_on_send_summary"
             app:iconSpaceReserved="false" />
 
+        <Preference
+            app:key="text_input_insert_at_cursor"
+            app:title="@string/text_input_insert_at_cursor_title"
+            app:summary="@string/text_input_insert_at_cursor_summary"
+            app:iconSpaceReserved="false" />
+
         <SwitchPreferenceCompat
             app:key="per_directory_message_history"
             app:title="@string/per_directory_message_history_title"

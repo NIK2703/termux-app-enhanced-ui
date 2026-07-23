@@ -203,6 +203,11 @@
     <string name="text_input_title">पाठ इनपुट</string>
     <string name="text_input_hide_on_send_title">भेजने के बाद इनपुट पैनल छिपाएँ</string>
     <string name="text_input_hide_on_send_summary">सक्षम होने पर, भेजने के बाद इनपुट पैनल बंद हो जाता है और फ़ोकस टर्मिनल पर चला जाता है। लगातार कमांड के लिए पैनल खुला रखने हेतु इसे अक्षम करें।</string>
+    <string name="text_input_insert_at_cursor_title">संदेश इतिहास पुनर्स्थापना व्यवहार</string>
+    <string name="text_input_insert_at_cursor_summary">चुनने के लिए टैप करें: कर्सर पर सम्मिलित करें या संपूर्ण इनपुट फ़ील्ड बदलें</string>
+    <string name="text_input_insert_at_cursor_dialog_title">संदेश इतिहास पुनर्स्थापना मोड</string>
+    <string name="text_input_insert_at_cursor_option_insert">कर्सर पर सम्मिलित करें</string>
+    <string name="text_input_insert_at_cursor_option_replace">संपूर्ण इनपुट फ़ील्ड बदलें</string>
     <string name="theme_mode_title">ऐप थीम</string>
     <string name="theme_mode_summary">ऐप और टर्मिनल थीम चुनें</string>
     <string name="theme_title">थीम</string>

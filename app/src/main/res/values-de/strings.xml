@@ -191,6 +191,11 @@
     <string name="text_input_show_title">Texteingabefeld anzeigen</string>
     <string name="text_input_hide_on_send_title">Eingabepanel nach Senden ausblenden</string>
     <string name="text_input_hide_on_send_summary">Wenn aktiviert, schließt sich das Eingabepanel und der Fokus wechselt nach dem Senden zum Terminal. Deaktivieren, um das Panel für aufeinanderfolgende Befehle geöffnet zu lassen.</string>
+    <string name="text_input_insert_at_cursor_title">Verhalten beim Wiederherstellen des Verlaufs</string>
+    <string name="text_input_insert_at_cursor_summary">Tippen zum Auswählen: am Cursor einfügen oder gesamtes Eingabefeld ersetzen</string>
+    <string name="text_input_insert_at_cursor_dialog_title">Modus der Verlaufswiederherstellung</string>
+    <string name="text_input_insert_at_cursor_option_insert">Am Cursor einfügen</string>
+    <string name="text_input_insert_at_cursor_option_replace">Gesamtes Eingabefeld ersetzen</string>
     <string name="theme_title">Design</string>
     <string name="title_activity_termux_settings">Termux-Einstellungen</string>
     <string name="title_confirm_kill_process">Diese Sitzung wirklich beenden?</string>

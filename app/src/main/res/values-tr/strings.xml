@@ -202,6 +202,11 @@
     <string name="text_input_show_summary_off">Metin giriş alanı gizli</string>
     <string name="text_input_hide_on_send_title">Gönderdikten sonra giriş panelini gizle</string>
     <string name="text_input_hide_on_send_summary">Etkinleştirildiğinde, giriş paneli kapanır ve gönderdikten sonra odak terminale geçer. Ardışık komutlar için paneli açık tutmak üzere devre dışı bırakın.</string>
+    <string name="text_input_insert_at_cursor_title">Geçmiş mesaj geri yükleme davranışı</string>
+    <string name="text_input_insert_at_cursor_summary">Seçmek için dokunun: imlece ekle veya giriş alanının tamamını değiştir</string>
+    <string name="text_input_insert_at_cursor_dialog_title">Geçmiş geri yükleme modu</string>
+    <string name="text_input_insert_at_cursor_option_insert">İmlece ekle</string>
+    <string name="text_input_insert_at_cursor_option_replace">Tüm giriş alanını değiştir</string>
 <string name="message_history_empty">Mesaj geçmişi yok</string>
 <string name="message_history_clear_all">GEÇMİŞİ TEMİZLE…</string>
 <string name="message_history_clear">Temizle</string>

@@ -118,6 +118,13 @@ public class TermuxAppSharedPreferences extends AppSharedPreferences {
         SharedPreferenceUtils.setBoolean(mSharedPreferences, TERMUX_APP.KEY_TEXT_INPUT_HIDE_ON_SEND, value, false);
     }
 
+    public boolean shouldInsertAtCursorOnHistoryPick() {
+        return SharedPreferenceUtils.getBoolean(mSharedPreferences, TERMUX_APP.KEY_TEXT_INPUT_INSERT_AT_CURSOR, TERMUX_APP.DEFAULT_VALUE_TEXT_INPUT_INSERT_AT_CURSOR);
+    }
+
+    public void setInsertAtCursorOnHistoryPick(boolean value) {
+        SharedPreferenceUtils.setBoolean(mSharedPreferences, TERMUX_APP.KEY_TEXT_INPUT_INSERT_AT_CURSOR, value, false);
+    }
 
     /**
      * Get the maximum number of auto-complete suggestions to show in the text input popup.

@@ -235,6 +235,11 @@
 
     <string name="text_input_hide_on_send_title">Скрывать панель ввода после отправки</string>
     <string name="text_input_hide_on_send_summary">При включении панель ввода закрывается и фокус переходит в терминал после отправки. Отключите, чтобы панель оставалась открытой для последовательных команд.</string>
+    <string name="text_input_insert_at_cursor_title">Поведение при восстановлении сообщения из истории</string>
+    <string name="text_input_insert_at_cursor_summary">Нажмите, чтобы выбрать: вставить в позицию курсора или заменить всё поле ввода</string>
+    <string name="text_input_insert_at_cursor_dialog_title">Режим восстановления из истории</string>
+    <string name="text_input_insert_at_cursor_option_insert">Вставить в позицию курсора</string>
+    <string name="text_input_insert_at_cursor_option_replace">Заменить всё поле ввода</string>
 
     
     <string name="directory_history_title">История папок</string>

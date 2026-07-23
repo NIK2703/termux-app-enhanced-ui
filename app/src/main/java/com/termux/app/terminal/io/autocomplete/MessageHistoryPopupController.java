@@ -398,10 +398,6 @@ public final class MessageHistoryPopupController {
                 mCallback.onClearInputRequested();
             } else if (selected >= 0 && selected < mMessageHistoryCtrl.getHistoryList().size()) {
                 final String picked = mMessageHistoryCtrl.getHistoryList().get(selected);
-                // On a tap-selection, promote the item to the front of history (index 0 =
-                // newest), so in the "newest at bottom" rendering it shows at the very
-                // bottom of the list on the next open.
-                mMessageHistoryCtrl.addToMessageHistory(picked, mCallback.getCurrentCwd());
                 mCallback.onMessagePicked(picked);
             }
         }
