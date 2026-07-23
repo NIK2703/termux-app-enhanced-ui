@@ -153,6 +153,9 @@ public class ExtraKeyButton {
         } else if (macroFromConfig != null) {
             keys = macroFromConfig.split(" ");
             this.macro = true;
+        } else if (swipeUp != null || swipeDown != null || swipeLeft != null || swipeRight != null) {
+            keys = new String[]{""};
+            this.macro = false;
         } else {
             throw new JSONException("All keys have to specify either key or macro");
         }

@@ -574,6 +574,9 @@
     <string name="extra_keys_editor_open_editor">Редактировать дополнительные кнопки</string>
     <string name="extra_keys_editor_open_editor_summary">Настройка раскладки, масштаба и привязки кнопок</string>
     <string name="extra_keys_editor_hint">Нажмите, чтобы назначить основное действие · Смахните ↑ ↓ ← → для назначения действий по жестам</string>
+    <string name="extra_keys_editor_mode_assign">Назначить</string>
+    <string name="extra_keys_editor_mode_move">Переместить</string>
+    <string name="extra_keys_editor_hint_move">Перетащите кнопку на другую ячейку, чтобы переместить/обменять все её действия</string>
 
     
     <string name="extra_keys_haptic_title">Тактильная обратная связь</string>

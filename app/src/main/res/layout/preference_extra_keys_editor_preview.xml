@@ -5,6 +5,39 @@
     android:orientation="vertical"
     android:padding="8dp">
 
+    <LinearLayout
+        android:id="@+id/editor_mode_toggle_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:id="@+id/mode_assign_btn"
+            style="?android:attr/buttonBarStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:padding="8dp"
+            android:text="@string/extra_keys_editor_mode_assign"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <TextView
+            android:id="@+id/mode_move_btn"
+            style="?android:attr/buttonBarStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:padding="8dp"
+            android:text="@string/extra_keys_editor_mode_move"
+            android:clickable="true"
+            android:focusable="true" />
+
+    </LinearLayout>
+
     <com.termux.shared.termux.extrakeys.ExtraKeysView
         android:id="@+id/extra_keys_editor_preview"
         style="?android:attr/buttonBarStyle"
@@ -15,6 +48,7 @@
         android:orientation="horizontal" />
 
     <TextView
+        android:id="@+id/extra_keys_editor_hint_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/extra_keys_editor_hint"

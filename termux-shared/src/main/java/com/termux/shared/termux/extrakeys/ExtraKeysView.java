@@ -95,6 +95,21 @@ public final class ExtraKeysView extends GridLayout {
         UP, DOWN, LEFT, RIGHT
     }
 
+    /** Editor mode: assign signals vs move/swap cells. */
+    public enum EditorMode {
+        ASSIGN,
+        MOVE
+    }
+
+    /** Listener for move-mode cell swap operations. */
+    public interface EditorMoveListener {
+        /**
+         * Called when a drag-and-drop move completes in MOVE mode.
+         * Coordinates are row/col indices from the view child tags (0-based, relative to visible grid).
+         */
+        void onCellMove(int fromRow, int fromCol, int toRow, int toCol);
+    }
+
     /** Listener for editor-mode gestures on the extra keys view. */
     public interface EditorGestureListener {
         /**
@@ -330,6 +345,13 @@ public final class ExtraKeysView extends GridLayout {
 
     @Nullable
     private SwipeDirection mEditorSwipeDir;
+
+    /** Current editor mode. Defaults to ASSIGN (tap → signal picker, swipe → gesture picker). */
+    private EditorMode mEditorMode = EditorMode.ASSIGN;
+
+    /** Listener for move-mode drag-and-drop operations. Null unless MOVE mode is active. */
+    @Nullable
+    private EditorMoveListener mEditorMoveListener;
 
 
     public ExtraKeysView(Context context, AttributeSet attrs) {
@@ -1098,6 +1120,16 @@ public final class ExtraKeysView extends GridLayout {
         mEditorEdgeIndicatorsEnabled = true;
     }
 
+    /** Set the editor interaction mode. */
+    public void setEditorMode(@NonNull EditorMode mode) {
+        mEditorMode = mode;
+    }
+
+    /** Set the listener for move-mode drag-and-drop operations. */
+    public void setEditorMoveListener(@Nullable EditorMoveListener listener) {
+        mEditorMoveListener = listener;
+    }
+
     /** Cancel any ongoing editor gesture and reset touch state. */
     public void cancelEditorGesture() {
         resetTouchState();
@@ -1318,6 +1350,9 @@ public final class ExtraKeysView extends GridLayout {
             case MotionEvent.ACTION_MOVE: {
                 if (mActivePointerId == INVALID_POINTER_ID || mGestureConsumed) return true;
 
+                // In MOVE mode, skip swipe detection — just track for drag destination
+                if (mEditorMode == EditorMode.MOVE) return true;
+
                 int pointerIndex = ev.findPointerIndex(mActivePointerId);
                 if (pointerIndex < 0) return true;
 
@@ -1337,6 +1372,13 @@ public final class ExtraKeysView extends GridLayout {
 
             case MotionEvent.ACTION_UP: {
                 if (mActivePointerId == INVALID_POINTER_ID) return true;
+
+                // In MOVE mode, resolve drop target and fire move listener
+                if (mEditorMode == EditorMode.MOVE) {
+                    handleEditorMoveUp(ev);
+                    resetTouchState();
+                    return true;
+                }
 
                 int pointerIndex = ev.findPointerIndex(mActivePointerId);
                 if (pointerIndex >= 0 && !mGestureConsumed) {
@@ -1416,6 +1458,35 @@ public final class ExtraKeysView extends GridLayout {
         button.post(() -> {
             if (!isAttachedToWindow() || mEditorListener == null) return;
             mEditorListener.onKeySwipe(fButton, row, col, fDir);
+        });
+    }
+
+    /** Resolve drop target on ACTION_UP in MOVE mode and fire EditorMoveListener. */
+    private void handleEditorMoveUp(@NonNull MotionEvent ev) {
+        if (mActiveChild == null || mEditorMoveListener == null) return;
+
+        Object srcTag = mActiveChild.getTag();
+        if (!(srcTag instanceof int[]) || ((int[]) srcTag).length < 2) return;
+        int fromRow = ((int[]) srcTag)[0];
+        int fromCol = ((int[]) srcTag)[1];
+
+        int pointerIndex = ev.findPointerIndex(mActivePointerId);
+        if (pointerIndex < 0) return;
+
+        View target = findChildAt(ev.getX(pointerIndex), ev.getY(pointerIndex));
+        if (target == null || target == mActiveChild) return;
+
+        Object dstTag = target.getTag();
+        if (!(dstTag instanceof int[]) || ((int[]) dstTag).length < 2) return;
+        int toRow = ((int[]) dstTag)[0];
+        int toCol = ((int[]) dstTag)[1];
+
+        if (fromRow == toRow && fromCol == toCol) return;
+
+        final int fR = fromRow, fC = fromCol, tR = toRow, tC = toCol;
+        mActiveChild.post(() -> {
+            if (!isAttachedToWindow() || mEditorMoveListener == null) return;
+            mEditorMoveListener.onCellMove(fR, fC, tR, tC);
         });
     }
 

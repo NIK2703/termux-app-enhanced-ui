@@ -624,6 +624,9 @@
     <string name="extra_keys_editor_open_editor">Edit extra keys</string>
     <string name="extra_keys_editor_open_editor_summary">Configure layout, scale and key bindings</string>
     <string name="extra_keys_editor_hint">Tap to assign the main action · Swipe ↑ ↓ ← → to assign gesture actions</string>
+    <string name="extra_keys_editor_mode_assign">Assign</string>
+    <string name="extra_keys_editor_mode_move">Move</string>
+    <string name="extra_keys_editor_hint_move">Drag a key onto another cell to move/swap all its actions</string>
 
     <string name="extra_keys_haptic_title">Haptic feedback</string>
     <string name="extra_keys_haptic_summary">Vibrate on extra keys panel interactions</string>

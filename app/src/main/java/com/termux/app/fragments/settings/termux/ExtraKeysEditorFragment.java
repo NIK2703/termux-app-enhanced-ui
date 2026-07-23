@@ -5,6 +5,7 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
 import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
@@ -62,6 +63,10 @@ public class ExtraKeysEditorFragment extends TermuxPreferenceFragmentBase {
     private int mRows = 2;
     private int mCols = 5;
     private ExtraKeysConstants.ExtraKeyDisplayMap mDisplayMap;
+
+    private ExtraKeysView.EditorMode mCurrentMode = ExtraKeysView.EditorMode.ASSIGN;
+    @Nullable
+    private TextView mHintTextView;
 
     private int visibleRowStart() { return MAX_ROWS - mRows; }
     private int visibleColStart() { return MAX_COLS - mCols; }
@@ -211,7 +216,55 @@ public class ExtraKeysEditorFragment extends TermuxPreferenceFragmentBase {
         mPreviewView = root.findViewById(R.id.extra_keys_editor_preview);
         if (mPreviewView == null) return;
         mPreviewView.setEditorGestureListener(mEditorGestureListener);
+        mPreviewView.setEditorMoveListener(mEditorMoveListener);
+        applyEditorMode();
+
+        View assignBtn = root.findViewById(R.id.mode_assign_btn);
+        View moveBtn = root.findViewById(R.id.mode_move_btn);
+        if (assignBtn != null && moveBtn != null) {
+            assignBtn.setOnClickListener(v -> {
+                if (mCurrentMode == ExtraKeysView.EditorMode.ASSIGN) return;
+                mCurrentMode = ExtraKeysView.EditorMode.ASSIGN;
+                applyEditorMode();
+                updateModeButtons();
+                updateHintText();
+            });
+            moveBtn.setOnClickListener(v -> {
+                if (mCurrentMode == ExtraKeysView.EditorMode.MOVE) return;
+                mCurrentMode = ExtraKeysView.EditorMode.MOVE;
+                applyEditorMode();
+                updateModeButtons();
+                updateHintText();
+            });
+            updateModeButtons();
+        }
+
+        mHintTextView = root.findViewById(R.id.extra_keys_editor_hint_text);
+        updateHintText();
+
         rebuildPreview();
+    }
+
+    private void applyEditorMode() {
+        if (mPreviewView != null) mPreviewView.setEditorMode(mCurrentMode);
+    }
+
+    private void updateModeButtons() {
+        View root = getView();
+        if (root == null) return;
+        View assignBtn = root.findViewById(R.id.mode_assign_btn);
+        View moveBtn = root.findViewById(R.id.mode_move_btn);
+        if (assignBtn == null || moveBtn == null) return;
+        boolean isAssign = mCurrentMode == ExtraKeysView.EditorMode.ASSIGN;
+        assignBtn.setAlpha(isAssign ? 1.0f : 0.4f);
+        moveBtn.setAlpha(isAssign ? 0.4f : 1.0f);
+    }
+
+    private void updateHintText() {
+        if (mHintTextView == null) return;
+        mHintTextView.setText(mCurrentMode == ExtraKeysView.EditorMode.MOVE
+            ? R.string.extra_keys_editor_hint_move
+            : R.string.extra_keys_editor_hint);
     }
 
     private final ExtraKeysView.EditorGestureListener mEditorGestureListener =
@@ -234,6 +287,38 @@ public class ExtraKeysEditorFragment extends TermuxPreferenceFragmentBase {
                 }
                 openSignalPicker(row, col, dir);
             }
+        };
+
+    private final ExtraKeysView.EditorMoveListener mEditorMoveListener =
+        (fromRow, fromCol, toRow, toCol) -> {
+            // Tag coordinates are relative to visible grid (0..mRows-1, 0..mCols-1)
+            int vr = visibleRowStart();
+            int vc = visibleColStart();
+            KeyCell src = mGrid[vr + fromRow][vc + fromCol];
+            KeyCell dst = mGrid[vr + toRow][vc + toCol];
+            if (src == null || dst == null) return;
+
+            // Swap all 5 fields between source and destination
+            String tmpTap = src.tap;
+            String tmpSwipeUp = src.swipeUp;
+            String tmpSwipeDown = src.swipeDown;
+            String tmpSwipeLeft = src.swipeLeft;
+            String tmpSwipeRight = src.swipeRight;
+
+            src.tap = dst.tap;
+            src.swipeUp = dst.swipeUp;
+            src.swipeDown = dst.swipeDown;
+            src.swipeLeft = dst.swipeLeft;
+            src.swipeRight = dst.swipeRight;
+
+            dst.tap = tmpTap;
+            dst.swipeUp = tmpSwipeUp;
+            dst.swipeDown = tmpSwipeDown;
+            dst.swipeLeft = tmpSwipeLeft;
+            dst.swipeRight = tmpSwipeRight;
+
+            rebuildPreview();
+            save();
         };
 
     private void rebuildPreview() {
