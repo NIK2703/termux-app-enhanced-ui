@@ -57,7 +57,7 @@
         <activity
             android:name=".app.TermuxActivity"
             android:exported="true"
-            android:configChanges="orientation|screenSize|smallestScreenSize|density|screenLayout|keyboard|keyboardHidden|navigation|uiMode"
+            android:configChanges="orientation|screenSize|smallestScreenSize|density|screenLayout|keyboard|keyboardHidden|navigation"
             android:label="@string/application_name"
             android:launchMode="singleTask"
             android:resizeableActivity="true"

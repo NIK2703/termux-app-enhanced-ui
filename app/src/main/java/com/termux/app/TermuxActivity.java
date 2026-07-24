@@ -44,8 +44,6 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.core.content.ContextCompat;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 import com.termux.R;
 import com.termux.app.TermuxActivityUtils;
@@ -96,7 +94,7 @@ import com.termux.shared.termux.settings.properties.TermuxPropertyConstants;
 import com.termux.shared.termux.theme.TermuxThemeUtils;
 import com.termux.shared.theme.NightMode;
 import com.termux.shared.theme.ThemeUtils;
-import com.termux.shared.view.KeyboardUtils;
+import com.termux.shared.view.ImeVisibilityDetector;
 import com.termux.shared.view.ViewUtils;
 import com.termux.terminal.TerminalColors;
 import com.termux.terminal.TerminalSession;
@@ -293,6 +291,7 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
     private AutoCompleteController mAutoCompleteCtrl;
     private TermuxActivityPopupController mPopupCtrl;
     private FullScreenWorkAround mFullScreenWorkAround;
+    private ImeVisibilityDetector mImeDetector;
 
     /**
      * True for a short window right after onStart(), i.e. just after the app
@@ -422,6 +421,10 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
             mTextInputState.restoreFromBundle(savedInstanceState);
         }
 
+        // Delete ReportInfo serialized object files from cache older than N days
+        int cleanupDays = getResources().getInteger(R.integer.report_cleanup_days);
+        ReportActivity.deleteReportInfoFilesOlderThanXDays(this, cleanupDays, false);
+
         // Load Termux app SharedProperties from disk
         mProperties = TermuxAppSharedProperties.getProperties();
         reloadProperties();
@@ -429,24 +432,10 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         // Initialise the history controllers (they own the in-memory lists + persistence).
         mMessageHistoryCtrl = new MessageHistoryController(getSharedPreferences("termux_prefs", MODE_PRIVATE));
         mDirectoryHistoryCtrl = new DirectoryHistoryController(getSharedPreferences("termux_prefs", MODE_PRIVATE));
+
+        // Directory-history popup controller — owns its own popup window + gesture state
+        // (fully decoupled from the message-history popup, which keeps its own).
         mSessionSnapshotManager = new TermuxSessionSnapshotManager(this);
-
-        applyTermuxTheme();
-
-        super.onCreate(savedInstanceState);
-
-        // Delete ReportInfo serialized object files from cache older than N days.
-        // Must be AFTER super.onCreate() so SchemeResources picks up the night-mode
-        // configuration override applied by AppCompatDelegateImpl.
-        int cleanupDays = getResources().getInteger(R.integer.report_cleanup_days);
-        ReportActivity.deleteReportInfoFilesOlderThanXDays(this, cleanupDays, false);
-
-        // Directory-history popup controller (getResources() config-dependent, so after
-        // super.onCreate() so the night-mode override is already applied).
-        int popupGapPx = (int) (getResources().getDimension(R.dimen.message_history_popup_gap)
-                / getResources().getDisplayMetrics().density);
-        int popupMaxHeightPx = (int) (getResources().getDimension(R.dimen.message_history_popup_max_height)
-                / getResources().getDisplayMetrics().density);
         mDirectoryHistoryPopupCtrl = new DirectoryHistoryPopupController(this, mDirectoryHistoryCtrl,
                 mColorSchemeManager, new DirectoryHistoryPopupController.Callback() {
                     @Nullable
@@ -465,16 +454,14 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
                         mDirectoryHistoryCtrl.clear();
                         showToast(getString(R.string.directory_history_cleared), true);
                     }
-                }, popupGapPx, popupMaxHeightPx);
+                }, (int) (getResources().getDimension(R.dimen.message_history_popup_gap) / getResources().getDisplayMetrics().density),
+                        (int) (getResources().getDimension(R.dimen.message_history_popup_max_height) / getResources().getDisplayMetrics().density));
+
+        applyTermuxTheme();
+
+        super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_termux);
-
-        // Must set SOFT_INPUT_ADJUST_RESIZE here (not deferred to onResume) because after
-        // activity recreate (theme change) setSoftKeyboardState() in onResume() returns
-        // early when getTerminalView() is still null (service not yet reconnected). Without
-        // ADJUST_RESIZE, WindowInsetsCompat.Type.ime() on API < 30 never reports IME height
-        // so mSoftKeyboardVisible stays false and extra-keys auto-show/hide breaks.
-        KeyboardUtils.setSoftInputModeAdjustResize(this);
 
         // Apply the user's screen-orientation choice (Settings -> Screen orientation).
         TermuxActivityUtils.applyScreenOrientation(this);
@@ -505,39 +492,19 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         View content = findViewById(android.R.id.content);
         content.setOnApplyWindowInsetsListener((v, insets) -> {
             mNavBarHeight = insets.getSystemWindowInsetBottom();
-
-            // React to the soft keyboard (IME) being hidden while the text input
-            // panel is open: switch the slot back to the extra keys panel.
-            // Skip this while paused (app backgrounded / screen off) — Android
-            // dismisses the IME on pause, but we must keep the panel open so it
-            // stays visible when the app returns to the foreground.
-            WindowInsetsCompat _compat = WindowInsetsCompat.toWindowInsetsCompat(insets);
-            boolean imeVisible = _compat.isVisible(WindowInsetsCompat.Type.ime())
-                || _compat.getInsets(WindowInsetsCompat.Type.ime()).bottom > 0;
-            if (!mIsPaused && !mJustResumed && mSoftKeyboardVisible && !imeVisible && isTextInputVisible()
-                    && !mButtonTouchInProgress && !mPopupCtrl.isHistoryPopupShowing()) {
-                dismissAutoCompleteSuggestions();
-                setTextInputVisible(false);
-                updateToggleTextInputButtonIcon();
-            }
-            boolean imeWasVisible = mSoftKeyboardVisible;
-            mSoftKeyboardVisible = imeVisible;
-
-            // Reposition the auto-complete popup when IME shows/hides, since
-            // the input field's on-screen position may change.
-            // Auto-complete popup repositioning handled by AutoCompleteController
-
-            // If preference is on, show/hide extra keys with keyboard
-            if (imeVisible != imeWasVisible && mExtraKeysView != null
-                    && getTerminalToolbarContainer().getVisibility() == View.VISIBLE
-                    && !isTextInputVisible()
-                    && mPreferences.shouldHideExtraKeysWithKeyboard()) {
-                mExtraKeysView.setVisibility(imeVisible ? View.VISIBLE : View.GONE);
-                Logger.logDebug(LOG_TAG, "Auto-" + (imeVisible ? "showing" : "hiding") + " extra keys with keyboard");
-            }
-
+            // IME visibility is tracked by ImeVisibilityDetector below.
+            // On API < 30 WindowInsetsCompat.Type.ime() requires ADJUST_RESIZE
+            // which can be overwritten by setSoftKeyboardAlwaysHiddenFlags(),
+            // so we use getWindowVisibleDisplayFrame() instead.
             return v.onApplyWindowInsets(insets);
         });
+
+        // ImeVisibilityDetector uses getWindowVisibleDisplayFrame() which is
+        // independent of the soft-input adjust mode and works on all API levels.
+        mImeDetector = new ImeVisibilityDetector(this, (visible, heightPx) -> {
+            onImeVisibilityChanged(visible);
+        });
+        mImeDetector.attach();
 
         setFullScreenFlags();
 
@@ -604,15 +571,9 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         // true from before the app was backgrounded, when the soft keyboard was
         // dismissed by the system. Without this reset, the first insets after
         // resume (with IME still hidden) would falsely read as "IME just hidden
-        // while panel open" and close the text input panel. onStart runs before
-        // the insets listener fires on resume.
+        // while panel open" and close the text input panel.
         mSoftKeyboardVisible = false;
-        // Request a fresh insets dispatch so the IME listener immediately
-        // re-evaluates the current keyboard state. Without this, if the
-        // keyboard was already open (e.g. after recreate or returning from
-        // background with keyboard still up), mSoftKeyboardVisible would
-        // stay false until the next IME state change.
-        ViewCompat.requestApplyInsets(findViewById(android.R.id.content));
+        if (mImeDetector != null) mImeDetector.refresh();
 
         // Open the "just resumed" window: suppress the IME-hidden auto-close of
         // the panel until the transient post-return insets frames have settled.
@@ -767,6 +728,13 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
             mFullScreenWorkAround.unregister();
             mFullScreenWorkAround = null;
         }
+
+        // Detach the IME detector to prevent leaking the activity via
+        // ViewTreeObserver.OnGlobalLayoutListener.
+        if (mImeDetector != null) {
+            mImeDetector.detach();
+            mImeDetector = null;
+        }
     }
 
     @Override
@@ -790,33 +758,6 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
 
 
 
-
-    @Override
-    public void onConfigurationChanged(@NonNull android.content.res.Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-        // Handle system day/night theme toggle without activity recreate. The
-        // manifest now includes uiMode in configChanges so this is called instead
-        // of destroy+create when the system dark mode changes.
-        int nightBit = newConfig.uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
-        if (nightBit == android.content.res.Configuration.UI_MODE_NIGHT_YES
-                || nightBit == android.content.res.Configuration.UI_MODE_NIGHT_NO) {
-            // Re-evaluate terminal color scheme for the new night state.
-            if (mTermuxTerminalSessionActivityClient != null)
-                mTermuxTerminalSessionActivityClient.checkForFontAndColors();
-            // Recompute scheme-derived UI colours (button bg/text, etc.)
-            mColorSchemeManager.recompute(getPreferences());
-            applySchemeColors();
-            // Push fresh colours to the extra-keys panel.
-            if (mExtraKeysView != null) {
-                mExtraKeysView.setButtonColors(
-                    mColorSchemeManager.getButtonText(),
-                    deriveActiveTextColor(mColorSchemeManager.getButtonText()),
-                    mColorSchemeManager.getButtonBg(),
-                    mColorSchemeManager.getButtonActiveBg()
-                );
-            }
-        }
-    }
 
     private void reloadProperties() {
         mProperties.loadTermuxPropertiesFromDisk();
@@ -2492,6 +2433,35 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
     }
 
     /**
+     * Shared reaction to IME visibility changes. Called by the insets listener
+     * (when using "insets" mode) or by {@link ImeVisibilityDetector}
+     * (when using "frame" mode).
+     */
+    private void onImeVisibilityChanged(boolean imeVisible) {
+        boolean wasVisible = mSoftKeyboardVisible;
+        mSoftKeyboardVisible = imeVisible;
+
+        if (imeVisible != wasVisible) {
+            // Auto-close text input panel when keyboard hides
+            if (!mIsPaused && !mJustResumed && wasVisible && !imeVisible && isTextInputVisible()
+                    && !mButtonTouchInProgress && !mPopupCtrl.isHistoryPopupShowing()) {
+                dismissAutoCompleteSuggestions();
+                setTextInputVisible(false);
+                updateToggleTextInputButtonIcon();
+            }
+
+            // Auto-show/hide extra keys with keyboard
+            if (mExtraKeysView != null
+                    && getTerminalToolbarContainer().getVisibility() == View.VISIBLE
+                    && !isTextInputVisible()
+                    && mPreferences.shouldHideExtraKeysWithKeyboard()) {
+                mExtraKeysView.setVisibility(imeVisible ? View.VISIBLE : View.GONE);
+                Logger.logDebug(LOG_TAG, "Auto-" + (imeVisible ? "showing" : "hiding") + " extra keys with keyboard");
+            }
+        }
+    }
+
+    /**
      * Set the shared slot below the tabs: text input container vs extra keys.
      * The text input panel and the extra keys share one overlapping slot (FrameLayout);
      * showing one hides the other. When the text input panel is hidden, the extra keys
@@ -2604,10 +2574,7 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
             return mTextInputState.isVisible(session.mHandle);
         }
         // New sessions (no recorded per-session state) default to hidden.
-        // Fallback to the global preference for sessions without per-session state,
-        // so a new tab inherits the panel visibility that was active on the previous tab.
-        return getSharedPreferences("termux_prefs", MODE_PRIVATE)
-                .getBoolean(PREF_TEXT_INPUT_VISIBLE, false);
+        return false;
     }
 
     /**

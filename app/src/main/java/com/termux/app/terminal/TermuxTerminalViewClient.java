@@ -605,12 +605,6 @@ public class TermuxTerminalViewClient extends TermuxTerminalViewClientBase {
     }
 
     public void setSoftKeyboardState(boolean isStartup, boolean isReloadTermuxProperties) {
-        // Set SOFT_INPUT_ADJUST_RESIZE unconditionally, before the terminalView null gate.
-        // After activity recreate (theme change) getTerminalView() may still be null here
-        // (service reconnecting), but the window already exists and must have ADJUST_RESIZE
-        // so WindowInsetsCompat.Type.ime() reports IME height on API < 30.
-        KeyboardUtils.setSoftInputModeAdjustResize(mActivity);
-
         // The active terminal view is owned by the ViewPager2 and may not be selected yet when
         // onResume() runs on a cold start. The per-page focus listener is attached in the pager
         // adapter (onBindViewHolder) where the view is guaranteed non-null, so skip the view-bound
@@ -641,6 +635,9 @@ public class TermuxTerminalViewClient extends TermuxTerminalViewClientBase {
             if (isStartup && mActivity.isOnResumeAfterOnCreate())
                 mShowSoftKeyboardWithDelayOnce = true;
         } else {
+            // Set flag to automatically push up TerminalView when keyboard is opened instead of showing over it
+            KeyboardUtils.setSoftInputModeAdjustResize(mActivity);
+
             // Clear any previous flags to disable soft keyboard in case setting updated
             KeyboardUtils.clearDisableSoftKeyboardFlags(mActivity);
 
