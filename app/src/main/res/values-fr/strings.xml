@@ -323,7 +323,7 @@
     <string name="extra_keys_editor_done">Terminé</string>
     <string name="extra_keys_editor_open_editor">Modifier les touches supplémentaires</string>
     <string name="extra_keys_editor_open_editor_summary">Configurer la disposition, l\'échelle et les raccourcis clavier</string>
-    <string name="extra_keys_editor_hint">Appuyez pour attribuer l'action principale · Glissez ↑ ↓ ← → pour attribuer les actions gestuelles</string>
+    <string name="extra_keys_editor_hint">Appuyez pour attribuer l\'action principale · Glissez ↑ ↓ ← → pour attribuer les actions gestuelles</string>
     <string name="extra_keys_editor_mode_assign">Attribuer</string>
     <string name="extra_keys_editor_mode_move">Déplacer</string>
     <string name="extra_keys_editor_hint_move">Faites glisser une touche vers une autre cellule pour déplacer/échanger toutes ses actions</string>

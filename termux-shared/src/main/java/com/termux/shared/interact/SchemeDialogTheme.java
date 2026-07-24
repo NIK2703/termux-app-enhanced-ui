@@ -2,9 +2,11 @@ package com.termux.shared.interact;
 
 import android.content.Context;
 import android.content.res.ColorStateList;
+import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.content.res.Resources.Theme;
 import android.content.res.XmlResourceParser;
+import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.ContextThemeWrapper;
 
@@ -52,6 +54,7 @@ public final class SchemeDialogTheme {
         private final int mDivider;
         private Resources mSchemeResources;
         private boolean mOverlayApplied;
+        private Configuration mOverrideConfig;
 
         SchemeActivityContext(@NonNull Context base, int styleRes, int fg, int bg) {
             super(base, 0);
@@ -59,6 +62,21 @@ public final class SchemeDialogTheme {
             mFg = fg;
             mBg = bg;
             mDivider = blend(fg, bg, 0.3f);
+        }
+
+        /**
+         * Called by AppCompatDelegateImpl inside super.onCreate() to set the night-mode
+         * configuration override (UI_MODE_NIGHT_YES) on the base context. Without overriding
+         * this, the first call to getResources() (which happens before super.onCreate()
+         * in TermuxActivity) would cache a SchemeResources with the stale (light)
+         * configuration and never pick up the override — breaking IME detection on API < 30
+         * when MODE_NIGHT_FOLLOW_SYSTEM + system dark mode is active.
+         */
+        @Override
+        public void applyOverrideConfiguration(Configuration overrideConfig) {
+            mOverrideConfig = overrideConfig;
+            super.applyOverrideConfiguration(overrideConfig);
+            mSchemeResources = null;
         }
 
         @Override
@@ -74,7 +92,16 @@ public final class SchemeDialogTheme {
         @Override
         public Resources getResources() {
             if (mSchemeResources == null) {
-                mSchemeResources = new SchemeResources(super.getResources(), mFg, mBg, mDivider);
+                Resources baseRes;
+                if (mOverrideConfig != null) {
+                    // ContextThemeWrapper.getResources() returns stale cached resources
+                    // created before the override was applied.  Use createConfigurationContext
+                    // to get a fresh Resources instance with the override config baked in.
+                    baseRes = createConfigurationContext(mOverrideConfig).getResources();
+                } else {
+                    baseRes = super.getResources();
+                }
+                mSchemeResources = new SchemeResources(baseRes, mFg, mBg, mDivider);
             }
             return mSchemeResources;
         }
@@ -161,6 +188,21 @@ public final class SchemeDialogTheme {
                 return;
             }
             mBase.getValue(id, outValue, resolveRefs);
+        }
+
+        /**
+         * Return the live base configuration so that callers (e.g. layout inflation,
+         * WindowInsets detection) see the corrected uiMode after applyOverrideConfiguration(),
+         * not the frozen snapshot passed to the deprecated Resources(AssetManager, …) constructor.
+         */
+        @Override
+        public Configuration getConfiguration() {
+            return mBase.getConfiguration();
+        }
+
+        @Override
+        public DisplayMetrics getDisplayMetrics() {
+            return mBase.getDisplayMetrics();
         }
 
         /** @return The scheme ARGB for a {@code scheme_dialog_*} resource id, or 0 if not one. */

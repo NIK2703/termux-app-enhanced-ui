@@ -524,6 +524,13 @@ public final class SessionPagerManager {
         // needed for extra keys to follow along.
         mActivity.setTerminalView(pageView);
 
+        // Defensive clear: after re-pointing the active TerminalView, wipe any leftover
+        // text in the shared EditText so it cannot leak into the incoming session's
+        // text-input state if saveTextInputForCurrentSession() is ever called by another
+        // code path between here and the restore in applyTextInputVisibilityForSession().
+        EditText et = mActivity.findViewById(R.id.terminal_toolbar_text_input);
+        if (et != null) et.setText("");
+
         // Refresh the tab highlight for the page we landed on. We call setCurrentSession(position)
         // (NOT updateTabs()) because updateTabs() does removeAllViews() + recreate every tab,
         // which would thrash on every swipe; setCurrentSession() only flips the selection

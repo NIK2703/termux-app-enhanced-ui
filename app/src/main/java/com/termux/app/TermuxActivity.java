@@ -96,6 +96,7 @@ import com.termux.shared.termux.settings.properties.TermuxPropertyConstants;
 import com.termux.shared.termux.theme.TermuxThemeUtils;
 import com.termux.shared.theme.NightMode;
 import com.termux.shared.theme.ThemeUtils;
+import com.termux.shared.view.KeyboardUtils;
 import com.termux.shared.view.ViewUtils;
 import com.termux.terminal.TerminalColors;
 import com.termux.terminal.TerminalSession;
@@ -421,10 +422,6 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
             mTextInputState.restoreFromBundle(savedInstanceState);
         }
 
-        // Delete ReportInfo serialized object files from cache older than N days
-        int cleanupDays = getResources().getInteger(R.integer.report_cleanup_days);
-        ReportActivity.deleteReportInfoFilesOlderThanXDays(this, cleanupDays, false);
-
         // Load Termux app SharedProperties from disk
         mProperties = TermuxAppSharedProperties.getProperties();
         reloadProperties();
@@ -432,10 +429,24 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
         // Initialise the history controllers (they own the in-memory lists + persistence).
         mMessageHistoryCtrl = new MessageHistoryController(getSharedPreferences("termux_prefs", MODE_PRIVATE));
         mDirectoryHistoryCtrl = new DirectoryHistoryController(getSharedPreferences("termux_prefs", MODE_PRIVATE));
-
-        // Directory-history popup controller — owns its own popup window + gesture state
-        // (fully decoupled from the message-history popup, which keeps its own).
         mSessionSnapshotManager = new TermuxSessionSnapshotManager(this);
+
+        applyTermuxTheme();
+
+        super.onCreate(savedInstanceState);
+
+        // Delete ReportInfo serialized object files from cache older than N days.
+        // Must be AFTER super.onCreate() so SchemeResources picks up the night-mode
+        // configuration override applied by AppCompatDelegateImpl.
+        int cleanupDays = getResources().getInteger(R.integer.report_cleanup_days);
+        ReportActivity.deleteReportInfoFilesOlderThanXDays(this, cleanupDays, false);
+
+        // Directory-history popup controller (getResources() config-dependent, so after
+        // super.onCreate() so the night-mode override is already applied).
+        int popupGapPx = (int) (getResources().getDimension(R.dimen.message_history_popup_gap)
+                / getResources().getDisplayMetrics().density);
+        int popupMaxHeightPx = (int) (getResources().getDimension(R.dimen.message_history_popup_max_height)
+                / getResources().getDisplayMetrics().density);
         mDirectoryHistoryPopupCtrl = new DirectoryHistoryPopupController(this, mDirectoryHistoryCtrl,
                 mColorSchemeManager, new DirectoryHistoryPopupController.Callback() {
                     @Nullable
@@ -454,14 +465,16 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
                         mDirectoryHistoryCtrl.clear();
                         showToast(getString(R.string.directory_history_cleared), true);
                     }
-                }, (int) (getResources().getDimension(R.dimen.message_history_popup_gap) / getResources().getDisplayMetrics().density),
-                        (int) (getResources().getDimension(R.dimen.message_history_popup_max_height) / getResources().getDisplayMetrics().density));
-
-        applyTermuxTheme();
-
-        super.onCreate(savedInstanceState);
+                }, popupGapPx, popupMaxHeightPx);
 
         setContentView(R.layout.activity_termux);
+
+        // Must set SOFT_INPUT_ADJUST_RESIZE here (not deferred to onResume) because after
+        // activity recreate (theme change) setSoftKeyboardState() in onResume() returns
+        // early when getTerminalView() is still null (service not yet reconnected). Without
+        // ADJUST_RESIZE, WindowInsetsCompat.Type.ime() on API < 30 never reports IME height
+        // so mSoftKeyboardVisible stays false and extra-keys auto-show/hide breaks.
+        KeyboardUtils.setSoftInputModeAdjustResize(this);
 
         // Apply the user's screen-orientation choice (Settings -> Screen orientation).
         TermuxActivityUtils.applyScreenOrientation(this);
@@ -777,6 +790,33 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
 
 
 
+
+    @Override
+    public void onConfigurationChanged(@NonNull android.content.res.Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        // Handle system day/night theme toggle without activity recreate. The
+        // manifest now includes uiMode in configChanges so this is called instead
+        // of destroy+create when the system dark mode changes.
+        int nightBit = newConfig.uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
+        if (nightBit == android.content.res.Configuration.UI_MODE_NIGHT_YES
+                || nightBit == android.content.res.Configuration.UI_MODE_NIGHT_NO) {
+            // Re-evaluate terminal color scheme for the new night state.
+            if (mTermuxTerminalSessionActivityClient != null)
+                mTermuxTerminalSessionActivityClient.checkForFontAndColors();
+            // Recompute scheme-derived UI colours (button bg/text, etc.)
+            mColorSchemeManager.recompute(getPreferences());
+            applySchemeColors();
+            // Push fresh colours to the extra-keys panel.
+            if (mExtraKeysView != null) {
+                mExtraKeysView.setButtonColors(
+                    mColorSchemeManager.getButtonText(),
+                    deriveActiveTextColor(mColorSchemeManager.getButtonText()),
+                    mColorSchemeManager.getButtonBg(),
+                    mColorSchemeManager.getButtonActiveBg()
+                );
+            }
+        }
+    }
 
     private void reloadProperties() {
         mProperties.loadTermuxPropertiesFromDisk();
@@ -2564,7 +2604,10 @@ public final class TermuxActivity extends AppCompatActivity implements TextInput
             return mTextInputState.isVisible(session.mHandle);
         }
         // New sessions (no recorded per-session state) default to hidden.
-        return false;
+        // Fallback to the global preference for sessions without per-session state,
+        // so a new tab inherits the panel visibility that was active on the previous tab.
+        return getSharedPreferences("termux_prefs", MODE_PRIVATE)
+                .getBoolean(PREF_TEXT_INPUT_VISIBLE, false);
     }
 
     /**

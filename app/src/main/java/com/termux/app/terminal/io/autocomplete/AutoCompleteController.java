@@ -452,11 +452,11 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
                 // UP/CANCEL was never delivered (e.g. app backgrounded mid-swipe) the
                 // suppress guard would stay latched and auto-complete would stay
                 // silent on every keystroke. Clear the guard whenever a swipe is no
-                // longer genuinely in progress (engaged=false covers a dead gesture
-                // whose UP/CANCEL was lost — the original condition required
-                // !isPointerDown(), which the dead gesture also satisfies, so it never
-                // fired). Clearing on !isEngaged() actually resets the stuck state.
-                if (mSwipeSuppressed && !mSwipeHandler.isEngaged()) {
+                // longer genuinely in progress (engaged=false AND pointerDown=false
+                // covers a dead gesture whose UP/CANCEL was lost). Without the
+                // isPointerDown() check, a live swipe mid-gesture would be incorrectly
+                // force-cleared just because an unrelated text change arrived.
+                if (mSwipeSuppressed && !mSwipeHandler.isEngaged() && !mSwipeHandler.isPointerDown()) {
                     mSwipeHandler.resetIfEngaged();
                 }
                 final EditText f = mInputField;
@@ -480,6 +480,14 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
                     mComposingCoalesce = () -> {
                         mComposingCoalesce = null;
                         if (mSuppressAutoComplete || mSwipeSuppressed) return;
+                        // Guard against stale deferred update: the user may have moved the
+                        // caret away from end during the deferred window. Without this check,
+                        // a delayed composing update could re-show the popup after onCaretMoved()
+                        // already dismissed it (race described as Bug #1 in the analysis).
+                        if (mInputField != null && !hasComposingSpan(mInputField)) {
+                            int c = mInputField.getSelectionStart();
+                            if (c >= 0 && c != mInputField.getText().length()) return;
+                        }
                         updateAutoCompleteSuggestions();
                     };
                     mImeHandler.post(mComposingCoalesce); // collapses the compose chain into 1 recompute, NO timer
@@ -515,10 +523,14 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
         // Arrow-key navigation also moves the caret without text changes.
         // OnKeyListener fires once per key-up; we call onCaretMoved() which
         // checks the current caret position against the text length.
+        // DPAD_UP/DPAD_DOWN are included because in multi-line fields the caret
+        // can move to a non-end position without a text change (Bug #4 fix).
         mInputField.setOnKeyListener((v, keyCode, event) -> {
             if (event.getAction() == KeyEvent.ACTION_UP
                     && (keyCode == KeyEvent.KEYCODE_DPAD_LEFT
-                        || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT)) {
+                        || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT
+                        || keyCode == KeyEvent.KEYCODE_DPAD_UP
+                        || keyCode == KeyEvent.KEYCODE_DPAD_DOWN)) {
                 onCaretMoved();
             }
             return false; // don't consume, let the EditText handle navigation
@@ -586,6 +598,11 @@ public final class AutoCompleteController implements AutoCompleteDataProvider {
     private void updateAutoCompleteSuggestions() {
         if (mIsInvalidState) {
             return;
+        }
+        // Safety net: force-clear stuck swipe suppression if the gesture ended
+        // without delivering UP/CANCEL (e.g. app backgrounded mid-swipe).
+        if (mSwipeSuppressed && !mSwipeHandler.isEngaged() && !mSwipeHandler.isPointerDown()) {
+            mSwipeHandler.resetIfEngaged();
         }
         if (mSuppressAutoComplete || mSwipeSuppressed) {
             return;
